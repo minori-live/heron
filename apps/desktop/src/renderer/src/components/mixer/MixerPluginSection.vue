@@ -216,35 +216,37 @@ function confirmDrop(selection: PluginSelection): void {
           >
             {{ plugin.descriptor.name }}
           </button>
-          <span
-            class="mode-badge"
-            :title="t('mixer.pluginSection.audioMode', { mode: plugin.audioMode })"
-            >{{ pluginAudioModeBadge(plugin.audioMode) }}</span
-          >
-          <button
-            type="button"
-            :aria-pressed="plugin.enabled"
-            :aria-label="
-              t('mixer.pluginSection.bypassPlugin', {
-                action: plugin.enabled
-                  ? t('mixer.pluginSection.bypass')
-                  : t('mixer.pluginSection.enable'),
-                name: plugin.descriptor.name
-              })
-            "
-            @pointerdown.stop
-            @click.stop="emit('toggle', plugin.id, !plugin.enabled)"
-          >
-            <Power :size="9" />
-          </button>
-          <button
-            type="button"
-            :aria-label="t('mixer.pluginSection.remove', { name: plugin.descriptor.name })"
-            @pointerdown.stop
-            @click.stop="emit('remove', plugin.id)"
-          >
-            <Trash2 :size="9" />
-          </button>
+          <span class="plugin-actions">
+            <span
+              class="mode-badge"
+              :title="t('mixer.pluginSection.audioMode', { mode: plugin.audioMode })"
+              >{{ pluginAudioModeBadge(plugin.audioMode) }}</span
+            >
+            <button
+              type="button"
+              :aria-pressed="plugin.enabled"
+              :aria-label="
+                t('mixer.pluginSection.bypassPlugin', {
+                  action: plugin.enabled
+                    ? t('mixer.pluginSection.bypass')
+                    : t('mixer.pluginSection.enable'),
+                  name: plugin.descriptor.name
+                })
+              "
+              @pointerdown.stop
+              @click.stop="emit('toggle', plugin.id, !plugin.enabled)"
+            >
+              <Power :size="9" />
+            </button>
+            <button
+              type="button"
+              :aria-label="t('mixer.pluginSection.remove', { name: plugin.descriptor.name })"
+              @pointerdown.stop
+              @click.stop="emit('remove', plugin.id)"
+            >
+              <Trash2 :size="9" />
+            </button>
+          </span>
         </article>
       </template>
 
@@ -325,26 +327,52 @@ function confirmDrop(selection: PluginSelection): void {
 }
 .plugin-row {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr) auto 18px 18px;
+  grid-template-columns: 0 minmax(0, 1fr) 0;
   align-items: center;
   min-width: 0;
   height: 23px;
+  overflow: hidden;
   border: 1px solid var(--ui-domain-color-2e5d86);
   border-radius: 4px;
   color: var(--ui-domain-color-fff);
   background: linear-gradient(var(--ui-domain-color-3f91d4), var(--ui-domain-color-2871ae));
   box-shadow: 0 1px 0 var(--ui-domain-color-ffffff28) inset;
 }
+.plugin-row:hover,
+.plugin-row:focus-within {
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+}
 .plugin-grip {
   display: grid;
   place-items: center;
   height: 100%;
+  overflow: hidden;
   color: currentColor;
   cursor: grab;
+  opacity: 0;
+}
+.plugin-row:hover .plugin-grip,
+.plugin-row:focus-within .plugin-grip {
   opacity: 0.62;
 }
 .plugin-grip:active {
   cursor: grabbing;
+}
+.plugin-actions {
+  display: grid;
+  grid-template-columns: auto 18px 18px;
+  align-items: center;
+  width: 0;
+  height: 100%;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.plugin-row:hover .plugin-actions,
+.plugin-row:focus-within .plugin-actions {
+  width: auto;
+  opacity: 1;
+  pointer-events: auto;
 }
 .mode-badge {
   padding: 1px 3px;
@@ -426,7 +454,7 @@ function confirmDrop(selection: PluginSelection): void {
   padding: 0 3px;
   overflow: hidden;
   font-size: var(--ui-type-size-control);
-  text-align: left;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

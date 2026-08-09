@@ -49,6 +49,7 @@ describe("MixerInstrumentInput", () => {
 
     expect(wrapper.text()).toContain("Synth")
     expect(wrapper.text()).not.toContain("MIDI")
+    expect(wrapper.get(".instrument-actions").text()).toBe("S")
     await wrapper.get('button[aria-label="Open Synth instrument editor"]').trigger("click")
     expect(wrapper.emitted("open")?.at(-1)).toEqual(["instrument-plugin"])
     expect(wrapper.find('button[aria-label="Bypass Synth"]').exists()).toBe(false)

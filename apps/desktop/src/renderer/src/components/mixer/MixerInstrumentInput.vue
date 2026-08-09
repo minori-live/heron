@@ -73,19 +73,21 @@ function confirmDrop(selection: PluginSelection): void {
       >
         {{ instrument.descriptor.name }}
       </button>
-      <span
-        class="mode-badge"
-        :title="t('mixer.instrumentInput.audioMode', { mode: instrument.audioMode })"
-        >{{ pluginAudioModeBadge(instrument.audioMode) }}</span
-      >
-      <button
-        type="button"
-        :aria-label="t('mixer.instrumentInput.remove', { name: instrument.descriptor.name })"
-        @pointerdown.stop
-        @click.stop="emit('remove', instrument.id)"
-      >
-        <Trash2 :size="10" />
-      </button>
+      <span class="instrument-actions">
+        <span
+          class="mode-badge"
+          :title="t('mixer.instrumentInput.audioMode', { mode: instrument.audioMode })"
+          >{{ pluginAudioModeBadge(instrument.audioMode) }}</span
+        >
+        <button
+          type="button"
+          :aria-label="t('mixer.instrumentInput.remove', { name: instrument.descriptor.name })"
+          @pointerdown.stop
+          @click.stop="emit('remove', instrument.id)"
+        >
+          <Trash2 :size="10" />
+        </button>
+      </span>
     </article>
 
     <MixerPluginPicker
@@ -121,17 +123,38 @@ function confirmDrop(selection: PluginSelection): void {
 }
 .instrument-input {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 22px;
+  grid-template-columns: minmax(0, 1fr) 0;
   align-items: center;
   width: 100%;
   height: 28px;
   min-width: 0;
+  overflow: hidden;
   padding: 0;
   border: 1px solid var(--ui-domain-color-697654);
   border-radius: 4px;
   color: var(--ui-domain-color-fff);
   background: linear-gradient(var(--ui-domain-color-7e9362), var(--ui-domain-color-63764d));
   box-shadow: 0 1px 0 var(--ui-domain-color-ffffff28) inset;
+}
+.instrument-input:hover,
+.instrument-input:focus-within {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.instrument-actions {
+  display: grid;
+  grid-template-columns: auto 22px;
+  align-items: center;
+  width: 0;
+  height: 100%;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.instrument-input:hover .instrument-actions,
+.instrument-input:focus-within .instrument-actions {
+  width: auto;
+  opacity: 1;
+  pointer-events: auto;
 }
 .mode-badge {
   padding: 1px 4px;
@@ -190,7 +213,7 @@ function confirmDrop(selection: PluginSelection): void {
   padding: 0 7px;
   overflow: hidden;
   font-size: var(--ui-type-size-control);
-  text-align: left;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
