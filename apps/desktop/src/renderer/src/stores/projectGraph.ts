@@ -1,6 +1,7 @@
 import { acceptHMRUpdate, defineStore } from "pinia"
 import { shallowRef } from "vue"
 import type {
+  MidiMixerControlOverlay,
   MixerParameterPreview,
   ProjectCommand,
   ProjectCommandResult,
@@ -53,6 +54,21 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
   function hydrate(snapshot: ProjectGraphSnapshot): void {
     replace(snapshot)
     error.value = ""
+  }
+
+  function applyMidiControlOverlay(controls: MidiMixerControlOverlay[]): void {
+    if (controls.length === 0) return
+    const patches = new Map(controls.map((control) => [control.channelId, control]))
+    const next = structuredClone(graph.value)
+    for (const channel of next.channels) {
+      const control = patches.get(channel.id)
+      if (!control) continue
+      if (control.gainDb !== undefined) channel.gainDb = control.gainDb
+      if (control.pan !== undefined) channel.pan = control.pan
+      if (control.muted !== undefined) channel.muted = control.muted
+      if (control.soloed !== undefined) channel.soloed = control.soloed
+    }
+    graph.value = next
   }
 
   async function loadNow(reload: boolean): Promise<void> {
@@ -198,6 +214,7 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
     loading,
     error,
     hydrate,
+    applyMidiControlOverlay,
     replace,
     load,
     reload,

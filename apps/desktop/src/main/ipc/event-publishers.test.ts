@@ -16,6 +16,7 @@ function createServices() {
   const send = vi.fn()
   const midiInputSnapshot = vi.fn(async () => ({ ports: [] }))
   const midiRuntimeSnapshot = vi.fn(() => ({ revision: 7, ports: [] }))
+  const midiControlOverlaySnapshot = vi.fn(() => [{ channelId: "master", gainDb: -6 }])
   electronMocks.getAllWindows.mockReturnValue([{ webContents: { send } }])
   const services = {
     plugins: {
@@ -24,6 +25,7 @@ function createServices() {
         return unsubscribe
       })
     },
+    projectGraph: { midiControlOverlaySnapshot },
     audioHost: { midiInputSnapshot },
     lifecycle: {
       applicationState: {
@@ -38,6 +40,7 @@ function createServices() {
     emitPlugin: (event: PluginScanEvent) => pluginListener?.(event),
     midiInputSnapshot,
     midiRuntimeSnapshot,
+    midiControlOverlaySnapshot,
     send,
     unsubscribe
   }
@@ -99,6 +102,10 @@ describe("registerIpcEventPublishers", () => {
     vi.advanceTimersByTime(1)
     await Promise.resolve()
     expect(fixture.midiInputSnapshot).toHaveBeenCalledOnce()
+    expect(fixture.midiRuntimeSnapshot).toHaveBeenCalledWith({
+      ports: [],
+      mixerControlOverlay: [{ channelId: "master", gainDb: -6 }]
+    })
 
     registration.dispose()
   })

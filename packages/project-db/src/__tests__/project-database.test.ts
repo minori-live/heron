@@ -1738,5 +1738,67 @@ describe("ProjectDatabase", () => {
       muted: true,
       soloed: false
     })
+
+    await database.saveControlState([], [])
+    await database.applyCommand(
+      {
+        type: "create-plugin",
+        plugin: {
+          id: "controlled-effect",
+          channelId: master.id,
+          role: "insert",
+          slotOrder: 0,
+          locator: {
+            format: "vst3",
+            artifactPath: "controlled.vst3",
+            nativeId: "0123456789ABCDEFFEDCBA9876543210"
+          },
+          descriptor: {
+            source: { kind: "external" },
+            locator: {
+              format: "vst3",
+              artifactPath: "controlled.vst3",
+              nativeId: "0123456789ABCDEFFEDCBA9876543210"
+            },
+            name: "Controlled Effect",
+            vendor: "Heron Studio",
+            version: "1.0",
+            categories: ["Fx"],
+            kind: "effect",
+            architecture: "x86_64",
+            buses: [],
+            supportedAudioModes: ["stereo"],
+            hasEditor: false,
+            compatibility: "compatible",
+            compatibilityReason: null
+          },
+          audioMode: "stereo",
+          enabled: true,
+          controlAlias: "controlled.effect",
+          sidechainInputs: [],
+          state: { version: 1, chunks: [] }
+        }
+      },
+      "output-1-2"
+    )
+
+    await database.saveControlState(
+      [
+        {
+          id: "controlled-effect",
+          state: {
+            version: 1,
+            chunks: [{ key: "component", bytes: new Uint8Array([1, 2, 3]) }]
+          }
+        }
+      ],
+      [{ id: master.id, gainDb: -9 }]
+    )
+
+    const captured = await database.mixerSnapshot()
+    expect(captured.channels.find((channel) => channel.id === master.id)?.gainDb).toBe(-9)
+    expect(
+      captured.plugins.find((plugin) => plugin.id === "controlled-effect")?.state.chunks
+    ).toEqual([{ key: "component", bytes: new Uint8Array([1, 2, 3]) }])
   })
 })

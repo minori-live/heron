@@ -677,9 +677,7 @@ impl EmbeddedAudioHost {
 
     #[must_use]
     pub fn drain_midi_control_events(&self) -> Vec<heron_dsp_runtime::protocol::MidiControlEvent> {
-        MIDI_INPUT
-            .get()
-            .map_or_else(Vec::new, |actor| actor.drain_control_events())
+        drain_midi_control_events(MIDI_INPUT.get())
     }
 
     pub fn close(&self) {
@@ -717,6 +715,12 @@ impl EmbeddedAudioHost {
             }
         });
     }
+}
+
+fn drain_midi_control_events(
+    actor: Option<&super::super::midi_input::MidiInputActor>,
+) -> Vec<heron_dsp_runtime::protocol::MidiControlEvent> {
+    actor.map_or_else(Vec::new, |actor| actor.drain_control_events())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -879,6 +883,27 @@ fn record_slow_request(counter: &AtomicU64, request_id: u64, threshold: Duration
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn draining_midi_controls_without_an_actor_is_empty() {
+        assert!(drain_midi_control_events(None).is_empty());
+    }
+
+    #[test]
+    fn draining_midi_controls_from_an_idle_actor_is_empty() {
+        let actor = crate::midi_input::MidiInputActor::start(
+            heron_dsp_runtime::protocol::MidiSyncPreferences {
+                enabled: false,
+                source_port_id: None,
+                source_port_name: None,
+                input_offsets_ms: std::collections::BTreeMap::new(),
+                control_port_ids: std::collections::BTreeSet::new(),
+                capture_all_controls: false,
+            },
+        );
+
+        assert!(drain_midi_control_events(Some(&actor)).is_empty());
+    }
 
     #[tokio::test]
     async fn slow_observation_preserves_the_terminal_result() {

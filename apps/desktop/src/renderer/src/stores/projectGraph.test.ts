@@ -121,6 +121,38 @@ function workspace(value: ProjectGraphSnapshot): ProjectWorkspaceSnapshot {
   }
 }
 
+describe("MIDI control overlay", () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it("updates only addressed mixer fields without creating project history", () => {
+    const store = useProjectGraphStore()
+    store.hydrate(graph())
+
+    store.applyMidiControlOverlay([
+      { channelId: "audio", gainDb: -18, pan: 0.25, muted: true, soloed: true },
+      { channelId: "missing", gainDb: 12 }
+    ])
+
+    expect(store.graph.channels.find(({ id }) => id === "audio")).toMatchObject({
+      gainDb: -18,
+      pan: 0.25,
+      muted: true,
+      soloed: true
+    })
+    expect(store.graph.channels.find(({ id }) => id === "master")?.gainDb).toBe(0)
+  })
+
+  it("ignores an empty overlay snapshot", () => {
+    const store = useProjectGraphStore()
+    store.hydrate(graph())
+    const before = store.graph
+
+    store.applyMidiControlOverlay([])
+
+    expect(store.graph).toBe(before)
+  })
+})
+
 function success<T>(value: T, resourceRevision = 2): RpcResult<T> {
   return {
     ok: true,

@@ -27,13 +27,13 @@ export interface MidiControlServiceOperations {
     channelId: string,
     parameter: MidiMixerControlParameter,
     value: number | boolean
-  ): void | Promise<void>
+  ): boolean | void | Promise<boolean | void>
   pluginParameters(instanceId: string): Promise<PluginParameterInfo[]>
   applyPluginParameter(
     instanceId: string,
     parameter: PluginParameterInfo,
     value: number
-  ): void | Promise<void>
+  ): boolean | void | Promise<boolean | void>
   markDirty(): void | Promise<void>
 }
 
@@ -49,7 +49,7 @@ export class MidiControlService {
     string,
     { binding: MidiControlBinding; event: MidiControlEvent }
   >()
-  private continuousFlushScheduled = false
+  private continuousFlush: NodeJS.Immediate | null = null
 
   constructor(private readonly operations: MidiControlServiceOperations) {}
 
@@ -64,6 +64,12 @@ export class MidiControlService {
     }
     this.bindingsByAddress = index
     this.activeDiscreteControls.clear()
+    this.effectiveBooleans.clear()
+    this.effectiveContinuous.clear()
+    this.lastEventTimestamp.clear()
+    this.pendingContinuous.clear()
+    if (this.continuousFlush) clearImmediate(this.continuousFlush)
+    this.continuousFlush = null
   }
 
   receive(event: MidiControlEvent): void {
@@ -89,10 +95,9 @@ export class MidiControlService {
   }
 
   private scheduleContinuousFlush(): void {
-    if (this.continuousFlushScheduled) return
-    this.continuousFlushScheduled = true
-    setImmediate(() => {
-      this.continuousFlushScheduled = false
+    if (this.continuousFlush) return
+    this.continuousFlush = setImmediate(() => {
+      this.continuousFlush = null
       const work = [...this.pendingContinuous.values()]
       this.pendingContinuous.clear()
       for (const item of work) void this.applyContinuous(item.binding, item.event).catch(() => {})
@@ -126,8 +131,9 @@ export class MidiControlService {
     const channel = this.resolveMixerChannel(target.channelIndex)
     if (!channel) return
     const parameter = target.parameter === "mute" ? "muted" : "soloed"
+    const applied = await this.operations.applyMixerControl(channel.id, parameter, value)
+    if (applied === false) return
     this.effectiveBooleans.set(`${channel.id}:${parameter}`, value)
-    await this.operations.applyMixerControl(channel.id, parameter, value)
     await this.operations.markDirty()
   }
 
@@ -164,7 +170,8 @@ export class MidiControlService {
       if (profile.type !== "absolute") return
       normalized = evaluateAbsoluteMidiTransform(profile, event.value / 127)
     }
-    await this.applyNormalized(binding.target, normalized)
+    const applied = await this.applyNormalized(binding.target, normalized)
+    if (!applied) return
     this.effectiveContinuous.set(targetKey(binding.target), normalized)
     await this.operations.markDirty()
   }
@@ -186,24 +193,37 @@ export class MidiControlService {
     return width > 0 ? clamp01((resolved.parameter.value - resolved.parameter.minValue) / width) : 0
   }
 
-  private async applyNormalized(target: MidiControlTarget, normalized: number): Promise<void> {
+  private async applyNormalized(target: MidiControlTarget, normalized: number): Promise<boolean> {
     if (target.type === "mixer") {
       const channel = this.resolveMixerChannel(target.channelIndex)
-      if (!channel) return
+      if (!channel) return false
+      let applied: boolean | void
       if (target.parameter === "gain") {
-        await this.operations.applyMixerControl(channel.id, "gainDb", -90 + normalized * 102)
+        applied = await this.operations.applyMixerControl(
+          channel.id,
+          "gainDb",
+          -90 + normalized * 102
+        )
       } else if (target.parameter === "pan") {
-        await this.operations.applyMixerControl(channel.id, "pan", normalized * 2 - 1)
+        applied = await this.operations.applyMixerControl(channel.id, "pan", normalized * 2 - 1)
+      } else {
+        return false
       }
-      return
+      return applied !== false
     }
-    if (target.type !== "plugin-parameter") return
+    if (target.type !== "plugin-parameter") return false
     const resolved = await this.resolvePluginParameter(target)
-    if (!resolved) return
+    if (!resolved) return false
     const value =
       resolved.parameter.minValue +
       normalized * (resolved.parameter.maxValue - resolved.parameter.minValue)
-    await this.operations.applyPluginParameter(resolved.instanceId, resolved.parameter, value)
+    return (
+      (await this.operations.applyPluginParameter(
+        resolved.instanceId,
+        resolved.parameter,
+        value
+      )) !== false
+    )
   }
 
   private resolveMixerChannel(index: number) {

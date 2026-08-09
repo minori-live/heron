@@ -1,4 +1,5 @@
 import type {
+  MidiMixerControlOverlay,
   ProjectGraphRef,
   ProjectGraphSnapshot,
   LowLatencyModeConfiguration,
@@ -65,18 +66,30 @@ export class ProjectGraphService {
     channelId: string,
     parameter: "gainDb" | "pan" | "muted" | "soloed",
     value: number | boolean
-  ): Promise<void> {
+  ): Promise<boolean> {
     return this.enqueue(async () => {
       const persisted = this.cachedProject?.graph
-      if (!persisted?.channels.some((channel) => channel.id === channelId)) return
-      const patch = this.midiControlOverlay.get(channelId) ?? {}
+      if (!persisted?.channels.some((channel) => channel.id === channelId)) return false
+      const previous = this.midiControlOverlay.get(channelId)
+      const patch = { ...previous }
       Object.assign(patch, { [parameter]: value })
       this.midiControlOverlay.set(channelId, patch)
-      if (parameter === "gainDb" || parameter === "pan") return
-      await this.publisher.publish(this.withMidiControlOverlay(persisted), {
-        latencyPolicy: this.latencyPolicy(persisted)
-      })
+      if (parameter === "gainDb" || parameter === "pan") return true
+      try {
+        await this.publisher.publish(this.withMidiControlOverlay(persisted), {
+          latencyPolicy: this.latencyPolicy(persisted)
+        })
+      } catch (error) {
+        if (previous) this.midiControlOverlay.set(channelId, previous)
+        else this.midiControlOverlay.delete(channelId)
+        throw error
+      }
+      return true
     })
+  }
+
+  midiControlOverlaySnapshot(): MidiMixerControlOverlay[] {
+    return [...this.midiControlOverlay].map(([channelId, patch]) => ({ channelId, ...patch }))
   }
 
   reconcileProjectCommand(command: import("@heron/contracts").ProjectCommand): void {

@@ -42,7 +42,7 @@ function harness(
   overrides: Partial<MidiControlServiceOperations> = {}
 ) {
   const dispatchApplicationCommand = vi.fn()
-  const applyMixerControl = vi.fn(async () => {})
+  const applyMixerControl = vi.fn(async (): Promise<boolean | void> => undefined)
   const markDirty = vi.fn(async () => {})
   const operations: MidiControlServiceOperations = {
     graph,
@@ -311,5 +311,53 @@ describe("MidiControlService", () => {
       ["audio-1", "soloed", true],
       ["audio-1", "soloed", false]
     ])
+  })
+
+  it("cancels pending continuous work when bindings are reconfigured", async () => {
+    const setup = harness({
+      bindings: [
+        {
+          id: "gain",
+          address,
+          input: { type: "absolute" },
+          target: { type: "mixer", channelIndex: 0, parameter: "gain" },
+          transformProfileId: BUILTIN_MIDI_TRANSFORM_PROFILE_IDS.linear
+        }
+      ],
+      transformProfiles: []
+    })
+
+    setup.service.receive(event(127))
+    setup.service.configure({ bindings: [], transformProfiles: [] })
+    await flushContinuous()
+
+    expect(setup.applyMixerControl).not.toHaveBeenCalled()
+    expect(setup.markDirty).not.toHaveBeenCalled()
+  })
+
+  it("does not cache a boolean value when the target disappears before apply", async () => {
+    const setup = harness({
+      bindings: [
+        {
+          id: "solo",
+          address: { ...address, type: "note", number: 60 },
+          input: { type: "note" },
+          target: { type: "mixer", channelIndex: 0, parameter: "solo", behavior: "toggle" }
+        }
+      ],
+      transformProfiles: []
+    })
+    setup.applyMixerControl.mockResolvedValueOnce(false).mockResolvedValueOnce(undefined)
+
+    setup.service.receive({ ...event(127), type: "note", number: 60 })
+    await Promise.resolve()
+    setup.service.receive({ ...event(127, 2), type: "note", number: 60 })
+    await Promise.resolve()
+
+    expect(setup.applyMixerControl.mock.calls).toEqual([
+      ["audio-1", "soloed", true],
+      ["audio-1", "soloed", true]
+    ])
+    expect(setup.markDirty).toHaveBeenCalledOnce()
   })
 })

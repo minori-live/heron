@@ -11,6 +11,7 @@ import type {
 import { mutationMeta, readMeta, rpcErrorMessage } from "../rpc"
 import { useApplicationSettingsStore } from "./applicationSettings"
 import { useAudioRuntimeStore } from "./audioRuntime"
+import { useProjectGraphStore } from "./projectGraph"
 
 const EMPTY_SNAPSHOT: MidiInputSnapshot = {
   ports: [],
@@ -33,6 +34,7 @@ const EMPTY_SNAPSHOT: MidiInputSnapshot = {
 export const useMidiInputStore = defineStore("midi-input", () => {
   const applicationSettings = useApplicationSettingsStore()
   const audioRuntime = useAudioRuntimeStore()
+  const projectGraph = useProjectGraphStore()
   const snapshot = shallowRef<MidiInputSnapshot>(structuredClone(EMPTY_SNAPSHOT))
   const resource = shallowRef<MidiRuntimeResourceSnapshot | null>(null)
   const loading = shallowRef(false)
@@ -67,6 +69,9 @@ export const useMidiInputStore = defineStore("midi-input", () => {
 
   function applySnapshot(next: MidiInputSnapshot, publishControls: boolean): void {
     snapshot.value = next
+    if (next.mixerControlOverlay) {
+      projectGraph.applyMidiControlOverlay(next.mixerControlOverlay)
+    }
     error.value = next.sync.error ?? ""
     const events = [...next.controlEvents].sort((left, right) => left.generation - right.generation)
     if (!publishControls) {

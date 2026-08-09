@@ -84,3 +84,86 @@ describe("ProjectGraphService Low Latency Mode", () => {
     })
   })
 })
+
+describe("ProjectGraphService MIDI control overlay", () => {
+  function setup() {
+    const source = graph()
+    const publish = vi.fn(async (value: ProjectGraphSnapshot) => structuredClone(value))
+    const publisher = {
+      resolve: vi.fn((value: ProjectGraphSnapshot) => structuredClone(value)),
+      publish,
+      compiledAudioGraphSnapshot: vi.fn(async () => null)
+    } as unknown as AudioGraphPublisher
+    const saveControlState = vi.fn(async () => undefined)
+    const projects = {
+      current: { id: "project" },
+      saveControlState
+    } as unknown as ProjectService
+    const service = new ProjectGraphService(projects, publisher)
+    service.commit("project", source)
+    return { service, publish, saveControlState }
+  }
+
+  it("applies, reconciles, and saves mixer values without mutating the persisted graph", async () => {
+    const { service, publish, saveControlState } = setup()
+
+    await expect(service.applyMidiControl("missing", "gainDb", 4)).resolves.toBe(false)
+    await service.applyMidiControl("output", "gainDb", -12)
+    await service.applyMidiControl("output", "pan", 0.5)
+    expect(service.midiControlOverlaySnapshot()).toEqual([
+      { channelId: "output", gainDb: -12, pan: 0.5 }
+    ])
+    expect((await service.snapshot()).channels[0]).toMatchObject({ gainDb: -12, pan: 0.5 })
+    expect(publish).not.toHaveBeenCalled()
+
+    await service.applyMidiControl("output", "muted", true)
+    expect(publish).toHaveBeenCalledOnce()
+    expect(publish.mock.calls[0]?.[0].channels[0]).toMatchObject({
+      gainDb: -12,
+      pan: 0.5,
+      muted: true
+    })
+
+    service.reconcileProjectCommand({
+      type: "update-channel",
+      channelId: "output",
+      patch: { pan: -0.25 }
+    })
+    expect((await service.snapshot()).channels[0]).toMatchObject({ gainDb: -12, pan: 0 })
+
+    await service.savePluginStates([])
+    expect(saveControlState).toHaveBeenCalledWith([], [{ id: "output", gainDb: -12, muted: true }])
+    expect((await service.snapshot()).channels[0]).toMatchObject({ gainDb: -12, muted: true })
+  })
+
+  it("clears overlays for nested delete commands and ignores unrelated commands", async () => {
+    const { service } = setup()
+    await service.applyMidiControl("output", "soloed", true)
+
+    service.reconcileProjectCommand({ type: "update-project-notes", notes: "unchanged" })
+    service.reconcileProjectCommand({
+      type: "update-channel",
+      channelId: "missing",
+      patch: { gainDb: 1 }
+    })
+    expect((await service.snapshot()).channels[0]?.soloed).toBe(true)
+
+    service.reconcileProjectCommand({
+      type: "batch",
+      commands: [{ type: "delete-channel", channelId: "output" }]
+    })
+    expect((await service.snapshot()).channels[0]?.soloed).toBe(false)
+  })
+
+  it("rolls back a discrete overlay when graph publication fails", async () => {
+    const { service, publish } = setup()
+    publish.mockRejectedValueOnce(new Error("audio graph unavailable"))
+
+    await expect(service.applyMidiControl("output", "muted", true)).rejects.toThrow(
+      "audio graph unavailable"
+    )
+
+    expect(service.midiControlOverlaySnapshot()).toEqual([])
+    expect((await service.snapshot()).channels[0]?.muted).toBe(false)
+  })
+})

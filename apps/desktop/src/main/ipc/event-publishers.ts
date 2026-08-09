@@ -6,7 +6,10 @@ export interface DisposableRegistration {
   dispose(): void
 }
 
-type EventPublisherServices = Pick<ApplicationServices, "audioHost" | "lifecycle" | "plugins">
+type EventPublisherServices = Pick<
+  ApplicationServices,
+  "audioHost" | "lifecycle" | "plugins" | "projectGraph"
+>
 const MIDI_SNAPSHOT_INTERVAL_MS = 33
 
 export function registerIpcEventPublishers(
@@ -35,7 +38,10 @@ export function registerIpcEventPublishers(
     if (disposed || midiSnapshotPending) return
     midiSnapshotPending = true
     try {
-      const nativeSnapshot = await services.audioHost.midiInputSnapshot()
+      const nativeSnapshot = {
+        ...(await services.audioHost.midiInputSnapshot()),
+        mixerControlOverlay: services.projectGraph.midiControlOverlaySnapshot()
+      }
       if (disposed) return
       const snapshot = services.lifecycle.applicationState.midiRuntimeSnapshot(nativeSnapshot)
       for (const window of BrowserWindow.getAllWindows()) {

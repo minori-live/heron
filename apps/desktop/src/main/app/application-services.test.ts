@@ -29,7 +29,7 @@ const fakes = vi.hoisted(() => ({
   },
   snapshot: vi.fn(),
   snapshotNow: vi.fn(),
-  applyMidiControl: vi.fn(async () => undefined),
+  applyMidiControl: vi.fn(async () => true),
   markDirty: vi.fn(async () => undefined),
   pluginInstanceSnapshot: vi.fn(async () => ({ plugin: { generation: 2 } })),
   sendApplicationCommand: vi.fn(),

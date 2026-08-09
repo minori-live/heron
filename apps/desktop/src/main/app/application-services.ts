@@ -132,7 +132,8 @@ export async function createApplicationServices(
       if (target) sendApplicationCommand(target, command)
     },
     applyMixerControl: async (channelId, parameter, value) => {
-      await projectGraph.applyMidiControl(channelId, parameter, value)
+      const applied = await projectGraph.applyMidiControl(channelId, parameter, value)
+      if (!applied) return false
       if ((parameter === "gainDb" || parameter === "pan") && typeof value === "number") {
         await audioHost.previewMixerParameter({
           target: "channel",
@@ -141,6 +142,7 @@ export async function createApplicationServices(
           value
         })
       }
+      return true
     },
     pluginParameters: (instanceId) => audioHost.pluginParameters(instanceId),
     applyPluginParameter: async (instanceId, parameter, value) => {
@@ -148,7 +150,7 @@ export async function createApplicationServices(
         plugins.closeEditor(instanceId)
       )
       const helperEpoch = audioHost.helperEpoch()
-      if (!resource || !helperEpoch) return
+      if (!resource || !helperEpoch) return false
       midiParameterSequence += 1n
       await audioHost.enqueuePluginParameter({
         plugin: resource.plugin,
@@ -160,6 +162,7 @@ export async function createApplicationServices(
         value,
         gesture: "perform"
       })
+      return true
     },
     markDirty: () => commitExternalProjectDirty(projectService, lifecycle)
   })
