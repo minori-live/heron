@@ -50,3 +50,4 @@ review.
 - [ADR-0004: Keep project media canonical and audition outside transport](0004-project-media-assets.md)
 - [ADR-0005: Keep plug-in channel adapters host-owned](0005-host-owned-plugin-channel-adapters.md)
 - [ADR-0006: Tier Linux plug-in editor compatibility](0006-tier-linux-plug-in-editor-compatibility.md)
+- [ADR-0007: Build new projects from a migrated database template](0007-build-project-database-template.md)
