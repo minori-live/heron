@@ -1,6 +1,6 @@
 import type { IpcMainInvokeEvent } from "electron"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { AUDIO_BACKENDS } from "@heron/contracts"
+import { AUDIO_BACKENDS, METER_RETURN_RATES } from "@heron/contracts"
 import type { CreateProjectRequest } from "@heron/contracts"
 import type { ApplicationSettingsStore } from "../settings"
 import type { AudioHostService } from "../audio-host"
@@ -207,6 +207,12 @@ describe("validateSettingsPatch", () => {
     ).not.toThrow()
   })
 
+  it("accepts every supported meter return rate", () => {
+    for (const meterReturnRate of METER_RETURN_RATES) {
+      expect(validateSettingsPatch({ meterReturnRate })).toEqual({ meterReturnRate })
+    }
+  })
+
   it("rejects non-objects", () => {
     expect(() => validateSettingsPatch(null)).toThrow("Settings patch must be an object")
   })
@@ -218,7 +224,7 @@ describe("validateSettingsPatch", () => {
       [{ theme: "sepia" }, "Unsupported theme preference"],
       [{ locale: "fr-FR" }, "Unsupported locale preference"],
       [{ meterPeakHold: "10s" }, "Unsupported meter peak hold"],
-      [{ meterReturnRate: "iec-type-ii" }, "Unsupported meter return rate"],
+      [{ meterReturnRate: "instant" }, "Unsupported meter return rate"],
       [{ midiCenterCStandard: "middle-c" }, "Unsupported MIDI center C standard"]
     ]
 

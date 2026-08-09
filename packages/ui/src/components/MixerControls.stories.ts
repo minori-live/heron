@@ -132,9 +132,10 @@ export const ChannelFaderAndMeter: Story = {
           @commit="gain = $event"
         />
         <UiLevelMeter
-          :level-percent="72"
-          :held-level-percent="84"
-          :has-held-peak="true"
+          :channels="[
+            { levelPercent: 72, heldLevelPercent: 84, hasHeldPeak: true },
+            { levelPercent: 58, heldLevelPercent: 76, hasHeldPeak: true }
+          ]"
           :clipped="false"
           :marks="meterMarks"
           label="Vocal post-fader level"

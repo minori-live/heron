@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef } from "vue"
 import { storeToRefs } from "pinia"
+import { DEFAULT_METER_RETURN_RATE } from "@heron/contracts"
 import type {
   ApplicationSettings,
   MeterPeakHold,
@@ -36,7 +37,10 @@ const peakHold = computed<MeterPeakHold>(
   () => props.displayOptions?.meterPeakHold ?? settings.value?.meterPeakHold ?? "800ms"
 )
 const returnRate = computed<MeterReturnRate>(
-  () => props.displayOptions?.meterReturnRate ?? settings.value?.meterReturnRate ?? "iec-type-i"
+  () =>
+    props.displayOptions?.meterReturnRate ??
+    settings.value?.meterReturnRate ??
+    DEFAULT_METER_RETURN_RATE
 )
 const meterDisplay = usePeakMeterDisplay({ meter, peakHold, returnRate })
 const maximumPeakLabel = computed(() =>
@@ -70,9 +74,7 @@ function resetMaximumPeak(): void {
     </button>
     <UiLevelMeter
       class="meter-rack"
-      :level-percent="meterDisplay.meterLevelPercent.value"
-      :held-level-percent="meterDisplay.heldMeterLevelPercent.value"
-      :has-held-peak="Number.isFinite(meterDisplay.heldPeakDb.value)"
+      :channels="meterDisplay.meterChannels.value"
       :clipped="meterDisplay.clipped.value"
       :marks="METER_SCALE_MARKS"
       :label="`${channelName} post-fader level`"

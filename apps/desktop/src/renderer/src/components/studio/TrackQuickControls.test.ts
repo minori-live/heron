@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { mount } from "@vue/test-utils"
 import { createPinia } from "pinia"
 import type { MixerChannelState } from "@heron/contracts"
@@ -25,6 +25,42 @@ const channel: MixerChannelState = {
 }
 
 describe("TrackQuickControls", () => {
+  it("returns its meter with the shared IEC Type I display envelope", async () => {
+    let timestamp = 0
+    const now = vi.spyOn(performance, "now").mockImplementation(() => timestamp)
+    const wrapper = mount(TrackQuickControls, {
+      props: {
+        channel,
+        meter: {
+          channelId: "audio",
+          preFaderPeak: [0.5, 0.5],
+          postFaderPeak: [0.5, 0.5],
+          heldPeak: [0.5, 0.5],
+          clipped: false
+        }
+      },
+      global: { plugins: [createPinia()] }
+    })
+
+    timestamp = 1_000
+    await wrapper.setProps({
+      meter: {
+        channelId: "audio",
+        preFaderPeak: [0.1, 0.1],
+        postFaderPeak: [0.1, 0.1],
+        heldPeak: [0.5, 0.5],
+        clipped: false
+      }
+    })
+
+    const style = wrapper.get(".track-gain").attributes("style") ?? ""
+    const displayedPercent = Number(/--meter-level:\s*([\d.]+)%/.exec(style)?.[1] ?? "NaN")
+    expect(displayedPercent).toBeCloseTo(70.3, 1)
+
+    wrapper.unmount()
+    now.mockRestore()
+  })
+
   it("provides mixer actions, metered gain, and pan gestures", async () => {
     const wrapper = mount(TrackQuickControls, {
       props: {

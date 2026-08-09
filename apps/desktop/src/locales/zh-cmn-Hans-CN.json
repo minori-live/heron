@@ -684,7 +684,13 @@
           "title": "回落时间",
           "description": "设置信号峰值后显示电平下降的速度。",
           "ariaLabel": "混音台表回落时间",
-          "iecTypeI": "IEC Type I (11.8 dB/s)"
+          "verySlow": "非常慢 (4 dB/s)",
+          "ebuSlow": "EBU 慢速 (6.3 dB/s)",
+          "iecTypeII": "IEC Type II/EBU (8.6 dB/s)",
+          "iecTypeI": "IEC Type I (11.8 dB/s)",
+          "fast": "快速 (20 dB/s)",
+          "faster": "更快 (30 dB/s)",
+          "veryFast": "非常快 (50 dB/s)"
         }
       },
       "loopback": {
