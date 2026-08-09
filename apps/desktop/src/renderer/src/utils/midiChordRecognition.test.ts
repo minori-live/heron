@@ -4,6 +4,34 @@ import { recognizeMidiChord, routedMidiKeys } from "./midiChordRecognition"
 
 const cMajor: KeySignatureEventState = { tick: 0, fifths: 0, mode: "major" }
 const aMinor: KeySignatureEventState = { tick: 0, fifths: 0, mode: "minor" }
+const chordCatalog = [
+  ["C", [60, 64, 67]],
+  ["Cm", [60, 63, 67]],
+  ["Cdim", [60, 63, 66]],
+  ["Caug", [60, 64, 68]],
+  ["Csus2", [60, 62, 67]],
+  ["Csus4", [60, 65, 67]],
+  ["C6", [60, 64, 67, 69]],
+  ["Cm6", [60, 63, 67, 69]],
+  ["C7", [60, 64, 67, 70]],
+  ["Cmaj7", [60, 64, 67, 71]],
+  ["Cm7", [60, 63, 67, 70]],
+  ["CmMaj7", [60, 63, 67, 71]],
+  ["Cdim7", [60, 63, 66, 69]],
+  ["Cm7♭5", [60, 63, 66, 70]],
+  ["Cadd9", [60, 62, 64, 67]],
+  ["Cmadd9", [60, 62, 63, 67]],
+  ["C6/9", [60, 62, 64, 67, 69]],
+  ["Cm6/9", [60, 62, 63, 67, 69]],
+  ["C9", [60, 62, 64, 67, 70]],
+  ["Cmaj9", [60, 62, 64, 67, 71]],
+  ["Cm9", [60, 62, 63, 67, 70]],
+  ["C11", [60, 62, 64, 65, 67, 70]],
+  ["Cm11", [60, 62, 63, 65, 67, 70]],
+  ["C13", [60, 62, 64, 65, 67, 69, 70]],
+  ["Cmaj13", [60, 62, 64, 65, 67, 69, 71]],
+  ["Cm13", [60, 62, 63, 65, 67, 69, 70]]
+] as const
 
 function instrument(overrides: Partial<MixerChannelState> = {}): MixerChannelState {
   return {
@@ -34,6 +62,10 @@ function note(portId: string, channel: number, key: number): MidiActiveNote {
 }
 
 describe("recognizeMidiChord", () => {
+  it.each(chordCatalog)("recognizes the exact catalog shape for %s", (label, keys) => {
+    expect(recognizeMidiChord(keys, cMajor)).toBe(label)
+  })
+
   it("recognizes exact pitch-class sets without considering inversion or octave duplication", () => {
     expect(recognizeMidiChord([64, 67, 72, 84], cMajor)).toBe("C")
     expect(recognizeMidiChord([55, 60, 64], cMajor)).toBe("C")
@@ -95,5 +127,20 @@ describe("routedMidiKeys", () => {
         instrument({ id: "metronome", systemRole: "metronome" })
       ])
     ).toEqual([])
+  })
+
+  it("deduplicates a pitch received through more than one eligible route", () => {
+    expect(
+      routedMidiKeys(
+        [note("keyboard", 1, 60), note("pads", 3, 60), note("keyboard", 1, 64)],
+        [
+          instrument(),
+          instrument({
+            id: "pads",
+            midiInput: { portId: "pads", portName: "Pads", channel: 3 }
+          })
+        ]
+      )
+    ).toEqual([60, 64])
   })
 })
