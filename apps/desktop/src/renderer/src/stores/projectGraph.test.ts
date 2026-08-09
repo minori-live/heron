@@ -171,6 +171,28 @@ describe("MIDI control overlay", () => {
     })
     expect(store.graph.channels.find(({ id }) => id === "master")?.muted).toBe(false)
   })
+
+  it("preserves graph identity for repeated no-op overlay snapshots", () => {
+    const store = useProjectGraphStore()
+    store.hydrate(graph())
+    const baseline = store.graph
+
+    store.applyMidiControlOverlay([])
+    expect(store.graph).toBe(baseline)
+
+    store.applyMidiControlOverlay([{ channelId: "audio", gainDb: -18 }])
+    const controlled = store.graph
+    expect(controlled).not.toBe(baseline)
+
+    store.applyMidiControlOverlay([{ channelId: "audio", gainDb: -18 }])
+    expect(store.graph).toBe(controlled)
+
+    store.applyMidiControlOverlay([])
+    const restored = store.graph
+    expect(restored).not.toBe(controlled)
+    store.applyMidiControlOverlay([])
+    expect(store.graph).toBe(restored)
+  })
 })
 
 function success<T>(value: T, resourceRevision = 2): RpcResult<T> {

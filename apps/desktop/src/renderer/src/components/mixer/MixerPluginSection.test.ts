@@ -114,6 +114,7 @@ describe("MixerPluginSection", () => {
     const pluginRow = wrapper.get('[aria-label="Compressor plugin active"]')
     expect(pluginRow.classes()).toContain("active")
     expect(pluginRow.find("i").exists()).toBe(false)
+    expect(pluginRow.get(".plugin-actions").text()).toBe("S")
     expect(pluginRow.attributes("draggable")).toBeUndefined()
     expect(wrapper.get('[aria-label="Move Compressor"]').attributes("draggable")).toBe("true")
     await wrapper.get('button[aria-label="Bypass Compressor"]').trigger("click")

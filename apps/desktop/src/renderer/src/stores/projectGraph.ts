@@ -63,6 +63,18 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
     const baselineChannels = new Map(
       midiControlBaseline.channels.map((channel) => [channel.id, channel])
     )
+    const changed = graph.value.channels.some((channel) => {
+      const baseline = baselineChannels.get(channel.id)
+      const control = patches.get(channel.id)
+      return (
+        channel.gainDb !== (control?.gainDb ?? baseline?.gainDb ?? channel.gainDb) ||
+        channel.pan !== (control?.pan ?? baseline?.pan ?? channel.pan) ||
+        channel.muted !== (control?.muted ?? baseline?.muted ?? channel.muted) ||
+        channel.soloed !== (control?.soloed ?? baseline?.soloed ?? channel.soloed)
+      )
+    })
+    if (!changed) return
+
     const next = structuredClone(graph.value)
     for (const channel of next.channels) {
       const baseline = baselineChannels.get(channel.id)
