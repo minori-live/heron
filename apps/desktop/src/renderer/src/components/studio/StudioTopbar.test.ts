@@ -195,6 +195,10 @@ describe("StudioTopbar", () => {
   it("shows only exact chords from active notes matching the monitored MIDI route", async () => {
     const wrapper = mountTopbar()
     const midiInput = useMidiInputStore()
+
+    expect(wrapper.get('button[aria-label="Key signature C minor"]').text()).toBe("C minor")
+    expect(wrapper.find('[aria-label="Recognized MIDI input chord"]').exists()).toBe(false)
+
     midiInput.snapshot = {
       ...midiInput.snapshot,
       activeNotes: [
@@ -207,6 +211,7 @@ describe("StudioTopbar", () => {
     await nextTick()
 
     expect(wrapper.get('[aria-label="Recognized MIDI input chord"] .midi-value').text()).toBe("C")
+    expect(wrapper.find('button[aria-label="Key signature C minor"]').exists()).toBe(false)
 
     midiInput.snapshot = {
       ...midiInput.snapshot,
@@ -217,7 +222,8 @@ describe("StudioTopbar", () => {
     }
     await nextTick()
 
-    expect(wrapper.get(".midi-value").text()).toBe("")
+    expect(wrapper.find(".midi-value").exists()).toBe(false)
+    expect(wrapper.get('button[aria-label="Key signature C minor"]').text()).toBe("C minor")
   })
 
   it("uses the existing topbar control state for the Piano Roll editor", async () => {
