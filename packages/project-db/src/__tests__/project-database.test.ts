@@ -1720,4 +1720,23 @@ describe("ProjectDatabase", () => {
     ).rejects.toThrow("cancelled")
     expect(await database.listAssets()).toEqual([])
   })
+
+  it("atomically persists a hardware Mixer overlay with plug-in state capture", async () => {
+    const { database } = await createDatabase()
+    const before = await database.mixerSnapshot()
+    const master = before.channels.find((channel) => channel.kind === "master")!
+
+    await database.saveControlState(
+      [],
+      [{ id: master.id, gainDb: -12, pan: 0.25, muted: true, soloed: false }]
+    )
+
+    const after = await database.mixerSnapshot()
+    expect(after.channels.find((channel) => channel.id === master.id)).toMatchObject({
+      gainDb: -12,
+      pan: 0.25,
+      muted: true,
+      soloed: false
+    })
+  })
 })

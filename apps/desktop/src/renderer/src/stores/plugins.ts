@@ -221,6 +221,7 @@ export const usePluginStore = defineStore("plugins", () => {
         descriptor: structuredClone(descriptor),
         audioMode,
         enabled: true,
+        controlAlias: null,
         sidechainInputs: [],
         state: { version: 1, chunks: [] }
       }
@@ -292,6 +293,7 @@ export const usePluginStore = defineStore("plugins", () => {
       descriptor: structuredClone(descriptor),
       audioMode,
       enabled: true,
+      controlAlias: null,
       sidechainInputs: [],
       state: { version: 1 as const, chunks: [] }
     }
@@ -355,6 +357,7 @@ export const usePluginStore = defineStore("plugins", () => {
       descriptor: structuredClone(descriptor),
       audioMode,
       enabled: true,
+      controlAlias: current?.controlAlias ?? null,
       sidechainInputs: [],
       state: { version: 1 as const, chunks: [] }
     }

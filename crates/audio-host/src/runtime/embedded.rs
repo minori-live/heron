@@ -228,8 +228,10 @@ impl EmbeddedAudioHost {
             return Err(EmbeddedRuntimeError::AlreadyRunning);
         }
 
-        MIDI_INPUT.get_or_init(|| {
-            super::super::midi_input::MidiInputActor::start(
+        let ui_wake = ui_wake.unwrap_or_else(|| Arc::new(|| {}));
+        let proxy = UiMailboxWaker::new(Arc::clone(&ui_wake));
+        let midi_input = MIDI_INPUT.get_or_init(|| {
+            super::super::midi_input::MidiInputActor::start_with_wake(
                 heron_dsp_runtime::protocol::MidiSyncPreferences {
                     enabled: false,
                     source_port_id: None,
@@ -238,12 +240,13 @@ impl EmbeddedAudioHost {
                     control_port_ids: std::collections::BTreeSet::new(),
                     capture_all_controls: false,
                 },
+                Arc::clone(&ui_wake),
             )
         });
+        midi_input.set_control_wake(Arc::clone(&ui_wake));
         editor_platform::configure_process_application_identity()
             .map_err(EmbeddedRuntimeError::NativeUi)?;
         let native_ui = NativeUiContext::initialize().map_err(EmbeddedRuntimeError::NativeUi)?;
-        let proxy = UiMailboxWaker::new(ui_wake.unwrap_or_else(|| Arc::new(|| {})));
         let application_proxy = proxy.clone();
         let (ui_sender, ui_inbox) = runtime_mpsc::sync_channel(UI_MAILBOX_CAPACITY);
         let (host_event_sender, host_event_inbox) = runtime_mpsc::sync_channel(EVENT_CAPACITY);
@@ -670,6 +673,13 @@ impl EmbeddedAudioHost {
             .lock()
             .map(|mut queue| queue.drain(..).collect())
             .unwrap_or_default()
+    }
+
+    #[must_use]
+    pub fn drain_midi_control_events(&self) -> Vec<heron_dsp_runtime::protocol::MidiControlEvent> {
+        MIDI_INPUT
+            .get()
+            .map_or_else(Vec::new, |actor| actor.drain_control_events())
     }
 
     pub fn close(&self) {

@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import { computed, shallowRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
-import { AudioLines, Cable, CircleDot, Gauge, Keyboard, Music2, Palette, Plug } from "@lucide/vue"
+import {
+  AudioLines,
+  Cable,
+  CircleDot,
+  Gauge,
+  Keyboard,
+  Music2,
+  Palette,
+  Plug,
+  SlidersHorizontal
+} from "@lucide/vue"
 import type {
   AudioHostRuntimePreferences,
   AudioPreferences,
@@ -19,6 +29,7 @@ import DisplaySettings from "./DisplaySettings.vue"
 import MidiSettings from "./MidiSettings.vue"
 import MixerDisplaySettings from "./MixerDisplaySettings.vue"
 import MidiInputSettings from "./MidiInputSettings.vue"
+import MidiControlSettings from "./MidiControlSettings.vue"
 import PluginSettings from "./PluginSettings.vue"
 import RecordingSettings from "./RecordingSettings.vue"
 import ShortcutSettings from "./ShortcutSettings.vue"
@@ -29,6 +40,7 @@ type SystemSettingsPageId =
   | "recording"
   | "midi-general"
   | "midi-input"
+  | "midi-controls"
   | "audio-plugins"
   | "display-general"
   | "display-mixer"
@@ -116,6 +128,12 @@ const categories = computed<readonly SettingsCategory[]>(() => [
         label: "Input & sync",
         description: "Ports, timing and MIDI Clock",
         icon: Music2
+      },
+      {
+        id: "midi-controls",
+        label: "MIDI Controls",
+        description: "Hardware mappings and transform curves",
+        icon: SlidersHorizontal
       }
     ]
   },
@@ -252,6 +270,7 @@ function applyAudio(): void {
       :error="midiError"
       @apply="emit('configureMidi', $event)"
     />
+    <MidiControlSettings v-else-if="activePage === 'midi-controls'" />
     <PluginSettings
       v-else-if="activePage === 'audio-plugins'"
       :catalog="pluginCatalog"

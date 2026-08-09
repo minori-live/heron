@@ -60,6 +60,7 @@ describe("plugin-persistence", () => {
         descriptor,
         audioMode: "stereo",
         enabled: true,
+        controlAlias: "main.effect",
         sidechainInputs: [],
         state: {
           version: 1,
@@ -79,6 +80,7 @@ describe("plugin-persistence", () => {
         locatorFormat: "vst3",
         artifactPath: descriptor.locator.artifactPath,
         nativeId: descriptor.locator.nativeId,
+        controlAlias: "main.effect",
         descriptorSnapshot: expect.stringContaining("Effect")
       })
     )
@@ -103,13 +105,14 @@ describe("plugin-persistence", () => {
     await persistPluginCommand(tx as never, {
       type: "update-plugin",
       pluginId: "plugin-1",
-      patch: { enabled: false, slotOrder: 2, descriptor }
+      patch: { enabled: false, slotOrder: 2, controlAlias: "main.effect", descriptor }
     })
     expect(tx.update).toHaveBeenCalled()
     expect(tx.updateSet).toHaveBeenCalledWith(
       expect.objectContaining({
         enabled: false,
         slotOrder: 2,
+        controlAlias: "main.effect",
         descriptorSnapshot: JSON.stringify(descriptor)
       })
     )

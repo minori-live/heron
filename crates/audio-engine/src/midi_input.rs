@@ -311,6 +311,8 @@ enum Command {
         port_ids: BTreeSet<String>,
     },
     Snapshot(mpsc::Sender<MidiInputSnapshot>),
+    DrainControls(mpsc::Sender<Vec<MidiControlEvent>>),
+    SetControlWake(Arc<dyn Fn() + Send + Sync + 'static>),
     StartRecording {
         config: MidiRecordingStartConfig,
         clock: TransportClockHandle,
@@ -330,10 +332,18 @@ pub struct MidiInputActor {
 impl MidiInputActor {
     #[must_use]
     pub fn start(preferences: MidiSyncPreferences) -> Self {
+        Self::start_with_wake(preferences, Arc::new(|| {}))
+    }
+
+    #[must_use]
+    pub fn start_with_wake(
+        preferences: MidiSyncPreferences,
+        control_wake: Arc<dyn Fn() + Send + Sync + 'static>,
+    ) -> Self {
         let (sender, receiver) = mpsc::channel();
         let thread = thread::Builder::new()
             .name("heron-midi-input".to_owned())
-            .spawn(move || run_actor(receiver, preferences))
+            .spawn(move || run_actor(receiver, preferences, control_wake))
             .ok();
         Self { sender, thread }
     }
@@ -364,6 +374,21 @@ impl MidiInputActor {
         receiver
             .recv_timeout(Duration::from_secs(2))
             .unwrap_or_else(|_| unavailable_snapshot("MIDI input snapshot timed out"))
+    }
+
+    #[must_use]
+    pub fn drain_control_events(&self) -> Vec<MidiControlEvent> {
+        let (sender, receiver) = mpsc::channel();
+        if self.sender.send(Command::DrainControls(sender)).is_err() {
+            return Vec::new();
+        }
+        receiver
+            .recv_timeout(Duration::from_secs(2))
+            .unwrap_or_default()
+    }
+
+    pub fn set_control_wake(&self, wake: Arc<dyn Fn() + Send + Sync + 'static>) {
+        let _ = self.sender.send(Command::SetControlWake(wake));
     }
 
     pub fn start_recording(
@@ -420,6 +445,9 @@ struct ActorState {
     active_notes: BTreeMap<(String, u8, u8), u16>,
     control_generation: u64,
     control_events: VecDeque<MidiControlEvent>,
+    dispatch_events: VecDeque<MidiControlEvent>,
+    control_dropped: u64,
+    control_wake: Arc<dyn Fn() + Send + Sync + 'static>,
     recording: Option<MidiRecordingSession>,
 }
 
@@ -429,7 +457,11 @@ struct PendingMidiEvent {
     message: MidiInputMessage,
 }
 
-fn run_actor(receiver: mpsc::Receiver<Command>, preferences: MidiSyncPreferences) {
+fn run_actor(
+    receiver: mpsc::Receiver<Command>,
+    preferences: MidiSyncPreferences,
+    control_wake: Arc<dyn Fn() + Send + Sync + 'static>,
+) {
     let realtime_shared = RealtimeInputShared::get();
     let mut state = ActorState {
         preferences,
@@ -447,6 +479,9 @@ fn run_actor(receiver: mpsc::Receiver<Command>, preferences: MidiSyncPreferences
         active_notes: BTreeMap::new(),
         control_generation: 0,
         control_events: VecDeque::with_capacity(CONTROL_EVENT_CAPACITY),
+        dispatch_events: VecDeque::with_capacity(CONTROL_EVENT_CAPACITY),
+        control_dropped: 0,
+        control_wake,
         recording: None,
     };
     state
@@ -482,6 +517,12 @@ fn run_actor(receiver: mpsc::Receiver<Command>, preferences: MidiSyncPreferences
             }
             Ok(Command::Snapshot(reply)) => {
                 let _ = reply.send(snapshot(&state));
+            }
+            Ok(Command::DrainControls(reply)) => {
+                let _ = reply.send(state.dispatch_events.drain(..).collect());
+            }
+            Ok(Command::SetControlWake(wake)) => {
+                state.control_wake = wake;
             }
             Ok(Command::StartRecording {
                 config,
@@ -672,6 +713,9 @@ fn drain_connections(state: &mut ActorState) {
                         active_notes: &mut state.active_notes,
                         control_generation: &mut state.control_generation,
                         control_events: &mut state.control_events,
+                        dispatch_events: Some(&mut state.dispatch_events),
+                        control_dropped: Some(&mut state.control_dropped),
+                        control_wake: Some(&state.control_wake),
                         recording: &mut state.recording,
                     },
                     port_id,
@@ -703,6 +747,9 @@ fn drain_connections(state: &mut ActorState) {
                         active_notes: &mut state.active_notes,
                         control_generation: &mut state.control_generation,
                         control_events: &mut state.control_events,
+                        dispatch_events: Some(&mut state.dispatch_events),
+                        control_dropped: Some(&mut state.control_dropped),
+                        control_wake: Some(&state.control_wake),
                         recording: &mut state.recording,
                     },
                     port_id,
@@ -727,6 +774,9 @@ struct MessageSink<'a> {
     active_notes: &'a mut BTreeMap<(String, u8, u8), u16>,
     control_generation: &'a mut u64,
     control_events: &'a mut VecDeque<MidiControlEvent>,
+    dispatch_events: Option<&'a mut VecDeque<MidiControlEvent>>,
+    control_dropped: Option<&'a mut u64>,
+    control_wake: Option<&'a Arc<dyn Fn() + Send + Sync + 'static>>,
     recording: &'a mut Option<MidiRecordingSession>,
 }
 
@@ -763,14 +813,33 @@ fn process_messages(
                 if sink.control_events.len() == CONTROL_EVENT_CAPACITY {
                     sink.control_events.pop_front();
                 }
-                sink.control_events.push_back(MidiControlEvent {
+                if sink
+                    .dispatch_events
+                    .as_ref()
+                    .is_some_and(|events| events.len() == CONTROL_EVENT_CAPACITY)
+                {
+                    if let Some(events) = sink.dispatch_events.as_deref_mut() {
+                        events.pop_front();
+                    }
+                    if let Some(dropped) = sink.control_dropped.as_deref_mut() {
+                        *dropped = dropped.saturating_add(1);
+                    }
+                }
+                let event = MidiControlEvent {
                     generation: *sink.control_generation,
                     timestamp_microseconds: timestamp_micros,
                     port_id: port_id.to_owned(),
                     port_name: port_name.to_owned(),
                     channel: message.channel().unwrap_or(0),
                     kind,
-                });
+                };
+                sink.control_events.push_back(event.clone());
+                if let Some(events) = sink.dispatch_events.as_deref_mut() {
+                    events.push_back(event);
+                }
+                if let Some(wake) = sink.control_wake {
+                    wake();
+                }
             }
         }
         let is_clock_source =
@@ -953,7 +1022,8 @@ fn snapshot(state: &ActorState) -> MidiInputSnapshot {
         .values()
         .map(|connection| connection.dropped.load(Ordering::Relaxed))
         .sum::<u64>()
-        .saturating_add(state.realtime_shared.dropped.load(Ordering::Relaxed));
+        .saturating_add(state.realtime_shared.dropped.load(Ordering::Relaxed))
+        .saturating_add(state.control_dropped);
     MidiInputSnapshot {
         ports: state.ports.clone(),
         sync: MidiSyncRuntime {

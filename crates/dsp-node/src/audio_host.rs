@@ -5,7 +5,8 @@ use heron_audio_host::runtime::embedded::{
     EmbeddedRuntimeConfig, EmbeddedRuntimeError, EmbeddedUiWake,
 };
 use heron_dsp_runtime::protocol::{
-    ControlRequest, ParameterCommand, ParameterGesture, ParameterTargetKind, PriorityRequest,
+    ControlRequest, MidiControlEventKind, ParameterCommand, ParameterGesture, ParameterTargetKind,
+    PriorityRequest,
 };
 use napi::{
     Error, Result, Status,
@@ -139,6 +140,18 @@ pub struct NativeEditorHostEvent {
     pub width: u32,
     pub height: u32,
     pub resizable: bool,
+}
+
+#[napi(object)]
+pub struct NativeMidiControlEvent {
+    pub generation: i64,
+    pub timestamp_microseconds: i64,
+    pub port_id: String,
+    pub port_name: String,
+    pub channel: u32,
+    pub r#type: String,
+    pub number: u32,
+    pub value: u32,
 }
 
 #[napi(object)]
@@ -461,6 +474,37 @@ impl AudioHostRuntime {
                 rmp_serde::to_vec_named(&event)
                     .map(Buffer::from)
                     .map_err(|error| failure("could not encode embedded host event", error))
+            })
+            .collect()
+    }
+
+    #[napi]
+    pub fn drain_midi_control_events(&self) -> Vec<NativeMidiControlEvent> {
+        self.runtime
+            .drain_midi_control_events()
+            .into_iter()
+            .map(|event| {
+                let (r#type, number, value) = match event.kind {
+                    MidiControlEventKind::Note { number, value } => {
+                        ("note".to_owned(), number, value)
+                    }
+                    MidiControlEventKind::ControlChange { number, value } => {
+                        ("control-change".to_owned(), number, value)
+                    }
+                };
+                NativeMidiControlEvent {
+                    generation: event.generation.try_into().unwrap_or(i64::MAX),
+                    timestamp_microseconds: event
+                        .timestamp_microseconds
+                        .try_into()
+                        .unwrap_or(i64::MAX),
+                    port_id: event.port_id,
+                    port_name: event.port_name,
+                    channel: u32::from(event.channel),
+                    r#type,
+                    number: u32::from(number),
+                    value: u32::from(value),
+                }
             })
             .collect()
     }

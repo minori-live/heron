@@ -229,7 +229,10 @@ export type MixerSendPatch = Partial<
 >
 
 export type PluginInstancePatch = Partial<
-  Pick<PluginInstanceState, "slotOrder" | "enabled" | "descriptor" | "sidechainInputs" | "state">
+  Pick<
+    PluginInstanceState,
+    "slotOrder" | "enabled" | "controlAlias" | "descriptor" | "sidechainInputs" | "state"
+  >
 >
 
 export type ProjectCommand =

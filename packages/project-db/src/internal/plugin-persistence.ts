@@ -18,6 +18,7 @@ function pluginPatch(patch: PluginInstancePatch): Partial<typeof pluginInstances
   const result: Partial<typeof pluginInstances.$inferInsert> = {}
   if (patch.slotOrder !== undefined) result.slotOrder = patch.slotOrder
   if (patch.enabled !== undefined) result.enabled = patch.enabled
+  if (patch.controlAlias !== undefined) result.controlAlias = patch.controlAlias
   if (patch.descriptor !== undefined) result.descriptorSnapshot = JSON.stringify(patch.descriptor)
   return result
 }
@@ -49,7 +50,8 @@ function pluginValue(
     nativeId: locator.nativeId,
     descriptorSnapshot: JSON.stringify(plugin.descriptor),
     audioMode: plugin.audioMode,
-    enabled: plugin.enabled
+    enabled: plugin.enabled,
+    controlAlias: plugin.controlAlias ?? null
   }
 }
 

@@ -29,6 +29,8 @@ import type {
   ProjectGraphSnapshot,
   MixerParameterPreview,
   MixerRuntimeSnapshot,
+  MidiControlEvent,
+  MidiControlPreferences,
   MidiInputSnapshot,
   MidiSyncPreferences,
   PluginEditorMode,
@@ -92,6 +94,8 @@ export class AudioHostService {
   private stopping = false
   private uiDrainTimer: ReturnType<typeof setInterval> | null = null
   private uiDrainScheduled = false
+  private midiControlHandler: (event: MidiControlEvent) => void | Promise<void> = () => {}
+  private midiControlPreferencesHandler: (preferences: MidiControlPreferences) => void = () => {}
   private readonly session = new AudioHostSessionCoordinator()
   private readonly gateway: AudioHostGateway
   private readonly events = new AudioHostEventDispatcher({
@@ -216,6 +220,14 @@ export class AudioHostService {
     handler: (request: PluginSidechainRouteRequest) => void | Promise<void>
   ): void {
     this.events.setSidechainHandler(handler)
+  }
+
+  setMidiControlEventHandler(handler: (event: MidiControlEvent) => void | Promise<void>): void {
+    this.midiControlHandler = handler
+  }
+
+  setMidiControlPreferencesHandler(handler: (preferences: MidiControlPreferences) => void): void {
+    this.midiControlPreferencesHandler = handler
   }
 
   async resolvePluginSidechainRoute(
@@ -541,13 +553,20 @@ export class AudioHostService {
 
   async configureMidiInput(
     preferences: MidiSyncPreferences,
-    shortcuts: ShortcutPreferences = { keyboard: {}, midi: {} }
+    shortcuts: ShortcutPreferences = { keyboard: {}, midi: {} },
+    midiControl: MidiControlPreferences = { bindings: [], transformProfiles: [] }
   ): Promise<MidiInputSnapshot> {
-    return this.midiInput.configure(preferences, shortcuts)
+    const snapshot = await this.midiInput.configure(preferences, shortcuts, midiControl)
+    this.midiControlPreferencesHandler(structuredClone(midiControl))
+    return snapshot
   }
 
   async setMidiControlLearning(enabled: boolean): Promise<void> {
     return this.midiInput.setControlLearning(enabled)
+  }
+
+  isMidiControlLearning(): boolean {
+    return this.midiInput.isControlLearning()
   }
 
   runAudioBenchmark(effect: PluginDescriptor): Promise<AudioHostBenchmarkReport> {
@@ -808,6 +827,23 @@ export class AudioHostService {
       try {
         const pending = client.drainUiWork()
         this.editorWindows?.drain(client)
+        for (const event of client.drainMidiControlEvents?.() ?? []) {
+          const type = event.type === "note" ? "note" : "control-change"
+          void Promise.resolve(
+            this.midiControlHandler({
+              generation: event.generation,
+              timestampMicroseconds: event.timestampMicroseconds,
+              portId: event.portId,
+              portName: event.portName,
+              channel: event.channel,
+              type,
+              number: event.number,
+              value: event.value
+            })
+          ).catch((error: unknown) => {
+            console.error("Could not dispatch a MIDI control event", error)
+          })
+        }
         if (pending) this.scheduleUiDrain()
       } catch (error) {
         if (!this.stopping) console.error("Could not drain embedded audio UI work", error)

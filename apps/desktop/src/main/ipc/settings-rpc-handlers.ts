@@ -5,6 +5,7 @@ import type {
   ApplicationSettings,
   ApplicationSettingsResourceSnapshot,
   AudioHostRuntimePreferences,
+  MidiControlPreferences,
   RpcFailure,
   RpcRequestMeta,
   RpcResult,
@@ -22,6 +23,7 @@ import {
 } from "../settings"
 import { installApplicationMenu } from "../app"
 import { validateSettingsPatch } from "./support"
+import { validateMidiControlPreferences } from "../settings/midi-control-settings"
 
 function operationFailure(
   meta: RpcRequestMeta,
@@ -196,13 +198,34 @@ export function registerSettingsRpcHandlers(context: IpcHandlerContext): void {
   registerRpcHandler(IPC_CHANNELS.settingsConfigureShortcuts, ({ meta }, value: unknown) =>
     mutate(meta, async (current) => {
       const shortcuts = validateShortcutPreferences(value) satisfies ShortcutPreferences
-      await audioHostService.configureMidiInput(current.midiSync, shortcuts)
+      await audioHostService.configureMidiInput(current.midiSync, shortcuts, current.midiControl)
       try {
         const updated = await settings.configureShortcuts(shortcuts)
         installApplicationMenu(process.platform, updated.shortcuts)
         return updated
       } catch (error) {
-        await audioHostService.configureMidiInput(current.midiSync, current.shortcuts)
+        await audioHostService.configureMidiInput(
+          current.midiSync,
+          current.shortcuts,
+          current.midiControl
+        )
+        throw error
+      }
+    })
+  )
+
+  registerRpcHandler(IPC_CHANNELS.settingsConfigureMidiControl, ({ meta }, value: unknown) =>
+    mutate(meta, async (current) => {
+      const midiControl = validateMidiControlPreferences(value) satisfies MidiControlPreferences
+      await audioHostService.configureMidiInput(current.midiSync, current.shortcuts, midiControl)
+      try {
+        return await settings.configureMidiControl(midiControl)
+      } catch (error) {
+        await audioHostService.configureMidiInput(
+          current.midiSync,
+          current.shortcuts,
+          current.midiControl
+        )
         throw error
       }
     })

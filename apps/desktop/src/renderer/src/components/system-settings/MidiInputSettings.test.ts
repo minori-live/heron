@@ -3,20 +3,37 @@ import { describe, expect, it, vi } from "vitest"
 import MidiInputSettings from "./MidiInputSettings.vue"
 
 vi.mock("@heron/ui", () => ({
+  UiButton: {
+    props: ["disabled", "loading"],
+    template: '<button :disabled="disabled || loading" @click="$emit(\'click\')"><slot /></button>'
+  },
+  UiCheckbox: {
+    props: ["modelValue", "label", "description"],
+    emits: ["update:modelValue"],
+    template:
+      '<label><input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)" />{{ label }} {{ description }}</label>'
+  },
+  UiEmptyState: {
+    props: ["title", "description"],
+    template: '<div>{{ title }} {{ description }}<slot name="icon" /></div>'
+  },
+  UiNumberInput: {
+    props: ["modelValue"],
+    emits: ["update:modelValue"],
+    template:
+      '<input type="number" :value="modelValue" @input="$emit(\'update:modelValue\', Number($event.target.value))" />'
+  },
   UiSelect: {
     props: ["modelValue"],
     emits: ["update:modelValue"],
     template:
       '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><slot /></select>'
+  },
+  UiStatusNotice: {
+    props: ["title"],
+    template: "<div>{{ title }}<slot /></div>"
   }
 }))
-
-const UiSelect = {
-  props: ["modelValue"],
-  emits: ["update:modelValue"],
-  template:
-    '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><slot /></select>'
-}
 
 const SettingsPage = { template: "<main><slot /></main>" }
 const SettingsSection = { template: "<section><slot /></section>" }
@@ -51,7 +68,7 @@ describe("MidiInputSettings", () => {
         applying: false,
         error: ""
       },
-      global: { stubs: { UiSelect, SettingsPage, SettingsSection } }
+      global: { stubs: { SettingsPage, SettingsSection } }
     })
 
     await wrapper.get('input[type="checkbox"]').setValue(true)
@@ -98,11 +115,12 @@ describe("MidiInputSettings", () => {
         applying: false,
         error: ""
       },
-      global: { stubs: { UiSelect, SettingsPage, SettingsSection } }
+      global: { stubs: { SettingsPage, SettingsSection } }
     })
 
     expect(wrapper.text()).toContain("Freewheel")
-    expect(wrapper.text()).toContain("123.46 BPM")
+    expect(wrapper.text()).toContain("123.46")
+    expect(wrapper.text()).toContain("BPM")
     expect(wrapper.text()).toContain("Missing")
   })
 })

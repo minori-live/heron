@@ -22,6 +22,8 @@ import { TransportService } from "../audio"
 import { normalizeAudioRuntime } from "../ipc"
 import { WaveformService } from "../project"
 import { pluginTypeKey } from "@heron/contracts"
+import { MidiControlService } from "./midi-control-service"
+import { sendApplicationCommand } from "./application-command-events"
 
 export interface ApplicationServices {
   projectGraph: ProjectGraphService
@@ -35,6 +37,7 @@ export interface ApplicationServices {
   operations: OperationService
   recordings: RecordingService
   waveforms: WaveformService
+  midiControl: MidiControlService
   dispose(): void
 }
 
@@ -120,6 +123,49 @@ export async function createApplicationServices(
     lifecycle.applicationState.desktopSession
   )
   projectCommands.attachKernel(lifecycle, operations)
+  let midiParameterSequence = 0n
+  const midiControl = new MidiControlService({
+    graph: () => projectGraph.snapshotNow(),
+    learning: () => audioHost.isMidiControlLearning(),
+    dispatchApplicationCommand: (command) => {
+      const target = options.eventTargets()[0]
+      if (target) sendApplicationCommand(target, command)
+    },
+    applyMixerControl: async (channelId, parameter, value) => {
+      await projectGraph.applyMidiControl(channelId, parameter, value)
+      if ((parameter === "gainDb" || parameter === "pan") && typeof value === "number") {
+        await audioHost.previewMixerParameter({
+          target: "channel",
+          id: channelId,
+          parameter,
+          value
+        })
+      }
+    },
+    pluginParameters: (instanceId) => audioHost.pluginParameters(instanceId),
+    applyPluginParameter: async (instanceId, parameter, value) => {
+      const resource = await lifecycle.applicationState.pluginInstanceSnapshot(instanceId, () =>
+        plugins.closeEditor(instanceId)
+      )
+      const helperEpoch = audioHost.helperEpoch()
+      if (!resource || !helperEpoch) return
+      midiParameterSequence += 1n
+      await audioHost.enqueuePluginParameter({
+        plugin: resource.plugin,
+        helperEpoch,
+        pluginGeneration: resource.plugin.generation,
+        sequence: midiParameterSequence.toString(),
+        parameterKey: parameter.parameterKey,
+        runtimeToken: parameter.runtimeToken,
+        value,
+        gesture: "perform"
+      })
+    },
+    markDirty: () => commitExternalProjectDirty(projectService, lifecycle)
+  })
+  midiControl.configure((await settings.get()).midiControl)
+  audioHost.setMidiControlEventHandler((event) => midiControl.receive(event))
+  audioHost.setMidiControlPreferencesHandler((preferences) => midiControl.configure(preferences))
   const applicationEvents = bindAudioHostApplicationEvents({
     audioHost,
     projectCommands,
@@ -151,6 +197,7 @@ export async function createApplicationServices(
     operations,
     recordings,
     waveforms,
+    midiControl,
     dispose: () => applicationEvents.dispose()
   }
 }

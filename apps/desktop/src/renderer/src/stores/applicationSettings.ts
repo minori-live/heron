@@ -12,6 +12,7 @@ import type {
   MeterPeakHold,
   MeterReturnRate,
   MidiCenterCStandard,
+  MidiControlPreferences,
   ShortcutPreferences,
   ThemePreference
 } from "@heron/contracts"
@@ -296,6 +297,24 @@ export const useApplicationSettingsStore = defineStore("application-settings", (
     }
   }
 
+  async function configureMidiControl(midiControl: MidiControlPreferences): Promise<void> {
+    if (!settings.value) await load()
+    if (!settings.value) return
+    const previous = settings.value
+    settings.value = { ...previous, midiControl: structuredClone(midiControl) }
+    error.value = ""
+    try {
+      const applied = await applyMutation("settings-midi-control", (meta) =>
+        window.heron.configureMidiControl(meta, midiControl)
+      )
+      if (!applied) settings.value = previous
+    } catch (reason) {
+      settings.value = previous
+      error.value = reason instanceof Error ? reason.message : t("errors.unableToSaveMidiControl")
+      throw reason
+    }
+  }
+
   async function refreshAudioHostRuntimeDiagnostics(): Promise<void> {
     const target = desktopSession.value
     if (!target) return
@@ -327,6 +346,7 @@ export const useApplicationSettingsStore = defineStore("application-settings", (
     openSwapDirectory,
     configureAudioHostRuntime,
     configureShortcuts,
+    configureMidiControl,
     setSoftwareMonitoringEnabled,
     refreshAudioHostRuntimeDiagnostics
   }

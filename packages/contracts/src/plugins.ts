@@ -269,6 +269,8 @@ export interface PluginInstanceState {
   descriptor: PluginDescriptor
   audioMode: PluginAudioMode
   enabled: boolean
+  /** Null after persistence; optional only for pre-alias snapshots during compatibility loading. */
+  controlAlias?: string | null
   sidechainInputs: PluginSidechainRoute[]
   state: PluginStateEnvelope
 }

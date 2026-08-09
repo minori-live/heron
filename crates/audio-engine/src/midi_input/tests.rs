@@ -46,6 +46,9 @@ fn message_sink<'a>(
         active_notes,
         control_generation: generation,
         control_events: controls,
+        dispatch_events: None,
+        control_dropped: None,
+        control_wake: None,
         recording,
     }
 }

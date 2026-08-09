@@ -133,6 +133,7 @@
     "unableToSaveDisplaySettings": "Unable to save display settings.",
     "unableToSaveMixerDisplaySettings": "Unable to save mixer display settings.",
     "unableToSaveMidiSettings": "Unable to save MIDI settings.",
+    "unableToSaveMidiControl": "Unable to save MIDI control mappings.",
     "unableToSaveShortcutSettings": "Unable to save shortcut settings.",
     "unableToSaveAudioRuntime": "Unable to save embedded audio runtime settings.",
     "unableToChangeSoftwareMonitoring": "Unable to change software monitoring.",

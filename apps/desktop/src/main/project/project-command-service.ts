@@ -322,6 +322,7 @@ export class ProjectCommandService {
       if (!updated.ok) {
         throw new Error("Committed project graph resource could not advance")
       }
+      this.graphs.reconcileProjectCommand(command)
       this.graphs.commit(projectId, committed.graph)
       const nextWorkspace: ProjectWorkspaceSnapshot = {
         ...workspace,

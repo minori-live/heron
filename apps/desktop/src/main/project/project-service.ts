@@ -387,6 +387,15 @@ export class ProjectService {
     await this.completeMutation(false)
   }
 
+  async saveControlState(
+    states: PluginStateInput[],
+    mixer: import("@heron/project-db/protocol").MixerControlOverlayInput[]
+  ): Promise<void> {
+    if (states.length === 0 && mixer.length === 0) return
+    await this.requireActive().worker.saveControlState(states, mixer)
+    await this.completeMutation(false)
+  }
+
   assetContentHashes(ids: string[]): Promise<AssetContentHash[]> {
     return this.requireActive().worker.assetContentHashes(ids)
   }

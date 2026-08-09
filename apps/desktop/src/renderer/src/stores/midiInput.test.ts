@@ -320,6 +320,7 @@ describe("configure", () => {
       },
       pluginEditors: {},
       shortcuts: { keyboard: {}, midi: {} },
+      midiControl: { bindings: [], transformProfiles: [] },
       recentProjects: []
     }
     const store = useMidiInputStore()

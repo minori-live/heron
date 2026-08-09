@@ -80,6 +80,7 @@ export const defaultSettings: ApplicationSettings = {
     maxBlockingThreads: "auto"
   },
   shortcuts: { keyboard: {}, midi: {} },
+  midiControl: { bindings: [], transformProfiles: [] },
   midiSync: {
     enabled: false,
     sourcePortId: null,

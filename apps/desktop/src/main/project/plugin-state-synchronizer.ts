@@ -27,5 +27,6 @@ export async function synchronizePluginStatesAtomically(
   if (failures.length > 0) {
     throw new AggregateError(failures, "Could not synchronize every audio plug-in state")
   }
-  if (states.length > 0) await projectGraph.savePluginStates(states)
+  // The same project-worker transaction also commits any pending hardware Mixer overlay.
+  await projectGraph.savePluginStates(states)
 }

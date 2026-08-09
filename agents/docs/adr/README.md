@@ -52,3 +52,4 @@ review.
 - [ADR-0006: Tier Linux plug-in editor compatibility](0006-tier-linux-plug-in-editor-compatibility.md)
 - [ADR-0007: Build new projects from a migrated database template](0007-build-project-database-template.md)
 - [ADR-0008: Publish active MIDI notes in runtime snapshots](0008-publish-active-midi-notes.md)
+- [ADR-0009: Keep MIDI control event-driven and outside project history](0009-event-driven-midi-control.md)

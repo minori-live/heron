@@ -9,6 +9,7 @@ import type {
   RoundTripLatencyMeasurementRequest,
   CreateProjectRequest,
   ProcessGainRequest,
+  MidiControlPreferences,
   ProjectCloseDisposition,
   ProjectConfiguration,
   ShortcutPreferences,
@@ -102,6 +103,8 @@ const api: HeronDesktopApi = {
     invokeRpc(IPC_CHANNELS.settingsConfigureAudioHostRuntime, meta, preferences),
   configureShortcuts: (meta, preferences: ShortcutPreferences) =>
     invokeRpc(IPC_CHANNELS.settingsConfigureShortcuts, meta, preferences),
+  configureMidiControl: (meta, preferences: MidiControlPreferences) =>
+    invokeRpc(IPC_CHANNELS.settingsConfigureMidiControl, meta, preferences),
   midiInputSnapshot: (meta) => invokeRpc(IPC_CHANNELS.midiInputSnapshot, meta),
   subscribeMidiInput: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, snapshot: Parameters<typeof listener>[0]) =>

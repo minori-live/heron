@@ -3,6 +3,7 @@ import { dirname, join } from "node:path"
 import {
   APPLICATION_COMMAND_IDS,
   DEFAULT_METER_RETURN_RATE,
+  DEFAULT_MIDI_CONTROL_PREFERENCES,
   isMeterReturnRate,
   MAX_MIDI_INPUT_OFFSET_MS,
   SHORTCUT_MODIFIERS
@@ -14,6 +15,7 @@ import type {
   AudioHostRuntimePreferences,
   MeterPeakHold,
   MidiCenterCStandard,
+  MidiControlPreferences,
   MidiSyncPreferences,
   PluginEditorPreference,
   RecordingBitDepth,
@@ -21,6 +23,10 @@ import type {
   ThemePreference
 } from "@heron/contracts"
 import { DEFAULT_LOCALE, isAppLocale } from "../../shared/i18n"
+import {
+  recoverMidiControlPreferences,
+  validateMidiControlPreferences
+} from "./midi-control-settings"
 
 export const DEFAULT_PLUGIN_EDITOR_PREFERENCE: Readonly<PluginEditorPreference> = {
   mode: "native",
@@ -270,6 +276,7 @@ export class ApplicationSettingsStore {
         sourcePortName: null,
         inputOffsetsMs: {}
       },
+      midiControl: structuredClone(DEFAULT_MIDI_CONTROL_PREFERENCES),
       audioHostRuntime: {
         workerThreads: "auto",
         maxBlockingThreads: "auto"
@@ -320,6 +327,7 @@ export class ApplicationSettingsStore {
             return value.midiSync
           }
         })(),
+        midiControl: recoverMidiControlPreferences(raw.midiControl),
         audioHostRuntime: (() => {
           try {
             return validateAudioHostRuntimePreferences(raw.audioHostRuntime)
@@ -421,6 +429,12 @@ export class ApplicationSettingsStore {
   async configureMidiInput(preferences: MidiSyncPreferences): Promise<ApplicationSettings> {
     const current = await this.get()
     current.midiSync = validateMidiSyncPreferences(preferences)
+    return this.write(current)
+  }
+
+  async configureMidiControl(preferences: MidiControlPreferences): Promise<ApplicationSettings> {
+    const current = await this.get()
+    current.midiControl = validateMidiControlPreferences(preferences)
     return this.write(current)
   }
 

@@ -26,6 +26,7 @@ function settings(overrides: Partial<ApplicationSettings> = {}): ApplicationSett
     },
     pluginEditors: {},
     shortcuts: { keyboard: {}, midi: {} },
+    midiControl: { bindings: [], transformProfiles: [] },
     recentProjects: [],
     ...overrides
   }
