@@ -342,7 +342,7 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
 
 .learn-strip[data-learning="true"] .learn-indicator {
   color: var(--accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: var(--ui-focus-ring);
 }
 
 .learn-copy {

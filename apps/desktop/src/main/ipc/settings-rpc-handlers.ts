@@ -19,11 +19,11 @@ import {
   setMainLocale,
   t,
   validateAudioHostRuntimePreferences,
+  validateMidiControlPreferences,
   validateShortcutPreferences
 } from "../settings"
 import { installApplicationMenu } from "../app"
 import { validateSettingsPatch } from "./support"
-import { validateMidiControlPreferences } from "../settings/midi-control-settings"
 
 function operationFailure(
   meta: RpcRequestMeta,

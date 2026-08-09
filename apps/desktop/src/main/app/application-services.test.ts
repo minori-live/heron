@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+import { DEFAULT_MIDI_CONTROL_PREFERENCES } from "@heron/contracts"
 
 const fakes = vi.hoisted(() => ({
   graph: {
@@ -85,9 +86,12 @@ describe("createApplicationServices", () => {
       closePluginEditor: vi.fn(async () => undefined),
       pluginEditorAppearanceSnapshot: vi.fn(() => ({ theme: "dark", locale: "en-US" })),
       audioEngineSnapshot: vi.fn(async () => ({ state: "running" })),
-      helperEpoch: vi.fn(() => "audio-epoch")
+      helperEpoch: vi.fn(() => "audio-epoch"),
+      setMidiControlEventHandler: vi.fn(),
+      setMidiControlPreferencesHandler: vi.fn()
     }
     const settings = {
+      get: vi.fn(async () => ({ midiControl: DEFAULT_MIDI_CONTROL_PREFERENCES })),
       pluginEditorPreference: vi.fn(async () => ({ mode: "native", zoomPercent: 100 }))
     }
     const services = await createApplicationServices({
