@@ -37,7 +37,7 @@ const relativeEncoding = shallowRef<"one-127" | "twos-complement" | "binary-offs
 const targetType = shallowRef<"application-command" | "mixer" | "plugin-parameter">(
   "application-command"
 )
-const command = shallowRef(APPLICATION_COMMAND_IDS[0]!)
+const command = shallowRef(APPLICATION_COMMAND_IDS[0])
 const mixerIndex = shallowRef(0)
 const mixerParameter = shallowRef<"gain" | "pan" | "mute" | "solo">("gain")
 const booleanBehavior = shallowRef<"toggle" | "absolute">("toggle")
