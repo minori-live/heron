@@ -204,7 +204,9 @@ outcome:
 - indexed disk libraries, favorites, tags, metadata search, and pre-import
   audition;
 - dedicated JACK, PipeWire, and PulseAudio backends;
-- native Wayland plug-in editor improvements;
+- native Wayland plug-in editor support under the capability and acceptance
+  policy proposed in
+  [ADR-0006](adr/0006-tier-linux-plug-in-editor-compatibility.md);
 - signed and notarized distribution;
 - the shared iced plug-in visual language and a broader built-in processor and
   instrument rack.
