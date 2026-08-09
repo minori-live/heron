@@ -142,14 +142,34 @@ describe("MIDI control overlay", () => {
     expect(store.graph.channels.find(({ id }) => id === "master")?.gainDb).toBe(0)
   })
 
-  it("ignores an empty overlay snapshot", () => {
+  it("restores baseline mixer values when the overlay becomes empty", () => {
     const store = useProjectGraphStore()
     store.hydrate(graph())
-    const before = store.graph
+    store.applyMidiControlOverlay([{ channelId: "audio", gainDb: -18, muted: true }])
 
     store.applyMidiControlOverlay([])
 
-    expect(store.graph).toBe(before)
+    expect(store.graph.channels.find(({ id }) => id === "audio")).toMatchObject({
+      gainDb: 0,
+      muted: false
+    })
+  })
+
+  it("restores fields and channels removed from a later overlay snapshot", () => {
+    const store = useProjectGraphStore()
+    store.hydrate(graph())
+    store.applyMidiControlOverlay([
+      { channelId: "audio", gainDb: -18, pan: 0.25 },
+      { channelId: "master", muted: true }
+    ])
+
+    store.applyMidiControlOverlay([{ channelId: "audio", gainDb: -6 }])
+
+    expect(store.graph.channels.find(({ id }) => id === "audio")).toMatchObject({
+      gainDb: -6,
+      pan: 0
+    })
+    expect(store.graph.channels.find(({ id }) => id === "master")?.muted).toBe(false)
   })
 })
 
