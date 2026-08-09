@@ -98,6 +98,11 @@ export class AudioHostMidiInputClient {
         ignoredSystemMessages: value.sync.ignored_system_messages,
         error: value.sync.error
       },
+      activeNotes: (value.active_notes ?? []).map((note) => ({
+        portId: note.port_id,
+        channel: note.channel,
+        key: note.key
+      })),
       controlEvents: value.control_events.map((event) => ({
         generation: event.generation,
         timestampMicroseconds: event.timestamp_microseconds,

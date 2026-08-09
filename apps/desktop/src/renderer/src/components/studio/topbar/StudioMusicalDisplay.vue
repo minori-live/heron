@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n"
 import type {
   KeySignatureEventState,
   KeySignatureMode,
+  MixerChannelState,
   TempoMapSnapshot,
   TimeSignatureEventState
 } from "@heron/contracts"
@@ -20,11 +21,13 @@ import {
   parseKeySignatureValue
 } from "../../../utils/keySignatures"
 import KeySignatureDropdown from "../KeySignatureDropdown.vue"
+import { useMidiChordActivity } from "../../../composables/useMidiChordActivity"
 
 const props = defineProps<{
   playheadSeconds: number
   tempoMap: TempoMapSnapshot
   keySignatureEvents: KeySignatureEventState[]
+  mixerChannels: MixerChannelState[]
 }>()
 const emit = defineEmits<{
   updateTempo: [beatsPerMinute: number]
@@ -59,6 +62,10 @@ const currentKeyValue = computed({
       emit("updateKey", choice)
     }
   }
+})
+const { label: midiChordLabel } = useMidiChordActivity({
+  channels: () => props.mixerChannels,
+  keySignature: currentKey
 })
 
 function beginTempoEdit(): void {
@@ -176,15 +183,24 @@ function commitMeterEdit(): void {
       </button>
       <span>{{ t("studio.musical.meter") }}</span>
     </div>
-    <div class="lcd-cell key-cell">
-      <KeySignatureDropdown
-        v-model="currentKeyValue"
-        class="key-dropdown"
-        appearance="embedded"
-        hover-treatment="host-tint"
-        :aria-label="t('studio.musical.keyButtonAria', { value: currentKeyLabel })"
-      />
-      <span>{{ t("studio.musical.key") }}</span>
+    <div
+      class="lcd-cell harmony-cell"
+      :aria-label="midiChordLabel ? t('studio.musical.midiInputAria') : undefined"
+    >
+      <template v-if="midiChordLabel">
+        <strong class="midi-value">{{ midiChordLabel }}</strong>
+        <span>{{ t("studio.musical.midiInput") }}</span>
+      </template>
+      <template v-else>
+        <KeySignatureDropdown
+          v-model="currentKeyValue"
+          class="key-dropdown"
+          appearance="embedded"
+          hover-treatment="host-tint"
+          :aria-label="t('studio.musical.keyButtonAria', { value: currentKeyLabel })"
+        />
+        <span>{{ t("studio.musical.key") }}</span>
+      </template>
     </div>
   </section>
 </template>
@@ -192,7 +208,7 @@ function commitMeterEdit(): void {
 <style scoped>
 .musical-display {
   display: grid;
-  grid-template-columns: 74px 42px 65px 52px 72px;
+  grid-template-columns: 74px 42px 65px 52px 88px;
   align-self: stretch;
   min-width: 0;
   height: 44px;
@@ -293,15 +309,20 @@ function commitMeterEdit(): void {
 .meter-input {
   width: 46px;
 }
-.key-cell {
+.harmony-cell {
   overflow: hidden;
+}
+.midi-value {
+  width: 100%;
+  overflow: hidden;
+  padding: 0 4px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 @media (max-width: 1279px) {
   .musical-display {
-    grid-template-columns: 68px 38px 62px 48px;
-  }
-  .key-cell {
-    display: none;
+    grid-template-columns: 68px 38px 62px 48px 76px;
   }
 }
 </style>

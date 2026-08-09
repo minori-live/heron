@@ -32,6 +32,7 @@ fn message_sink<'a>(
     ignored: &'a mut u64,
     panic: &'a AtomicBool,
     pending: &'a mut Vec<PendingMidiEvent>,
+    active_notes: &'a mut BTreeMap<(String, u8, u8), u16>,
     generation: &'a mut u64,
     controls: &'a mut VecDeque<MidiControlEvent>,
     recording: &'a mut Option<MidiRecordingSession>,
@@ -42,6 +43,7 @@ fn message_sink<'a>(
         ignored_system_messages: ignored,
         panic_requested: panic,
         pending_events: pending,
+        active_notes,
         control_generation: generation,
         control_events: controls,
         recording,
@@ -368,6 +370,7 @@ fn captures_note_and_control_change_events_for_shortcut_ports() {
     let mut ignored = 0;
     let panic = AtomicBool::new(false);
     let mut pending = Vec::new();
+    let mut active_notes = BTreeMap::new();
     let mut generation = 0;
     let mut controls = VecDeque::new();
     let mut recording = None;
@@ -378,6 +381,7 @@ fn captures_note_and_control_change_events_for_shortcut_ports() {
             &mut ignored,
             &panic,
             &mut pending,
+            &mut active_notes,
             &mut generation,
             &mut controls,
             &mut recording,
@@ -419,6 +423,7 @@ fn process_messages_routes_clock_source_and_system_side_effects() {
     let mut ignored = 0;
     let panic = AtomicBool::new(false);
     let mut pending = Vec::new();
+    let mut active_notes = BTreeMap::new();
     let mut generation = 0;
     let mut controls = VecDeque::new();
     let mut recording = None;
@@ -429,6 +434,7 @@ fn process_messages_routes_clock_source_and_system_side_effects() {
             &mut ignored,
             &panic,
             &mut pending,
+            &mut active_notes,
             &mut generation,
             &mut controls,
             &mut recording,
@@ -473,6 +479,7 @@ fn process_messages_capture_all_controls_evicts_oldest_events() {
     let mut ignored = 0;
     let panic = AtomicBool::new(false);
     let mut pending = Vec::new();
+    let mut active_notes = BTreeMap::new();
     let mut generation = 0;
     let mut controls = VecDeque::new();
     let mut recording = None;
@@ -486,6 +493,7 @@ fn process_messages_capture_all_controls_evicts_oldest_events() {
             &mut ignored,
             &panic,
             &mut pending,
+            &mut active_notes,
             &mut generation,
             &mut controls,
             &mut recording,
@@ -503,6 +511,62 @@ fn process_messages_capture_all_controls_evicts_oldest_events() {
         Some(4),
         "oldest three control events should be evicted"
     );
+}
+
+#[test]
+fn active_notes_follow_counted_note_lifecycles() {
+    let mut active_notes = BTreeMap::new();
+
+    update_active_notes(
+        &mut active_notes,
+        "keyboard",
+        &MidiInputMessage::NoteOn(2, 60, 100),
+    );
+    update_active_notes(
+        &mut active_notes,
+        "keyboard",
+        &MidiInputMessage::NoteOn(2, 60, 80),
+    );
+    update_active_notes(
+        &mut active_notes,
+        "keyboard",
+        &MidiInputMessage::NoteOff(2, 60, 0),
+    );
+
+    assert_eq!(active_notes.get(&("keyboard".to_owned(), 2, 60)), Some(&1));
+
+    update_active_notes(
+        &mut active_notes,
+        "keyboard",
+        &MidiInputMessage::NoteOn(2, 60, 0),
+    );
+    assert!(active_notes.is_empty());
+}
+
+#[test]
+fn active_notes_clear_only_the_addressed_channel_until_system_reset() {
+    let mut active_notes = BTreeMap::from([
+        (("keyboard".to_owned(), 1, 60), 1),
+        (("keyboard".to_owned(), 2, 64), 1),
+        (("pads".to_owned(), 1, 67), 1),
+    ]);
+
+    update_active_notes(
+        &mut active_notes,
+        "keyboard",
+        &MidiInputMessage::ControlChange(1, 123, 0),
+    );
+
+    assert!(!active_notes.contains_key(&("keyboard".to_owned(), 1, 60)));
+    assert!(active_notes.contains_key(&("keyboard".to_owned(), 2, 64)));
+    assert!(active_notes.contains_key(&("pads".to_owned(), 1, 67)));
+
+    update_active_notes(
+        &mut active_notes,
+        "keyboard",
+        &MidiInputMessage::SystemReset,
+    );
+    assert!(active_notes.is_empty());
 }
 
 #[allow(clippy::type_complexity)]
@@ -530,6 +594,7 @@ fn actor_state_with_local_rings(
         realtime_sysex: Prod::new(Arc::clone(&sysex)),
         realtime_shared: Arc::clone(&shared),
         pending_events,
+        active_notes: BTreeMap::new(),
         control_generation: 0,
         control_events: VecDeque::new(),
         recording: None,
@@ -647,6 +712,10 @@ fn snapshot_maps_clock_states_and_aggregates_dropped_events() {
     }];
     state.ignored_system_messages = 9;
     state.error = Some("boom".into());
+    state.active_notes = BTreeMap::from([
+        (("src".to_owned(), 1, 67), 1),
+        (("src".to_owned(), 0, 60), 2),
+    ]);
 
     let internal = snapshot(&state);
     assert_eq!(internal.ports.len(), 1);
@@ -655,6 +724,21 @@ fn snapshot_maps_clock_states_and_aggregates_dropped_events() {
     assert_eq!(internal.sync.dropped_events, 4);
     assert_eq!(internal.sync.ignored_system_messages, 9);
     assert_eq!(internal.sync.error.as_deref(), Some("boom"));
+    assert_eq!(
+        internal.active_notes,
+        vec![
+            MidiActiveNote {
+                port_id: "src".to_owned(),
+                channel: 0,
+                key: 60,
+            },
+            MidiActiveNote {
+                port_id: "src".to_owned(),
+                channel: 1,
+                key: 67,
+            },
+        ]
+    );
     assert!(internal.captured_at > 0);
 
     state.clock.set_enabled(true);

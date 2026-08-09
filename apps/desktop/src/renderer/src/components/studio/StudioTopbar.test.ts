@@ -1,7 +1,9 @@
 import { DOMWrapper, enableAutoUnmount, mount } from "@vue/test-utils"
-import { createPinia } from "pinia"
+import { createPinia, setActivePinia } from "pinia"
+import { nextTick } from "vue"
 import { afterEach, describe, expect, it } from "vitest"
 import StudioTopbar from "./StudioTopbar.vue"
+import { useMidiInputStore } from "../../stores/midiInput"
 
 enableAutoUnmount(afterEach)
 
@@ -59,6 +61,14 @@ const metronomeChannel = {
   inputChannels: [],
   hardwareOutputChannels: []
 }
+const midiChannel = {
+  ...metronomeChannel,
+  id: "instrument",
+  systemRole: null,
+  name: "Instrument",
+  midiInput: { portId: "keyboard", portName: "Keyboard", channel: 0 },
+  inputMonitoring: true
+}
 const masterMeter = {
   channelId: "master",
   preFaderPeak: [0, 0] as [number, number],
@@ -68,6 +78,8 @@ const masterMeter = {
 }
 
 function mountTopbar() {
+  const pinia = createPinia()
+  setActivePinia(pinia)
   return mount(StudioTopbar, {
     props: {
       engineRunning: false,
@@ -82,6 +94,7 @@ function mountTopbar() {
       playheadSeconds: 3,
       tempoMap,
       keySignatureEvents,
+      mixerChannels: [midiChannel],
       inspectorOpen: false,
       notesPanelOpen: false,
       mediaBrowserOpen: true,
@@ -97,7 +110,7 @@ function mountTopbar() {
       lowLatencyModeTooltip: "Output 3–4 · 5 ms"
     },
     global: {
-      plugins: [createPinia()],
+      plugins: [pinia],
       stubs: {
         TooltipRoot: { template: "<div><slot /></div>" },
         TooltipTrigger: {
@@ -177,6 +190,115 @@ describe("StudioTopbar", () => {
     await wrapper.setProps({ lowLatencyModeEnabled: true, lowLatencyModeBusy: true })
     expect(button.attributes("aria-pressed")).toBe("true")
     expect(button.attributes("aria-disabled")).toBe("true")
+  })
+
+  it("shows only exact chords from active notes matching the monitored MIDI route", async () => {
+    const wrapper = mountTopbar()
+    const midiInput = useMidiInputStore()
+
+    expect(wrapper.get('button[aria-label="Key signature C minor"]').text()).toBe("C minor")
+    expect(wrapper.find('[aria-label="Recognized MIDI input chord"]').exists()).toBe(false)
+
+    midiInput.snapshot = {
+      ...midiInput.snapshot,
+      activeNotes: [
+        { portId: "keyboard", channel: 0, key: 64 },
+        { portId: "keyboard", channel: 0, key: 67 },
+        { portId: "keyboard", channel: 0, key: 72 },
+        { portId: "other", channel: 0, key: 61 }
+      ]
+    }
+    await nextTick()
+
+    expect(wrapper.get('[aria-label="Recognized MIDI input chord"] .midi-value').text()).toBe("C")
+    expect(wrapper.find('button[aria-label="Key signature C minor"]').exists()).toBe(false)
+
+    midiInput.snapshot = {
+      ...midiInput.snapshot,
+      activeNotes: [
+        { portId: "keyboard", channel: 0, key: 60 },
+        { portId: "keyboard", channel: 0, key: 67 }
+      ]
+    }
+    await nextTick()
+
+    expect(wrapper.find(".midi-value").exists()).toBe(false)
+    expect(wrapper.get('button[aria-label="Key signature C minor"]').text()).toBe("C minor")
+  })
+
+  it("keeps Key visible for an unrecognized three-note set", async () => {
+    const wrapper = mountTopbar()
+    const midiInput = useMidiInputStore()
+    midiInput.snapshot = {
+      ...midiInput.snapshot,
+      activeNotes: [
+        { portId: "keyboard", channel: 0, key: 60 },
+        { portId: "keyboard", channel: 0, key: 61 },
+        { portId: "keyboard", channel: 0, key: 62 }
+      ]
+    }
+    await nextTick()
+
+    expect(wrapper.find('[aria-label="Recognized MIDI input chord"]').exists()).toBe(false)
+    expect(wrapper.get('button[aria-label="Key signature C minor"]').text()).toBe("C minor")
+  })
+
+  it("updates an ambiguous chord from the current key and restores the latest Key", async () => {
+    const wrapper = mountTopbar()
+    const midiInput = useMidiInputStore()
+    await wrapper.setProps({
+      playheadSeconds: 0,
+      keySignatureEvents: [{ tick: 0, fifths: 0, mode: "major" }]
+    })
+    midiInput.snapshot = {
+      ...midiInput.snapshot,
+      activeNotes: [
+        { portId: "keyboard", channel: 0, key: 60 },
+        { portId: "keyboard", channel: 0, key: 64 },
+        { portId: "keyboard", channel: 0, key: 67 },
+        { portId: "keyboard", channel: 0, key: 69 }
+      ]
+    }
+    await nextTick()
+
+    expect(wrapper.get(".midi-value").text()).toBe("C6")
+
+    await wrapper.setProps({
+      keySignatureEvents: [{ tick: 0, fifths: 0, mode: "minor" }]
+    })
+    expect(wrapper.get(".midi-value").text()).toBe("Am7")
+
+    midiInput.snapshot = { ...midiInput.snapshot, activeNotes: [] }
+    await nextTick()
+
+    expect(wrapper.find(".midi-value").exists()).toBe(false)
+    expect(wrapper.get('button[aria-label="Key signature A minor"]').text()).toBe("A minor")
+  })
+
+  it("shows chords only while their instrument route is monitored or armed", async () => {
+    const wrapper = mountTopbar()
+    const midiInput = useMidiInputStore()
+    midiInput.snapshot = {
+      ...midiInput.snapshot,
+      activeNotes: [
+        { portId: "keyboard", channel: 0, key: 60 },
+        { portId: "keyboard", channel: 0, key: 64 },
+        { portId: "keyboard", channel: 0, key: 67 }
+      ]
+    }
+    await nextTick()
+    expect(wrapper.get(".midi-value").text()).toBe("C")
+
+    await wrapper.setProps({
+      mixerChannels: [{ ...midiChannel, inputMonitoring: false, recordArmed: false }]
+    })
+    expect(wrapper.find(".midi-value").exists()).toBe(false)
+    expect(wrapper.get('button[aria-label="Key signature C minor"]').text()).toBe("C minor")
+
+    await wrapper.setProps({
+      mixerChannels: [{ ...midiChannel, inputMonitoring: false, recordArmed: true }]
+    })
+    expect(wrapper.get(".midi-value").text()).toBe("C")
   })
 
   it("uses the existing topbar control state for the Piano Roll editor", async () => {

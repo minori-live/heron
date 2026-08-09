@@ -28,6 +28,7 @@ function snapshot(overrides: Partial<MidiInputSnapshot> = {}): MidiInputSnapshot
       ignoredSystemMessages: 0,
       error: null
     },
+    activeNotes: [],
     controlEvents: [],
     capturedAt: 1_000,
     ...overrides
@@ -194,11 +195,13 @@ describe("load", () => {
     push?.(
       snapshot({
         sync: { ...snapshot().sync, state: "lost", error: "Clock stopped" },
+        activeNotes: [{ portId: "port-1", channel: 0, key: 60 }],
         capturedAt: 2_000
       })
     )
 
     expect(store.snapshot.capturedAt).toBe(2_000)
+    expect(store.snapshot.activeNotes).toEqual([{ portId: "port-1", channel: 0, key: 60 }])
     expect(store.error).toBe("Clock stopped")
   })
 

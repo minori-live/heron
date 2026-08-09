@@ -43,6 +43,7 @@ defineProps<{
   playheadSeconds: number
   tempoMap: TempoMapSnapshot
   keySignatureEvents: KeySignatureEventState[]
+  mixerChannels: MixerChannelState[]
   inspectorOpen: boolean
   notesPanelOpen: boolean
   mediaBrowserOpen: boolean
@@ -145,6 +146,7 @@ const { t } = useI18n()
       :playhead-seconds="playheadSeconds"
       :tempo-map="tempoMap"
       :key-signature-events="keySignatureEvents"
+      :mixer-channels="mixerChannels"
       @update-tempo="emit('updateTempo', $event)"
       @update-meter="emit('updateMeter', $event)"
       @update-key="emit('updateKey', $event)"

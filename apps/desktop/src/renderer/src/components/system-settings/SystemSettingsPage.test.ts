@@ -65,6 +65,7 @@ function mountPage() {
           ignoredSystemMessages: 0,
           error: null
         },
+        activeNotes: [],
         controlEvents: [],
         capturedAt: 0
       },

@@ -300,6 +300,7 @@ export function createContext(
           ignoredSystemMessages: 0,
           error: null
         },
+        activeNotes: [],
         controlEvents: []
       })),
       configureMidiInput: vi.fn(async () => undefined),

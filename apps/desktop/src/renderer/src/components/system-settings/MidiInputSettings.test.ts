@@ -44,6 +44,7 @@ describe("MidiInputSettings", () => {
             ignoredSystemMessages: 0,
             error: null
           },
+          activeNotes: [],
           controlEvents: [],
           capturedAt: 1
         },
@@ -90,6 +91,7 @@ describe("MidiInputSettings", () => {
             ignoredSystemMessages: 1,
             error: null
           },
+          activeNotes: [],
           controlEvents: [],
           capturedAt: 1
         },
