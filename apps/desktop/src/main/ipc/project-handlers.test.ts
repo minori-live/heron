@@ -256,7 +256,33 @@ describe("registerProjectHandlers", () => {
   it("saves the current project", async () => {
     const context = createContext()
     const saved = { ...projectSession, dirty: false }
+    const synchronizedGraph = {
+      ...emptyGraph,
+      channels: [
+        {
+          id: "audio",
+          kind: "audio" as const,
+          systemRole: null,
+          name: "Audio",
+          color: "#8C83FF",
+          sortOrder: 0,
+          inputSource: "hardware" as const,
+          inputFormat: "stereo" as const,
+          gainDb: -12,
+          pan: 0,
+          muted: false,
+          soloed: false,
+          outputChannelId: null,
+          outputBus: null,
+          recordArmed: false,
+          inputMonitoring: false,
+          inputChannels: [1, 2],
+          hardwareOutputChannels: []
+        }
+      ]
+    }
     vi.mocked(context.projects.save).mockResolvedValue(saved)
+    vi.mocked(context.projectGraph.snapshot).mockResolvedValue(synchronizedGraph)
     registerProjectHandlers(context)
     const workspace = installWorkspace(context.lifecycle)
 
@@ -269,7 +295,7 @@ describe("registerProjectHandlers", () => {
 
     expect(result).toMatchObject({
       ok: true,
-      value: expect.objectContaining({ session: saved })
+      value: expect.objectContaining({ graph: synchronizedGraph, session: saved })
     })
     expect(context.recordings.cleanupCommittedForProject).toHaveBeenCalledWith(saved.path)
   })
