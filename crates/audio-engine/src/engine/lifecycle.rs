@@ -1,7 +1,8 @@
+use super::device_recovery::StreamFaultReporter;
 use super::{
     Arc, AtomicBool, AtomicU32, AtomicU64, AudioEngine, AudioEngineKey, AuditionPlayback,
-    DeviceTrait, ENGINE_COMMAND_CAPACITY, EngineCommand, HeapRb, InputFrame, InputPeakBank,
-    MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS, MeterBank, NativeAudioEngineConfig,
+    DeviceRecoveryAttempt, DeviceTrait, ENGINE_COMMAND_CAPACITY, EngineCommand, HeapRb, InputFrame,
+    InputPeakBank, MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS, MeterBank, NativeAudioEngineConfig,
     NativeAudioRuntimeSnapshot, NativeMixerRuntime, NativeRoundTripLatencyMeasurementRequest,
     NativeRoundTripLatencyMeasurementSnapshot, Ordering, OutputMixerControl, OutputStreamContext,
     Producer, RING_BUFFER_BLOCKS, RecorderController, Result, RoundTripLatencyMeasurement,
@@ -38,6 +39,21 @@ impl AudioEngine {
         &self,
         config: NativeAudioEngineConfig,
     ) -> Result<NativeAudioRuntimeSnapshot> {
+        self.cancel_device_recovery();
+        let generation = self.claim_recovery_generation();
+        match self.start_audio_engine_generation(config, generation)? {
+            DeviceRecoveryAttempt::Committed(runtime) => Ok(runtime),
+            DeviceRecoveryAttempt::Superseded => {
+                Err(audio_error("audio runtime transition", "superseded"))
+            }
+        }
+    }
+
+    pub(super) fn start_audio_engine_generation(
+        &self,
+        config: NativeAudioEngineConfig,
+        generation: u64,
+    ) -> Result<DeviceRecoveryAttempt> {
         if config.buffer_size == 0 {
             return Err(invalid_config("buffer size must be greater than zero"));
         }
@@ -60,6 +76,10 @@ impl AudioEngine {
             .runtime_transition
             .lock()
             .map_err(|_| audio_error("audio runtime transition lock", "poisoned"))?;
+        if self.recovery_authority.load(Ordering::Acquire) != generation {
+            self.record_superseded_recovery("after-transition-lock", generation);
+            return Ok(DeviceRecoveryAttempt::Superseded);
+        }
 
         {
             let guard = self
@@ -67,7 +87,7 @@ impl AudioEngine {
                 .lock()
                 .map_err(|_| audio_error("audio engine lock", "poisoned"))?;
             if let Some(engine) = guard.as_ref().filter(|engine| engine.matches(&engine_key)) {
-                return Ok(engine.metrics.snapshot());
+                return Ok(DeviceRecoveryAttempt::Committed(engine.metrics.snapshot()));
             }
         }
 
@@ -80,6 +100,11 @@ impl AudioEngine {
             .map_err(|_| audio_error("audio engine lock", "poisoned"))?
             .take();
         drop(previous);
+
+        if self.recovery_authority.load(Ordering::Acquire) != generation {
+            self.record_superseded_recovery("after-old-stream-drop", generation);
+            return Ok(DeviceRecoveryAttempt::Superseded);
+        }
 
         let host = crate::device::host_for_backend(&config.backend)?;
         let (input_device, output_device) = resolve_stream_devices(
@@ -142,6 +167,11 @@ impl AudioEngine {
             u32::from(output_config.channels).min(MAX_OUTPUT_CHANNELS as u32),
             input_config.sample_rate,
         ));
+        let stream_incarnation = self.next_stream_incarnation.fetch_add(1, Ordering::Relaxed);
+        let fault_reporter = StreamFaultReporter {
+            stream_incarnation,
+            sender: self.device_fault_sender.clone(),
+        };
         let initial_mixer = take_pending_mixer(self, session_sample_rate)?;
         if let Some(runtime) = initial_mixer.as_ref() {
             runtime.activate_application_captures();
@@ -200,6 +230,7 @@ impl AudioEngine {
             Arc::clone(&metrics),
             Arc::clone(&input_peaks),
             Arc::clone(&round_trip_latency),
+            fault_reporter.clone(),
         )?;
         let output_stream = build_stream_for_format!(
             build_output_stream,
@@ -220,6 +251,7 @@ impl AudioEngine {
                 round_trip_latency: Arc::clone(&round_trip_latency),
                 recording_tap,
             },
+            fault_reporter,
         )?;
 
         let actual_input_buffer = input_stream
@@ -260,15 +292,27 @@ impl AudioEngine {
             round_trip_latency,
         };
         let snapshot = engine.metrics.snapshot();
+        let _commit = self.recovery_commit_guard();
+        if self.recovery_authority.load(Ordering::Acquire) != generation {
+            self.record_superseded_recovery("before-runtime-publish", generation);
+            drop(engine);
+            return Ok(DeviceRecoveryAttempt::Superseded);
+        }
         *self
             .running
             .lock()
             .map_err(|_| audio_error("audio engine lock", "poisoned"))? = Some(engine);
+        self.current_stream_incarnation
+            .store(stream_incarnation, Ordering::Release);
+        if let Ok(mut current) = self.current_audio_config.lock() {
+            *current = Some(config);
+        }
 
-        Ok(snapshot)
+        Ok(DeviceRecoveryAttempt::Committed(snapshot))
     }
 
     pub fn stop_audio_engine(&self) -> Result<NativeAudioRuntimeSnapshot> {
+        self.cancel_device_recovery();
         let _transition = self
             .runtime_transition
             .lock()
@@ -281,6 +325,10 @@ impl AudioEngine {
             .map_err(|_| audio_error("audio engine lock", "poisoned"))?
             .take();
         drop(previous);
+        self.current_stream_incarnation.store(0, Ordering::Release);
+        if let Ok(mut current) = self.current_audio_config.lock() {
+            *current = None;
+        }
         Ok(stopped_snapshot())
     }
 

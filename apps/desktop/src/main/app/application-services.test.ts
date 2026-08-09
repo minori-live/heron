@@ -120,7 +120,9 @@ describe("createApplicationServices", () => {
       previewMixerParameter: vi.fn(async () => undefined),
       enqueuePluginParameter: vi.fn(async () => undefined),
       setMidiControlEventHandler: vi.fn(),
-      setMidiControlPreferencesHandler: vi.fn()
+      setMidiControlPreferencesHandler: vi.fn(),
+      setDeviceRecoveryHandler: vi.fn(),
+      deviceRecoverySnapshot: vi.fn(async () => ({ recovery: null, runtime: null }))
     }
     const settings = {
       get: vi.fn(async () => ({

@@ -230,6 +230,11 @@ export function createContext(
       cleanupCommittedForProject: vi.fn(async () => undefined)
     },
     operations,
+    audioDeviceRecovery: {
+      initialize: vi.fn(async () => undefined),
+      select: vi.fn(),
+      keepRestored: vi.fn()
+    },
     waveforms: {},
     projectGraph: {
       snapshot: vi.fn(async () => emptyGraph),

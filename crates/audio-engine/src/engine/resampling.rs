@@ -2,10 +2,10 @@ use super::{
     Adjustable, Arc, Async, AuditionPlayback, Consumer, Device, DeviceTrait, EngineCommand,
     FixedAsync, FromSample, HardwareOutputFrame, HeapCons, HeapProd, INPUT_RESAMPLER_OUTPUT_FRAMES,
     InputFrame, InputPeakBank, InterleavedSlice, MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS,
-    MAX_PLUGIN_BLOCK_FRAMES, OUTPUT_RESAMPLER_FRAMES, Observer, Ordering, OutputMixerControl,
-    OutputStreamContext, Producer, Resampler, Result, RoundTripInputDetector,
+    MAX_PLUGIN_BLOCK_FRAMES, NativeStreamDirection, OUTPUT_RESAMPLER_FRAMES, Observer, Ordering,
+    OutputMixerControl, OutputStreamContext, Producer, Resampler, Result, RoundTripInputDetector,
     RoundTripLatencyMeasurement, RoundTripOutputProbe, RuntimeMetrics, Sample,
-    SincInterpolationParameters, SizedSample, Stream, StreamConfig, StreamDirection,
+    SincInterpolationParameters, SizedSample, Stream, StreamConfig, StreamFaultReporter,
     UNKNOWN_LATENCY_US, audio_error, duration_to_micros, frames_to_micros, frames_to_nanos,
     invalid_config, mark_stream_error,
 };
@@ -338,6 +338,7 @@ pub(super) fn build_input_stream<T>(
     metrics: Arc<RuntimeMetrics>,
     input_peaks: Arc<InputPeakBank>,
     round_trip_latency: Arc<RoundTripLatencyMeasurement>,
+    device_faults: StreamFaultReporter,
 ) -> Result<Stream>
 where
     T: SizedSample + Send + 'static,
@@ -380,7 +381,14 @@ where
                     .ring_buffer_fill_frames
                     .store(producer.occupied_len() as u32, Ordering::Relaxed);
             },
-            move |error| mark_stream_error(&error_metrics, StreamDirection::Input, &error),
+            move |error| {
+                mark_stream_error(
+                    &error_metrics,
+                    NativeStreamDirection::Input,
+                    &error,
+                    &device_faults,
+                );
+            },
             None,
         )
         .map_err(|error| audio_error("failed to build cpal input stream", error))
@@ -393,6 +401,7 @@ pub(super) fn build_output_stream<T>(
     input_channels: usize,
     target_fill: usize,
     context: OutputStreamContext,
+    device_faults: StreamFaultReporter,
 ) -> Result<Stream>
 where
     T: SizedSample + FromSample<f32> + Send + 'static,
@@ -578,7 +587,14 @@ where
                     .callback_generation
                     .fetch_add(1, Ordering::Release);
             },
-            move |error| mark_stream_error(&error_metrics, StreamDirection::Output, &error),
+            move |error| {
+                mark_stream_error(
+                    &error_metrics,
+                    NativeStreamDirection::Output,
+                    &error,
+                    &device_faults,
+                );
+            },
             None,
         )
         .map_err(|error| audio_error("failed to build cpal output stream", error))

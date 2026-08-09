@@ -40,7 +40,8 @@ export class AudioHostGateway {
     private readonly onEditorClosed?: (instanceId: string) => void,
     private readonly onAraCallback?: Parameters<typeof drainHostEvents>[4],
     private readonly onPluginHostNotification?: Parameters<typeof drainHostEvents>[5],
-    private readonly onPluginSidechainRouteRequested?: Parameters<typeof drainHostEvents>[6]
+    private readonly onPluginSidechainRouteRequested?: Parameters<typeof drainHostEvents>[6],
+    private readonly onDeviceRecoveryChanged?: Parameters<typeof drainHostEvents>[7]
   ) {}
 
   request(command: Record<string, unknown>): Promise<ControlResponse> {
@@ -87,7 +88,8 @@ export class AudioHostGateway {
       this.onEditorClosed,
       this.onAraCallback,
       this.onPluginHostNotification,
-      this.onPluginSidechainRouteRequested
+      this.onPluginSidechainRouteRequested,
+      this.onDeviceRecoveryChanged
     )
     return response
   }

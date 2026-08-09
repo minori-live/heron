@@ -1,11 +1,11 @@
 use super::{
     ApplicationCaptureLogicalTarget, ApplicationCaptureSnapshot,
-    ApplicationCaptureTargetDescriptor, AudioBackend, AudioDevice, AudioDeviceList, AudioRuntime,
-    BinaryPayload, ControlCommand, ControlResult, GraphUpdate, HashMap, LiveLatencyPolicy,
-    LiveMixerGraph, MIDI_INPUT, MidiNoteBatch, MixerChannelMeter, NativeRecordingResult,
-    NativeRecordingStartConfig, NativeWaveformSnapshot, RecordingResult, RecordingWaveform,
-    RoundTripLatencyMeasurement, TempoEvent, TimeSignatureEvent, TransportState, device, engine,
-    vst3,
+    ApplicationCaptureTargetDescriptor, AudioBackend, AudioRuntime, BinaryPayload, ControlCommand,
+    ControlResult, GraphUpdate, HashMap, LiveLatencyPolicy, LiveMixerGraph, MIDI_INPUT,
+    MidiNoteBatch, MixerChannelMeter, NativeRecordingResult, NativeRecordingStartConfig,
+    NativeWaveformSnapshot, RecordingResult, RecordingWaveform, RoundTripLatencyMeasurement,
+    TempoEvent, TimeSignatureEvent, TransportState, audio_device_list, audio_device_recovery,
+    device, engine, vst3,
 };
 
 fn audio_runtime(value: engine::NativeAudioRuntimeSnapshot) -> AudioRuntime {
@@ -434,20 +434,8 @@ pub(super) fn engine_command(
                     });
                 }
             };
-            let convert = |device: device::NativeAudioDevice| AudioDevice {
-                id: device.id,
-                name: device.name,
-                is_default: device.is_default,
-                default_sample_rate: device.default_sample_rate,
-                min_buffer_size: device.min_buffer_size,
-                max_buffer_size: device.max_buffer_size,
-                channel_count: device.channel_count,
-            };
             ControlResult::AudioDevices {
-                devices: AudioDeviceList {
-                    inputs: value.inputs.into_iter().map(convert).collect(),
-                    outputs: value.outputs.into_iter().map(convert).collect(),
-                },
+                devices: audio_device_list(value),
             }
         }
         ControlCommand::ListApplicationCaptureTargets => ControlResult::ApplicationCaptureTargets {
@@ -495,6 +483,59 @@ pub(super) fn engine_command(
             Err(error) => control_error! {
                 message: error.to_string(),
             },
+        },
+        ControlCommand::AuthorizeDeviceRecovery { recovery_id } => {
+            match audio_engine.authorize_device_recovery(recovery_id) {
+                Ok(()) => ControlResult::AudioDeviceRecovery {
+                    recovery: audio_engine
+                        .device_recovery_snapshot()
+                        .map(audio_device_recovery),
+                    runtime: None,
+                },
+                Err(error) => control_error! {
+                    message: error.to_string(),
+                },
+            }
+        }
+        ControlCommand::SelectDeviceRecovery {
+            recovery_id,
+            config,
+        } => match audio_engine.select_recovery_device(
+            recovery_id,
+            engine::NativeAudioEngineConfig {
+                backend: config.backend,
+                input_device_id: config.input_device_id,
+                output_device_id: config.output_device_id,
+                buffer_size: config.buffer_size,
+                session_sample_rate: config.session_sample_rate,
+            },
+        ) {
+            Ok(runtime) => ControlResult::AudioDeviceRecovery {
+                recovery: audio_engine
+                    .device_recovery_snapshot()
+                    .map(audio_device_recovery),
+                runtime: Some(audio_runtime(runtime)),
+            },
+            Err(error) => control_error! {
+                message: error.to_string(),
+            },
+        },
+        ControlCommand::KeepRestoredDevice { recovery_id } => {
+            match audio_engine.keep_restored_device(recovery_id) {
+                Ok(()) => ControlResult::AudioDeviceRecovery {
+                    recovery: None,
+                    runtime: audio_engine.audio_engine_snapshot().ok().map(audio_runtime),
+                },
+                Err(error) => control_error! {
+                    message: error.to_string(),
+                },
+            }
+        }
+        ControlCommand::DeviceRecoverySnapshot => ControlResult::AudioDeviceRecovery {
+            recovery: audio_engine
+                .device_recovery_snapshot()
+                .map(audio_device_recovery),
+            runtime: audio_engine.audio_engine_snapshot().ok().map(audio_runtime),
         },
         ControlCommand::StartRoundTripLatencyMeasurement { request } => {
             match audio_engine.start_round_trip_latency_measurement(

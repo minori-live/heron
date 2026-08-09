@@ -29,19 +29,21 @@ use crate::{
 };
 use heron_dsp_runtime::protocol::{
     ApplicationCaptureLogicalTarget, ApplicationCaptureSnapshot,
-    ApplicationCaptureTargetDescriptor, AudioBackend, AudioDevice, AudioDeviceList, AudioRuntime,
-    BinaryPayload, ControlCommand, ControlResult, GraphCandidateSnapshot, GraphDeploymentSnapshot,
-    GraphDeploymentStatus, GraphOperationOutcome, GraphOperationSnapshot, GraphTransactionRequest,
-    GraphTransactionValue, GraphUpdate, HostEvent, IPC_PROTOCOL_VERSION, LiveLatencyPolicy,
-    LiveMixerGraph, MidiNoteBatch, MixerChannelMeter, RecordingResult, RecordingWaveform,
-    ResourceKind, ResourceRef, RoundTripLatencyMeasurement, RpcError, RpcErrorCategory,
-    RpcErrorCode, RpcErrorDetails, RpcFailure, RpcMutationOutcome, RpcRequestMeta, RpcResult,
-    RpcRetry, RpcSuccess, TransportState,
+    ApplicationCaptureTargetDescriptor, AudioBackend, AudioDevice, AudioDeviceFaultKind,
+    AudioDeviceList, AudioDeviceRecovery, AudioDeviceRecoveryPhase, AudioEngineConfig,
+    AudioRuntime, AudioStreamDirection, BinaryPayload, ControlCommand, ControlResult,
+    GraphCandidateSnapshot, GraphDeploymentSnapshot, GraphDeploymentStatus, GraphOperationOutcome,
+    GraphOperationSnapshot, GraphTransactionRequest, GraphTransactionValue, GraphUpdate, HostEvent,
+    IPC_PROTOCOL_VERSION, LiveLatencyPolicy, LiveMixerGraph, MidiNoteBatch, MixerChannelMeter,
+    RecordingResult, RecordingWaveform, ResourceKind, ResourceRef, RoundTripLatencyMeasurement,
+    RpcError, RpcErrorCategory, RpcErrorCode, RpcErrorDetails, RpcFailure, RpcMutationOutcome,
+    RpcRequestMeta, RpcResult, RpcRetry, RpcSuccess, TransportState,
 };
 use heron_dsp_runtime::tempo::{TempoEvent, TimeSignatureEvent};
 use heron_vst3_host::Vst3HostRequest;
 use tokio::sync::{mpsc, oneshot};
 
+mod audio_device_wire;
 pub mod embedded;
 mod engine_actor;
 mod graph_transactions;
@@ -50,6 +52,7 @@ mod runtime_config;
 mod ui_runtime;
 mod wire_adapters;
 
+use audio_device_wire::{audio_device_list, audio_device_recovery};
 use engine_actor::{
     ActorCommand, ActorRequest, GraphParameterHandles, background_io_actor, dispatch_build_graph,
     engine_actor, forward_to_ui, publish_built_graph, queue_background_graph_build,

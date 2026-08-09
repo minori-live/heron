@@ -63,6 +63,7 @@ function bootstrap(lifecycle: DesktopLifecycleSnapshot): ApplicationBootstrapSna
       revision: 1
     },
     audioResources: {
+      recovery: null,
       host: {
         kind: "audio-host",
         id: "audio-host",

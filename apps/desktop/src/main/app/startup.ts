@@ -193,6 +193,7 @@ export function startApplication(
         plugins,
         midiImport: services.midiImport,
         lifecycle: services.lifecycle,
+        audioDeviceRecovery: services.audioDeviceRecovery,
         audioHost: audioHostService,
         isShuttingDown
       })

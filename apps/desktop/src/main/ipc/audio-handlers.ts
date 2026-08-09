@@ -26,7 +26,7 @@ function sameRef(left: ResourceRef | undefined, right: ResourceRef | null): bool
 
 function failure(
   meta: RpcRequestMeta,
-  code: "validation-failed" | "stale-resource" | "resource-unavailable",
+  code: "validation-failed" | "stale-resource" | "resource-busy" | "resource-unavailable",
   component: "main" | "audio-host" = "main"
 ): RpcError {
   if (code === "validation-failed") {
@@ -51,6 +51,18 @@ function failure(
       userMessageKey: "errors.staleResource",
       ...(meta.target ? { resource: meta.target } : {}),
       details: { type: code, reason: "generation-mismatch" }
+    }
+  }
+  if (code === "resource-busy") {
+    return {
+      code,
+      category: "busy",
+      outcome: "not-committed",
+      retry: "safe",
+      correlationId: randomUUID(),
+      userMessageKey: "errors.resourceBusy",
+      ...(meta.target ? { resource: meta.target } : {}),
+      details: { type: code }
     }
   }
   return {
@@ -114,6 +126,9 @@ export function registerAudioHandlers(context: IpcHandlerContext): void {
     const state = lifecycle.applicationState
     if (!meta.mutation) return rpcFailure(meta, failure(meta, "validation-failed"))
     await reconcileAudioHost()
+    if (state.currentAudioDeviceRecovery()) {
+      return rpcFailure(meta, failure(meta, "resource-busy"))
+    }
     if (!sameRef(meta.target, state.audioHost)) {
       return rpcFailure(meta, failure(meta, "stale-resource"))
     }
@@ -208,6 +223,7 @@ export function registerAudioHandlers(context: IpcHandlerContext): void {
   registerRpcHandler(IPC_CHANNELS.audioSnapshot, async ({ meta }) => {
     const state = lifecycle.applicationState
     await reconcileAudioHost()
+    await context.audioDeviceRecovery.initialize()
     const current = state.audioResourceSnapshot()
     if (!sameRef(meta.target, current.engine)) {
       return rpcFailure(meta, failure(meta, "stale-resource"))
@@ -216,6 +232,48 @@ export function registerAudioHandlers(context: IpcHandlerContext): void {
     const snapshot = normalizeAudioRuntime(await audioHostService.audioEngineSnapshot())
     lifecycle.refreshAudio(snapshot)
     return snapshot
+  })
+
+  registerRpcHandler(IPC_CHANNELS.audioRecoverySelect, async ({ meta }, value: unknown) => {
+    const state = lifecycle.applicationState
+    if (!meta.mutation) return rpcFailure(meta, failure(meta, "validation-failed"))
+    const recovery = state.currentAudioDeviceRecovery()
+    if (!sameRef(meta.target, recovery)) {
+      return rpcFailure(meta, failure(meta, "stale-resource"))
+    }
+    const guarded = beginGuardedMutation(context, meta, recovery!)
+    if (guarded) return guarded
+    try {
+      const session = await context.audioDeviceRecovery.select(validateAudioPreferences(value))
+      const result = rpcSuccess(meta, session)
+      finishGuardedMutation(context, meta, "committed", result)
+      return result
+    } catch {
+      const result = rpcFailure(meta, failure(meta, "resource-unavailable", "audio-host"))
+      finishGuardedMutation(context, meta, "not-committed", result)
+      return result
+    }
+  })
+
+  registerRpcHandler(IPC_CHANNELS.audioRecoveryKeepRestored, async ({ meta }) => {
+    const state = lifecycle.applicationState
+    if (!meta.mutation) return rpcFailure(meta, failure(meta, "validation-failed"))
+    const recovery = state.currentAudioDeviceRecovery()
+    if (!sameRef(meta.target, recovery)) {
+      return rpcFailure(meta, failure(meta, "stale-resource"))
+    }
+    const guarded = beginGuardedMutation(context, meta, recovery!)
+    if (guarded) return guarded
+    try {
+      const value = await context.audioDeviceRecovery.keepRestored()
+      const result = rpcSuccess(meta, value)
+      finishGuardedMutation(context, meta, "committed", result)
+      return result
+    } catch {
+      const result = rpcFailure(meta, failure(meta, "resource-unavailable", "audio-host"))
+      finishGuardedMutation(context, meta, "not-committed", result)
+      return result
+    }
   })
 
   registerRpcHandler(IPC_CHANNELS.audioRoundTripLatencyStart, async ({ meta }, value: unknown) => {

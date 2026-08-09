@@ -30,3 +30,4 @@ workspace = true
 [features]
 default = []
 bench-internals = ["heron-audio-engine/bench-internals"]
+test-support = ["heron-audio-engine/test-support"]

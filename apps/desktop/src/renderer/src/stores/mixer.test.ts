@@ -238,6 +238,7 @@ describe("mixer store", () => {
     setActivePinia(createPinia())
     useProjectStore().applyWorkspace(workspace(graph()))
     useAudioRuntimeStore().applyResources({
+      recovery: null,
       host: {
         kind: "audio-host",
         id: "audio-host",

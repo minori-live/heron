@@ -6,6 +6,7 @@ import { AudioHostMidiInputClient } from "./audio-host-midi-input-client"
 import { drainHostEvents } from "./audio-host-events"
 import type {
   AraHostCallback,
+  NativeAudioDeviceRecoverySnapshot,
   PluginHostNotification,
   PluginSidechainRouteRequest
 } from "./audio-host-events"
@@ -202,7 +203,8 @@ export class AudioHostService {
       },
       (callback) => this.events.dispatchAra(callback),
       (notification) => this.events.dispatchPlugin(notification),
-      (request) => this.events.dispatchSidechain(request)
+      (request) => this.events.dispatchSidechain(request),
+      (recovery) => this.events.dispatchDeviceRecovery(recovery)
     )
   }
 
@@ -220,6 +222,12 @@ export class AudioHostService {
     handler: (request: PluginSidechainRouteRequest) => void | Promise<void>
   ): void {
     this.events.setSidechainHandler(handler)
+  }
+
+  setDeviceRecoveryHandler(
+    handler: (recovery: NativeAudioDeviceRecoverySnapshot | null) => void | Promise<void>
+  ): void {
+    this.events.setDeviceRecoveryHandler(handler)
   }
 
   setMidiControlEventHandler(handler: (event: MidiControlEvent) => void | Promise<void>): void {
@@ -501,6 +509,26 @@ export class AudioHostService {
     return this.audioTransport.audioEngineSnapshot()
   }
 
+  authorizeDeviceRecovery(recoveryId: number): Promise<NativeAudioDeviceRecoverySnapshot> {
+    return this.audioTransport.authorizeDeviceRecovery(recoveryId)
+  }
+
+  selectDeviceRecovery(recoveryId: number, preferences: AudioPreferences) {
+    return this.audioTransport.selectDeviceRecovery(recoveryId, preferences)
+  }
+
+  keepRestoredDevice(recoveryId: number) {
+    return this.audioTransport.keepRestoredDevice(recoveryId)
+  }
+
+  deviceRecoverySnapshot() {
+    return this.audioTransport.deviceRecoverySnapshot()
+  }
+
+  deviceRecoveryTransportIntent(): TransportSnapshot {
+    return this.audioTransport.transportIntent()
+  }
+
   startRoundTripLatencyMeasurement(
     request: RoundTripLatencyMeasurementRequest
   ): Promise<RoundTripLatencyMeasurement> {
@@ -740,7 +768,8 @@ export class AudioHostService {
       this.onEditorClosed,
       (callback) => this.events.dispatchAra(callback),
       (notification) => this.events.dispatchPlugin(notification),
-      (request) => this.events.dispatchSidechain(request)
+      (request) => this.events.dispatchSidechain(request),
+      (recovery) => this.events.dispatchDeviceRecovery(recovery)
     )
     if (this.client === client) this.client = null
     client.close()

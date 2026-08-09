@@ -31,6 +31,21 @@ impl MockDeviceKind {
         }
     }
 
+    pub(super) const fn index(self) -> usize {
+        match self {
+            Self::Duplex => 0,
+            Self::Input => 1,
+            Self::Output => 2,
+        }
+    }
+
+    #[cfg(any(test, feature = "test-support"))]
+    pub(super) fn from_id(id: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|kind| id == kind.id() || id == format!("custom:{}", kind.id()))
+    }
+
     fn name(self) -> &'static str {
         match self {
             Self::Duplex => "Mock Duplex",
@@ -68,6 +83,7 @@ pub(super) struct MockBackend {
     /// The time base shared by all streams, so their timestamps are comparable.
     pub(super) origin: Instant,
     loopback: Mutex<LoopbackEnds>,
+    pub(super) control: Arc<super::MockControl>,
 }
 
 /// The two halves of the playback-to-capture loopback.
@@ -88,6 +104,7 @@ impl MockBackend {
                 producer: Some(producer),
                 consumer: Some(consumer),
             }),
+            control: super::control(),
         }
     }
 
@@ -138,17 +155,24 @@ impl HostTrait for MockHost {
     fn devices(&self) -> Result<Self::Devices, Error> {
         Ok(MockDeviceKind::ALL
             .iter()
+            .filter(|kind| self.backend.control.available(**kind))
             .map(|kind| self.device(*kind))
             .collect::<Vec<_>>()
             .into_iter())
     }
 
     fn default_input_device(&self) -> Option<Self::Device> {
-        Some(self.device(MockDeviceKind::Duplex))
+        self.backend
+            .control
+            .available(MockDeviceKind::Duplex)
+            .then(|| self.device(MockDeviceKind::Duplex))
     }
 
     fn default_output_device(&self) -> Option<Self::Device> {
-        Some(self.device(MockDeviceKind::Duplex))
+        self.backend
+            .control
+            .available(MockDeviceKind::Duplex)
+            .then(|| self.device(MockDeviceKind::Duplex))
     }
 }
 
@@ -246,22 +270,28 @@ impl DeviceTrait for MockDevice {
     }
 
     fn supported_input_configs(&self) -> Result<Self::SupportedInputConfigs, Error> {
-        Ok(supported_configs(self.kind.captures()).into_iter())
+        Ok(
+            supported_configs(self.kind.captures() && self.backend.control.available(self.kind))
+                .into_iter(),
+        )
     }
 
     fn supported_output_configs(&self) -> Result<Self::SupportedOutputConfigs, Error> {
-        Ok(supported_configs(self.kind.plays()).into_iter())
+        Ok(
+            supported_configs(self.kind.plays() && self.backend.control.available(self.kind))
+                .into_iter(),
+        )
     }
 
     fn default_input_config(&self) -> Result<SupportedStreamConfig, Error> {
-        if !self.kind.captures() {
+        if !self.kind.captures() || !self.backend.control.available(self.kind) {
             return Err(unsupported_direction(self.kind, true));
         }
         Ok(default_config())
     }
 
     fn default_output_config(&self) -> Result<SupportedStreamConfig, Error> {
-        if !self.kind.plays() {
+        if !self.kind.plays() || !self.backend.control.available(self.kind) {
             return Err(unsupported_direction(self.kind, false));
         }
         Ok(default_config())
@@ -272,14 +302,14 @@ impl DeviceTrait for MockDevice {
         config: StreamConfig,
         sample_format: SampleFormat,
         data_callback: D,
-        _error_callback: E,
+        error_callback: E,
         _timeout: Option<Duration>,
     ) -> Result<Self::Stream, Error>
     where
         D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
         E: FnMut(Error) + Send + 'static,
     {
-        if !self.kind.captures() {
+        if !self.kind.captures() || !self.backend.control.available(self.kind) {
             return Err(unsupported_direction(self.kind, true));
         }
         let frames = negotiate_frames(&config, sample_format)?;
@@ -288,6 +318,7 @@ impl DeviceTrait for MockDevice {
             frames,
             usize::from(config.channels),
             data_callback,
+            error_callback,
         )
     }
 
@@ -296,14 +327,14 @@ impl DeviceTrait for MockDevice {
         config: StreamConfig,
         sample_format: SampleFormat,
         data_callback: D,
-        _error_callback: E,
+        error_callback: E,
         _timeout: Option<Duration>,
     ) -> Result<Self::Stream, Error>
     where
         D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
         E: FnMut(Error) + Send + 'static,
     {
-        if !self.kind.plays() {
+        if !self.kind.plays() || !self.backend.control.available(self.kind) {
             return Err(unsupported_direction(self.kind, false));
         }
         let frames = negotiate_frames(&config, sample_format)?;
@@ -312,6 +343,7 @@ impl DeviceTrait for MockDevice {
             frames,
             usize::from(config.channels),
             data_callback,
+            error_callback,
         )
     }
 }

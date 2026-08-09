@@ -306,6 +306,10 @@ run = "cargo xtask bench save"
 description = "Compare Rust benchmarks with the saved main baseline"
 run = "cargo xtask bench compare"
 
+[tasks."soak:device-recovery"]
+description = "Cycle mock audio device loss, return, keep, and replacement decisions"
+run = "cargo run -p heron-audio-host --features test-support --example device_recovery_soak --"
+
 [tasks."version:check"]
 description = "Check VERSION against Cargo and JavaScript workspace manifests"
 run = "node scripts/version.ts check"

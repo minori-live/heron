@@ -1,6 +1,13 @@
 import type { ProjectLifecycleState } from "./project"
 import type { RecordingLifecycleState, RecordingResourceSnapshot } from "./recording"
-import type { AudioEngineRef, AudioHostRef, MidiRuntimeRef, TransportRef } from "./rpc"
+import type {
+  AudioDeviceRecoveryRef,
+  AudioEngineRef,
+  AudioHostRef,
+  MidiRuntimeRef,
+  RpcError,
+  TransportRef
+} from "./rpc"
 
 // "mock" is a cpal custom host that synthesises capture and discards playback.
 // It is always available and is listed last so it is only auto-selected when no
@@ -82,6 +89,41 @@ export interface AudioDeviceList {
   outputs: AudioDeviceDescriptor[]
 }
 
+export type AudioDeviceFaultKind =
+  | "device-not-available"
+  | "stream-invalidated"
+  | "host-unavailable"
+  | "device-busy"
+  | "backend-error"
+
+export type AudioDeviceRecoveryPhase =
+  | "finalizing-recording"
+  | "waiting-for-change"
+  | "attempting-original"
+  | "original-restored"
+  | "applying-selection"
+  | "selection-failed"
+
+export type AudioDeviceRecoveryRecordingStatus =
+  | "not-active"
+  | "finalizing"
+  | "saved"
+  | "recoverable"
+
+export interface AudioDeviceRecoverySnapshot {
+  recovery: AudioDeviceRecoveryRef
+  decisionRevision: number
+  attemptGeneration: number
+  phase: AudioDeviceRecoveryPhase
+  previousPreferences: AudioPreferences
+  candidates: AudioDeviceList
+  candidateRevision: number
+  lostDirections: Array<"input" | "output">
+  fault: AudioDeviceFaultKind
+  recordingStatus: AudioDeviceRecoveryRecordingStatus
+  failure: RpcError | null
+}
+
 export const AUDIO_BUFFER_SIZES = [32, 64, 128, 256, 512, 1024, 2048] as const
 export type AudioBufferSize = number
 
@@ -124,6 +166,7 @@ export interface AudioRuntimeSnapshot {
 
 export interface AudioResourceSnapshot {
   host: AudioHostRef
+  recovery: AudioDeviceRecoveryRef | null
   engine: AudioEngineRef | null
   transport: TransportRef | null
   midiRuntime: MidiRuntimeRef
@@ -189,6 +232,12 @@ export type AudioLifecycleState =
   | { status: "starting"; runtime: AudioRuntimeSnapshot; error: null }
   | { status: "running"; runtime: AudioRuntimeSnapshot; error: string | null }
   | { status: "reconfiguring"; runtime: AudioRuntimeSnapshot; error: null }
+  | {
+      status: "recovering"
+      runtime: AudioRuntimeSnapshot
+      recovery: AudioDeviceRecoverySnapshot
+      error: null
+    }
   | { status: "stopping"; runtime: AudioRuntimeSnapshot; error: null }
   | { status: "error"; runtime: AudioRuntimeSnapshot; error: string }
 

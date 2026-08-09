@@ -140,6 +140,7 @@ export function testBootstrap(
       recording: { status: "idle", error: null }
     },
     audioResources: {
+      recovery: null,
       host: TEST_AUDIO_HOST_REF,
       engine: null,
       transport: null,

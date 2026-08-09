@@ -89,6 +89,7 @@ function bootstrap(active: ProjectWorkspaceSnapshot | null): ApplicationBootstra
       revision: 1
     },
     audioResources: {
+      recovery: null,
       host: {
         kind: "audio-host",
         id: "audio-host",

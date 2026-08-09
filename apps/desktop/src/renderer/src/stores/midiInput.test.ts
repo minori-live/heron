@@ -152,6 +152,7 @@ beforeEach(() => {
     setMidiControlLearning: vi.fn(async () => undefined)
   })
   useAudioRuntimeStore().applyResources({
+    recovery: null,
     host,
     engine: null,
     transport: null,
@@ -463,6 +464,7 @@ describe("midi input control events", () => {
       })
     })
     useAudioRuntimeStore().applyResources({
+      recovery: null,
       host,
       engine: null,
       transport: null,

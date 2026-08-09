@@ -6,6 +6,7 @@ import {
 } from "@heron/contracts"
 import type {
   AudioLifecycleState,
+  AudioDeviceRecoverySnapshot,
   AudioRuntimeSnapshot,
   DesktopLifecycleEvent,
   DesktopLifecycleSnapshot,
@@ -213,7 +214,11 @@ export class LifecycleCoordinator {
       )
     }
     const runtime = structuredClone(this.audioState.runtime)
-    if (transition === "stopping" && this.audioState.status !== "running") {
+    if (
+      transition === "stopping" &&
+      this.audioState.status !== "running" &&
+      this.audioState.status !== "recovering"
+    ) {
       throw new Error(`Cannot stop the audio engine while it is ${this.audioState.status}`)
     }
     if (
@@ -241,6 +246,31 @@ export class LifecycleCoordinator {
     }
   }
 
+  beginAudioDeviceRecovery(recovery: AudioDeviceRecoverySnapshot): void {
+    this.setAudio({
+      status: "recovering",
+      runtime: structuredClone(this.audioState.runtime),
+      recovery: structuredClone(recovery),
+      error: null
+    })
+  }
+
+  updateAudioDeviceRecovery(
+    recovery: AudioDeviceRecoverySnapshot,
+    runtime: AudioRuntimeSnapshot = this.audioState.runtime
+  ): void {
+    if (this.audioState.status !== "recovering") {
+      this.beginAudioDeviceRecovery(recovery)
+      return
+    }
+    this.setAudio({
+      status: "recovering",
+      runtime: structuredClone(runtime),
+      recovery: structuredClone(recovery),
+      error: null
+    })
+  }
+
   failAudio(error: unknown, runtime: AudioRuntimeSnapshot): void {
     this.setAudio({ status: "error", runtime, error: message(error) })
   }
@@ -249,7 +279,8 @@ export class LifecycleCoordinator {
     if (
       this.audioState.status === "starting" ||
       this.audioState.status === "reconfiguring" ||
-      this.audioState.status === "stopping"
+      this.audioState.status === "stopping" ||
+      this.audioState.status === "recovering"
     )
       return
     const nextStatus =
@@ -284,6 +315,9 @@ export class LifecycleCoordinator {
   }
 
   beginRecordingStop(): RecordingSession {
+    if (this.recordingState.status === "stopping" || this.recordingState.status === "finalizing") {
+      return structuredClone(this.recordingState.session)
+    }
     if (this.recordingState.status !== "recording") {
       throw new Error(`Cannot stop recording while it is ${this.recordingState.status}`)
     }
