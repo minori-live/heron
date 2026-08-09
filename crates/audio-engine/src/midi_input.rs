@@ -17,7 +17,7 @@ use heron_dsp_runtime::{
         MidiInputMessage, MidiInputParser, MidiSyncState,
     },
     protocol::{
-        MidiControlEvent, MidiControlEventKind, MidiInputPort as WireMidiInputPort,
+        MidiActiveNote, MidiControlEvent, MidiControlEventKind, MidiInputPort as WireMidiInputPort,
         MidiInputSnapshot, MidiRecordingResult, MidiRecordingStartConfig, MidiSyncPreferences,
         MidiSyncRuntime,
     },
@@ -417,6 +417,7 @@ struct ActorState {
     realtime_sysex: Prod<Arc<HeapRb<u8>>>,
     realtime_shared: Arc<RealtimeInputShared>,
     pending_events: Vec<PendingMidiEvent>,
+    active_notes: BTreeMap<(String, u8, u8), u16>,
     control_generation: u64,
     control_events: VecDeque<MidiControlEvent>,
     recording: Option<MidiRecordingSession>,
@@ -443,6 +444,7 @@ fn run_actor(receiver: mpsc::Receiver<Command>, preferences: MidiSyncPreferences
         realtime_sysex: Prod::new(Arc::clone(&realtime_shared.sysex)),
         realtime_shared,
         pending_events: Vec::with_capacity(MIDI_SHORT_QUEUE_CAPACITY),
+        active_notes: BTreeMap::new(),
         control_generation: 0,
         control_events: VecDeque::with_capacity(CONTROL_EVENT_CAPACITY),
         recording: None,
@@ -536,6 +538,7 @@ fn run_actor(receiver: mpsc::Receiver<Command>, preferences: MidiSyncPreferences
                 .realtime_shared
                 .sync_lost
                 .store(true, Ordering::Release);
+            state.active_notes.clear();
         }
     }
 }
@@ -600,6 +603,9 @@ fn enumerate_and_reconcile(state: &mut ActorState) {
         .keys()
         .any(|port_id| !wanted.contains(port_id) || !available.contains(port_id));
     state
+        .active_notes
+        .retain(|(port_id, _, _), _| wanted.contains(port_id) && available.contains(port_id));
+    state
         .connections
         .retain(|port_id, _| wanted.contains(port_id) && available.contains(port_id));
     if disconnected {
@@ -663,6 +669,7 @@ fn drain_connections(state: &mut ActorState) {
                         ignored_system_messages: &mut state.ignored_system_messages,
                         panic_requested: &state.realtime_shared.panic_requested,
                         pending_events: &mut state.pending_events,
+                        active_notes: &mut state.active_notes,
                         control_generation: &mut state.control_generation,
                         control_events: &mut state.control_events,
                         recording: &mut state.recording,
@@ -693,6 +700,7 @@ fn drain_connections(state: &mut ActorState) {
                         ignored_system_messages: &mut state.ignored_system_messages,
                         panic_requested: &state.realtime_shared.panic_requested,
                         pending_events: &mut state.pending_events,
+                        active_notes: &mut state.active_notes,
                         control_generation: &mut state.control_generation,
                         control_events: &mut state.control_events,
                         recording: &mut state.recording,
@@ -716,6 +724,7 @@ struct MessageSink<'a> {
     ignored_system_messages: &'a mut u64,
     panic_requested: &'a AtomicBool,
     pending_events: &'a mut Vec<PendingMidiEvent>,
+    active_notes: &'a mut BTreeMap<(String, u8, u8), u16>,
     control_generation: &'a mut u64,
     control_events: &'a mut VecDeque<MidiControlEvent>,
     recording: &'a mut Option<MidiRecordingSession>,
@@ -730,6 +739,7 @@ fn process_messages(
     messages: Vec<MidiInputMessage>,
 ) {
     for message in messages {
+        update_active_notes(sink.active_notes, port_id, &message);
         if sink.preferences.capture_all_controls
             || sink.preferences.control_port_ids.contains(port_id)
         {
@@ -803,6 +813,38 @@ fn process_messages(
         ) {
             *sink.ignored_system_messages = sink.ignored_system_messages.saturating_add(1);
         }
+    }
+}
+
+fn update_active_notes(
+    active_notes: &mut BTreeMap<(String, u8, u8), u16>,
+    port_id: &str,
+    message: &MidiInputMessage,
+) {
+    match *message {
+        MidiInputMessage::NoteOn(channel, key, velocity) if velocity > 0 => {
+            let count = active_notes
+                .entry((port_id.to_owned(), channel, key))
+                .or_default();
+            *count = count.saturating_add(1);
+        }
+        MidiInputMessage::NoteOn(channel, key, _) | MidiInputMessage::NoteOff(channel, key, _) => {
+            let note = (port_id.to_owned(), channel, key);
+            if let Some(count) = active_notes.get_mut(&note) {
+                if *count > 1 {
+                    *count -= 1;
+                } else {
+                    active_notes.remove(&note);
+                }
+            }
+        }
+        MidiInputMessage::ControlChange(channel, 120 | 123, _) => {
+            active_notes.retain(|(note_port, note_channel, _), _| {
+                note_port != port_id || *note_channel != channel
+            });
+        }
+        MidiInputMessage::SystemReset => active_notes.clear(),
+        _ => {}
     }
 }
 
@@ -933,6 +975,15 @@ fn snapshot(state: &ActorState) -> MidiInputSnapshot {
             ignored_system_messages: state.ignored_system_messages,
             error: state.error.clone(),
         },
+        active_notes: state
+            .active_notes
+            .keys()
+            .map(|(port_id, channel, key)| MidiActiveNote {
+                port_id: port_id.clone(),
+                channel: *channel,
+                key: *key,
+            })
+            .collect(),
         control_events: state.control_events.iter().cloned().collect(),
         recording_preview: state
             .recording
@@ -962,6 +1013,7 @@ fn unavailable_snapshot(message: &str) -> MidiInputSnapshot {
             ignored_system_messages: 0,
             error: Some(message.to_owned()),
         },
+        active_notes: Vec::new(),
         control_events: Vec::new(),
         recording_preview: None,
         captured_at: 0,

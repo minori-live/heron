@@ -25,6 +25,7 @@ const EMPTY_SNAPSHOT: MidiInputSnapshot = {
     ignoredSystemMessages: 0,
     error: null
   },
+  activeNotes: [],
   controlEvents: [],
   capturedAt: 0
 }

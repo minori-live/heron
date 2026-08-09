@@ -7,6 +7,7 @@ export interface DisposableRegistration {
 }
 
 type EventPublisherServices = Pick<ApplicationServices, "audioHost" | "lifecycle" | "plugins">
+const MIDI_SNAPSHOT_INTERVAL_MS = 33
 
 export function registerIpcEventPublishers(
   services: EventPublisherServices
@@ -55,7 +56,7 @@ export function registerIpcEventPublishers(
     }
   }
 
-  const midiSnapshotTimer = setInterval(() => void publishMidiSnapshot(), 100)
+  const midiSnapshotTimer = setInterval(() => void publishMidiSnapshot(), MIDI_SNAPSHOT_INTERVAL_MS)
   midiSnapshotTimer.unref()
 
   return {

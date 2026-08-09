@@ -61,6 +61,7 @@ describe("plugin and MIDI resource routing contracts", () => {
           ignoredSystemMessages: 0,
           error: null
         },
+        activeNotes: [],
         controlEvents: [],
         capturedAt: 1
       }

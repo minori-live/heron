@@ -1092,6 +1092,8 @@
       "tempo": "速度",
       "meter": "拍号",
       "key": "调号",
+      "midiInput": "MIDI 输入",
+      "midiInputAria": "识别到的 MIDI 输入和弦",
       "editTempoAria": "编辑当前速度",
       "tempoButtonAria": "速度 {value} BPM；双击编辑",
       "tempoEditTitle": "双击编辑当前速度轨事件",

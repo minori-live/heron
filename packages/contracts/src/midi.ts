@@ -60,6 +60,13 @@ export interface MidiControlEvent {
   value: number
 }
 
+export interface MidiActiveNote {
+  portId: string
+  /** Zero-based MIDI channel. */
+  channel: number
+  key: number
+}
+
 export interface MidiRecordingPreviewNote {
   id: number
   startTick: number
@@ -84,6 +91,8 @@ export interface MidiRecordingPreview {
 export interface MidiInputSnapshot {
   ports: MidiInputPort[]
   sync: MidiSyncRuntimeSnapshot
+  /** Notes whose Note On lifecycle is still active, before renderer route filtering. */
+  activeNotes: MidiActiveNote[]
   /** A bounded, generation-ordered window of recently received control events. */
   controlEvents: MidiControlEvent[]
   /** Lightweight note geometry for the active recording; absent while idle. */

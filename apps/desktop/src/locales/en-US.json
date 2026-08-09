@@ -1464,6 +1464,8 @@
       "tempo": "TEMPO",
       "meter": "METER",
       "key": "KEY",
+      "midiInput": "MIDI IN",
+      "midiInputAria": "Recognized MIDI input chord",
       "editTempoAria": "Edit current tempo",
       "tempoButtonAria": "Tempo {value} BPM; double-click to edit",
       "tempoEditTitle": "Double-click to edit the current Tempo Track event",

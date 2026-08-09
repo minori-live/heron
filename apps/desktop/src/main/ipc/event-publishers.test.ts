@@ -87,4 +87,19 @@ describe("registerIpcEventPublishers", () => {
     expect(fixture.midiRuntimeSnapshot).not.toHaveBeenCalled()
     expect(fixture.send).not.toHaveBeenCalled()
   })
+
+  it("requests MIDI activity snapshots at the 33 ms display cadence", async () => {
+    const fixture = createServices()
+    const registration = registerIpcEventPublishers(fixture.services as never)
+
+    vi.advanceTimersByTime(32)
+    await Promise.resolve()
+    expect(fixture.midiInputSnapshot).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(1)
+    await Promise.resolve()
+    expect(fixture.midiInputSnapshot).toHaveBeenCalledOnce()
+
+    registration.dispose()
+  })
 })

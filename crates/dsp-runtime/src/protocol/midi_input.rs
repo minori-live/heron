@@ -54,10 +54,19 @@ pub struct MidiControlEvent {
     pub kind: MidiControlEventKind,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MidiActiveNote {
+    pub port_id: String,
+    pub channel: u8,
+    pub key: u8,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MidiInputSnapshot {
     pub ports: Vec<MidiInputPort>,
     pub sync: MidiSyncRuntime,
+    #[serde(default)]
+    pub active_notes: Vec<MidiActiveNote>,
     pub control_events: Vec<MidiControlEvent>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub recording_preview: Option<Box<MidiRecordingPreview>>,

@@ -28,6 +28,12 @@ framing, attachment, shared-memory, lease, or retry semantics. Large state is
 carried inline until a measured local-boundary bottleneck justifies a simpler
 typed N-API representation.
 
+The MIDI input actor also owns the counted set of active Note On lifecycles.
+Electron main samples that small state through the existing MIDI runtime
+snapshot at a UI cadence and forwards it to the renderer. Route filtering,
+key-signature-aware chord recognition, and display formatting remain renderer
+work; none of them run in an audio callback.
+
 `AudioHostService` owns one runtime for the application lifetime. Shutdown asks
 the runtime to stop, drains ordered host events, settles pending calls, and
 closes the addon. Runtime thread settings apply on the next launch rather than

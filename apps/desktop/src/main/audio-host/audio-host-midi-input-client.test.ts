@@ -21,6 +21,7 @@ function midiResponse(): ControlResponse {
           ignored_system_messages: 3,
           error: null
         },
+        active_notes: [{ port_id: "port-1", channel: 2, key: 64 }],
         control_events: [
           {
             generation: 4,
@@ -86,6 +87,7 @@ describe("AudioHostMidiInputClient", () => {
     expect(snapshot).toMatchObject({
       ports: [{ id: "port-1", name: "Keyboard", connected: true }],
       sync: { state: "following", sourcePortId: "port-1", effectiveBpm: 121 },
+      activeNotes: [{ portId: "port-1", channel: 2, key: 64 }],
       controlEvents: [{ portId: "control-1", number: 7, value: 100 }],
       capturedAt: 9
     })

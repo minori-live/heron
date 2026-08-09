@@ -225,6 +225,7 @@ onBeforeUnmount(() => {
       :playhead-seconds="playheadSeconds"
       :tempo-map="mixerStore.graph.tempoMap"
       :key-signature-events="mixerStore.graph.keySignatureEvents"
+      :mixer-channels="mixerStore.graph.channels"
       :inspector-open="workspaceStore.inspectorOpen"
       :notes-panel-open="workspaceStore.notesPanelOpen"
       :media-browser-open="workspaceStore.mediaBrowserOpen"
