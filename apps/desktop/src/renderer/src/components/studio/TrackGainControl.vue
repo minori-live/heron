@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { computed, shallowRef } from "vue"
-import type { MixerChannelMeter } from "@heron/contracts"
+import { storeToRefs } from "pinia"
+import { DEFAULT_METER_RETURN_RATE } from "@heron/contracts"
+import type { MeterPeakHold, MeterReturnRate, MixerChannelMeter } from "@heron/contracts"
 import { useParameterGesture } from "../../composables/useParameterGesture"
+import { usePeakMeterDisplay } from "../../composables/usePeakMeterDisplay"
+import { useApplicationSettingsStore } from "../../stores/applicationSettings"
 import { useMixerRuntimeStore } from "../../stores/mixerRuntime"
-import {
-  dbToLevelPercent,
-  FADER_MAX_DB,
-  FADER_MIN_DB,
-  METER_MAX_DB,
-  METER_MIN_DB
-} from "../../utils/mixerDbScale"
+import { FADER_MAX_DB, FADER_MIN_DB } from "../../utils/mixerDbScale"
 
 const props = defineProps<{
   channelName: string
@@ -26,12 +24,16 @@ const emit = defineEmits<{
 
 const tooltipVisible = shallowRef(false)
 const runtimeStore = useMixerRuntimeStore()
+const { settings } = storeToRefs(useApplicationSettingsStore())
 const meter = computed(() => props.meter ?? runtimeStore.meterFor(props.channelId ?? ""))
+const peakHold = computed<MeterPeakHold>(() => settings.value?.meterPeakHold ?? "800ms")
+const returnRate = computed<MeterReturnRate>(
+  () => settings.value?.meterReturnRate ?? DEFAULT_METER_RETURN_RATE
+)
+const meterDisplay = usePeakMeterDisplay({ meter, peakHold, returnRate })
 const meterStyle = computed(() => {
-  const amplitude = Math.max(0, ...meter.value.postFaderPeak)
-  const db = amplitude > 0 ? 20 * Math.log10(amplitude) : Number.NEGATIVE_INFINITY
   return {
-    "--meter-level": `${dbToLevelPercent(db, METER_MIN_DB, METER_MAX_DB)}%`
+    "--meter-level": `${meterDisplay.meterLevelPercent.value}%`
   }
 })
 

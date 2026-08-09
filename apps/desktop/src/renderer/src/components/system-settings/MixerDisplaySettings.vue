@@ -3,6 +3,7 @@ import { computed, onMounted } from "vue"
 import { useI18n } from "vue-i18n"
 import { storeToRefs } from "pinia"
 import { UiSelect } from "@heron/ui"
+import { DEFAULT_METER_RETURN_RATE, METER_RETURN_RATES } from "@heron/contracts"
 import type { MeterPeakHold, MeterReturnRate } from "@heron/contracts"
 import SettingsPage from "../settings/SettingsPage.vue"
 import SettingsSection from "../settings/SettingsSection.vue"
@@ -19,9 +20,21 @@ const peakHoldOptions = computed<ReadonlyArray<{ value: MeterPeakHold; label: st
   { value: "infinite", label: t("settings.audio.mixerDisplay.peakHold.infinite") }
 ])
 
-const returnRateOptions = computed<ReadonlyArray<{ value: MeterReturnRate; label: string }>>(() => [
-  { value: "iec-type-i", label: t("settings.audio.mixerDisplay.returnRate.iecTypeI") }
-])
+const returnRateLabelKeys: Readonly<Record<MeterReturnRate, string>> = {
+  "very-slow": "verySlow",
+  "ebu-slow": "ebuSlow",
+  "iec-type-ii": "iecTypeII",
+  "iec-type-i": "iecTypeI",
+  fast: "fast",
+  faster: "faster",
+  "very-fast": "veryFast"
+}
+const returnRateOptions = computed<ReadonlyArray<{ value: MeterReturnRate; label: string }>>(() =>
+  METER_RETURN_RATES.map((value) => ({
+    value,
+    label: t(`settings.audio.mixerDisplay.returnRate.${returnRateLabelKeys[value]}`)
+  }))
+)
 
 function selectPeakHold(value: string): void {
   void settingsStore.setMeterPeakHold(value as MeterPeakHold)
@@ -67,7 +80,7 @@ onMounted(() => {
       <label class="setting-field">
         <span>{{ t("common.response") }}</span>
         <UiSelect
-          :model-value="settings?.meterReturnRate ?? 'iec-type-i'"
+          :model-value="settings?.meterReturnRate ?? DEFAULT_METER_RETURN_RATE"
           :options="returnRateOptions"
           size="sm"
           :disabled="loading"

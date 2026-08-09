@@ -3,7 +3,7 @@ import type { IpcMainInvokeEvent } from "electron"
 import { statfs } from "node:fs/promises"
 import { cpus, freemem, totalmem } from "node:os"
 import { join } from "node:path"
-import { APPLICATION_WINDOW_COMMAND_IDS, AUDIO_BACKENDS } from "@heron/contracts"
+import { APPLICATION_WINDOW_COMMAND_IDS, AUDIO_BACKENDS, isMeterReturnRate } from "@heron/contracts"
 import type {
   ApplicationWindowCommandId,
   ApplicationSettingsPatch,
@@ -211,7 +211,7 @@ export function validateSettingsPatch(value: unknown): ApplicationSettingsPatch 
   ) {
     throw new TypeError("Unsupported meter peak hold")
   }
-  if (patch.meterReturnRate !== undefined && patch.meterReturnRate !== "iec-type-i") {
+  if (patch.meterReturnRate !== undefined && !isMeterReturnRate(patch.meterReturnRate)) {
     throw new TypeError("Unsupported meter return rate")
   }
   if (

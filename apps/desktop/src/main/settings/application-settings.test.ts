@@ -2,6 +2,7 @@ import { mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
+import { DEFAULT_METER_RETURN_RATE, METER_RETURN_RATES } from "@heron/contracts"
 import { ApplicationSettingsStore } from "./application-settings"
 
 describe("ApplicationSettingsStore", () => {
@@ -55,6 +56,22 @@ describe("ApplicationSettingsStore", () => {
     await expect(
       store.update({ midiCenterCStandard: "scientific" as "roland-c4" })
     ).rejects.toThrow("Unsupported MIDI center C standard")
+  })
+
+  it("persists every supported meter return rate and rejects unknown values", async () => {
+    const userData = await mkdtemp(join(tmpdir(), "heron-meter-return-rate-"))
+    const store = new ApplicationSettingsStore(userData)
+
+    expect((await store.get()).meterReturnRate).toBe(DEFAULT_METER_RETURN_RATE)
+    for (const meterReturnRate of METER_RETURN_RATES) {
+      await store.update({ meterReturnRate })
+      expect((await new ApplicationSettingsStore(userData).get()).meterReturnRate).toBe(
+        meterReturnRate
+      )
+    }
+    await expect(
+      store.update({ meterReturnRate: "instant" as (typeof METER_RETURN_RATES)[number] })
+    ).rejects.toThrow("Unsupported meter return rate")
   })
 
   it("migrates editor preferences and persists validated values by normalized class ID", async () => {

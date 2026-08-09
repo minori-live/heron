@@ -1,6 +1,7 @@
 import { flushPromises, mount } from "@vue/test-utils"
 import { createPinia } from "pinia"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { DEFAULT_METER_RETURN_RATE, METER_RETURN_RATES } from "@heron/contracts"
 import MixerDisplaySettings from "./MixerDisplaySettings.vue"
 import { rpcSuccess, settingsSnapshot, testBootstrap, testSettings } from "../../test/ipc"
 
@@ -29,7 +30,7 @@ describe("MixerDisplaySettings", () => {
       )
   })
 
-  it("persists the selected peak hold time and shows the IEC return default", async () => {
+  it("persists meter display settings and orders return rates from slowest to fastest", async () => {
     const wrapper = mount(MixerDisplaySettings, {
       global: { plugins: [createPinia()] }
     })
@@ -42,8 +43,26 @@ describe("MixerDisplaySettings", () => {
     expect(window.heron.updateApplicationSettings).toHaveBeenCalledWith(expect.any(Object), {
       meterPeakHold: "4s"
     })
-    expect(wrapper.get('select[aria-label="Mixer meter return time"]').text()).toContain(
-      "IEC Type I (11.8 dB/s)"
+    const returnTime = wrapper.get<HTMLSelectElement>(
+      'select[aria-label="Mixer meter return time"]'
     )
+    const options = returnTime.findAll("option")
+    expect(options.map((option) => option.attributes("value"))).toEqual([...METER_RETURN_RATES])
+    expect(options.map((option) => option.text())).toEqual([
+      "Very Slow (4 dB/s)",
+      "EBU Slow (6.3 dB/s)",
+      "IEC Type II/EBU (8.6 dB/s)",
+      "IEC Type I (11.8 dB/s)",
+      "Fast (20 dB/s)",
+      "Faster (30 dB/s)",
+      "Very Fast (50 dB/s)"
+    ])
+    expect(returnTime.element.value).toBe(DEFAULT_METER_RETURN_RATE)
+
+    await returnTime.setValue("very-fast")
+    await flushPromises()
+    expect(window.heron.updateApplicationSettings).toHaveBeenLastCalledWith(expect.any(Object), {
+      meterReturnRate: "very-fast"
+    })
   })
 })

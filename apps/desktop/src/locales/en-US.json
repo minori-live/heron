@@ -684,7 +684,13 @@
           "title": "Return time",
           "description": "Sets how quickly the displayed level falls after the signal peak.",
           "ariaLabel": "Mixer meter return time",
-          "iecTypeI": "IEC Type I (11.8 dB/s)"
+          "verySlow": "Very Slow (4 dB/s)",
+          "ebuSlow": "EBU Slow (6.3 dB/s)",
+          "iecTypeII": "IEC Type II/EBU (8.6 dB/s)",
+          "iecTypeI": "IEC Type I (11.8 dB/s)",
+          "fast": "Fast (20 dB/s)",
+          "faster": "Faster (30 dB/s)",
+          "veryFast": "Very Fast (50 dB/s)"
         }
       },
       "loopback": {

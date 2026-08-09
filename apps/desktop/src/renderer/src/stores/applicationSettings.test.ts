@@ -236,9 +236,10 @@ describe("optimistic display settings", () => {
     await store.setMeterPeakHold("4s")
     expect(store.settings?.meterPeakHold).toBe("4s")
 
-    await store.setMeterReturnRate("iec-type-i")
+    await store.setMeterReturnRate("fast")
+    expect(store.settings?.meterReturnRate).toBe("fast")
     expect(window.heron.updateApplicationSettings).toHaveBeenLastCalledWith(expect.any(Object), {
-      meterReturnRate: "iec-type-i"
+      meterReturnRate: "fast"
     })
   })
 
@@ -255,6 +256,9 @@ describe("optimistic display settings", () => {
 
     expect(store.settings?.meterPeakHold).toBe("800ms")
     expect(store.error).not.toBe("")
+
+    await store.setMeterReturnRate("very-fast")
+    expect(store.settings?.meterReturnRate).toBe("iec-type-i")
   })
 
   it("gives up on meter settings when the settings never load", async () => {

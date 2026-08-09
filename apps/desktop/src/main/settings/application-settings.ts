@@ -2,6 +2,8 @@ import { mkdir, open, readFile, rename } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import {
   APPLICATION_COMMAND_IDS,
+  DEFAULT_METER_RETURN_RATE,
+  isMeterReturnRate,
   MAX_MIDI_INPUT_OFFSET_MS,
   SHORTCUT_MODIFIERS
 } from "@heron/contracts"
@@ -11,7 +13,6 @@ import type {
   ApplicationSettingsPatch,
   AudioHostRuntimePreferences,
   MeterPeakHold,
-  MeterReturnRate,
   MidiCenterCStandard,
   MidiSyncPreferences,
   PluginEditorPreference,
@@ -39,10 +40,6 @@ function isThemePreference(value: unknown): value is ThemePreference {
 
 function isMeterPeakHold(value: unknown): value is MeterPeakHold {
   return value === "800ms" || value === "2s" || value === "4s" || value === "infinite"
-}
-
-function isMeterReturnRate(value: unknown): value is MeterReturnRate {
-  return value === "iec-type-i"
 }
 
 function isMidiCenterCStandard(value: unknown): value is MidiCenterCStandard {
@@ -263,7 +260,7 @@ export class ApplicationSettingsStore {
       theme: "system",
       locale: DEFAULT_LOCALE,
       meterPeakHold: "800ms",
-      meterReturnRate: "iec-type-i",
+      meterReturnRate: DEFAULT_METER_RETURN_RATE,
       midiCenterCStandard: "roland-c4",
       softwareMonitoringEnabled: false,
       lowLatencyPluginBudgetMs: 5,
