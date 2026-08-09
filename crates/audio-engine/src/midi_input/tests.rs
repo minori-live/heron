@@ -600,6 +600,9 @@ fn actor_state_with_local_rings(
         active_notes: BTreeMap::new(),
         control_generation: 0,
         control_events: VecDeque::new(),
+        dispatch_events: VecDeque::new(),
+        control_dropped: 0,
+        control_wake: Arc::new(|| {}),
         recording: None,
     };
     (state, Cons::new(events), Cons::new(sysex))
