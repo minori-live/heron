@@ -1,4 +1,4 @@
-# ADR-0006: Build new projects from a migrated database template
+# ADR-0007: Build new projects from a migrated database template
 
 - Status: Accepted
 - Date: 2026-08-09

@@ -45,13 +45,22 @@ const projectMigrations: Plugin = {
   },
   async writeBundle() {
     const files = await migrationFiles()
-    await rm(bundledMigrationsDirectory, { force: true, recursive: true })
-    await cp(migrationsDirectory, bundledMigrationsDirectory, { recursive: true })
-
     const digest = await migrationDigest(files)
-    if (digest !== generatedTemplateDigest || !(await exists(bundledProjectTemplate))) {
-      await buildProjectTemplateArchive(bundledProjectTemplate, migrationsDirectory)
+    try {
+      await rm(bundledMigrationsDirectory, { force: true, recursive: true })
+      await cp(migrationsDirectory, bundledMigrationsDirectory, { recursive: true })
+
+      if (digest !== generatedTemplateDigest || !(await exists(bundledProjectTemplate))) {
+        await buildProjectTemplateArchive(bundledProjectTemplate, migrationsDirectory)
+      }
       generatedTemplateDigest = digest
+    } catch (error) {
+      generatedTemplateDigest = null
+      await Promise.all([
+        rm(bundledMigrationsDirectory, { force: true, recursive: true }),
+        rm(bundledProjectTemplate, { force: true })
+      ])
+      throw error
     }
   }
 }
