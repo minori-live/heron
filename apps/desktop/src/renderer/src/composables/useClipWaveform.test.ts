@@ -2,7 +2,7 @@ import { createPinia, setActivePinia } from "pinia"
 import { flushPromises, mount } from "@vue/test-utils"
 import { defineComponent, h, nextTick, ref } from "vue"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { WaveformPeakWindow } from "@heron/contracts"
+import type { RpcResult, WaveformPeakWindow } from "@heron/contracts"
 import { useRecordingStore } from "../stores/recording"
 import { useClipWaveform } from "./useClipWaveform"
 
@@ -21,8 +21,8 @@ function response(id: string, frameCount: number): WaveformPeakWindow {
   }
 }
 
-function success(value: WaveformPeakWindow) {
-  return { ok: true, requestId: "request", value, warnings: [] } as const
+function success(value: WaveformPeakWindow): RpcResult<WaveformPeakWindow> {
+  return { ok: true, requestId: "request", value, warnings: [] }
 }
 
 function attachRecording(id: string): void {
@@ -110,6 +110,42 @@ describe("useClipWaveform", () => {
     wrapper.unmount()
     await vi.advanceTimersByTimeAsync(200)
     expect(read).toHaveBeenCalledTimes(2)
+  })
+
+  it("keeps a live request valid while the recording clip grows", async () => {
+    attachRecording("recording")
+    const pixelWidth = ref(12)
+    const read = vi.fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 70))
+      return success(response("recording", 2_400))
+    })
+    window.heron.recordingWaveformSnapshot = read
+    const component = defineComponent({
+      setup() {
+        const waveform = useClipWaveform({
+          id: "recording",
+          recording: true,
+          startFrame: 0,
+          endFrame: Number.MAX_SAFE_INTEGER,
+          pixelWidth
+        })
+        return () => h("span", String(waveform.data.value?.frameCount ?? 0))
+      }
+    })
+    const wrapper = mount(component)
+
+    await vi.advanceTimersByTimeAsync(40)
+    expect(read).toHaveBeenCalledTimes(1)
+    for (let index = 0; index < 3; index += 1) {
+      pixelWidth.value += 1
+      await nextTick()
+      await vi.advanceTimersByTimeAsync(20)
+    }
+    await vi.advanceTimersByTimeAsync(10)
+
+    expect(wrapper.text()).toBe("2400")
+    expect(read).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
   })
 
   it("cancels a pending debounced viewport reload after unmount", async () => {
