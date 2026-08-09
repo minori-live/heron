@@ -1,19 +1,93 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { SplitSquareHorizontal, Trash2 } from "@lucide/vue"
-import { UiButton, UiNumberInput, UiSelect } from "@heron/ui"
+import { UiButton, UiCurveEditor, UiNumberInput, UiSelect } from "@heron/ui"
+import type { UiCurveHandle, UiCurveStroke } from "@heron/ui"
 import { evaluateAbsoluteMidiTransform } from "@heron/contracts"
 import type { MidiAbsoluteTransformProfile } from "@heron/contracts"
 
 const props = defineProps<{ modelValue: MidiAbsoluteTransformProfile }>()
 const emit = defineEmits<{ "update:modelValue": [value: MidiAbsoluteTransformProfile] }>()
 
-const path = computed(() =>
-  Array.from({ length: 128 }, (_, value) => {
-    const output = evaluateAbsoluteMidiTransform(props.modelValue, value / 127)
-    return `${value === 0 ? "M" : "L"} ${value} ${127 - output * 127}`
-  }).join(" ")
+function copySegments() {
+  return props.modelValue.segments.map((segment) => ({ ...segment }))
+}
+
+const curves = computed<UiCurveStroke[]>(() =>
+  props.modelValue.segments.map((segment, index) => {
+    const sampleCount = Math.max(2, Math.round((segment.inputEnd - segment.inputStart) * 127) + 1)
+    return {
+      id: `segment-${index}`,
+      points: Array.from({ length: sampleCount }, (_, sample) => {
+        const x =
+          segment.inputStart +
+          (segment.inputEnd - segment.inputStart) * (sample / (sampleCount - 1))
+        return {
+          x,
+          y: evaluateAbsoluteMidiTransform({ ...props.modelValue, segments: [segment] }, x)
+        }
+      })
+    }
+  })
 )
+
+const handles = computed<UiCurveHandle[]>(() => {
+  const segments = props.modelValue.segments
+  const result: UiCurveHandle[] = []
+  const first = segments[0]
+  if (!first) return result
+  result.push({
+    id: "outer-start",
+    label: "Curve start",
+    x: first.inputStart,
+    y: first.outputStart,
+    minX: first.inputStart,
+    maxX: first.inputStart
+  })
+  for (let index = 1; index < segments.length; index += 1) {
+    const before = segments[index - 1]!
+    const after = segments[index]!
+    const constraints = {
+      x: before.inputEnd,
+      minX: before.inputStart + 0.001,
+      maxX: after.inputEnd - 0.001
+    }
+    if (Math.abs(before.outputEnd - after.outputStart) < 0.000_001) {
+      result.push({
+        id: `boundary-${index}`,
+        label: `Segment ${index} to ${index + 1} boundary`,
+        ...constraints,
+        y: before.outputEnd
+      })
+    } else {
+      result.push(
+        {
+          id: `boundary-${index}-before`,
+          label: `Segment ${index} end`,
+          ...constraints,
+          y: before.outputEnd
+        },
+        {
+          id: `boundary-${index}-after`,
+          label: `Segment ${index + 1} start`,
+          ...constraints,
+          y: after.outputStart,
+          tone: "secondary"
+        }
+      )
+    }
+  }
+  const last = segments.at(-1)!
+  result.push({
+    id: "outer-end",
+    label: "Curve end",
+    x: last.inputEnd,
+    y: last.outputEnd,
+    minX: last.inputEnd,
+    maxX: last.inputEnd
+  })
+  return result
+})
 
 function updateSegment(index: number, field: string, raw: string): void {
   const segments = props.modelValue.segments.map((segment, candidate) =>
@@ -22,8 +96,33 @@ function updateSegment(index: number, field: string, raw: string): void {
   emit("update:modelValue", { ...props.modelValue, segments })
 }
 
+function moveCurveHandle(change: { id: string; x: number; y: number }): void {
+  const segments = copySegments()
+  if (change.id === "outer-start") {
+    if (segments[0]) segments[0].outputStart = change.y
+  } else if (change.id === "outer-end") {
+    if (segments.at(-1)) segments.at(-1)!.outputEnd = change.y
+  } else {
+    const match = /^boundary-(\d+)(?:-(before|after))?$/u.exec(change.id)
+    if (!match) return
+    const index = Number(match[1])
+    const before = segments[index - 1]
+    const after = segments[index]
+    if (!before || !after) return
+    before.inputEnd = change.x
+    after.inputStart = change.x
+    if (match[2] === "before") before.outputEnd = change.y
+    else if (match[2] === "after") after.outputStart = change.y
+    else {
+      before.outputEnd = change.y
+      after.outputStart = change.y
+    }
+  }
+  emit("update:modelValue", { ...props.modelValue, segments })
+}
+
 function splitLastSegment(): void {
-  const segments = structuredClone(props.modelValue.segments)
+  const segments = copySegments()
   const last = segments.pop()
   if (!last) return
   const inputMiddle = (last.inputStart + last.inputEnd) / 2
@@ -37,7 +136,7 @@ function splitLastSegment(): void {
 
 function removeLastSegment(): void {
   if (props.modelValue.segments.length < 2) return
-  const segments = structuredClone(props.modelValue.segments)
+  const segments = copySegments()
   const removed = segments.pop()!
   const last = segments.at(-1)!
   last.inputEnd = 1
@@ -48,17 +147,13 @@ function removeLastSegment(): void {
 
 <template>
   <div class="curve-editor">
-    <div class="curve-stage">
-      <span class="axis-label axis-label-output">Output</span>
-      <svg viewBox="0 0 127 127" role="img" aria-label="MIDI transform curve preview">
-        <path class="curve-grid" d="M 0 127 L 127 0 M 0 63.5 L 127 63.5 M 63.5 0 L 63.5 127" />
-        <path class="curve-line" :d="path" />
-      </svg>
-      <span class="axis-label axis-label-input">MIDI input 0–127</span>
-    </div>
-    <div class="curve-samples" aria-label="0 through 127 sample preview">
-      <span v-for="value in 128" :key="value" :title="`${value - 1}`" />
-    </div>
+    <UiCurveEditor
+      :curves="curves"
+      :handles="handles"
+      x-label="MIDI input 0–127"
+      y-label="Normalized output"
+      @move-handle="moveCurveHandle"
+    />
     <table class="segment-table">
       <thead>
         <tr>
@@ -168,67 +263,6 @@ function removeLastSegment(): void {
 .curve-editor {
   display: grid;
   gap: 12px;
-}
-
-.curve-stage {
-  position: relative;
-  padding: 18px 12px 22px 36px;
-  border: 1px solid var(--line-soft);
-  border-radius: 7px;
-  background: var(--surface-sunken);
-}
-
-.curve-stage svg {
-  display: block;
-  width: 100%;
-  max-height: 230px;
-  aspect-ratio: 1.8;
-}
-
-.curve-grid {
-  fill: none;
-  stroke: var(--line-strong);
-  stroke-width: 0.5;
-}
-
-.curve-line {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
-}
-
-.axis-label {
-  position: absolute;
-  color: var(--text-faint);
-  font: var(--ui-type-size-micro) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wide);
-  text-transform: uppercase;
-}
-
-.axis-label-output {
-  top: 50%;
-  left: 7px;
-  transform: rotate(-90deg) translateX(-50%);
-  transform-origin: left top;
-}
-
-.axis-label-input {
-  right: 12px;
-  bottom: 6px;
-}
-
-.curve-samples {
-  display: grid;
-  grid-template-columns: repeat(128, 1fr);
-  height: 5px;
-  overflow: hidden;
-  border-radius: 3px;
-}
-
-.curve-samples span {
-  background: var(--accent);
-  opacity: 0.64;
 }
 
 .segment-table {

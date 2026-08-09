@@ -14,6 +14,26 @@ export interface UiScaleMark {
   position: number
   emphasis?: boolean
 }
+
+export interface UiCurvePoint {
+  x: number
+  y: number
+}
+
+export interface UiCurveStroke {
+  id: string
+  points: readonly UiCurvePoint[]
+}
+
+export interface UiCurveHandle extends UiCurvePoint {
+  id: string
+  label: string
+  tone?: "primary" | "secondary"
+  minX?: number
+  maxX?: number
+  minY?: number
+  maxY?: number
+}
 export type UiCascadingSelectAppearance = "default" | "embedded" | "workspace"
 export type UiCascadingSelectHoverTreatment = "surface" | "host-tint"
 export type UiNoticeTone = "neutral" | "info" | "success" | "warning" | "danger"
