@@ -209,6 +209,13 @@ export class ProjectWorkerClient {
     return this.call({ type: "save-plugin-states", states })
   }
 
+  saveControlState(
+    states: PluginStateInput[],
+    mixer: import("@heron/project-db/protocol").MixerControlOverlayInput[]
+  ): Promise<void> {
+    return this.call({ type: "save-control-state", states, mixer })
+  }
+
   assetContentHashes(ids: string[]): Promise<AssetContentHash[]> {
     return this.call({ type: "asset-content-hashes", ids })
   }

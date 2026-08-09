@@ -228,6 +228,7 @@ export async function readMixerSnapshot(
         descriptor: pluginDescriptor(plugin.descriptorSnapshot),
         audioMode: plugin.audioMode,
         enabled: plugin.enabled,
+        controlAlias: plugin.controlAlias,
         sidechainInputs: sidechainRoutesByPlugin.get(plugin.id) ?? [],
         state: { version: 1 as const, chunks }
       }

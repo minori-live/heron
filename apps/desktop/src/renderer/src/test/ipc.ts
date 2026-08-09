@@ -100,6 +100,7 @@ export function testSettings(overrides: Partial<ApplicationSettings> = {}): Appl
     midiCenterCStandard: "yamaha-c3",
     softwareMonitoringEnabled: false,
     midiSync: { enabled: false, sourcePortId: null, sourcePortName: null, inputOffsetsMs: {} },
+    midiControl: { bindings: [], transformProfiles: [] },
     audioHostRuntime: {
       workerThreads: "auto",
       maxBlockingThreads: "auto"

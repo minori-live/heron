@@ -1,5 +1,10 @@
 import type { AudioHostRuntime } from "@heron/dsp-node"
-import type { MidiInputSnapshot, MidiSyncPreferences, ShortcutPreferences } from "@heron/contracts"
+import type {
+  MidiControlPreferences,
+  MidiInputSnapshot,
+  MidiSyncPreferences,
+  ShortcutPreferences
+} from "@heron/contracts"
 import type { ControlResponse } from "./wire"
 
 export class AudioHostMidiInputClient {
@@ -27,13 +32,15 @@ export class AudioHostMidiInputClient {
 
   async configure(
     preferences: MidiSyncPreferences,
-    shortcuts: ShortcutPreferences = { keyboard: {}, midi: {} }
+    shortcuts: ShortcutPreferences = { keyboard: {}, midi: {} },
+    midiControl: MidiControlPreferences = { bindings: [], transformProfiles: [] }
   ): Promise<MidiInputSnapshot> {
     const controlPortIds = [
       ...new Set(
-        Object.values(shortcuts.midi)
-          .map((binding) => binding?.portId)
-          .filter((portId): portId is string => Boolean(portId))
+        [
+          ...Object.values(shortcuts.midi).map((binding) => binding?.portId),
+          ...midiControl.bindings.map((binding) => binding.address.portId)
+        ].filter((portId): portId is string => Boolean(portId))
       )
     ]
     const snapshot = this.decode(
@@ -50,6 +57,10 @@ export class AudioHostMidiInputClient {
       await this.request(this.configureCommand(this.preferences, this.controlPortIds, enabled))
     )
     this.controlLearning = enabled
+  }
+
+  isControlLearning(): boolean {
+    return this.controlLearning
   }
 
   async restore(client: AudioHostRuntime): Promise<void> {

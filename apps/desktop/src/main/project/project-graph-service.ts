@@ -1,4 +1,5 @@
 import type {
+  MidiMixerControlOverlay,
   ProjectGraphRef,
   ProjectGraphSnapshot,
   LowLatencyModeConfiguration,
@@ -19,6 +20,10 @@ export class ProjectGraphService {
   private lowLatencyEnabled = false
   private lowLatencyTargetOutputChannelId: string | null = null
   private lowLatencyPluginBudgetMs = 5
+  private readonly midiControlOverlay = new Map<
+    string,
+    Partial<Pick<ProjectGraphSnapshot["channels"][number], "gainDb" | "pan" | "muted" | "soloed">>
+  >()
 
   constructor(
     private readonly projects: ProjectService,
@@ -46,7 +51,7 @@ export class ProjectGraphService {
       this.cachedProject = null
       throw new Error("Project graph is not loaded")
     }
-    return this.publisher.resolve(this.cachedProject.graph)
+    return this.publisher.resolve(this.withMidiControlOverlay(this.cachedProject.graph))
   }
 
   commit(projectId: string, graph: ProjectGraphSnapshot): void {
@@ -55,6 +60,59 @@ export class ProjectGraphService {
     }
     this.cachedProject = { projectId, graph: cloneGraph(graph) }
     this.reconcileLowLatencyTarget(graph)
+  }
+
+  applyMidiControl(
+    channelId: string,
+    parameter: "gainDb" | "pan" | "muted" | "soloed",
+    value: number | boolean
+  ): Promise<boolean> {
+    return this.enqueue(async () => {
+      const persisted = this.cachedProject?.graph
+      if (!persisted?.channels.some((channel) => channel.id === channelId)) return false
+      const previous = this.midiControlOverlay.get(channelId)
+      const patch = { ...previous }
+      Object.assign(patch, { [parameter]: value })
+      this.midiControlOverlay.set(channelId, patch)
+      if (parameter === "gainDb" || parameter === "pan") return true
+      try {
+        await this.publisher.publish(this.withMidiControlOverlay(persisted), {
+          latencyPolicy: this.latencyPolicy(persisted)
+        })
+      } catch (error) {
+        if (previous) this.midiControlOverlay.set(channelId, previous)
+        else this.midiControlOverlay.delete(channelId)
+        throw error
+      }
+      return true
+    })
+  }
+
+  midiControlOverlaySnapshot(): MidiMixerControlOverlay[] {
+    return [...this.midiControlOverlay].map(([channelId, patch]) => ({ channelId, ...patch }))
+  }
+
+  reconcileProjectCommand(command: import("@heron/contracts").ProjectCommand): void {
+    if (command.type === "batch") {
+      for (const nested of command.commands) this.reconcileProjectCommand(nested)
+      return
+    }
+    if (command.type === "delete-track" || command.type === "delete-channel") {
+      const graph = this.cachedProject?.graph
+      const channelId =
+        command.type === "delete-channel"
+          ? command.channelId
+          : graph?.tracks.find((track) => track.id === command.trackId)?.channelId
+      if (channelId) this.midiControlOverlay.delete(channelId)
+      return
+    }
+    if (command.type !== "update-channel") return
+    const overlay = this.midiControlOverlay.get(command.channelId)
+    if (!overlay) return
+    for (const parameter of ["gainDb", "pan", "muted", "soloed"] as const) {
+      if (command.patch[parameter] !== undefined) delete overlay[parameter]
+    }
+    if (Object.keys(overlay).length === 0) this.midiControlOverlay.delete(command.channelId)
   }
 
   async snapshot(): Promise<ProjectGraphSnapshot> {
@@ -136,6 +194,7 @@ export class ProjectGraphService {
 
   refreshFromDatabase(publish: boolean): Promise<ProjectGraphSnapshot> {
     return this.enqueue(async () => {
+      this.midiControlOverlay.clear()
       const projectId = this.currentProjectId()
       const graph = await this.projects.mixerSnapshot()
       const resolved = publish
@@ -152,11 +211,21 @@ export class ProjectGraphService {
 
   clearProject(): Promise<void> {
     return this.enqueue(() => {
+      this.midiControlOverlay.clear()
       this.cachedProject = null
       this.lowLatencyEnabled = false
       this.lowLatencyTargetOutputChannelId = null
       return Promise.resolve()
     })
+  }
+
+  private withMidiControlOverlay(graph: ProjectGraphSnapshot): ProjectGraphSnapshot {
+    const effective = cloneGraph(graph)
+    for (const channel of effective.channels) {
+      const patch = this.midiControlOverlay.get(channel.id)
+      if (patch) Object.assign(channel, patch)
+    }
+    return effective
   }
 
   setSoftwareMonitoringEnabled(enabled: boolean): Promise<void> {
@@ -297,17 +366,19 @@ export class ProjectGraphService {
   }
 
   savePluginStates(states: PluginStateInput[]): Promise<void> {
-    if (states.length === 0) return Promise.resolve()
+    if (states.length === 0 && this.midiControlOverlay.size === 0) return Promise.resolve()
     return this.enqueue(async () => {
       const projectId = this.currentProjectId()
       const next = this.snapshotNow()
-      await this.projects.savePluginStates(states)
+      const mixer = [...this.midiControlOverlay].map(([id, patch]) => ({ id, ...patch }))
+      await this.projects.saveControlState(states, mixer)
       const byId = new Map(states.map((state) => [state.id, state]))
       for (const plugin of next.plugins) {
         const state = byId.get(plugin.id)
         if (!state) continue
         plugin.state = structuredClone(state.state)
       }
+      this.midiControlOverlay.clear()
       this.commit(projectId, next)
     })
   }

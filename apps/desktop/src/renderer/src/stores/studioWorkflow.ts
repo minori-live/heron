@@ -95,7 +95,8 @@ export const useStudioWorkflowStore = defineStore("studio-workflow", () => {
 
   async function saveProject(): Promise<boolean> {
     if (!(await prepareToLeaveStudio())) return false
-    await projectStore.save()
+    const workspace = await projectStore.save()
+    if (workspace) mixerStore.hydrate(workspace.graph)
     return projectStore.lifecycle.status === "open" && !projectStore.error
   }
 

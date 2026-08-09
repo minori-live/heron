@@ -407,7 +407,8 @@ export const pluginInstances = pgTable(
     nativeId: text("native_id").notNull(),
     descriptorSnapshot: text("descriptor_snapshot").notNull(),
     audioMode: text("audio_mode").$type<PluginAudioMode>().notNull().default("stereo"),
-    enabled: boolean("enabled").notNull().default(true)
+    enabled: boolean("enabled").notNull().default(true),
+    controlAlias: text("control_alias")
   },
   (table) => [
     uniqueIndex("plugin_instances_channel_role_slot_unique").on(
@@ -418,6 +419,9 @@ export const pluginInstances = pgTable(
     uniqueIndex("plugin_instances_instrument_singleton")
       .on(table.channelId)
       .where(sql`${table.role} = 'instrument'`),
+    uniqueIndex("plugin_instances_control_alias_unique")
+      .on(table.controlAlias)
+      .where(sql`${table.controlAlias} is not null`),
     index("plugin_instances_channel_order").on(table.channelId, table.role, table.slotOrder),
     check("plugin_instances_role_check", sql`${table.role} in ('instrument', 'insert')`),
     check("plugin_instances_format_check", sql`${table.locatorFormat} in ('vst3', 'clap')`),
@@ -426,6 +430,13 @@ export const pluginInstances = pgTable(
       sql`${table.audioMode} in ('mono', 'mono-to-stereo', 'stereo', 'dual-mono')`
     ),
     check("plugin_instances_slot_order_check", sql`${table.slotOrder} >= 0`),
+    check(
+      "plugin_instances_control_alias_check",
+      sql`${table.controlAlias} is null or (
+        octet_length(${table.controlAlias}) between 1 and 64
+        and ${table.controlAlias} ~ '^[a-z0-9][a-z0-9._-]*$'
+      )`
+    ),
     check(
       "plugin_instances_instrument_slot_check",
       sql`${table.role} <> 'instrument' or ${table.slotOrder} = 0`

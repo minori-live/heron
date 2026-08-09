@@ -47,6 +47,7 @@ function applicationSettings(shortcuts: ShortcutPreferences): ApplicationSetting
     },
     pluginEditors: {},
     shortcuts,
+    midiControl: { bindings: [], transformProfiles: [] },
     recentProjects: []
   }
 }

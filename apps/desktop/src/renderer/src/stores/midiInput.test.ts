@@ -4,11 +4,13 @@ import type {
   MidiInputSnapshot,
   MidiRuntimeResourceSnapshot,
   MidiSyncPreferences,
+  ProjectGraphSnapshot,
   RpcResult
 } from "@heron/contracts"
 import { useApplicationSettingsStore } from "./applicationSettings"
 import { useAudioRuntimeStore } from "./audioRuntime"
 import { useMidiInputStore } from "./midiInput"
+import { useProjectGraphStore } from "./projectGraph"
 import { rpcEvent } from "../test/ipc"
 
 function snapshot(overrides: Partial<MidiInputSnapshot> = {}): MidiInputSnapshot {
@@ -190,12 +192,17 @@ describe("load", () => {
       })
     })
     const store = useMidiInputStore()
+    const projectGraph = useProjectGraphStore()
+    projectGraph.hydrate({
+      channels: [{ id: "audio", gainDb: 0, pan: 0, muted: false, soloed: false }]
+    } as ProjectGraphSnapshot)
     await store.load()
 
     push?.(
       snapshot({
         sync: { ...snapshot().sync, state: "lost", error: "Clock stopped" },
         activeNotes: [{ portId: "port-1", channel: 0, key: 60 }],
+        mixerControlOverlay: [{ channelId: "audio", gainDb: -12 }],
         capturedAt: 2_000
       })
     )
@@ -203,6 +210,7 @@ describe("load", () => {
     expect(store.snapshot.capturedAt).toBe(2_000)
     expect(store.snapshot.activeNotes).toEqual([{ portId: "port-1", channel: 0, key: 60 }])
     expect(store.error).toBe("Clock stopped")
+    expect(projectGraph.graph.channels[0]?.gainDb).toBe(-12)
   })
 
   it("clears the error when a pushed snapshot recovers", async () => {
@@ -320,6 +328,7 @@ describe("configure", () => {
       },
       pluginEditors: {},
       shortcuts: { keyboard: {}, midi: {} },
+      midiControl: { bindings: [], transformProfiles: [] },
       recentProjects: []
     }
     const store = useMidiInputStore()

@@ -162,6 +162,8 @@ async function handle(request: WorkerRequest): Promise<WorkerResult> {
       )
     case "save-plugin-states":
       return requireDatabase().savePluginStates(request.states)
+    case "save-control-state":
+      return requireDatabase().saveControlState(request.states, request.mixer)
     case "asset-content-hashes":
       return requireDatabase().assetContentHashes(request.ids)
     case "default-recording-track":
@@ -231,7 +233,7 @@ function respond(request: WorkerRequest): Promise<void> {
     (error: unknown) => {
       const correlationId = randomUUID()
       console.error(`[project-worker] ${correlationId} request failed`, error)
-      const response: WorkerResponse = {
+      const response = {
         id: request.id,
         type: request.type,
         ok: false,
@@ -247,7 +249,7 @@ function respond(request: WorkerRequest): Promise<void> {
             component: "project-worker"
           }
         }
-      }
+      } as WorkerResponse
       port.postMessage(response)
     }
   )

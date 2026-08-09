@@ -14,6 +14,7 @@ export {
   availableSendTargets,
   channelForTrack,
   instrumentTracks,
+  midiControlChannels,
   meterFor,
   patchMixerGraph,
   projectContentEndSeconds,

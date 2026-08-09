@@ -50,6 +50,13 @@
       "when": 1785916948886,
       "tag": "0006_audio_plugin_format_neutral",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786249381401,
+      "tag": "0007_midi-control-alias",
+      "breakpoints": true
     }
   ]
 }

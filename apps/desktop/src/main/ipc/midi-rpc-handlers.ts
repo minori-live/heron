@@ -217,12 +217,16 @@ export function registerMidiRpcHandlers(context: IpcHandlerContext): void {
     }
     const current = await settings.get()
     try {
-      await audioHost.configureMidiInput(preferences, current.shortcuts)
+      await audioHost.configureMidiInput(preferences, current.shortcuts, current.midiControl)
       try {
         await settings.configureMidiInput(preferences)
       } catch {
         try {
-          await audioHost.configureMidiInput(current.midiSync, current.shortcuts)
+          await audioHost.configureMidiInput(
+            current.midiSync,
+            current.shortcuts,
+            current.midiControl
+          )
         } catch {
           const result = rpcFailure(meta, error(meta, "unknown"))
           finish(context, meta, "quarantined", result)

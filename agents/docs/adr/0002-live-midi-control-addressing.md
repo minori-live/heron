@@ -1,6 +1,6 @@
 # ADR-0002: Address Live MIDI controls by ordered channels and plug-in aliases
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-08
 - Owners: project maintainers
 - Related: `agents/docs/product-live.md`
@@ -15,11 +15,14 @@ hardware feedback.
 
 ## Decision
 
-Application preferences map a physical MIDI device ID and message address to a
-semantic target.
+Application preferences store one binding per semantic target. A physical MIDI
+device ID and message address may therefore fan out to multiple application,
+Mixer, and plug-in targets. Each target is resolved and executed independently;
+a missing target never prevents its siblings or consumes the MIDI event before
+instrument routing and recording.
 
 - Mixer targets use an index into the current shared ordering of Audio,
-  Instrument, BUS, Output, and Master channels. Reordering intentionally changes
+  Instrument, BUS, Master, and Output channels. Reordering intentionally changes
   the controlled channel.
 - Current Mixer parameters are Gain, Pan, Mute, and Solo. Send is excluded.
 - Mute and Solo mappings configure toggle or absolute behavior.
@@ -27,6 +30,8 @@ semantic target.
   Display names may repeat. Moving the instance preserves its alias.
 - A missing ordered index or alias ignores the message and does not retarget.
 - Mappings remain after device disconnect and resolve by device ID on reconnect.
+- Multiple targets on one address are visible as an informational warning, not
+  a conflict or validation error.
 
 ## Alternatives rejected
 

@@ -15,6 +15,7 @@ import type {
   DefaultRecordingTrack,
   LargeObjectAssetInput,
   MidiSourceInput,
+  MixerControlOverlayInput,
   PluginStateInput,
   StoredWaveformWindow,
   WaveformAssetInput
@@ -384,6 +385,32 @@ export class ProjectDatabase {
   savePluginStates(states: PluginStateInput[]): Promise<void> {
     if (states.length === 0) return Promise.resolve()
     return this.db.transaction(async (tx) => {
+      for (const state of states) {
+        await tx.delete(pluginStateChunks).where(eq(pluginStateChunks.pluginId, state.id))
+        if (state.state.chunks.length > 0) {
+          await tx.insert(pluginStateChunks).values(
+            state.state.chunks.map((chunk) => ({
+              pluginId: state.id,
+              chunkKey: chunk.key,
+              bytes: chunk.bytes
+            }))
+          )
+        }
+      }
+    })
+  }
+
+  saveControlState(states: PluginStateInput[], mixer: MixerControlOverlayInput[]): Promise<void> {
+    if (states.length === 0 && mixer.length === 0) return Promise.resolve()
+    return this.db.transaction(async (tx) => {
+      for (const control of mixer) {
+        const patch: Partial<typeof mixerChannels.$inferInsert> = {}
+        if (control.gainDb !== undefined) patch.gainDb = control.gainDb
+        if (control.pan !== undefined) patch.pan = control.pan
+        if (control.muted !== undefined) patch.muted = control.muted
+        if (control.soloed !== undefined) patch.soloed = control.soloed
+        await tx.update(mixerChannels).set(patch).where(eq(mixerChannels.id, control.id))
+      }
       for (const state of states) {
         await tx.delete(pluginStateChunks).where(eq(pluginStateChunks.pluginId, state.id))
         if (state.state.chunks.length > 0) {

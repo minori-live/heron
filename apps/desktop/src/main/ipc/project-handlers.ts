@@ -174,6 +174,7 @@ export function registerProjectHandlers(context: IpcHandlerContext): void {
     let archiveCommitted = false
     try {
       await synchronizePluginStates()
+      const synchronizedGraph = await projectGraph.snapshot()
       const saved = await projects.save(
         typeof value === "string" ? value : undefined,
         meta.mutation.operationId
@@ -189,7 +190,7 @@ export function registerProjectHandlers(context: IpcHandlerContext): void {
         saved
       )
       if (!committed.ok) throw new Error("Saved project resource could not advance")
-      const next = { ...workspace, session: saved }
+      const next = { ...workspace, graph: synchronizedGraph, session: saved }
       lifecycle.applicationState.setWorkspace(next)
       lifecycle.completeProject(saved)
       const result = rpcSuccess(meta, next, { resourceRevision: committed.value.revision })

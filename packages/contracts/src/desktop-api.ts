@@ -44,6 +44,7 @@ import type {
   MidiRuntimeResourceSnapshot,
   MidiSyncPreferences
 } from "./midi"
+import type { MidiControlPreferences } from "./midi-control"
 import type { OperationEvent, OperationStatusSnapshot } from "./operations"
 import type {
   PluginCatalogSnapshot,
@@ -134,6 +135,7 @@ export const IPC_CHANNELS = {
   settingsSetSoftwareMonitoring: "settings:set-software-monitoring",
   settingsConfigureAudioHostRuntime: "settings:configure-audio-host-runtime",
   settingsConfigureShortcuts: "settings:configure-shortcuts",
+  settingsConfigureMidiControl: "settings:configure-midi-control",
   settingsChooseSwap: "settings:choose-swap",
   settingsOpenSwap: "settings:open-swap",
   recordingStart: "recording:start",
@@ -289,6 +291,10 @@ export interface HeronDesktopApi {
   configureShortcuts(
     meta: RpcRequestMeta,
     preferences: ShortcutPreferences
+  ): Promise<RpcResult<ApplicationSettingsResourceSnapshot>>
+  configureMidiControl(
+    meta: RpcRequestMeta,
+    preferences: MidiControlPreferences
   ): Promise<RpcResult<ApplicationSettingsResourceSnapshot>>
   chooseSwapDirectory(meta: RpcRequestMeta): Promise<RpcResult<ApplicationSettingsResourceSnapshot>>
   openSwapDirectory(meta: RpcRequestMeta): Promise<RpcResult<void>>

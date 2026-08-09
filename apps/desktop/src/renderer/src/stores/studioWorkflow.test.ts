@@ -6,6 +6,7 @@ import { EMPTY_PROJECT_GRAPH, useProjectGraphStore } from "./projectGraph"
 import { useRecordingStore } from "./recording"
 import { useStudioWorkflowStore } from "./studioWorkflow"
 import { useTransportStore } from "./transport"
+import { useProjectStore } from "./project"
 
 beforeEach(() => {
   setActivePinia(
@@ -136,6 +137,59 @@ describe("stopRecording", () => {
     await workflowStore.stopRecording()
     expect(mixerStore.execute).toHaveBeenCalledOnce()
     expect(mixerStore.reload).not.toHaveBeenCalled()
+  })
+})
+
+describe("saveProject", () => {
+  it("hydrates the saved mixer graph before an empty hardware overlay can restore its baseline", async () => {
+    const projectStore = useProjectStore()
+    const mixerStore = useMixerStore()
+    const workflowStore = useStudioWorkflowStore()
+    const savedGraph = structuredClone(EMPTY_PROJECT_GRAPH)
+    savedGraph.channels = [
+      {
+        id: "audio",
+        kind: "audio",
+        systemRole: null,
+        name: "Audio",
+        color: "#8C83FF",
+        sortOrder: 0,
+        inputSource: "hardware",
+        inputFormat: "stereo",
+        gainDb: -12,
+        pan: 0,
+        muted: false,
+        soloed: false,
+        outputChannelId: null,
+        outputBus: null,
+        recordArmed: false,
+        inputMonitoring: false,
+        inputChannels: [1, 2],
+        hardwareOutputChannels: []
+      }
+    ]
+    projectStore.lifecycle = {
+      status: "open",
+      error: null,
+      session: {
+        id: "project",
+        path: "project.heron",
+        configuration: {
+          name: "Saved MIDI controls",
+          sampleRate: 48_000,
+          timeSignatureNumerator: 4,
+          timeSignatureDenominator: 4,
+          waveformDisplayMode: "separate"
+        },
+        dirty: false,
+        recoveredWorkingCopy: false
+      }
+    }
+    vi.mocked(projectStore.save).mockResolvedValue({ graph: savedGraph } as never)
+
+    await expect(workflowStore.saveProject()).resolves.toBe(true)
+
+    expect(mixerStore.hydrate).toHaveBeenCalledWith(savedGraph)
   })
 })
 

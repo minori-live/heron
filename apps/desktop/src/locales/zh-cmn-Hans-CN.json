@@ -133,6 +133,7 @@
     "unableToSaveDisplaySettings": "无法保存显示设置。",
     "unableToSaveMixerDisplaySettings": "无法保存混音台显示设置。",
     "unableToSaveMidiSettings": "无法保存 MIDI 设置。",
+    "unableToSaveMidiControl": "无法保存 MIDI 控制映射。",
     "unableToSaveShortcutSettings": "无法保存快捷键设置。",
     "unableToSaveAudioRuntime": "无法保存内嵌音频运行时设置。",
     "unableToChangeSoftwareMonitoring": "无法更改软件监听。",

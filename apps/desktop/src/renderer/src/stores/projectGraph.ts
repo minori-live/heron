@@ -1,6 +1,7 @@
 import { acceptHMRUpdate, defineStore } from "pinia"
 import { shallowRef } from "vue"
 import type {
+  MidiMixerControlOverlay,
   MixerParameterPreview,
   ProjectCommand,
   ProjectCommandResult,
@@ -31,6 +32,7 @@ export const EMPTY_PROJECT_GRAPH: ProjectGraphSnapshot = {
 export const useProjectGraphStore = defineStore("project-graph", () => {
   const projectStore = useProjectStore()
   const graph = shallowRef<ProjectGraphSnapshot>(structuredClone(EMPTY_PROJECT_GRAPH))
+  let midiControlBaseline = structuredClone(EMPTY_PROJECT_GRAPH)
   const loading = shallowRef(false)
   const error = shallowRef("")
   let mutationTail: Promise<void> = Promise.resolve()
@@ -47,12 +49,37 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
   }
 
   function replace(snapshot: ProjectGraphSnapshot): void {
+    midiControlBaseline = structuredClone(snapshot)
     graph.value = structuredClone(snapshot)
   }
 
   function hydrate(snapshot: ProjectGraphSnapshot): void {
     replace(snapshot)
     error.value = ""
+  }
+
+  function applyMidiControlOverlay(controls: MidiMixerControlOverlay[]): void {
+    const patches = new Map(controls.map((control) => [control.channelId, control]))
+    const baselineChannels = new Map(
+      midiControlBaseline.channels.map((channel) => [channel.id, channel])
+    )
+    const next = structuredClone(graph.value)
+    for (const channel of next.channels) {
+      const baseline = baselineChannels.get(channel.id)
+      if (baseline) {
+        channel.gainDb = baseline.gainDb
+        channel.pan = baseline.pan
+        channel.muted = baseline.muted
+        channel.soloed = baseline.soloed
+      }
+      const control = patches.get(channel.id)
+      if (!control) continue
+      if (control.gainDb !== undefined) channel.gainDb = control.gainDb
+      if (control.pan !== undefined) channel.pan = control.pan
+      if (control.muted !== undefined) channel.muted = control.muted
+      if (control.soloed !== undefined) channel.soloed = control.soloed
+    }
+    graph.value = next
   }
 
   async function loadNow(reload: boolean): Promise<void> {
@@ -186,7 +213,7 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
   }
 
   function reset(): void {
-    graph.value = structuredClone(EMPTY_PROJECT_GRAPH)
+    replace(EMPTY_PROJECT_GRAPH)
     error.value = ""
     loading.value = false
     pendingPreviews.clear()
@@ -198,6 +225,7 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
     loading,
     error,
     hydrate,
+    applyMidiControlOverlay,
     replace,
     load,
     reload,

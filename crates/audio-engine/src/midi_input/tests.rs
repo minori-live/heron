@@ -46,6 +46,9 @@ fn message_sink<'a>(
         active_notes,
         control_generation: generation,
         control_events: controls,
+        dispatch_events: None,
+        control_dropped: None,
+        control_wake: None,
         recording,
     }
 }
@@ -514,6 +517,59 @@ fn process_messages_capture_all_controls_evicts_oldest_events() {
 }
 
 #[test]
+fn dispatch_queue_is_bounded_counts_drops_and_wakes_main() {
+    let preferences = prefs(false, None, BTreeMap::new(), BTreeSet::new(), true);
+    let mut clock = MidiClockSlave::default();
+    let mut ignored = 0;
+    let panic = AtomicBool::new(false);
+    let mut pending = Vec::new();
+    let mut active_notes = BTreeMap::new();
+    let mut generation = 0;
+    let mut controls = VecDeque::new();
+    let mut dispatch = VecDeque::new();
+    let mut dropped = 0_u64;
+    let wakes = Arc::new(AtomicU64::new(0));
+    let wake_count = Arc::clone(&wakes);
+    let wake: Arc<dyn Fn() + Send + Sync + 'static> = Arc::new(move || {
+        wake_count.fetch_add(1, Ordering::Relaxed);
+    });
+    let mut recording = None;
+    let messages = (0..(CONTROL_EVENT_CAPACITY as u8 + 3))
+        .map(|index| MidiInputMessage::ControlChange(0, index, 1))
+        .collect::<Vec<_>>();
+
+    process_messages(
+        &mut MessageSink {
+            preferences: &preferences,
+            clock: &mut clock,
+            ignored_system_messages: &mut ignored,
+            panic_requested: &panic,
+            pending_events: &mut pending,
+            active_notes: &mut active_notes,
+            control_generation: &mut generation,
+            control_events: &mut controls,
+            dispatch_events: Some(&mut dispatch),
+            control_dropped: Some(&mut dropped),
+            control_wake: Some(&wake),
+            recording: &mut recording,
+        },
+        "controller",
+        "Controller",
+        stable_port_key("controller"),
+        1,
+        messages,
+    );
+
+    assert_eq!(dispatch.len(), CONTROL_EVENT_CAPACITY);
+    assert_eq!(dispatch.front().map(|event| event.generation), Some(4));
+    assert_eq!(dropped, 3);
+    assert_eq!(
+        wakes.load(Ordering::Relaxed),
+        CONTROL_EVENT_CAPACITY as u64 + 3
+    );
+}
+
+#[test]
 fn active_notes_follow_counted_note_lifecycles() {
     let mut active_notes = BTreeMap::new();
 
@@ -597,6 +653,9 @@ fn actor_state_with_local_rings(
         active_notes: BTreeMap::new(),
         control_generation: 0,
         control_events: VecDeque::new(),
+        dispatch_events: VecDeque::new(),
+        control_dropped: 0,
+        control_wake: Arc::new(|| {}),
         recording: None,
     };
     (state, Cons::new(events), Cons::new(sysex))
@@ -711,6 +770,7 @@ fn snapshot_maps_clock_states_and_aggregates_dropped_events() {
         connected: true,
     }];
     state.ignored_system_messages = 9;
+    state.control_dropped = 3;
     state.error = Some("boom".into());
     state.active_notes = BTreeMap::from([
         (("src".to_owned(), 1, 67), 1),
@@ -721,7 +781,7 @@ fn snapshot_maps_clock_states_and_aggregates_dropped_events() {
     assert_eq!(internal.ports.len(), 1);
     assert_eq!(internal.sync.state, "internal");
     assert_eq!(internal.sync.source_port_id.as_deref(), Some("src"));
-    assert_eq!(internal.sync.dropped_events, 4);
+    assert_eq!(internal.sync.dropped_events, 7);
     assert_eq!(internal.sync.ignored_system_messages, 9);
     assert_eq!(internal.sync.error.as_deref(), Some("boom"));
     assert_eq!(
@@ -769,7 +829,10 @@ fn midi_input_actor_configure_rejects_invalid_preferences_and_snapshots() {
     let _guard = GLOBAL_MIDI_TEST_LOCK
         .lock()
         .unwrap_or_else(|error| error.into_inner());
-    let actor = MidiInputActor::start(prefs(false, None, BTreeMap::new(), BTreeSet::new(), false));
+    let actor = MidiInputActor::start_with_wake(
+        prefs(false, None, BTreeMap::new(), BTreeSet::new(), false),
+        Arc::new(|| {}),
+    );
     let invalid = actor.configure(MidiSyncPreferences {
         enabled: true,
         source_port_id: Some("id".into()),
@@ -791,6 +854,8 @@ fn midi_input_actor_configure_rejects_invalid_preferences_and_snapshots() {
         .expect("valid configure");
     assert_eq!(snap.sync.state, "internal");
     actor.update_routes(true, BTreeSet::from(["missing".into()]));
+    actor.set_control_wake(Arc::new(|| {}));
+    assert!(actor.drain_control_events().is_empty());
     let snapshot = actor.snapshot();
     assert_eq!(snapshot.sync.state, "internal");
 }

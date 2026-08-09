@@ -94,7 +94,11 @@ function mountPage() {
           template: "<section><h2>Runtime scheduling</h2></section>"
         },
         RecordingSettings: true,
+        MidiSettings: true,
         MidiInputSettings: true,
+        MidiControlSettings: {
+          template: "<section><h2>Hardware control mappings</h2></section>"
+        },
         PluginSettings: {
           emits: ["rescan"],
           template:
@@ -148,5 +152,21 @@ describe("SystemSettingsPage", () => {
     await wrapper.get('button[aria-label="Rescan audio plug-ins"]').trigger("click")
 
     expect(wrapper.emitted("rescanPlugins")).toHaveLength(1)
+  })
+
+  it("opens MIDI Controls through the shared two-level settings navigation", async () => {
+    const wrapper = mountPage()
+    const midiCategory = wrapper
+      .get('nav[aria-label="System settings categories"]')
+      .findAll("button")
+      .find((button) => button.text().includes("MIDI"))
+
+    await midiCategory!.trigger("click")
+    const controlsPage = wrapper
+      .findAll(".settings-page-link")
+      .find((button) => button.text().includes("MIDI Controls"))
+    await controlsPage!.trigger("click")
+
+    expect(wrapper.get("h2").text()).toBe("Hardware control mappings")
   })
 })

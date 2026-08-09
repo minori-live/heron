@@ -58,6 +58,25 @@ export function systemChannels(channels: readonly MixerChannelState[]): MixerCha
   return channels.filter((channel) => channel.systemRole !== null)
 }
 
+/** Canonical project-independent order used by global MIDI control mappings. */
+export function midiControlChannels(channels: readonly MixerChannelState[]): MixerChannelState[] {
+  const order: Record<MixerChannelState["kind"], number> = {
+    audio: 0,
+    instrument: 1,
+    aux: 2,
+    master: 3,
+    output: 4
+  }
+  return channels
+    .filter((channel) => channel.systemRole === null)
+    .sort(
+      (left, right) =>
+        order[left.kind] - order[right.kind] ||
+        left.sortOrder - right.sortOrder ||
+        left.id.localeCompare(right.id)
+    )
+}
+
 export function channelForTrack(
   graph: ProjectGraphSnapshot,
   trackId: string

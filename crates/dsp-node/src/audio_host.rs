@@ -5,7 +5,8 @@ use heron_audio_host::runtime::embedded::{
     EmbeddedRuntimeConfig, EmbeddedRuntimeError, EmbeddedUiWake,
 };
 use heron_dsp_runtime::protocol::{
-    ControlRequest, ParameterCommand, ParameterGesture, ParameterTargetKind, PriorityRequest,
+    ControlRequest, MidiControlEvent, MidiControlEventKind, ParameterCommand, ParameterGesture,
+    ParameterTargetKind, PriorityRequest,
 };
 use napi::{
     Error, Result, Status,
@@ -139,6 +140,18 @@ pub struct NativeEditorHostEvent {
     pub width: u32,
     pub height: u32,
     pub resizable: bool,
+}
+
+#[napi(object)]
+pub struct NativeMidiControlEvent {
+    pub generation: i64,
+    pub timestamp_microseconds: i64,
+    pub port_id: String,
+    pub port_name: String,
+    pub channel: u32,
+    pub r#type: String,
+    pub number: u32,
+    pub value: u32,
 }
 
 #[napi(object)]
@@ -466,8 +479,36 @@ impl AudioHostRuntime {
     }
 
     #[napi]
+    pub fn drain_midi_control_events(&self) -> Vec<NativeMidiControlEvent> {
+        self.runtime
+            .drain_midi_control_events()
+            .into_iter()
+            .map(native_midi_control_event)
+            .collect()
+    }
+
+    #[napi]
     pub fn close(&self) {
         self.runtime.close();
+    }
+}
+
+fn native_midi_control_event(event: MidiControlEvent) -> NativeMidiControlEvent {
+    let (r#type, number, value) = match event.kind {
+        MidiControlEventKind::Note { number, value } => ("note".to_owned(), number, value),
+        MidiControlEventKind::ControlChange { number, value } => {
+            ("control-change".to_owned(), number, value)
+        }
+    };
+    NativeMidiControlEvent {
+        generation: event.generation.try_into().unwrap_or(i64::MAX),
+        timestamp_microseconds: event.timestamp_microseconds.try_into().unwrap_or(i64::MAX),
+        port_id: event.port_id,
+        port_name: event.port_name,
+        channel: u32::from(event.channel),
+        r#type,
+        number: u32::from(number),
+        value: u32::from(value),
     }
 }
 
@@ -528,6 +569,51 @@ impl Drop for AudioHostRuntime {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn converts_note_midi_control_event_for_napi() {
+        let event = native_midi_control_event(MidiControlEvent {
+            generation: 7,
+            timestamp_microseconds: 42,
+            port_id: "port-id".to_owned(),
+            port_name: "Controller".to_owned(),
+            channel: 15,
+            kind: MidiControlEventKind::Note {
+                number: 64,
+                value: 127,
+            },
+        });
+
+        assert_eq!(event.generation, 7);
+        assert_eq!(event.timestamp_microseconds, 42);
+        assert_eq!(event.port_id, "port-id");
+        assert_eq!(event.port_name, "Controller");
+        assert_eq!(event.channel, 15);
+        assert_eq!(event.r#type, "note");
+        assert_eq!(event.number, 64);
+        assert_eq!(event.value, 127);
+    }
+
+    #[test]
+    fn converts_control_change_and_clamps_napi_integers() {
+        let event = native_midi_control_event(MidiControlEvent {
+            generation: u64::MAX,
+            timestamp_microseconds: u64::MAX,
+            port_id: String::new(),
+            port_name: String::new(),
+            channel: 0,
+            kind: MidiControlEventKind::ControlChange {
+                number: 1,
+                value: 2,
+            },
+        });
+
+        assert_eq!(event.generation, i64::MAX);
+        assert_eq!(event.timestamp_microseconds, i64::MAX);
+        assert_eq!(event.r#type, "control-change");
+        assert_eq!(event.number, 1);
+        assert_eq!(event.value, 2);
+    }
 
     #[test]
     fn decodes_native_width_window_handle() {

@@ -1,5 +1,6 @@
 import type { AppLocale, RecentProject, RecordingBitDepth, ThemePreference } from "./project"
 import type { MidiSyncPreferences } from "./midi"
+import type { MidiControlPreferences } from "./midi-control"
 import type { ShortcutPreferences } from "./shortcuts"
 import type { ApplicationSettingsRef } from "./rpc"
 
@@ -59,6 +60,7 @@ export interface ApplicationSettings {
   softwareMonitoringEnabled: boolean
   lowLatencyPluginBudgetMs?: number
   midiSync: MidiSyncPreferences
+  midiControl: MidiControlPreferences
   audioHostRuntime: AudioHostRuntimePreferences
   pluginEditors: Record<string, PluginEditorPreference>
   shortcuts: ShortcutPreferences

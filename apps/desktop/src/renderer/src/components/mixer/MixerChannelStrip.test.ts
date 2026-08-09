@@ -238,6 +238,7 @@ describe("MixerChannelStrip", () => {
       },
       pluginEditors: {},
       shortcuts: { keyboard: {}, midi: {} },
+      midiControl: { bindings: [], transformProfiles: [] },
       recentProjects: []
     }
     const wrapper = mount(MixerChannelStrip, {
@@ -311,6 +312,7 @@ describe("MixerChannelStrip", () => {
       },
       pluginEditors: {},
       shortcuts: { keyboard: {}, midi: {} },
+      midiControl: { bindings: [], transformProfiles: [] },
       recentProjects: []
     }
     const wrapper = mount(MixerChannelStrip, {

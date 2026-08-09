@@ -5,6 +5,7 @@ export { default as UiCascadingSelect } from "./components/UiCascadingSelect.vue
 export { default as UiCheckbox } from "./components/UiCheckbox.vue"
 export { default as UiChoiceChip } from "./components/UiChoiceChip.vue"
 export { default as UiContextMenu } from "./components/UiContextMenu.vue"
+export { default as UiCurveEditor } from "./components/UiCurveEditor.vue"
 export { default as UiDialog } from "./components/UiDialog.vue"
 export { default as UiDropdownMenu } from "./components/UiDropdownMenu.vue"
 export { default as UiDbScale } from "./components/UiDbScale.vue"
@@ -51,6 +52,9 @@ export type {
   UiCascadingSelectHoverTreatment,
   UiCascadingSelectGroup,
   UiControlSize,
+  UiCurveHandle,
+  UiCurvePoint,
+  UiCurveStroke,
   UiMenubarItem,
   UiMenubarMenu,
   UiMixerStateButtonSize,

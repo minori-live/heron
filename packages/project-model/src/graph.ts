@@ -829,6 +829,7 @@ export function validateGraph(graph: ProjectGraphSnapshot): void {
   }
   const pluginIds = new Set<string>()
   const pluginSlots = new Set<string>()
+  const pluginControlAliases = new Set<string>()
   for (const plugin of graph.plugins) {
     if (!plugin.id || pluginIds.has(plugin.id))
       throw new Error("Plugin instance IDs must be unique")
@@ -840,6 +841,20 @@ export function validateGraph(graph: ProjectGraphSnapshot): void {
     const slot = `${plugin.channelId}:${plugin.role}:${plugin.slotOrder}`
     if (pluginSlots.has(slot)) throw new Error("Plugin slots must be unique within a channel")
     pluginSlots.add(slot)
+    if (plugin.controlAlias != null) {
+      if (
+        !/^[a-z0-9][a-z0-9._-]*$/.test(plugin.controlAlias) ||
+        new TextEncoder().encode(plugin.controlAlias).byteLength > 64
+      ) {
+        throw new Error(
+          "Plugin control aliases must be 1–64 byte lowercase slugs containing letters, digits, dots, underscores, or hyphens"
+        )
+      }
+      if (pluginControlAliases.has(plugin.controlAlias)) {
+        throw new Error("Plugin control aliases must be unique within a project")
+      }
+      pluginControlAliases.add(plugin.controlAlias)
+    }
     if (plugin.role === "instrument") {
       if (
         channel.kind !== "instrument" ||

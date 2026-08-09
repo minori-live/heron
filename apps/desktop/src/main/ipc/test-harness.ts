@@ -80,6 +80,7 @@ export const defaultSettings: ApplicationSettings = {
     maxBlockingThreads: "auto"
   },
   shortcuts: { keyboard: {}, midi: {} },
+  midiControl: { bindings: [], transformProfiles: [] },
   midiSync: {
     enabled: false,
     sourcePortId: null,
@@ -195,6 +196,10 @@ export function createContext(
       configureShortcuts: vi.fn(async (shortcuts: unknown) => ({
         ...defaultSettings,
         shortcuts
+      })),
+      configureMidiControl: vi.fn(async (midiControl: unknown) => ({
+        ...defaultSettings,
+        midiControl
       })),
       configureMidiInput: vi.fn(async (midiSync: unknown) => ({
         ...defaultSettings,

@@ -15,6 +15,22 @@ export interface PluginStateInput {
   state: PluginStateEnvelope
 }
 
+export interface MixerControlOverlayInput {
+  id: string
+  gainDb?: number
+  pan?: number
+  muted?: boolean
+  soloed?: boolean
+}
+
+export interface MixerControlOverlayInput {
+  id: string
+  gainDb?: number
+  pan?: number
+  muted?: boolean
+  soloed?: boolean
+}
+
 export interface AssetContentHash {
   id: string
   contentHash: string
@@ -119,6 +135,7 @@ export interface WorkerRequestMap {
     fallbackOutputId: string
   }
   "save-plugin-states": { states: PluginStateInput[] }
+  "save-control-state": { states: PluginStateInput[]; mixer: MixerControlOverlayInput[] }
   "asset-content-hashes": { ids: string[] }
   "default-recording-track": Record<never, never>
   "assets-missing-waveform": { cacheVersion: number }
@@ -156,6 +173,7 @@ export interface WorkerResultMap {
   "read-midi-source": MidiSourceState | null
   "rollback-midi": void
   "save-plugin-states": void
+  "save-control-state": void
   "asset-content-hashes": AssetContentHash[]
   "default-recording-track": DefaultRecordingTrack | null
   "assets-missing-waveform": string[]

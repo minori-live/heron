@@ -163,7 +163,8 @@ export function startApplication(
       })
       await audioHostService.configureMidiInput(
         applicationSettings.midiSync,
-        applicationSettings.shortcuts
+        applicationSettings.shortcuts,
+        applicationSettings.midiControl
       )
       const projectService = new ProjectService(app.getPath("userData"), settings)
       setWindowProjectService(projectService)

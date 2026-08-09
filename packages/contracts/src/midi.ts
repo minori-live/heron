@@ -88,6 +88,14 @@ export interface MidiRecordingPreview {
   takes: MidiRecordingPreviewTake[]
 }
 
+export interface MidiMixerControlOverlay {
+  channelId: string
+  gainDb?: number
+  pan?: number
+  muted?: boolean
+  soloed?: boolean
+}
+
 export interface MidiInputSnapshot {
   ports: MidiInputPort[]
   sync: MidiSyncRuntimeSnapshot
@@ -95,6 +103,8 @@ export interface MidiInputSnapshot {
   activeNotes: MidiActiveNote[]
   /** A bounded, generation-ordered window of recently received control events. */
   controlEvents: MidiControlEvent[]
+  /** Main-process hardware-control values for low-frequency renderer synchronization. */
+  mixerControlOverlay?: MidiMixerControlOverlay[]
   /** Lightweight note geometry for the active recording; absent while idle. */
   recordingPreview?: MidiRecordingPreview | null
   capturedAt: number

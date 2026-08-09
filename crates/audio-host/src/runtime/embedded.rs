@@ -228,8 +228,10 @@ impl EmbeddedAudioHost {
             return Err(EmbeddedRuntimeError::AlreadyRunning);
         }
 
-        MIDI_INPUT.get_or_init(|| {
-            super::super::midi_input::MidiInputActor::start(
+        let ui_wake = ui_wake.unwrap_or_else(|| Arc::new(|| {}));
+        let proxy = UiMailboxWaker::new(Arc::clone(&ui_wake));
+        let midi_input = MIDI_INPUT.get_or_init(|| {
+            super::super::midi_input::MidiInputActor::start_with_wake(
                 heron_dsp_runtime::protocol::MidiSyncPreferences {
                     enabled: false,
                     source_port_id: None,
@@ -238,12 +240,13 @@ impl EmbeddedAudioHost {
                     control_port_ids: std::collections::BTreeSet::new(),
                     capture_all_controls: false,
                 },
+                Arc::clone(&ui_wake),
             )
         });
+        midi_input.set_control_wake(Arc::clone(&ui_wake));
         editor_platform::configure_process_application_identity()
             .map_err(EmbeddedRuntimeError::NativeUi)?;
         let native_ui = NativeUiContext::initialize().map_err(EmbeddedRuntimeError::NativeUi)?;
-        let proxy = UiMailboxWaker::new(ui_wake.unwrap_or_else(|| Arc::new(|| {})));
         let application_proxy = proxy.clone();
         let (ui_sender, ui_inbox) = runtime_mpsc::sync_channel(UI_MAILBOX_CAPACITY);
         let (host_event_sender, host_event_inbox) = runtime_mpsc::sync_channel(EVENT_CAPACITY);
@@ -672,6 +675,11 @@ impl EmbeddedAudioHost {
             .unwrap_or_default()
     }
 
+    #[must_use]
+    pub fn drain_midi_control_events(&self) -> Vec<heron_dsp_runtime::protocol::MidiControlEvent> {
+        drain_midi_control_events(MIDI_INPUT.get())
+    }
+
     pub fn close(&self) {
         if self.state.closed.swap(true, Ordering::AcqRel) {
             return;
@@ -707,6 +715,12 @@ impl EmbeddedAudioHost {
             }
         });
     }
+}
+
+fn drain_midi_control_events(
+    actor: Option<&super::super::midi_input::MidiInputActor>,
+) -> Vec<heron_dsp_runtime::protocol::MidiControlEvent> {
+    actor.map_or_else(Vec::new, |actor| actor.drain_control_events())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -869,6 +883,27 @@ fn record_slow_request(counter: &AtomicU64, request_id: u64, threshold: Duration
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn draining_midi_controls_without_an_actor_is_empty() {
+        assert!(drain_midi_control_events(None).is_empty());
+    }
+
+    #[test]
+    fn draining_midi_controls_from_an_idle_actor_is_empty() {
+        let actor = crate::midi_input::MidiInputActor::start(
+            heron_dsp_runtime::protocol::MidiSyncPreferences {
+                enabled: false,
+                source_port_id: None,
+                source_port_name: None,
+                input_offsets_ms: std::collections::BTreeMap::new(),
+                control_port_ids: std::collections::BTreeSet::new(),
+                capture_all_controls: false,
+            },
+        );
+
+        assert!(drain_midi_control_events(Some(&actor)).is_empty());
+    }
 
     #[tokio::test]
     async fn slow_observation_preserves_the_terminal_result() {

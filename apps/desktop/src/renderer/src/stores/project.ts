@@ -161,21 +161,22 @@ export const useProjectStore = defineStore("project", () => {
     }
   }
 
-  async function save(): Promise<void> {
-    if (lifecycle.value.status !== "open" || pendingIntent.value) return
+  async function save(): Promise<ProjectWorkspaceSnapshot | null> {
+    if (lifecycle.value.status !== "open" || pendingIntent.value) return null
     const previous = lifecycle.value.session
     pendingIntent.value = "save"
     rpcError.value = ""
     try {
       const target = projectRef.value
-      if (!target) return
+      if (!target) return null
       const saved = await window.heron.saveProject(mutationMeta(target, "project-save"))
       if (!saved.ok) {
         rpcError.value = rpcErrorMessage(saved.error)
         lifecycle.value = openState(previous)
-        return
+        return null
       }
       applyWorkspace(saved.value)
+      return saved.value
     } finally {
       pendingIntent.value = null
     }

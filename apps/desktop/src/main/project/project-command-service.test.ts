@@ -124,6 +124,7 @@ interface ProjectMock {
   importMidi: ReturnType<typeof vi.fn>
   rollbackMidi: ReturnType<typeof vi.fn>
   savePluginStates: ReturnType<typeof vi.fn>
+  saveControlState: ReturnType<typeof vi.fn>
   deleteAssets: ReturnType<typeof vi.fn>
 }
 
@@ -177,6 +178,7 @@ function projectMock(initialGraph = graph()): ProjectMock {
     importMidi: vi.fn().mockResolvedValue(undefined),
     rollbackMidi: vi.fn().mockResolvedValue(undefined),
     savePluginStates: vi.fn().mockResolvedValue(undefined),
+    saveControlState: vi.fn().mockResolvedValue(undefined),
     deleteAssets: vi.fn().mockResolvedValue(undefined)
   }
   mock.service = {
@@ -197,6 +199,7 @@ function projectMock(initialGraph = graph()): ProjectMock {
     importMidi: mock.importMidi,
     rollbackMidi: mock.rollbackMidi,
     savePluginStates: mock.savePluginStates,
+    saveControlState: mock.saveControlState,
     deleteAssets: mock.deleteAssets
   } as unknown as ProjectService
   return mock
@@ -208,6 +211,7 @@ interface ProjectHarness {
   load: ProjectGraphService["load"]
   snapshot: ProjectGraphService["snapshot"]
   savePluginStates: ProjectGraphService["savePluginStates"]
+  applyMidiControl: ProjectGraphService["applyMidiControl"]
   refreshFromDatabase: ProjectGraphService["refreshFromDatabase"]
   clearProject: ProjectGraphService["clearProject"]
   deleteUnusedAssets: ProjectGraphService["deleteUnusedAssets"]
@@ -317,6 +321,7 @@ async function mixer(
     load: graphs.load.bind(graphs),
     snapshot: graphs.snapshot.bind(graphs),
     savePluginStates: graphs.savePluginStates.bind(graphs),
+    applyMidiControl: graphs.applyMidiControl.bind(graphs),
     refreshFromDatabase: graphs.refreshFromDatabase.bind(graphs),
     clearProject: graphs.clearProject.bind(graphs),
     deleteUnusedAssets: graphs.deleteUnusedAssets.bind(graphs),
@@ -789,5 +794,30 @@ describe("project graph and command services", () => {
 
     expect(projects.deleteAssets).toHaveBeenCalledOnce()
     expect(projects.deleteAssets).toHaveBeenCalledWith(["unused-asset"])
+  })
+
+  it("retains a hardware Mixer overlay after save failure and lets an explicit edit win", async () => {
+    const projects = projectMock()
+    const service = await mixer(projects)
+    await service.load()
+    await service.applyMidiControl("instrument", "gainDb", -12)
+    expect(
+      (await service.snapshot()).channels.find((channel) => channel.id === "instrument")!.gainDb
+    ).toBe(-12)
+
+    projects.saveControlState.mockRejectedValueOnce(new Error("disk full"))
+    await expect(service.savePluginStates([])).rejects.toThrow("disk full")
+    expect(
+      (await service.snapshot()).channels.find((channel) => channel.id === "instrument")!.gainDb
+    ).toBe(-12)
+
+    await service.execute({
+      type: "update-channel",
+      channelId: "instrument",
+      patch: { gainDb: -3 }
+    })
+    expect(
+      (await service.snapshot()).channels.find((channel) => channel.id === "instrument")!.gainDb
+    ).toBe(-3)
   })
 })

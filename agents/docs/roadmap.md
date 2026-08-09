@@ -97,22 +97,22 @@ for at least two hours without reading source or developer documentation.
 
 ### External MIDI control
 
-- [ ] Existing note routing, controller routing to instruments, and application
+- [x] Existing note routing, controller routing to instruments, and application
       command bindings remain available.
-- [ ] System preferences map a device ID and MIDI message to Mixer Gain, Pan,
+- [x] System preferences map a device ID and MIDI message to Mixer Gain, Pan,
       Mute, or Solo. Sends are not MIDI targets in Current.
-- [ ] Mixer targets resolve against the current shared ordering of Audio,
+- [x] Mixer targets resolve against the current shared ordering of Audio,
       Instrument, BUS, Output, and Master channels. Reordering intentionally
       changes which channel an ordered target controls.
-- [ ] Mute and Solo bindings can choose toggle or absolute behavior.
-- [ ] A plug-in instance can receive a project-unique `controlAlias` while its
+- [x] Mute and Solo bindings can choose toggle or absolute behavior.
+- [x] A plug-in instance can receive a project-unique `controlAlias` while its
       display name remains non-unique.
-- [ ] System preferences map MIDI controls to an arbitrary plug-in parameter by
+- [x] System preferences map MIDI controls to an arbitrary plug-in parameter by
       `controlAlias`; moving the instance between channels does not break the
       mapping.
-- [ ] Missing ordered Mixer targets and missing plug-in aliases ignore input
+- [x] Missing ordered Mixer targets and missing plug-in aliases ignore input
       without retargeting another plug-in.
-- [ ] A disconnected controller retains mappings by device ID until the user
+- [x] A disconnected controller retains mappings by device ID until the user
       changes them.
 
 ### Runtime resilience

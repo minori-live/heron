@@ -1402,4 +1402,15 @@ describe("project graph validation and command guards", () => {
       source
     })
   })
+
+  it("enforces unique lowercase plug-in control aliases", () => {
+    const value = graph()
+    value.plugins = [
+      plugin({ id: "plugin-1", slotOrder: 0, controlAlias: "lead.fx" }),
+      plugin({ id: "plugin-2", slotOrder: 1, controlAlias: "lead.fx" })
+    ]
+    expect(() => validateGraph(value)).toThrow("control aliases must be unique")
+    value.plugins[1]!.controlAlias = "Lead FX"
+    expect(() => validateGraph(value)).toThrow("lowercase slugs")
+  })
 })

@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from "vue"
-import { UiSelect } from "@heron/ui"
-import type { MidiInputSnapshot, MidiSyncPreferences, MidiSyncState } from "@heron/contracts"
+import { UiButton, UiCheckbox, UiSelect, UiStatusNotice } from "@heron/ui"
+import {
+  MAX_MIDI_INPUT_OFFSET_MS,
+  type MidiInputSnapshot,
+  type MidiSyncPreferences
+} from "@heron/contracts"
 import SettingsPage from "../settings/SettingsPage.vue"
 import SettingsSection from "../settings/SettingsSection.vue"
+import MidiInputTimingOffsets from "./MidiInputTimingOffsets.vue"
+import MidiSyncStatusPanel from "./MidiSyncStatusPanel.vue"
 
 const props = defineProps<{
   preferences: MidiSyncPreferences
@@ -34,14 +40,6 @@ watch(
 )
 
 const dirty = computed(() => JSON.stringify(draft) !== JSON.stringify(props.preferences))
-const stateLabels: Record<MidiSyncState, string> = {
-  internal: "Internal",
-  waiting: "Waiting",
-  locking: "Locking",
-  locked: "Locked",
-  freewheel: "Freewheel",
-  lost: "Lost"
-}
 
 function selectClockSource(portId: string): void {
   const port = props.snapshot.ports.find((candidate) => candidate.id === portId)
@@ -49,11 +47,12 @@ function selectClockSource(portId: string): void {
   draft.sourcePortName = port?.name ?? null
 }
 
-function setOffset(portId: string, event: Event): void {
-  const value = Number((event.target as HTMLInputElement).value)
-  if (Number.isFinite(value)) {
-    draft.inputOffsetsMs[portId] = Math.max(-500, Math.min(500, value))
-  }
+function setOffset(portId: string, value: number): void {
+  if (!Number.isFinite(value)) return
+  draft.inputOffsetsMs[portId] = Math.max(
+    -MAX_MIDI_INPUT_OFFSET_MS,
+    Math.min(MAX_MIDI_INPUT_OFFSET_MS, value)
+  )
 }
 
 function apply(): void {
@@ -66,138 +65,146 @@ function apply(): void {
     category="MIDI"
     page="Input & sync"
     title="MIDI input and external clock"
-    description="Connect controllers to Instrument tracks and optionally slave the transport to one MIDI Clock source."
+    description="Connect controllers to Instrument tracks, correct input timing, and optionally follow one external MIDI Clock source."
   >
-    <div class="sync-strip" :data-state="snapshot.sync.state">
-      <b>{{ stateLabels[snapshot.sync.state] }}</b>
-      <span>{{ snapshot.sync.effectiveBpm?.toFixed(2) ?? "—" }} BPM</span>
-      <span>{{ snapshot.sync.jitterMicroseconds?.toFixed(0) ?? "—" }} µs jitter</span>
-      <span>{{ snapshot.sync.droppedEvents }} dropped</span>
-    </div>
-
     <SettingsSection
-      title="External clock slave"
-      description="Local Play and Record wait for Start or Continue. Clock loss freewheels for 500 ms, then pauses."
+      eyebrow="Monitor"
+      title="Clock status"
+      description="Live synchronization health from the selected source. Internal clock remains active when external sync is disabled."
     >
-      <div class="stacked-control">
-        <label class="toggle-row">
-          <input v-model="draft.enabled" type="checkbox" />
-          <span>Follow external MIDI Clock</span>
-        </label>
-        <UiSelect
-          aria-label="MIDI clock source"
-          :model-value="draft.sourcePortId ?? ''"
-          size="sm"
-          @update:model-value="selectClockSource($event)"
-        >
-          <option value="">No clock source</option>
-          <option v-for="port in snapshot.ports" :key="port.id" :value="port.id">
-            {{ port.name }}{{ port.connected ? "" : " — Missing" }}
-          </option>
-        </UiSelect>
-      </div>
+      <MidiSyncStatusPanel :sync="props.snapshot.sync" />
     </SettingsSection>
 
     <SettingsSection
-      title="Input timing offsets"
-      description="Apply a signed per-port correction before events are mapped to session frames and ticks."
+      eyebrow="Transport"
+      title="External clock"
+      description="Play and Record wait for Start or Continue. Clock loss freewheels for 500 ms, then pauses."
     >
-      <div v-if="snapshot.ports.length" class="port-list">
-        <label v-for="port in snapshot.ports" :key="port.id" class="port-row">
-          <span>
-            <b>{{ port.name }}</b>
-            <small>{{ port.connected ? "Connected" : "Missing" }}</small>
+      <div class="clock-control">
+        <UiCheckbox
+          v-model="draft.enabled"
+          label="Follow external MIDI Clock"
+          description="Use timing and transport messages from the selected input."
+        />
+
+        <div class="source-row" :data-disabled="!draft.enabled || undefined">
+          <span class="source-copy">
+            <strong>Clock source</strong>
+            <small>Only this port can drive tempo and transport synchronization.</small>
           </span>
-          <input
-            type="number"
-            min="-500"
-            max="500"
-            step="0.1"
-            :value="draft.inputOffsetsMs[port.id] ?? 0"
-            :aria-label="`${port.name} timing offset in milliseconds`"
-            @input="setOffset(port.id, $event)"
-          />
-          <em>ms</em>
-        </label>
+          <UiSelect
+            aria-label="MIDI clock source"
+            :model-value="draft.sourcePortId ?? ''"
+            size="sm"
+            :disabled="!draft.enabled"
+            @update:model-value="selectClockSource($event)"
+          >
+            <option value="">No clock source</option>
+            <option v-for="port in props.snapshot.ports" :key="port.id" :value="port.id">
+              {{ port.name }}{{ port.connected ? "" : " — Missing" }}
+            </option>
+          </UiSelect>
+        </div>
       </div>
-      <p v-else class="empty">No MIDI input ports detected.</p>
     </SettingsSection>
 
-    <div class="actions">
-      <button type="button" :disabled="applying || !dirty" @click="apply">
-        {{ applying ? "Applying…" : "Apply MIDI settings" }}
-      </button>
+    <SettingsSection
+      eyebrow="Timing"
+      title="Input offsets"
+      description="Apply a signed per-port correction before MIDI events are mapped to project frames and ticks."
+    >
+      <MidiInputTimingOffsets
+        :ports="props.snapshot.ports"
+        :offsets="draft.inputOffsetsMs"
+        @update-offset="setOffset"
+      />
+    </SettingsSection>
+
+    <UiStatusNotice
+      v-if="props.error || props.snapshot.sync.error"
+      class="midi-error"
+      tone="danger"
+      live="assertive"
+      title="MIDI settings could not be applied"
+    >
+      {{ props.error || props.snapshot.sync.error }}
+    </UiStatusNotice>
+
+    <div class="page-actions">
+      <span>{{ dirty ? "Unsaved MIDI input changes" : "MIDI input settings are up to date" }}</span>
+      <UiButton
+        size="sm"
+        variant="primary"
+        :loading="props.applying"
+        :disabled="!dirty"
+        loading-label="Applying MIDI settings"
+        @click="apply"
+      >
+        Apply MIDI settings
+      </UiButton>
     </div>
-    <p v-if="error || snapshot.sync.error" class="error" role="alert">
-      {{ error || snapshot.sync.error }}
-    </p>
   </SettingsPage>
 </template>
 
 <style scoped>
-.sync-strip,
-.port-row,
-.stacked-control,
-.actions {
-  display: flex;
-  align-items: center;
-}
-.sync-strip {
+.clock-control {
+  display: grid;
   gap: 16px;
-  padding: 11px 12px;
-  border-bottom: 1px solid var(--line-soft);
-  color: var(--text-secondary);
-  font: var(--ui-type-size-control) var(--ui-type-family-data);
-}
-.sync-strip b {
-  color: var(--accent);
-}
-.sync-strip[data-state="lost"] b,
-.sync-strip[data-state="freewheel"] b {
-  color: var(--mixer-record);
-}
-.stacked-control {
-  align-items: stretch;
-  flex-direction: column;
-  gap: 12px;
-}
-.toggle-row {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-}
-.port-list {
-  display: grid;
-  gap: 7px;
-}
-.port-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 86px 24px;
-  gap: 8px;
-  padding: 8px 10px;
+  padding: 12px;
   border: 1px solid var(--line-soft);
-  border-radius: 5px;
+  border-radius: 7px;
+  background: var(--surface-1);
 }
-.port-row span {
+
+.source-row {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.8fr);
+  align-items: center;
+  gap: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
 }
-.port-row small,
-.port-row em,
-.empty {
+
+.source-row[data-disabled="true"] {
+  opacity: 0.58;
+}
+
+.source-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.source-copy strong {
+  font-size: var(--ui-type-size-body-compact);
+}
+
+.source-copy small,
+.page-actions span {
   color: var(--text-muted);
   font-size: var(--ui-type-size-caption);
+  line-height: var(--ui-type-leading-normal);
 }
-.port-row input {
-  width: 100%;
+
+.midi-error {
+  margin-top: 16px;
 }
-.actions {
+
+.page-actions {
+  display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 14px;
   padding-top: 18px;
 }
-.actions button {
-  padding: 7px 13px;
-}
-.error {
-  color: var(--mixer-record);
+
+@media (max-width: 760px) {
+  .source-row {
+    grid-template-columns: 1fr;
+  }
+
+  .page-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
 </style>

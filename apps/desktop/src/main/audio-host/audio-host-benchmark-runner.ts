@@ -100,6 +100,7 @@ export class AudioHostBenchmarkRunner {
             descriptor: effect,
             audioMode: "stereo",
             enabled: true,
+            controlAlias: null,
             sidechainInputs: [],
             state: { version: 1, chunks: [] }
           },
