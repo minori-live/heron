@@ -50,6 +50,9 @@ beforeEach(() => {
       rpcSuccess(settingsSnapshot(settings({ softwareMonitoringEnabled: enabled }), 2))
     ),
     configureAudioHostRuntime: vi.fn(async () => rpcSuccess(settingsSnapshot(settings(), 2))),
+    configureMidiControl: vi.fn(async (_meta, midiControl) =>
+      rpcSuccess(settingsSnapshot(settings({ midiControl }), 2))
+    ),
     chooseSwapDirectory: vi.fn(async () =>
       rpcSuccess(settingsSnapshot(settings({ swapDirectory: "/new-swap" }), 2))
     ),
@@ -443,5 +446,56 @@ describe("audio host runtime", () => {
     await first
 
     expect(configureAudioHostRuntime).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("MIDI control preferences", () => {
+  const midiControl = {
+    bindings: [],
+    transformProfiles: [
+      {
+        id: "relative:custom",
+        name: "Custom encoder",
+        type: "relative" as const,
+        baseStep: 0.01,
+        acceleration: []
+      }
+    ]
+  }
+
+  it("loads settings on demand and keeps the committed MIDI control draft", async () => {
+    const store = useApplicationSettingsStore()
+
+    await store.configureMidiControl(midiControl)
+
+    expect(window.heron.configureMidiControl).toHaveBeenCalledWith(expect.any(Object), midiControl)
+    expect(store.settings?.midiControl).toEqual(midiControl)
+  })
+
+  it("restores the previous preferences when main rejects the commit", async () => {
+    const store = useApplicationSettingsStore()
+    await store.load()
+    stubApi({
+      configureMidiControl: vi.fn(async () => rpcFailure("errors.unableToSaveMidiControl"))
+    })
+
+    await store.configureMidiControl(midiControl)
+
+    expect(store.settings?.midiControl).toEqual({ bindings: [], transformProfiles: [] })
+    expect(store.error).not.toBe("")
+  })
+
+  it("restores the previous preferences and rethrows unexpected failures", async () => {
+    const store = useApplicationSettingsStore()
+    await store.load()
+    stubApi({
+      configureMidiControl: vi.fn(async () => {
+        throw new Error("disk offline")
+      })
+    })
+
+    await expect(store.configureMidiControl(midiControl)).rejects.toThrow("disk offline")
+    expect(store.settings?.midiControl).toEqual({ bindings: [], transformProfiles: [] })
+    expect(store.error).toBe("disk offline")
   })
 })

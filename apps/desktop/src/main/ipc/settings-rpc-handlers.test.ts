@@ -227,6 +227,63 @@ describe("registerSettingsRpcHandlers", () => {
     expect(context.audioHost.configureRuntime).toHaveBeenCalledWith(preferences)
   })
 
+  it("atomically configures MIDI controls in native and settings", async () => {
+    const context = createContext()
+    registerSettingsRpcHandlers(context)
+    const before =
+      context.lifecycle.applicationState.synchronizeApplicationSettings(defaultSettings)
+    const midiControl = {
+      bindings: [],
+      transformProfiles: [
+        {
+          id: "relative:custom",
+          name: "Custom encoder",
+          type: "relative",
+          baseStep: 0.01,
+          acceleration: []
+        }
+      ]
+    }
+
+    const result = await invoke(
+      electronMocks,
+      IPC_CHANNELS.settingsConfigureMidiControl,
+      mutationMeta(before.settings, { expectedRevision: before.revision }),
+      midiControl
+    )
+
+    expect(result).toMatchObject({ ok: true })
+    expect(context.audioHost.configureMidiInput).toHaveBeenCalledWith(
+      defaultSettings.midiSync,
+      defaultSettings.shortcuts,
+      midiControl
+    )
+    expect(context.settings.configureMidiControl).toHaveBeenCalledWith(midiControl)
+  })
+
+  it("restores native MIDI controls when the settings commit fails", async () => {
+    const context = createContext()
+    vi.mocked(context.settings.configureMidiControl).mockRejectedValueOnce(new Error("disk full"))
+    registerSettingsRpcHandlers(context)
+    const before =
+      context.lifecycle.applicationState.synchronizeApplicationSettings(defaultSettings)
+    const midiControl = { bindings: [], transformProfiles: [] }
+
+    const result = await invoke(
+      electronMocks,
+      IPC_CHANNELS.settingsConfigureMidiControl,
+      mutationMeta(before.settings, { expectedRevision: before.revision }),
+      midiControl
+    )
+
+    expect(result).toMatchObject({ ok: false })
+    expect(context.audioHost.configureMidiInput).toHaveBeenLastCalledWith(
+      defaultSettings.midiSync,
+      defaultSettings.shortcuts,
+      defaultSettings.midiControl
+    )
+  })
+
   it("chooses a swap directory through the dialog", async () => {
     electronMocks.showOpenDialog.mockResolvedValue({ canceled: false, filePaths: ["/new-swap"] })
     const context = createContext()

@@ -197,6 +197,10 @@ export function createContext(
         ...defaultSettings,
         shortcuts
       })),
+      configureMidiControl: vi.fn(async (midiControl: unknown) => ({
+        ...defaultSettings,
+        midiControl
+      })),
       configureMidiInput: vi.fn(async (midiSync: unknown) => ({
         ...defaultSettings,
         midiSync

@@ -5,6 +5,8 @@ import {
   decodeRelativeMidiValue,
   evaluateAbsoluteMidiTransform,
   evaluateRelativeMidiTransform,
+  isContinuousMidiControlTarget,
+  midiControlAddressKey,
   midiBindingCompatibilityError,
   midiTransformProfile
 } from "./midi-control"
@@ -106,6 +108,78 @@ describe("MIDI control transforms", () => {
       "Linear"
     )
   })
+
+  it("uses stable address keys and resolves user profiles", () => {
+    expect(midiControlAddressKey(address)).toBe('["controller-1",0,"control-change",7]')
+    const custom = {
+      id: "user:custom",
+      name: "Custom",
+      type: "relative" as const,
+      baseStep: 0.01,
+      acceleration: []
+    }
+    expect(midiTransformProfile({ bindings: [], transformProfiles: [custom] }, custom.id)).toBe(
+      custom
+    )
+    expect(
+      isContinuousMidiControlTarget({
+        type: "plugin-parameter",
+        controlAlias: "a",
+        parameterKey: "b"
+      })
+    ).toBe(true)
+    expect(
+      isContinuousMidiControlTarget({
+        type: "mixer",
+        channelIndex: 0,
+        parameter: "mute",
+        behavior: "toggle"
+      })
+    ).toBe(false)
+  })
+
+  it("evaluates exponential and logarithmic shapes including neutral amounts", () => {
+    const shaped = (kind: "exponential" | "logarithmic", amount?: number) => ({
+      id: `${kind}:${amount}`,
+      name: kind,
+      type: "absolute" as const,
+      segments: [
+        {
+          inputStart: 0,
+          inputEnd: 1,
+          outputStart: 0,
+          outputEnd: 1,
+          kind,
+          ...(amount === undefined ? {} : { amount })
+        }
+      ]
+    })
+
+    expect(evaluateAbsoluteMidiTransform(shaped("exponential"), 0.5)).toBeGreaterThan(0)
+    expect(evaluateAbsoluteMidiTransform(shaped("exponential", 0), 0.5)).toBe(0.5)
+    expect(evaluateAbsoluteMidiTransform(shaped("logarithmic", 2), 0.5)).toBeGreaterThan(0.5)
+    expect(evaluateAbsoluteMidiTransform(shaped("logarithmic", 0), 0.5)).toBe(0.5)
+    expect(evaluateAbsoluteMidiTransform(shaped("logarithmic", -2), 0.5)).toBeGreaterThan(0)
+  })
+
+  it("uses the last acceleration multiplier above the configured range", () => {
+    expect(
+      evaluateRelativeMidiTransform(
+        {
+          id: "relative:fast",
+          name: "Fast",
+          type: "relative",
+          baseStep: 0.01,
+          acceleration: [
+            { eventsPerSecond: 5, multiplier: 1 },
+            { eventsPerSecond: 10, multiplier: 4 }
+          ]
+        },
+        1,
+        100
+      )
+    ).toBe(0.04)
+  })
 })
 
 describe("MIDI binding compatibility", () => {
@@ -134,5 +208,36 @@ describe("MIDI binding compatibility", () => {
         })
       )
     ).toContain("Note input")
+  })
+
+  it("reports every discrete/continuous profile and address mismatch", () => {
+    expect(
+      midiBindingCompatibilityError(
+        binding({
+          address: { ...address, type: "note" },
+          input: { type: "note" },
+          target: { type: "application-command", command: "project.save" }
+        })
+      )
+    ).toContain("cannot reference")
+    expect(
+      midiBindingCompatibilityError(
+        binding({
+          input: { type: "note" },
+          target: { type: "application-command", command: "project.save" },
+          transformProfileId: undefined
+        })
+      )
+    ).toContain("cannot use note")
+    expect(midiBindingCompatibilityError(binding({ transformProfileId: undefined }))).toContain(
+      "require a transform"
+    )
+    expect(
+      midiBindingCompatibilityError(
+        binding({
+          target: { type: "application-command", command: "project.save" }
+        })
+      )
+    ).toContain("Discrete MIDI bindings")
   })
 })
