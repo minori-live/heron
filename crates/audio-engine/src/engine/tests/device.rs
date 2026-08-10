@@ -1,4 +1,5 @@
 use super::*;
+use std::time::Instant;
 
 fn recovery_config() -> NativeAudioEngineConfig {
     NativeAudioEngineConfig {
@@ -115,6 +116,58 @@ fn explicit_selection_supersedes_the_recovery_generation() {
         .select_recovery_device(recovery_id, recovery_config())
         .unwrap();
     assert_eq!(runtime.state, "running");
+    assert!(engine.device_recovery_snapshot().is_none());
+    engine.stop_audio_engine().unwrap();
+}
+
+#[test]
+fn recovery_poll_does_not_supersede_an_in_flight_explicit_selection() {
+    let _guard = GRAPH_TEST_LOCK.lock().unwrap();
+    crate::mock::reset_mock_device_control();
+    let engine = Arc::new(AudioEngine::new());
+    inject_fault(
+        &engine,
+        19,
+        NativeStreamDirection::Output,
+        NativeDeviceFaultKind::DeviceNotAvailable,
+    );
+    engine.observe_device_faults();
+    let recovery_id = engine.device_recovery_snapshot().unwrap().recovery_id;
+    engine.authorize_device_recovery(recovery_id).unwrap();
+
+    let transition = engine.runtime_transition.lock().unwrap();
+    let selecting_engine = Arc::clone(&engine);
+    let selection = thread::spawn(move || {
+        selecting_engine.select_recovery_device(recovery_id, recovery_config())
+    });
+    let deadline = Instant::now() + Duration::from_millis(250);
+    while engine.device_recovery_snapshot().unwrap().phase
+        != NativeDeviceRecoveryPhase::ApplyingSelection
+        && Instant::now() < deadline
+    {
+        thread::yield_now();
+    }
+    let applying = engine.device_recovery_snapshot().unwrap();
+    assert_eq!(applying.phase, NativeDeviceRecoveryPhase::ApplyingSelection);
+
+    let polling_engine = Arc::clone(&engine);
+    let poll = thread::spawn(move || polling_engine.poll_device_recovery());
+    thread::sleep(Duration::from_millis(20));
+    let while_polling = engine.device_recovery_snapshot().unwrap();
+
+    drop(transition);
+    let selected = selection.join().unwrap();
+    assert!(poll.join().unwrap());
+
+    assert_eq!(
+        while_polling.phase,
+        NativeDeviceRecoveryPhase::ApplyingSelection
+    );
+    assert_eq!(
+        while_polling.attempt_generation,
+        applying.attempt_generation
+    );
+    assert!(selected.is_ok());
     assert!(engine.device_recovery_snapshot().is_none());
     engine.stop_audio_engine().unwrap();
 }

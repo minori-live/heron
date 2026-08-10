@@ -57,5 +57,36 @@ describe("useAudioDeviceRecoveryDraft", () => {
     draft.selectInput("replacement")
     expect(draft.outputDeviceId.value).toBe("replacement")
     expect(draft.valid.value).toBe(true)
+
+    draft.selectOutput("lost")
+    expect(draft.inputDeviceId.value).toBe("lost")
+    expect(draft.valid.value).toBe(false)
+  })
+
+  it("preserves a user draft when candidates disappear and only returns valid preferences", () => {
+    const recovery = ref<AudioDeviceRecoverySnapshot | null>(snapshot())
+    const draft = useAudioDeviceRecoveryDraft(recovery)
+    draft.selectInput("replacement")
+    draft.selectOutput("replacement")
+
+    expect(draft.preferences()).toMatchObject({
+      inputDeviceId: "replacement",
+      outputDeviceId: "replacement"
+    })
+
+    recovery.value = {
+      ...snapshot(),
+      candidates: { inputs: [], outputs: [] },
+      candidateRevision: 2
+    }
+    expect(draft.inputDeviceId.value).toBe("replacement")
+    expect(draft.outputOptions.value[0]).toMatchObject({
+      value: "replacement",
+      disabled: true
+    })
+    expect(draft.preferences()).toBeNull()
+
+    recovery.value = null
+    expect(draft.valid.value).toBe(false)
   })
 })

@@ -109,10 +109,23 @@ export class AudioDeviceRecoveryCoordinator {
 
   private async reconcileNative(recovery: NativeAudioDeviceRecoverySnapshot | null): Promise<void> {
     if (!recovery) {
-      if (!this.native) return
+      const state = this.lifecycle.applicationState
+      if (!this.native && !state.currentAudioDeviceRecovery()) {
+        return
+      }
+      const lifecycle = this.lifecycle.snapshot().audio
       this.native = null
       this.transportIntent = null
       ++this.localDecision
+      await state.dropAudioDeviceRecovery()
+      let runtime = lifecycle.runtime
+      try {
+        runtime = normalizeAudioRuntime(await this.audioHost.audioEngineSnapshot())
+      } catch {
+        // A host-side cancellation can race shutdown. The last canonical runtime
+        // still provides a deterministic lifecycle projection in that case.
+      }
+      this.lifecycle.completeAudio(runtime)
       return
     }
     if (!this.native || this.native.recoveryId !== recovery.recoveryId) {

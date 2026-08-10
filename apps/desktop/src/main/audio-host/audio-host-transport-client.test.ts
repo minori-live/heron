@@ -18,6 +18,118 @@ function createClient(request: (command: Record<string, unknown>) => Promise<Con
 }
 
 describe("AudioHostTransportClient direct-telemetry fallback", () => {
+  it("maps device recovery commands and commits preferences only after running selection", async () => {
+    const runtime = {
+      state: "running",
+      requested_buffer_size: 128,
+      sample_rate: 48_000,
+      input_sample_rate: 48_000,
+      output_sample_rate: 48_000,
+      input_buffer_size: 128,
+      output_buffer_size: 128,
+      ring_buffer_capacity_frames: 512,
+      ring_buffer_fill_frames: 256,
+      input_latency_ms: 1,
+      output_latency_ms: 1,
+      ring_buffer_latency_ms: 1,
+      engine_latency_ms: 1,
+      estimated_round_trip_latency_ms: 4,
+      xruns: 0,
+      clock_sync: "shared-device",
+      buffer_fallback: false
+    }
+    const recovery = {
+      recovery_id: 7,
+      revision: 2,
+      candidate_revision: 1,
+      attempt_generation: 3,
+      phase: "waiting-for-change",
+      original_config: {
+        backend: "mock",
+        input_device_id: "original",
+        output_device_id: "original",
+        buffer_size: 128,
+        session_sample_rate: 48_000
+      },
+      candidates: { inputs: [], outputs: [] },
+      lost_directions: ["input", "output"],
+      fault: "device-not-available"
+    }
+    const request = vi
+      .fn<(command: Record<string, unknown>) => Promise<ControlResponse>>()
+      .mockResolvedValueOnce({
+        request_id: 1,
+        result: { type: "audio-device-recovery", recovery }
+      } as unknown as ControlResponse)
+      .mockResolvedValueOnce({
+        request_id: 2,
+        result: { type: "audio-device-recovery", recovery: null, runtime }
+      })
+      .mockResolvedValueOnce({
+        request_id: 3,
+        result: { type: "audio-device-recovery", recovery: null, runtime }
+      })
+      .mockResolvedValueOnce({
+        request_id: 4,
+        result: { type: "audio-device-recovery", recovery: null }
+      } as unknown as ControlResponse)
+    const { client } = createClient(request)
+    const preferences = {
+      backend: "mock" as const,
+      inputDeviceId: "replacement",
+      outputDeviceId: "replacement",
+      bufferSize: 128
+    }
+
+    await expect(client.authorizeDeviceRecovery(7)).resolves.toMatchObject({ recoveryId: 7 })
+    await expect(client.selectDeviceRecovery(7, preferences)).resolves.toMatchObject({
+      recovery: null,
+      runtime: { state: "running" }
+    })
+    expect(client.audioPreferences()).toEqual(preferences)
+    expect(client.engineExpectedRunning()).toBe(true)
+    await expect(client.keepRestoredDevice(7)).resolves.toMatchObject({ recovery: null })
+    await expect(client.deviceRecoverySnapshot()).resolves.toEqual({
+      recovery: null,
+      runtime: null
+    })
+    expect(request).toHaveBeenNthCalledWith(2, {
+      type: "select-device-recovery",
+      recovery_id: 7,
+      config: {
+        backend: "mock",
+        input_device_id: "replacement",
+        output_device_id: "replacement",
+        buffer_size: 128,
+        session_sample_rate: 48_000
+      }
+    })
+  })
+
+  it("rejects dropped authorization and malformed recovery payloads", async () => {
+    const request = vi
+      .fn<(command: Record<string, unknown>) => Promise<ControlResponse>>()
+      .mockResolvedValueOnce({
+        request_id: 1,
+        result: { type: "audio-device-recovery", recovery: null }
+      } as unknown as ControlResponse)
+      .mockResolvedValueOnce({
+        request_id: 2,
+        result: {
+          type: "audio-device-recovery",
+          recovery: { recovery_id: -1 }
+        }
+      } as unknown as ControlResponse)
+    const { client } = createClient(request)
+
+    await expect(client.authorizeDeviceRecovery(7)).rejects.toThrow(
+      "audio host dropped the authorized recovery"
+    )
+    await expect(client.deviceRecoverySnapshot()).rejects.toThrow(
+      "audio host returned malformed recovery data"
+    )
+  })
+
   it("starts and stops asset audition only when the host accepts each command", async () => {
     const request = vi
       .fn<(command: Record<string, unknown>) => Promise<ControlResponse>>()

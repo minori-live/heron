@@ -68,7 +68,8 @@ vi.mock("../kernel", () => ({
     applicationState = {
       desktopSession: { kind: "desktop-session" },
       commitAudioEngine: fakes.commitAudioEngine,
-      pluginInstanceSnapshot: fakes.pluginInstanceSnapshot
+      pluginInstanceSnapshot: fakes.pluginInstanceSnapshot,
+      currentAudioDeviceRecovery: vi.fn(() => null)
     }
   },
   OperationRegistry: class {},

@@ -394,7 +394,11 @@ impl AudioEngine {
             authorized
                 && (immediate || list_changed)
                 && original_devices_visible(&config, &devices)
-                && state.phase != NativeDeviceRecoveryPhase::OriginalRestored
+                && matches!(
+                    state.phase,
+                    NativeDeviceRecoveryPhase::WaitingForChange
+                        | NativeDeviceRecoveryPhase::SelectionFailed
+                )
         };
         if !should_attempt {
             return true;

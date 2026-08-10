@@ -154,16 +154,24 @@ export const useAudioRuntimeStore = defineStore("audio-runtime", () => {
     record(snapshot, capturedAt)
   }
 
+  function completeRecovery(snapshot: AudioRuntimeSnapshot): void {
+    lifecycle.value = { status: "stopped", runtime: lifecycle.value.runtime, error: null }
+    updateRuntime(snapshot)
+  }
+
   async function refresh(): Promise<void> {
     if (!audioEngineRef.value) return
     const generation = ++requestGeneration
     const result = await window.heron.audioEngineSnapshot(readMeta(audioEngineRef.value))
     if (generation !== requestGeneration) return
     if (!result.ok) {
+      const message = rpcErrorMessage(result.error)
+      rpcError.value = message
+      if (lifecycle.value.status === "recovering") return
       lifecycle.value = {
         status: "error",
         runtime: runtime.value,
-        error: rpcErrorMessage(result.error)
+        error: message
       }
       return
     }
@@ -245,7 +253,7 @@ export const useAudioRuntimeStore = defineStore("audio-runtime", () => {
     }
     applyResources(result.value)
     audioRecoveryRef.value = null
-    updateRuntime(result.value.runtime)
+    completeRecovery(result.value.runtime)
     return result.value.runtime
   }
 
@@ -260,7 +268,7 @@ export const useAudioRuntimeStore = defineStore("audio-runtime", () => {
       throw new Error(rpcError.value)
     }
     audioRecoveryRef.value = null
-    if (lifecycle.value.status === "recovering") updateRuntime(lifecycle.value.runtime)
+    if (lifecycle.value.status === "recovering") completeRecovery(lifecycle.value.runtime)
   }
 
   async function startRoundTripLatencyMeasurement(

@@ -76,3 +76,110 @@ pub(super) fn audio_device_recovery(
         fault,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn native_device(id: &str) -> device::NativeAudioDevice {
+        device::NativeAudioDevice {
+            id: id.to_owned(),
+            name: id.to_owned(),
+            is_default: id == "input",
+            default_sample_rate: Some(48_000),
+            min_buffer_size: Some(32),
+            max_buffer_size: Some(2_048),
+            channel_count: Some(2),
+        }
+    }
+
+    fn recovery(
+        phase: engine::NativeDeviceRecoveryPhase,
+        fault: engine::NativeDeviceFaultKind,
+    ) -> engine::NativeAudioDeviceRecoverySnapshot {
+        engine::NativeAudioDeviceRecoverySnapshot {
+            recovery_id: 7,
+            revision: 8,
+            candidate_revision: 9,
+            attempt_generation: 10,
+            phase,
+            original_config: engine::NativeAudioEngineConfig {
+                backend: "mock".to_owned(),
+                input_device_id: "input".to_owned(),
+                output_device_id: "output".to_owned(),
+                buffer_size: 128,
+                session_sample_rate: Some(48_000),
+            },
+            candidates: device::NativeAudioDeviceList {
+                inputs: vec![native_device("input")],
+                outputs: vec![native_device("output")],
+            },
+            lost_input: true,
+            lost_output: true,
+            fault,
+        }
+    }
+
+    #[test]
+    fn audio_device_list_preserves_capabilities_and_direction() {
+        let converted = audio_device_list(device::NativeAudioDeviceList {
+            inputs: vec![native_device("input")],
+            outputs: vec![native_device("output")],
+        });
+
+        assert_eq!(converted.inputs[0].id, "input");
+        assert!(converted.inputs[0].is_default);
+        assert_eq!(converted.outputs[0].default_sample_rate, Some(48_000));
+        assert_eq!(converted.outputs[0].max_buffer_size, Some(2_048));
+    }
+
+    #[test]
+    fn recovery_maps_every_phase_and_fault_to_the_wire_protocol() {
+        let cases = [
+            (
+                engine::NativeDeviceRecoveryPhase::WaitingForAuthorization,
+                engine::NativeDeviceFaultKind::DeviceNotAvailable,
+                AudioDeviceRecoveryPhase::WaitingForAuthorization,
+                AudioDeviceFaultKind::DeviceNotAvailable,
+            ),
+            (
+                engine::NativeDeviceRecoveryPhase::WaitingForChange,
+                engine::NativeDeviceFaultKind::StreamInvalidated,
+                AudioDeviceRecoveryPhase::WaitingForChange,
+                AudioDeviceFaultKind::StreamInvalidated,
+            ),
+            (
+                engine::NativeDeviceRecoveryPhase::AttemptingOriginal,
+                engine::NativeDeviceFaultKind::HostUnavailable,
+                AudioDeviceRecoveryPhase::AttemptingOriginal,
+                AudioDeviceFaultKind::HostUnavailable,
+            ),
+            (
+                engine::NativeDeviceRecoveryPhase::OriginalRestored,
+                engine::NativeDeviceFaultKind::DeviceBusy,
+                AudioDeviceRecoveryPhase::OriginalRestored,
+                AudioDeviceFaultKind::DeviceBusy,
+            ),
+            (
+                engine::NativeDeviceRecoveryPhase::ApplyingSelection,
+                engine::NativeDeviceFaultKind::BackendError,
+                AudioDeviceRecoveryPhase::ApplyingSelection,
+                AudioDeviceFaultKind::BackendError,
+            ),
+            (
+                engine::NativeDeviceRecoveryPhase::SelectionFailed,
+                engine::NativeDeviceFaultKind::BackendError,
+                AudioDeviceRecoveryPhase::SelectionFailed,
+                AudioDeviceFaultKind::BackendError,
+            ),
+        ];
+
+        for (native_phase, native_fault, expected_phase, expected_fault) in cases {
+            let converted = audio_device_recovery(recovery(native_phase, native_fault));
+            assert_eq!(converted.phase, expected_phase);
+            assert_eq!(converted.fault, expected_fault);
+            assert_eq!(converted.lost_directions.len(), 2);
+            assert_eq!(converted.original_config.session_sample_rate, Some(48_000));
+        }
+    }
+}

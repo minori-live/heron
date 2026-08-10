@@ -860,6 +860,53 @@ mod tests {
     }
 
     #[test]
+    fn recovery_commands_return_typed_results_for_empty_and_stale_decisions() {
+        let engine = engine::AudioEngine::new();
+        let config = super::super::AudioEngineConfig {
+            backend: "mock".to_owned(),
+            input_device_id: "custom:mock-duplex".to_owned(),
+            output_device_id: "custom:mock-duplex".to_owned(),
+            buffer_size: 128,
+            session_sample_rate: Some(48_000),
+        };
+
+        assert!(matches!(
+            engine_command(&engine, ControlCommand::DeviceRecoverySnapshot, None),
+            Some(ControlResult::AudioDeviceRecovery {
+                recovery: None,
+                runtime: Some(_)
+            })
+        ));
+        assert!(matches!(
+            engine_command(
+                &engine,
+                ControlCommand::AuthorizeDeviceRecovery { recovery_id: 99 },
+                None
+            ),
+            Some(ControlResult::Error { .. })
+        ));
+        assert!(matches!(
+            engine_command(
+                &engine,
+                ControlCommand::SelectDeviceRecovery {
+                    recovery_id: 99,
+                    config
+                },
+                None
+            ),
+            Some(ControlResult::Error { .. })
+        ));
+        assert!(matches!(
+            engine_command(
+                &engine,
+                ControlCommand::KeepRestoredDevice { recovery_id: 99 },
+                None
+            ),
+            Some(ControlResult::Error { .. })
+        ));
+    }
+
+    #[test]
     fn application_snapshot_preserves_status_and_counters() {
         let converted =
             application_snapshot(engine::application_capture::ApplicationCaptureSnapshot {

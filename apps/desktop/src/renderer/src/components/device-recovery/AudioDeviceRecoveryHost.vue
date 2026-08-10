@@ -18,6 +18,8 @@ async function select(inputDeviceId: string, outputDeviceId: string): Promise<vo
   try {
     const runtime = await audio.selectRecoveryDevice(next)
     preferences.commitRecovered(next, runtime.outputBufferSize)
+  } catch {
+    // The store retains the canonical recovery and exposes the typed RPC failure.
   } finally {
     busy.value = false
   }
@@ -27,6 +29,8 @@ async function keep(): Promise<void> {
   busy.value = true
   try {
     await audio.keepRestoredDevice()
+  } catch {
+    // The recovery decision remains open so the user can retry.
   } finally {
     busy.value = false
   }
