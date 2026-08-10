@@ -14,6 +14,7 @@ export interface CpuSnapshot {
 export interface MemorySnapshot {
   totalBytes: number
   usedBytes: number
+  /** Immediately available or cheaply reclaimable physical memory. */
   freeBytes: number
   usagePercent: number
 }

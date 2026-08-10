@@ -94,6 +94,30 @@ describe("UiDialog", () => {
     await flushPromises()
 
     expect(document.body.querySelector(".ui-dialog__close")).toBeNull()
+    expect(document.body.querySelector(".ui-dialog__close-slot")).toBeNull()
+  })
+
+  it("can reserve stable header space while the close button is unavailable", async () => {
+    const wrapper = mount(UiDialog, {
+      attachTo: document.body,
+      props: {
+        modelValue: true,
+        title: "Migrating project",
+        dismissible: false,
+        reserveCloseSpace: true
+      }
+    })
+    await flushPromises()
+
+    const closeSlot = document.body.querySelector(".ui-dialog__close-slot")
+    expect(closeSlot).not.toBeNull()
+    expect(document.body.querySelector(".ui-dialog__close")).toBeNull()
+
+    await wrapper.setProps({ dismissible: true })
+    await flushPromises()
+
+    expect(document.body.querySelector(".ui-dialog__close-slot")).toBe(closeSlot)
+    expect(document.body.querySelector(".ui-dialog__close")).not.toBeNull()
   })
 
   it("replaces the default heading with a header slot", async () => {

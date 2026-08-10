@@ -1,7 +1,7 @@
 import { app } from "electron"
 import type { IpcMainInvokeEvent } from "electron"
 import { statfs } from "node:fs/promises"
-import { cpus, freemem, totalmem } from "node:os"
+import { cpus } from "node:os"
 import { join } from "node:path"
 import { APPLICATION_WINDOW_COMMAND_IDS, AUDIO_BACKENDS, isMeterReturnRate } from "@heron/contracts"
 import type {
@@ -23,6 +23,7 @@ import { isAppLocale } from "../../shared/i18n"
 import { isTrustedMainRendererUrl } from "../../shared/renderer-security"
 import type { ApplicationSettingsStore } from "../settings"
 import type { AudioHostService } from "../audio-host"
+import { sampleSystemMemory } from "./system-memory"
 
 interface CpuTicks {
   idle: number
@@ -106,10 +107,9 @@ export async function sampleSystemPerformance(
   settings: ApplicationSettingsStore,
   audioHostService: AudioHostService
 ): Promise<SystemPerformanceSnapshot> {
-  const totalBytes = totalmem()
-  const freeBytes = freemem()
   const applicationSettings = await settings.get()
-  const [workspace, swap] = await Promise.all([
+  const [memory, workspace, swap] = await Promise.all([
+    sampleSystemMemory(),
     sampleStorageSpace("workspace", join(app.getPath("userData"), "workspaces")),
     sampleStorageSpace("swap", applicationSettings.swapDirectory)
   ])
@@ -117,12 +117,7 @@ export async function sampleSystemPerformance(
   return {
     capturedAt: Date.now(),
     cpu: sampleCpu(),
-    memory: {
-      totalBytes,
-      usedBytes: totalBytes - freeBytes,
-      freeBytes,
-      usagePercent: percentage(totalBytes - freeBytes, totalBytes)
-    },
+    memory,
     storage: [workspace, swap],
     audioRuntime: audioHostService?.performanceDiagnostics() ?? null
   }
