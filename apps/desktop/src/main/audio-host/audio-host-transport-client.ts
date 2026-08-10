@@ -17,6 +17,11 @@ import type {
   TransportSnapshot
 } from "@heron/contracts"
 import { stableRuntimeHandle } from "./wire"
+import {
+  decodeAudioDeviceRecovery,
+  type NativeAudioDeviceRecoveryResult,
+  type NativeAudioDeviceRecoverySnapshot
+} from "./audio-device-recovery"
 import type {
   AudioHostApplicationCaptureSnapshot,
   AudioHostApplicationCaptureTarget,
@@ -218,6 +223,42 @@ export class AudioHostTransportClient {
     return this.runtimeResult(await this.request({ type: "audio-engine-snapshot" }))
   }
 
+  async authorizeDeviceRecovery(recoveryId: number): Promise<NativeAudioDeviceRecoverySnapshot> {
+    const result = this.deviceRecoveryResult(
+      await this.request({ type: "authorize-device-recovery", recovery_id: recoveryId })
+    )
+    if (!result.recovery) throw new Error("audio host dropped the authorized recovery")
+    return result.recovery
+  }
+
+  async selectDeviceRecovery(
+    recoveryId: number,
+    preferences: AudioPreferences
+  ): Promise<NativeAudioDeviceRecoveryResult> {
+    const result = this.deviceRecoveryResult(
+      await this.request({
+        type: "select-device-recovery",
+        recovery_id: recoveryId,
+        config: this.audioEngineConfig(preferences)
+      })
+    )
+    if (result.runtime?.state === "running") {
+      this.lastAudioPreferences = structuredClone(preferences)
+      this.audioEngineExpectedRunning = true
+    }
+    return result
+  }
+
+  async keepRestoredDevice(recoveryId: number): Promise<NativeAudioDeviceRecoveryResult> {
+    return this.deviceRecoveryResult(
+      await this.request({ type: "keep-restored-device", recovery_id: recoveryId })
+    )
+  }
+
+  async deviceRecoverySnapshot(): Promise<NativeAudioDeviceRecoveryResult> {
+    return this.deviceRecoveryResult(await this.request({ type: "device-recovery-snapshot" }))
+  }
+
   cachedAudioEngineSnapshot(): AudioRuntimeSnapshot | null {
     return this.lastAudioRuntime ? structuredClone(this.lastAudioRuntime) : null
   }
@@ -274,6 +315,12 @@ export class AudioHostTransportClient {
     if (response.result.type !== "audio-runtime" || !value) {
       throw new Error("audio host returned an invalid runtime response")
     }
+    return this.normalizeRuntime(value)
+  }
+
+  private normalizeRuntime(
+    value: NonNullable<ControlResponse["result"]["runtime"]>
+  ): AudioRuntimeSnapshot {
     const runtime: AudioRuntimeSnapshot = {
       state: value.state === "running" || value.state === "error" ? value.state : "stopped",
       requestedBufferSize: value.requested_buffer_size,
@@ -298,6 +345,18 @@ export class AudioHostTransportClient {
     }
     this.lastAudioRuntime = structuredClone(runtime)
     return runtime
+  }
+
+  private deviceRecoveryResult(response: ControlResponse): NativeAudioDeviceRecoveryResult {
+    if (response.result.type !== "audio-device-recovery") {
+      throw new Error("audio host returned an invalid device recovery response")
+    }
+    const recovery = decodeAudioDeviceRecovery(response.result.recovery)
+    if (recovery === undefined) throw new Error("audio host returned malformed recovery data")
+    return {
+      recovery,
+      runtime: response.result.runtime ? this.normalizeRuntime(response.result.runtime) : null
+    }
   }
 
   async previewMixerParameter(preview: MixerParameterPreview): Promise<void> {

@@ -102,11 +102,21 @@ pub struct AudioEngine {
     last_native_graph: Mutex<Option<NativeMixerGraph>>,
     compiled_graph_snapshots: Mutex<BTreeMap<u64, CompiledAudioGraphSnapshot>>,
     next_build_generation: AtomicU64,
+    device_fault_sender: mpsc::SyncSender<DeviceFaultSignal>,
+    device_fault_receiver: Mutex<mpsc::Receiver<DeviceFaultSignal>>,
+    next_stream_incarnation: AtomicU64,
+    current_stream_incarnation: AtomicU64,
+    current_audio_config: Mutex<Option<NativeAudioEngineConfig>>,
+    recovery_authority: AtomicU64,
+    recovery_commit: Mutex<()>,
+    next_recovery_id: AtomicU64,
+    device_recovery: Mutex<Option<DeviceRecoveryState>>,
 }
 
 impl AudioEngine {
     #[must_use]
     pub fn new() -> Self {
+        let (device_fault_sender, device_fault_receiver) = mpsc::sync_channel(16);
         Self {
             application_capture: crate::application_capture::global_manager().clone(),
             runtime_transition: Mutex::new(()),
@@ -115,6 +125,15 @@ impl AudioEngine {
             last_native_graph: Mutex::new(None),
             compiled_graph_snapshots: Mutex::new(BTreeMap::new()),
             next_build_generation: AtomicU64::new(1),
+            device_fault_sender,
+            device_fault_receiver: Mutex::new(device_fault_receiver),
+            next_stream_incarnation: AtomicU64::new(1),
+            current_stream_incarnation: AtomicU64::new(0),
+            current_audio_config: Mutex::new(None),
+            recovery_authority: AtomicU64::new(0),
+            recovery_commit: Mutex::new(()),
+            next_recovery_id: AtomicU64::new(1),
+            device_recovery: Mutex::new(None),
         }
     }
 
@@ -167,6 +186,8 @@ mod clip_decode;
 mod clip_streaming;
 #[path = "engine/compiled_graph.rs"]
 mod compiled_graph;
+#[path = "engine/device_recovery.rs"]
+mod device_recovery;
 #[path = "engine/device_streams.rs"]
 mod device_streams;
 #[path = "engine/graph_build.rs"]
@@ -195,9 +216,10 @@ mod transport_midi;
 use clip_decode::{parse_channel_kind, spawn_streaming_clip};
 use clip_streaming::{ClipSamples, LoadedClip, StreamTask, StreamWorkerPool, StreamingClip};
 use compiled_graph::compiled_graph_snapshot;
+use device_recovery::{DeviceFaultSignal, DeviceRecoveryState, StreamFaultReporter};
 use device_streams::{
-    StreamDirection, duration_to_micros, find_device, frames_to_micros, frames_to_ms,
-    frames_to_nanos, mark_stream_error, optional_latency, resolve_stream_devices, stream_config,
+    duration_to_micros, find_device, frames_to_micros, frames_to_ms, frames_to_nanos,
+    mark_stream_error, optional_latency, resolve_stream_devices, stream_config,
 };
 use graph_build::build_mixer_runtime;
 use latency_measurement::{
@@ -223,6 +245,10 @@ pub use bounce::{
     NativeBounceProgress, NativeBounceRequest, NativeBounceResult, render_bounce_output,
 };
 pub use clip_decode::decode_clip_audio;
+pub use device_recovery::{
+    DeviceRecoveryAttempt, NativeAudioDeviceRecoverySnapshot, NativeDeviceFaultKind,
+    NativeDeviceRecoveryPhase, NativeStreamDirection,
+};
 pub use metering::TransportClockHandle;
 pub use publication::{CompiledGraphBuild, GraphBuildInput, PublishOutcome, compile_graph_build};
 pub use spec::{

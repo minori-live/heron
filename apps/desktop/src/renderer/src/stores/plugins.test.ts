@@ -220,6 +220,7 @@ describe("plugin store", () => {
       generation: 1
     })
     useAudioRuntimeStore().applyResources({
+      recovery: null,
       host: { kind: "audio-host", id: "audio-host", epoch: "helper-epoch", generation: 1 },
       engine: null,
       transport: null,

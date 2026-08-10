@@ -1,4 +1,216 @@
 use super::*;
+use std::time::Instant;
+
+fn recovery_config() -> NativeAudioEngineConfig {
+    NativeAudioEngineConfig {
+        backend: "mock".to_owned(),
+        input_device_id: "custom:mock-duplex".to_owned(),
+        output_device_id: "custom:mock-duplex".to_owned(),
+        buffer_size: 128,
+        session_sample_rate: Some(48_000),
+    }
+}
+
+fn inject_fault(
+    engine: &AudioEngine,
+    incarnation: u64,
+    direction: NativeStreamDirection,
+    kind: NativeDeviceFaultKind,
+) {
+    engine
+        .current_stream_incarnation
+        .store(incarnation, Ordering::Release);
+    *engine.current_audio_config.lock().unwrap() = Some(recovery_config());
+    engine
+        .device_fault_sender
+        .try_send(super::super::DeviceFaultSignal {
+            stream_incarnation: incarnation,
+            direction,
+            kind,
+        })
+        .unwrap();
+}
+
+#[test]
+fn recovery_merges_duplicate_directions_and_ignores_old_streams() {
+    let _guard = GRAPH_TEST_LOCK.lock().unwrap();
+    crate::mock::reset_mock_device_control();
+    let engine = AudioEngine::new();
+    inject_fault(
+        &engine,
+        7,
+        NativeStreamDirection::Input,
+        NativeDeviceFaultKind::DeviceNotAvailable,
+    );
+    engine
+        .device_fault_sender
+        .try_send(super::super::DeviceFaultSignal {
+            stream_incarnation: 6,
+            direction: NativeStreamDirection::Output,
+            kind: NativeDeviceFaultKind::BackendError,
+        })
+        .unwrap();
+    engine
+        .device_fault_sender
+        .try_send(super::super::DeviceFaultSignal {
+            stream_incarnation: 7,
+            direction: NativeStreamDirection::Output,
+            kind: NativeDeviceFaultKind::StreamInvalidated,
+        })
+        .unwrap();
+
+    assert!(engine.observe_device_faults());
+    let recovery = engine.device_recovery_snapshot().unwrap();
+    assert!(recovery.lost_input);
+    assert!(recovery.lost_output);
+    assert_eq!(recovery.fault, NativeDeviceFaultKind::StreamInvalidated);
+    assert_eq!(
+        recovery.phase,
+        NativeDeviceRecoveryPhase::WaitingForAuthorization
+    );
+}
+
+#[test]
+fn authorized_recovery_restores_original_and_requires_explicit_keep() {
+    let _guard = GRAPH_TEST_LOCK.lock().unwrap();
+    crate::mock::reset_mock_device_control();
+    let engine = AudioEngine::new();
+    inject_fault(
+        &engine,
+        11,
+        NativeStreamDirection::Output,
+        NativeDeviceFaultKind::DeviceNotAvailable,
+    );
+    engine.observe_device_faults();
+    let recovery_id = engine.device_recovery_snapshot().unwrap().recovery_id;
+
+    engine.authorize_device_recovery(recovery_id).unwrap();
+    assert!(engine.poll_device_recovery());
+    assert_eq!(
+        engine.device_recovery_snapshot().unwrap().phase,
+        NativeDeviceRecoveryPhase::OriginalRestored
+    );
+    assert_eq!(engine.audio_engine_snapshot().unwrap().state, "running");
+
+    engine.keep_restored_device(recovery_id).unwrap();
+    assert!(engine.device_recovery_snapshot().is_none());
+    engine.stop_audio_engine().unwrap();
+}
+
+#[test]
+fn explicit_selection_supersedes_the_recovery_generation() {
+    let _guard = GRAPH_TEST_LOCK.lock().unwrap();
+    crate::mock::reset_mock_device_control();
+    let engine = AudioEngine::new();
+    inject_fault(
+        &engine,
+        17,
+        NativeStreamDirection::Input,
+        NativeDeviceFaultKind::DeviceBusy,
+    );
+    engine.observe_device_faults();
+    let recovery_id = engine.device_recovery_snapshot().unwrap().recovery_id;
+    engine.authorize_device_recovery(recovery_id).unwrap();
+
+    let runtime = engine
+        .select_recovery_device(recovery_id, recovery_config())
+        .unwrap();
+    assert_eq!(runtime.state, "running");
+    assert!(engine.device_recovery_snapshot().is_none());
+    engine.stop_audio_engine().unwrap();
+}
+
+#[test]
+fn recovery_poll_does_not_supersede_an_in_flight_explicit_selection() {
+    let _guard = GRAPH_TEST_LOCK.lock().unwrap();
+    crate::mock::reset_mock_device_control();
+    let engine = Arc::new(AudioEngine::new());
+    inject_fault(
+        &engine,
+        19,
+        NativeStreamDirection::Output,
+        NativeDeviceFaultKind::DeviceNotAvailable,
+    );
+    engine.observe_device_faults();
+    let recovery_id = engine.device_recovery_snapshot().unwrap().recovery_id;
+    engine.authorize_device_recovery(recovery_id).unwrap();
+
+    let transition = engine.runtime_transition.lock().unwrap();
+    let selecting_engine = Arc::clone(&engine);
+    let selection = thread::spawn(move || {
+        selecting_engine.select_recovery_device(recovery_id, recovery_config())
+    });
+    let deadline = Instant::now() + Duration::from_millis(250);
+    while engine.device_recovery_snapshot().unwrap().phase
+        != NativeDeviceRecoveryPhase::ApplyingSelection
+        && Instant::now() < deadline
+    {
+        thread::yield_now();
+    }
+    let applying = engine.device_recovery_snapshot().unwrap();
+    assert_eq!(applying.phase, NativeDeviceRecoveryPhase::ApplyingSelection);
+
+    let polling_engine = Arc::clone(&engine);
+    let poll = thread::spawn(move || polling_engine.poll_device_recovery());
+    thread::sleep(Duration::from_millis(20));
+    let while_polling = engine.device_recovery_snapshot().unwrap();
+
+    drop(transition);
+    let selected = selection.join().unwrap();
+    assert!(poll.join().unwrap());
+
+    assert_eq!(
+        while_polling.phase,
+        NativeDeviceRecoveryPhase::ApplyingSelection
+    );
+    assert_eq!(
+        while_polling.attempt_generation,
+        applying.attempt_generation
+    );
+    assert!(selected.is_ok());
+    assert!(engine.device_recovery_snapshot().is_none());
+    engine.stop_audio_engine().unwrap();
+}
+
+#[test]
+fn mock_stream_error_callback_opens_recovery_and_dynamic_enumeration_hides_loss() {
+    let _guard = GRAPH_TEST_LOCK.lock().unwrap();
+    crate::mock::reset_mock_device_control();
+    let engine = AudioEngine::new();
+    engine.start_audio_engine(recovery_config()).unwrap();
+    assert!(crate::mock::set_mock_device_available(
+        "custom:mock-duplex",
+        false
+    ));
+    crate::mock::trigger_mock_stream_error(
+        false,
+        crate::mock::MockStreamFaultKind::DeviceNotAvailable,
+    );
+
+    let deadline = std::time::Instant::now() + Duration::from_millis(250);
+    while engine.device_recovery_snapshot().is_none() && std::time::Instant::now() < deadline {
+        engine.observe_device_faults();
+        thread::sleep(Duration::from_millis(2));
+    }
+    let recovery = engine.device_recovery_snapshot().unwrap();
+    assert_eq!(recovery.fault, NativeDeviceFaultKind::DeviceNotAvailable);
+    engine
+        .authorize_device_recovery(recovery.recovery_id)
+        .unwrap();
+    engine.poll_device_recovery();
+    let recovery = engine.device_recovery_snapshot().unwrap();
+    assert_eq!(recovery.phase, NativeDeviceRecoveryPhase::WaitingForChange);
+    assert!(
+        !recovery
+            .candidates
+            .outputs
+            .iter()
+            .any(|device| device.id == "custom:mock-duplex")
+    );
+
+    engine.stop_audio_engine().unwrap();
+    crate::mock::reset_mock_device_control();
+}
 
 #[test]
 fn keeps_a_supported_requested_buffer_size() {
@@ -41,20 +253,23 @@ fn clamps_a_request_outside_the_device_range_to_a_fixed_supported_size() {
 #[test]
 fn only_output_stream_xruns_are_user_visible() {
     assert_eq!(
-        stream_error_impact(StreamDirection::Input, cpal::ErrorKind::Xrun),
+        stream_error_impact(NativeStreamDirection::Input, cpal::ErrorKind::Xrun),
         StreamErrorImpact::Ignore
     );
     assert_eq!(
-        stream_error_impact(StreamDirection::Output, cpal::ErrorKind::Xrun),
+        stream_error_impact(NativeStreamDirection::Output, cpal::ErrorKind::Xrun),
         StreamErrorImpact::CountXrun
     );
     assert_eq!(
-        stream_error_impact(StreamDirection::Output, cpal::ErrorKind::DeviceChanged),
+        stream_error_impact(
+            NativeStreamDirection::Output,
+            cpal::ErrorKind::DeviceChanged
+        ),
         StreamErrorImpact::Ignore
     );
     assert_eq!(
-        stream_error_impact(StreamDirection::Output, cpal::ErrorKind::BackendError),
-        StreamErrorImpact::Fault
+        stream_error_impact(NativeStreamDirection::Output, cpal::ErrorKind::BackendError),
+        StreamErrorImpact::Recover(NativeDeviceFaultKind::BackendError)
     );
 }
 

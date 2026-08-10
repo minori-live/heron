@@ -9,6 +9,7 @@ export const RESOURCE_KINDS = [
   "asset",
   "recording-session",
   "audio-host",
+  "audio-device-recovery",
   "audio-engine",
   "graph-deployment",
   "transport",
@@ -34,6 +35,7 @@ export type PluginInstanceRef = ResourceRef<"plugin-instance">
 export type AssetRef = ResourceRef<"asset">
 export type RecordingSessionRef = ResourceRef<"recording-session">
 export type AudioHostRef = ResourceRef<"audio-host">
+export type AudioDeviceRecoveryRef = ResourceRef<"audio-device-recovery">
 export type AudioEngineRef = ResourceRef<"audio-engine">
 export type ProjectWorkerRef = ResourceRef<"project-worker">
 export type OfflineWorkerRef = ResourceRef<"offline-worker">

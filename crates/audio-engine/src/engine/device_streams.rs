@@ -1,7 +1,8 @@
 use super::{
-    BufferSize, Device, DeviceTrait, Duration, Host, HostTrait, Ordering, Result, RuntimeMetrics,
-    StreamConfig, SupportedBufferSize, SupportedStreamConfig, UNKNOWN_LATENCY_US, audio_error,
-    invalid_config,
+    BufferSize, Device, DeviceFaultSignal, DeviceTrait, Duration, Host, HostTrait,
+    NativeDeviceFaultKind, NativeStreamDirection, Ordering, Result, RuntimeMetrics, StreamConfig,
+    StreamFaultReporter, SupportedBufferSize, SupportedStreamConfig, UNKNOWN_LATENCY_US,
+    audio_error, invalid_config,
 };
 
 pub(super) fn find_device(host: &Host, id: &str, input: bool) -> Result<Device> {
@@ -115,42 +116,61 @@ pub(super) fn frames_to_nanos(frames: usize, sample_rate: u32) -> u64 {
         .min(u128::from(u64::MAX)) as u64
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub(super) enum StreamDirection {
-    Input,
-    Output,
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum StreamErrorImpact {
     Ignore,
     CountXrun,
-    Fault,
+    Recover(NativeDeviceFaultKind),
+    Fatal,
 }
 
 pub(super) fn stream_error_impact(
-    direction: StreamDirection,
+    direction: NativeStreamDirection,
     error_kind: cpal::ErrorKind,
 ) -> StreamErrorImpact {
     match error_kind {
-        cpal::ErrorKind::Xrun if direction == StreamDirection::Output => {
+        cpal::ErrorKind::Xrun if direction == NativeStreamDirection::Output => {
             StreamErrorImpact::CountXrun
         }
         cpal::ErrorKind::Xrun | cpal::ErrorKind::DeviceChanged => StreamErrorImpact::Ignore,
-        _ => StreamErrorImpact::Fault,
+        cpal::ErrorKind::DeviceNotAvailable => {
+            StreamErrorImpact::Recover(NativeDeviceFaultKind::DeviceNotAvailable)
+        }
+        cpal::ErrorKind::StreamInvalidated => {
+            StreamErrorImpact::Recover(NativeDeviceFaultKind::StreamInvalidated)
+        }
+        cpal::ErrorKind::HostUnavailable => {
+            StreamErrorImpact::Recover(NativeDeviceFaultKind::HostUnavailable)
+        }
+        cpal::ErrorKind::DeviceBusy => {
+            StreamErrorImpact::Recover(NativeDeviceFaultKind::DeviceBusy)
+        }
+        cpal::ErrorKind::BackendError => {
+            StreamErrorImpact::Recover(NativeDeviceFaultKind::BackendError)
+        }
+        _ => StreamErrorImpact::Fatal,
     }
 }
 
 pub(super) fn mark_stream_error(
     metrics: &RuntimeMetrics,
-    direction: StreamDirection,
+    direction: NativeStreamDirection,
     error: &cpal::Error,
+    faults: &StreamFaultReporter,
 ) {
     match stream_error_impact(direction, error.kind()) {
         StreamErrorImpact::Ignore => {}
         StreamErrorImpact::CountXrun => {
             metrics.xruns.fetch_add(1, Ordering::Relaxed);
         }
-        StreamErrorImpact::Fault => metrics.faulted.store(true, Ordering::Relaxed),
+        StreamErrorImpact::Recover(kind) => {
+            metrics.faulted.store(true, Ordering::Release);
+            let _ = faults.sender.try_send(DeviceFaultSignal {
+                stream_incarnation: faults.stream_incarnation,
+                direction,
+                kind,
+            });
+        }
+        StreamErrorImpact::Fatal => metrics.faulted.store(true, Ordering::Release),
     }
 }

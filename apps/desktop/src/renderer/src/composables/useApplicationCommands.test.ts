@@ -100,6 +100,7 @@ function closedBootstrap(): ApplicationBootstrapSnapshot {
       revision: 1
     },
     audioResources: {
+      recovery: null,
       host: {
         kind: "audio-host",
         id: "audio-host",
@@ -167,6 +168,7 @@ function createHarness() {
     global: { plugins: [pinia, router] }
   })
   useAudioRuntimeStore(pinia).applyResources({
+    recovery: null,
     midiRuntime: {
       kind: "midi-runtime",
       id: "midi-runtime",

@@ -12,12 +12,14 @@ const KNOWN_BACKENDS: [(&str, &str); 4] = [
     ("alsa", "ALSA"),
 ];
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativeAudioBackend {
     pub id: String,
     pub label: String,
     pub available: bool,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativeAudioDevice {
     pub id: String,
     pub name: String,
@@ -28,6 +30,7 @@ pub struct NativeAudioDevice {
     pub channel_count: Option<u32>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativeAudioDeviceList {
     pub inputs: Vec<NativeAudioDevice>,
     pub outputs: Vec<NativeAudioDevice>,

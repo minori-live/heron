@@ -263,6 +263,7 @@ impl EmbeddedAudioHost {
         let runtime_id = NEXT_RUNTIME_ID.fetch_add(1, Ordering::Relaxed);
         let (messages, inbox) = mpsc::channel(CONTROL_CAPACITY);
 
+        let protocol_host_event_sender = host_event_sender.clone();
         let application = EmbeddedUiHost {
             generation: Arc::clone(&winit_generation),
             proxy: application_proxy,
@@ -320,6 +321,7 @@ impl EmbeddedAudioHost {
                         background_inbox,
                         session_epoch,
                         protocol_slow_requests,
+                        protocol_host_event_sender,
                     ),
                 );
             })
@@ -735,6 +737,7 @@ async fn run_direct_actor(
     background_inbox: mpsc::Receiver<ActorRequest>,
     session_epoch: u64,
     slow_requests: Arc<AtomicU64>,
+    host_event_sender: std_mpsc::SyncSender<HostEvent>,
 ) {
     let handles = Arc::new(Mutex::new(GraphParameterHandles::default()));
     let (engine_sender, engine_inbox) = mpsc::channel(ACTOR_CAPACITY);
@@ -766,12 +769,17 @@ async fn run_direct_actor(
         worker_supervisor,
         Arc::clone(&audio_engine),
     ));
+    let recovery_task = tokio::spawn(drive_device_recovery(
+        Arc::clone(&audio_engine),
+        host_event_sender,
+    ));
 
     while let Some(message) = inbox.recv().await {
         match message {
             DirectMessage::Close => {
                 let engine = Arc::clone(&audio_engine);
                 let _ = tokio::task::spawn_blocking(move || engine.stop_audio_engine()).await;
+                recovery_task.abort();
                 ui_proxy.send_event(UiEvent::Exit);
                 break;
             }
@@ -839,6 +847,40 @@ async fn run_direct_actor(
                 });
             }
         }
+    }
+    recovery_task.abort();
+}
+
+async fn drive_device_recovery(
+    audio_engine: Arc<engine::AudioEngine>,
+    host_events: std_mpsc::SyncSender<HostEvent>,
+) {
+    let mut interval = tokio::time::interval(Duration::from_millis(50));
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    let mut previous = None;
+    let mut published_recovery = false;
+    loop {
+        interval.tick().await;
+        let engine = Arc::clone(&audio_engine);
+        let observed = tokio::task::spawn_blocking(move || {
+            engine.poll_device_recovery();
+            engine.device_recovery_snapshot()
+        })
+        .await;
+        let Ok(snapshot) = observed else {
+            continue;
+        };
+        let recovery = snapshot.map(super::audio_device_wire::audio_device_recovery);
+        if recovery == previous {
+            continue;
+        }
+        if recovery.is_some() || published_recovery {
+            let _ = host_events.try_send(HostEvent::AudioDeviceRecoveryChanged {
+                recovery: recovery.clone(),
+            });
+        }
+        published_recovery |= recovery.is_some();
+        previous = recovery;
     }
 }
 

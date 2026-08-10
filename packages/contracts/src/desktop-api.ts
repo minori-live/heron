@@ -15,6 +15,7 @@ import type {
   ApplicationCaptureTargetDescriptor,
   AudioDeviceList,
   AudioEngineSessionSnapshot,
+  AudioDeviceRecoverySnapshot,
   AudioEngineStopSnapshot,
   AudioPreferences,
   AudioRuntimeSnapshot,
@@ -100,6 +101,8 @@ export const IPC_CHANNELS = {
   audioStart: "audio:start",
   audioStop: "audio:stop",
   audioSnapshot: "audio:snapshot",
+  audioRecoverySelect: "audio:recovery-select",
+  audioRecoveryKeepRestored: "audio:recovery-keep-restored",
   audioRoundTripLatencyStart: "audio:round-trip-latency-start",
   audioRoundTripLatencySnapshot: "audio:round-trip-latency-snapshot",
   projectGraphLoad: "project:graph-load",
@@ -195,6 +198,13 @@ export interface HeronDesktopApi {
   ): Promise<RpcResult<AudioEngineSessionSnapshot>>
   stopAudioEngine(meta: RpcRequestMeta): Promise<RpcResult<AudioEngineStopSnapshot>>
   audioEngineSnapshot(meta: RpcRequestMeta): Promise<RpcResult<AudioRuntimeSnapshot>>
+  selectAudioRecoveryDevice(
+    meta: RpcRequestMeta,
+    preferences: AudioPreferences
+  ): Promise<RpcResult<AudioEngineSessionSnapshot>>
+  keepRestoredAudioDevice(
+    meta: RpcRequestMeta
+  ): Promise<RpcResult<AudioDeviceRecoverySnapshot | null>>
   startRoundTripLatencyMeasurement(
     meta: RpcRequestMeta,
     request: RoundTripLatencyMeasurementRequest

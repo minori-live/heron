@@ -24,6 +24,7 @@ export class RecordingService {
   private readonly capture: RecordingCaptureCoordinator
   private readonly committer: RecordingCommitter
   private readonly pending: PendingRecordingService
+  private stopInFlight: Promise<PendingRecording> | null = null
 
   constructor(
     settings: ApplicationSettingsStore,
@@ -63,6 +64,17 @@ export class RecordingService {
   }
 
   async stop(onFinalizing?: () => void): Promise<PendingRecording> {
+    if (this.stopInFlight) return this.stopInFlight
+    const pending = this.stopRecording(onFinalizing)
+    this.stopInFlight = pending
+    try {
+      return await pending
+    } finally {
+      if (this.stopInFlight === pending) this.stopInFlight = null
+    }
+  }
+
+  private async stopRecording(onFinalizing?: () => void): Promise<PendingRecording> {
     const active = this.capture.activeSidecar()
     if (!active) throw new Error("No recording is active")
     const operationId = `recording:${active.id}`

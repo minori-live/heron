@@ -54,6 +54,17 @@ pub enum ControlCommand {
     },
     StopAudioEngine,
     AudioEngineSnapshot,
+    AuthorizeDeviceRecovery {
+        recovery_id: u64,
+    },
+    SelectDeviceRecovery {
+        recovery_id: u64,
+        config: AudioEngineConfig,
+    },
+    KeepRestoredDevice {
+        recovery_id: u64,
+    },
+    DeviceRecoverySnapshot,
     StartRoundTripLatencyMeasurement {
         request: RoundTripLatencyMeasurementRequest,
     },

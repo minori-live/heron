@@ -117,6 +117,17 @@ export const useAudioPreferencesStore = defineStore("audio-preferences", () => {
     }
   }
 
+  function commitRecovered(
+    preferencesValue: AudioPreferences,
+    actualBufferSize: number | null
+  ): void {
+    const normalized = normalizePreferences(preferencesValue)
+    preferences.value = {
+      ...normalized,
+      bufferSize: actualBufferSize ?? normalized.bufferSize
+    }
+  }
+
   async function discoverBackends(): Promise<AudioBackendDescriptor[]> {
     const generation = ++discoveryGeneration
     discoveryState.value = "loading"
@@ -198,6 +209,7 @@ export const useAudioPreferencesStore = defineStore("audio-preferences", () => {
     discoveryError,
     apply,
     restore,
+    commitRecovered,
     discoverBackends,
     discoverDevices,
     markBackendUnavailable

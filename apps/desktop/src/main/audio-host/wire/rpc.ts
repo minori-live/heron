@@ -12,6 +12,7 @@ import type {
   AudioHostApplicationCaptureTarget,
   AudioHostBenchmarkReport,
   AudioHostDevice,
+  AudioHostDeviceRecovery,
   AudioHostMeter,
   AudioHostRoundTripLatencyMeasurement,
   AudioHostRuntime,
@@ -75,6 +76,7 @@ export interface ControlResponse {
       | "application-capture-targets"
       | "application-captures"
       | "audio-runtime"
+      | "audio-device-recovery"
       | "round-trip-latency-measurement"
       | "mixer-snapshot"
       | "compiled-graph-snapshot"
@@ -161,6 +163,7 @@ export interface ControlResponse {
     targets?: AudioHostApplicationCaptureTarget[]
     captures?: AudioHostApplicationCaptureSnapshot[]
     runtime?: AudioHostRuntime
+    recovery?: AudioHostDeviceRecovery | null
     measurement?: AudioHostRoundTripLatencyMeasurement
     meters?: AudioHostMeter[]
     snapshot?: {

@@ -111,25 +111,31 @@ impl MockStream {
         })
     }
 
-    pub(super) fn capture<D>(
+    pub(super) fn capture<D, E>(
         backend: &Arc<MockBackend>,
         frames: FrameCount,
         channels: usize,
         mut data_callback: D,
+        mut error_callback: E,
     ) -> Result<Self, Error>
     where
         D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
+        E: FnMut(Error) + Send + 'static,
     {
         let mut loopback = backend.claim_loopback_consumer();
         let origin = backend.origin;
         let period = block_duration(frames);
         let block_frames = frames as usize;
         let backlog_limit = block_frames * LOOPBACK_SLACK_BLOCKS;
+        let errors = backend.control.register_error_sink(true);
         Self::spawn("heron-mock-capture", frames, origin, move |controls| {
             let mut buffer = vec![0.0_f32; block_frames * channels];
             let mut clock = BlockClock::new(period);
             let poll = poll_interval(period);
             while !controls.exit.load(Ordering::Acquire) {
+                while let Ok(kind) = errors.try_recv() {
+                    error_callback(Error::with_message(kind, "injected mock capture fault"));
+                }
                 if !controls.playing.load(Ordering::Acquire) {
                     thread::sleep(poll);
                     clock.restart();
@@ -184,19 +190,22 @@ impl MockStream {
         })
     }
 
-    pub(super) fn playback<D>(
+    pub(super) fn playback<D, E>(
         backend: &Arc<MockBackend>,
         frames: FrameCount,
         channels: usize,
         mut data_callback: D,
+        mut error_callback: E,
     ) -> Result<Self, Error>
     where
         D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+        E: FnMut(Error) + Send + 'static,
     {
         let mut loopback = backend.claim_loopback_producer();
         let origin = backend.origin;
         let period = block_duration(frames);
         let block_frames = frames as usize;
+        let errors = backend.control.register_error_sink(false);
         if let Some(loopback) = loopback.as_mut() {
             // Give capture a block of silence to read immediately so playback
             // stays one block ahead once both streams are running.
@@ -209,6 +218,9 @@ impl MockStream {
             let mut clock = BlockClock::new(period);
             let poll = poll_interval(period);
             while !controls.exit.load(Ordering::Acquire) {
+                while let Ok(kind) = errors.try_recv() {
+                    error_callback(Error::with_message(kind, "injected mock playback fault"));
+                }
                 if !controls.playing.load(Ordering::Acquire) {
                     thread::sleep(poll);
                     clock.restart();

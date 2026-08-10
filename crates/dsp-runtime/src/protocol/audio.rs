@@ -33,6 +33,47 @@ pub struct AudioDeviceList {
     pub outputs: Vec<AudioDevice>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AudioStreamDirection {
+    Input,
+    Output,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AudioDeviceFaultKind {
+    DeviceNotAvailable,
+    StreamInvalidated,
+    HostUnavailable,
+    DeviceBusy,
+    BackendError,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AudioDeviceRecoveryPhase {
+    WaitingForAuthorization,
+    WaitingForChange,
+    AttemptingOriginal,
+    OriginalRestored,
+    ApplyingSelection,
+    SelectionFailed,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AudioDeviceRecovery {
+    pub recovery_id: u64,
+    pub revision: u64,
+    pub candidate_revision: u64,
+    pub attempt_generation: u64,
+    pub phase: AudioDeviceRecoveryPhase,
+    pub original_config: AudioEngineConfig,
+    pub candidates: AudioDeviceList,
+    pub lost_directions: Vec<AudioStreamDirection>,
+    pub fault: AudioDeviceFaultKind,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AudioRuntime {
     pub state: String,

@@ -53,6 +53,23 @@ const preferences = {
   bufferSize: 256
 }
 
+function beginRecovery(context: ReturnType<typeof createContext>) {
+  const snapshot = context.lifecycle.applicationState.beginAudioDeviceRecovery({
+    decisionRevision: 1,
+    attemptGeneration: 2,
+    phase: "waiting-for-change",
+    previousPreferences: preferences,
+    candidates: { inputs: [], outputs: [] },
+    candidateRevision: 1,
+    lostDirections: ["input", "output"],
+    fault: "device-not-available",
+    recordingStatus: "not-active",
+    failure: null
+  })
+  context.lifecycle.beginAudioDeviceRecovery(snapshot)
+  return snapshot
+}
+
 describe("registerAudioHandlers", () => {
   beforeEach(() => {
     electronMocks.handle.mockReset()
@@ -164,6 +181,22 @@ describe("registerAudioHandlers", () => {
     })
   })
 
+  it("blocks normal audioStart while a recovery decision is active", async () => {
+    const context = createContext()
+    beginRecovery(context)
+    registerAudioHandlers(context)
+
+    const result = await invoke(
+      electronMocks,
+      IPC_CHANNELS.audioStart,
+      mutationMeta(context.lifecycle.applicationState.audioHost),
+      preferences
+    )
+
+    expect(result).toMatchObject({ ok: false, error: { code: "resource-busy" } })
+    expect(context.audioHost.startAudioEngine).not.toHaveBeenCalled()
+  })
+
   it("stops the audio engine", async () => {
     const context = createContext()
     vi.mocked(context.audioHost.startAudioEngine).mockResolvedValue(runningRuntime)
@@ -233,6 +266,76 @@ describe("registerAudioHandlers", () => {
     const result = await invoke(electronMocks, IPC_CHANNELS.audioSnapshot, meta({ target: engine }))
 
     expect(result).toMatchObject({ ok: true, value: expect.objectContaining({ state: "running" }) })
+  })
+
+  it("selects a recovery device through a guarded mutation", async () => {
+    const context = createContext()
+    const recovery = beginRecovery(context)
+    const session = {
+      ...context.lifecycle.applicationState.audioResourceSnapshot(),
+      engine: { kind: "audio-engine", id: "engine", epoch: "epoch", generation: 2 },
+      transport: { kind: "transport", id: "transport", epoch: "epoch", generation: 2 },
+      runtime: runningRuntime
+    }
+    vi.mocked(context.audioDeviceRecovery.select).mockResolvedValue(session as never)
+    registerAudioHandlers(context)
+
+    const result = await invoke(
+      electronMocks,
+      IPC_CHANNELS.audioRecoverySelect,
+      mutationMeta(recovery.recovery, {
+        mutation: { operationId: "op-recovery-select", idempotencyKey: "idem-recovery-select" }
+      }),
+      preferences
+    )
+
+    expect(result).toMatchObject({ ok: true, value: { runtime: { state: "running" } } })
+    expect(context.audioDeviceRecovery.select).toHaveBeenCalledWith(preferences)
+  })
+
+  it("returns unavailable and records a non-committed recovery selection", async () => {
+    const context = createContext()
+    const recovery = beginRecovery(context)
+    vi.mocked(context.audioDeviceRecovery.select).mockRejectedValue(new Error("device busy"))
+    registerAudioHandlers(context)
+    const request = mutationMeta(recovery.recovery, {
+      mutation: { operationId: "op-recovery-fail", idempotencyKey: "idem-recovery-fail" }
+    })
+
+    const first = await invoke(
+      electronMocks,
+      IPC_CHANNELS.audioRecoverySelect,
+      request,
+      preferences
+    )
+    const replay = await invoke(
+      electronMocks,
+      IPC_CHANNELS.audioRecoverySelect,
+      { ...request, requestId: "replay" },
+      preferences
+    )
+
+    expect(first).toMatchObject({ ok: false, error: { code: "resource-unavailable" } })
+    expect(replay).toMatchObject({ ok: false, requestId: "replay" })
+    expect(context.audioDeviceRecovery.select).toHaveBeenCalledOnce()
+  })
+
+  it("keeps an original-restored recovery through a guarded mutation", async () => {
+    const context = createContext()
+    const recovery = beginRecovery(context)
+    vi.mocked(context.audioDeviceRecovery.keepRestored).mockResolvedValue(null)
+    registerAudioHandlers(context)
+
+    const result = await invoke(
+      electronMocks,
+      IPC_CHANNELS.audioRecoveryKeepRestored,
+      mutationMeta(recovery.recovery, {
+        mutation: { operationId: "op-recovery-keep", idempotencyKey: "idem-recovery-keep" }
+      })
+    )
+
+    expect(result).toMatchObject({ ok: true, value: null })
+    expect(context.audioDeviceRecovery.keepRestored).toHaveBeenCalledOnce()
   })
 
   it("starts round-trip latency measurement", async () => {

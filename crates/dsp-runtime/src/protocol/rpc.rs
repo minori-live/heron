@@ -13,6 +13,7 @@ pub enum ResourceKind {
     Asset,
     RecordingSession,
     AudioHost,
+    AudioDeviceRecovery,
     AudioEngine,
     GraphDeployment,
     Transport,

@@ -1,6 +1,10 @@
 import { decode } from "@msgpack/msgpack"
 import type { AudioHostRuntime } from "@heron/dsp-node"
 import type { AraCallbackEvent, PluginEditorPreference } from "@heron/contracts"
+import { decodeAudioDeviceRecovery } from "./audio-device-recovery"
+import type { NativeAudioDeviceRecoverySnapshot } from "./audio-device-recovery"
+import type { AudioHostDeviceRecovery } from "./wire"
+export type { NativeAudioDeviceRecoverySnapshot } from "./audio-device-recovery"
 
 export interface AraHostCallback {
   helperEpoch: string
@@ -166,7 +170,8 @@ export function drainHostEvents(
   onEditorClosed?: (instanceId: string) => void,
   onAraCallback?: (callback: AraHostCallback) => void,
   onPluginHostNotification?: (notification: PluginHostNotification) => void,
-  onPluginSidechainRouteRequested?: (request: PluginSidechainRouteRequest) => void
+  onPluginSidechainRouteRequested?: (request: PluginSidechainRouteRequest) => void,
+  onDeviceRecoveryChanged?: (recovery: NativeAudioDeviceRecoverySnapshot | null) => void
 ): void {
   const latestPreferences = new Map<string, PluginEditorPreference>()
   const closedEditors = new Set<string>()
@@ -189,8 +194,12 @@ export function drainHostEvents(
       request_id?: number
       input_port_key?: string
       source_channel_id?: string | null
+      recovery?: AudioHostDeviceRecovery | null
     }
-    if (decoded.type === "graph-published" && decoded.revision !== undefined) {
+    if (decoded.type === "audio-device-recovery-changed") {
+      const recovery = decodeAudioDeviceRecovery(decoded.recovery)
+      if (recovery !== undefined) onDeviceRecoveryChanged?.(recovery)
+    } else if (decoded.type === "graph-published" && decoded.revision !== undefined) {
       // Telemetry carries the same revision; draining avoids idle event buildup.
     } else if (
       decoded.type === "plugin-editor-preference-changed" &&

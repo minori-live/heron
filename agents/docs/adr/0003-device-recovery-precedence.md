@@ -1,6 +1,6 @@
 # ADR-0003: Make explicit device selection win reconnect races
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-08
 - Owners: project maintainers
 - Related: `agents/docs/product-live.md`
@@ -53,9 +53,12 @@ replacement while the old device flaps.
 
 ## Verification
 
-State-machine tests cover loss, old-device recovery, user choice before and
-after recovery, stale failure, stale success, rapid repeated choices, and app
-shutdown. E2E verifies the dialog and final published device.
+State-machine and boundary tests cover real mock-stream error callbacks,
+duplicate and late faults, explicit selection precedence, original-device
+recovery, strict event decoding, recovery resource ownership, and stable UI
+draft behavior. `mise run soak:device-recovery -- --duration 2h` provides the
+manual mock-device evidence path. The roadmap remains incomplete until the
+two-hour soak and platform hardware matrix are recorded.
 
 ## Reconsider when
 

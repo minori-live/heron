@@ -111,6 +111,7 @@ describe("ShortcutSettings", () => {
     }
     settingsStore.revision = 1
     useAudioRuntimeStore().applyResources({
+      recovery: null,
       host,
       engine: null,
       transport: null,

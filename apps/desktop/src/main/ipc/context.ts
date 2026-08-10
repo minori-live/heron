@@ -15,6 +15,7 @@ import type { ProjectService } from "../project"
 import type { RecordingService } from "../recording"
 import type { TransportService } from "../audio"
 import type { WaveformService } from "../project"
+import type { AudioDeviceRecoveryCoordinator } from "../app"
 
 export interface ApplicationServices {
   settings: ApplicationSettingsStore
@@ -33,6 +34,7 @@ export interface ApplicationServices {
   lifecycle: LifecycleCoordinator
   audioHost: AudioHostService
   isShuttingDown: () => boolean
+  audioDeviceRecovery: AudioDeviceRecoveryCoordinator
 }
 
 export interface IpcHandlerContext extends ApplicationServices {

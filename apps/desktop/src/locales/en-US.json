@@ -124,6 +124,23 @@
       "discard": "Don't save"
     }
   },
+  "deviceRecovery": {
+    "eyebrow": "Audio device lost",
+    "title": "Choose how to restore audio",
+    "description": "Heron stopped using the unavailable device. Choose devices from the same backend to continue.",
+    "backend": "Backend: {backend}",
+    "input": "Input device",
+    "output": "Output device",
+    "savingTitle": "Safely saving the recording",
+    "savingDescription": "Device changes are disabled until captured media is finalized or secured for recovery.",
+    "restoredTitle": "Audio has been restored",
+    "restoredDescription": "The original devices are running again. Confirm them or choose replacements.",
+    "recoverableTitle": "Captured media is recoverable",
+    "recoverableDescription": "The take was not committed, but its recovery material has been preserved.",
+    "selectionFailed": "The selected devices could not be opened. Your selection is preserved so you can retry.",
+    "keep": "Keep restored devices",
+    "useSelected": "Use selected devices"
+  },
   "errors": {
     "unableToCreateProject": "Unable to create project.",
     "unableToOpenProject": "Unable to open project.",
@@ -141,6 +158,8 @@
     "unableToReadAudioEngineState": "Unable to read audio engine state.",
     "unableToStartAudioEngine": "Unable to start the native audio engine.",
     "unableToStopAudioEngine": "Unable to stop the native audio engine.",
+    "audioDeviceRecoveryUnavailable": "Audio device recovery is no longer available.",
+    "audioDeviceRecoveryFailed": "The selected audio devices could not be applied.",
     "invalidRpcRequest": "The request was invalid.",
     "lowLatencyModeUnavailable": "Low Latency Mode can only be changed while transport is stopped and a valid Output is selected.",
     "protocolMismatch": "This application component uses an incompatible protocol version.",

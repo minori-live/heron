@@ -25,6 +25,48 @@ const project: ProjectSession = {
 }
 
 describe("ApplicationStateStore", () => {
+  it("owns recovery as an audio-host child without rotating the running engine", async () => {
+    const created = ApplicationStateStore.create({
+      epoch: "epoch-1",
+      audioHostEpoch: "host-epoch",
+      project: null,
+      runtime: { ...INITIAL_AUDIO_RUNTIME_SNAPSHOT, state: "running" }
+    })
+    if (!created.ok) throw new Error("test setup failed")
+    const store = created.value
+    const running = await store.commitAudioEngine({
+      ...INITIAL_AUDIO_RUNTIME_SNAPSHOT,
+      state: "running"
+    })
+    const recovery = store.beginAudioDeviceRecovery({
+      decisionRevision: 1,
+      attemptGeneration: 2,
+      phase: "waiting-for-change",
+      previousPreferences: {
+        backend: "mock",
+        inputDeviceId: "input",
+        outputDeviceId: "output",
+        bufferSize: 128
+      },
+      candidates: { inputs: [], outputs: [] },
+      candidateRevision: 0,
+      lostDirections: ["output"],
+      fault: "device-not-available",
+      recordingStatus: "not-active",
+      failure: null
+    })
+
+    expect(recovery.recovery.kind).toBe("audio-device-recovery")
+    expect(store.resources.resolve(recovery.recovery)).toMatchObject({
+      ok: true,
+      value: { parent: store.audioHost }
+    })
+    expect(store.audioResourceSnapshot().engine).toEqual(running.engine)
+
+    await store.dropAudioDeviceRecovery()
+    expect(store.audioResourceSnapshot().recovery).toBeNull()
+  })
+
   it("creates committed desktop and settings roots in one main epoch", () => {
     const created = ApplicationStateStore.create({
       epoch: "epoch-1",

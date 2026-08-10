@@ -59,6 +59,35 @@ export interface AudioHostRuntime {
   buffer_fallback: boolean
 }
 
+export interface AudioHostDeviceRecovery {
+  recovery_id: number
+  revision: number
+  candidate_revision: number
+  attempt_generation: number
+  phase:
+    | "waiting-for-authorization"
+    | "waiting-for-change"
+    | "attempting-original"
+    | "original-restored"
+    | "applying-selection"
+    | "selection-failed"
+  original_config: {
+    backend: string
+    input_device_id: string
+    output_device_id: string
+    buffer_size: number
+    session_sample_rate: number | null
+  }
+  candidates: { inputs: AudioHostDevice[]; outputs: AudioHostDevice[] }
+  lost_directions: Array<"input" | "output">
+  fault:
+    | "device-not-available"
+    | "stream-invalidated"
+    | "host-unavailable"
+    | "device-busy"
+    | "backend-error"
+}
+
 export interface AudioHostRoundTripLatencyMeasurement {
   status: string
   input_channel: number | null

@@ -4,6 +4,7 @@ use super::{
     plan_low_latency,
 };
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativeAudioEngineConfig {
     pub backend: String,
     pub input_device_id: String,
@@ -12,6 +13,7 @@ pub struct NativeAudioEngineConfig {
     pub session_sample_rate: Option<u32>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct NativeAudioRuntimeSnapshot {
     pub state: String,
     pub requested_buffer_size: Option<u32>,

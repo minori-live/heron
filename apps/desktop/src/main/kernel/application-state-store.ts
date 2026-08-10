@@ -9,6 +9,8 @@ import type {
   ApplicationSettings,
   ApplicationSettingsResourceSnapshot,
   AudioEngineRef,
+  AudioDeviceRecoveryRef,
+  AudioDeviceRecoverySnapshot,
   AudioHostRef,
   AudioLifecycleState,
   AudioResourceSnapshot,
@@ -92,6 +94,7 @@ export class ApplicationStateStore {
   private recordingResource: RecordingResourceSnapshot | null = null
   private workspace: ProjectWorkspaceSnapshot | null = null
   private audioEngine: AudioEngineRef | null = null
+  private audioRecovery: AudioDeviceRecoveryRef | null = null
   private transport: TransportRef | null = null
   private currentAudioHost: AudioHostRef
   private currentMidiRuntime: MidiRuntimeRef
@@ -356,6 +359,7 @@ export class ApplicationStateStore {
     const revision = resolved?.ok ? resolved.value.revision : 0
     return {
       host: structuredClone(this.currentAudioHost),
+      recovery: this.audioRecovery ? structuredClone(this.audioRecovery) : null,
       engine: this.audioEngine ? structuredClone(this.audioEngine) : null,
       transport: this.transport ? structuredClone(this.transport) : null,
       midiRuntime: structuredClone(this.currentMidiRuntime),
@@ -417,11 +421,50 @@ export class ApplicationStateStore {
     return this.audioResourceSnapshot()
   }
 
+  beginAudioDeviceRecovery(
+    recovery: Omit<AudioDeviceRecoverySnapshot, "recovery">
+  ): AudioDeviceRecoverySnapshot {
+    if (this.audioRecovery) throw new Error("audio-device-recovery-busy")
+    const candidate = this.resources.create({
+      kind: "audio-device-recovery",
+      id: `audio-device-recovery:${recovery.decisionRevision}`,
+      epoch: this.currentAudioHost.epoch,
+      parent: this.currentAudioHost
+    })
+    if (!candidate.ok) throw new Error(candidate.error.code)
+    const committed = this.resources.commit(candidate.value.ref, recovery)
+    if (!committed.ok) throw new Error(committed.error.code)
+    this.audioRecovery = committed.value.ref as AudioDeviceRecoveryRef
+    return { ...structuredClone(recovery), recovery: structuredClone(this.audioRecovery) }
+  }
+
+  updateAudioDeviceRecovery(
+    recovery: Omit<AudioDeviceRecoverySnapshot, "recovery">
+  ): AudioDeviceRecoverySnapshot {
+    if (!this.audioRecovery) return this.beginAudioDeviceRecovery(recovery)
+    const resolved = this.resources.resolve(this.audioRecovery)
+    if (!resolved.ok) throw new Error(resolved.error.code)
+    const updated = this.resources.update(this.audioRecovery, resolved.value.revision, recovery)
+    if (!updated.ok) throw new Error(updated.error.code)
+    return { ...structuredClone(recovery), recovery: structuredClone(this.audioRecovery) }
+  }
+
+  currentAudioDeviceRecovery(): AudioDeviceRecoveryRef | null {
+    return this.audioRecovery ? structuredClone(this.audioRecovery) : null
+  }
+
+  async dropAudioDeviceRecovery(): Promise<void> {
+    if (this.audioRecovery) await this.resources.drop(this.audioRecovery)
+    this.audioRecovery = null
+  }
+
   async dropAudioEngine(): Promise<AudioResourceSnapshot> {
+    await this.dropAudioDeviceRecovery()
     await this.dropRecording()
     if (this.audioEngine) await this.resources.drop(this.audioEngine)
     this.audioEngine = null
     this.transport = null
+    this.audioRecovery = null
     return this.audioResourceSnapshot()
   }
 
@@ -458,6 +501,7 @@ export class ApplicationStateStore {
     this.currentMidiRuntime = midiRuntime.value.ref as MidiRuntimeRef
     this.audioEngine = null
     this.transport = null
+    this.audioRecovery = null
     return this.audioResourceSnapshot()
   }
 

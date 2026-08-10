@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use super::{AraCallbackEvent, MidiInputSnapshot, PluginEditorPreference, RpcError};
+use super::{
+    AraCallbackEvent, AudioDeviceRecovery, MidiInputSnapshot, PluginEditorPreference, RpcError,
+};
 
 /// Unsolicited helper notifications use a separate channel so editor and
 /// runtime events cannot head-of-line block control responses.
@@ -60,5 +62,8 @@ pub enum HostEvent {
     },
     MidiInputSnapshot {
         snapshot: MidiInputSnapshot,
+    },
+    AudioDeviceRecoveryChanged {
+        recovery: Option<AudioDeviceRecovery>,
     },
 }

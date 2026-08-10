@@ -36,6 +36,9 @@ const api: HeronDesktopApi = {
     invokeRpc(IPC_CHANNELS.audioStart, meta, preferences),
   stopAudioEngine: (meta) => invokeRpc(IPC_CHANNELS.audioStop, meta),
   audioEngineSnapshot: (meta) => invokeRpc(IPC_CHANNELS.audioSnapshot, meta),
+  selectAudioRecoveryDevice: (meta, preferences) =>
+    invokeRpc(IPC_CHANNELS.audioRecoverySelect, meta, preferences),
+  keepRestoredAudioDevice: (meta) => invokeRpc(IPC_CHANNELS.audioRecoveryKeepRestored, meta),
   startRoundTripLatencyMeasurement: (meta, request: RoundTripLatencyMeasurementRequest) =>
     invokeRpc(IPC_CHANNELS.audioRoundTripLatencyStart, meta, request),
   roundTripLatencyMeasurementSnapshot: (meta) =>

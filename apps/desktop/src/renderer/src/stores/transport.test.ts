@@ -107,6 +107,7 @@ describe("transport store", () => {
     setActivePinia(createPinia())
     useMixerStore().graph = structuredClone(emptyGraph)
     useAudioRuntimeStore().applyResources({
+      recovery: null,
       host: {
         kind: "audio-host",
         id: "audio-host",

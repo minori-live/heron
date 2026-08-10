@@ -35,6 +35,7 @@ function engineSuccess(runtime: AudioRuntimeSnapshot): RpcResult<AudioEngineSess
     requestId: "request",
     operationId: "operation",
     value: {
+      recovery: null,
       host: {
         kind: "audio-host",
         id: "audio-host",
@@ -68,6 +69,7 @@ function engineSuccess(runtime: AudioRuntimeSnapshot): RpcResult<AudioEngineSess
 
 function applyAudioHost(): void {
   useAudioRuntimeStore().applyResources({
+    recovery: null,
     midiRuntime: {
       kind: "midi-runtime",
       id: "midi-runtime",

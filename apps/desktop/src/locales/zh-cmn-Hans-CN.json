@@ -124,6 +124,23 @@
       "discard": "不保存"
     }
   },
+  "deviceRecovery": {
+    "eyebrow": "音频设备已丢失",
+    "title": "选择音频恢复方式",
+    "description": "Heron 已停止使用不可用设备。请选择同一后端中的设备以继续。",
+    "backend": "后端：{backend}",
+    "input": "输入设备",
+    "output": "输出设备",
+    "savingTitle": "正在安全保存录音",
+    "savingDescription": "在录音素材完成收口或进入可恢复状态前，设备提交暂不可用。",
+    "restoredTitle": "音频已经恢复",
+    "restoredDescription": "原设备已重新运行。请确认保留，或选择替代设备。",
+    "recoverableTitle": "录音素材可以恢复",
+    "recoverableDescription": "本次 take 未能提交，但恢复素材已经保留。",
+    "selectionFailed": "无法打开所选设备。当前选择已保留，可以重试。",
+    "keep": "保留已恢复设备",
+    "useSelected": "使用所选设备"
+  },
   "errors": {
     "unableToCreateProject": "无法创建工程。",
     "unableToOpenProject": "无法打开工程。",
@@ -141,6 +158,8 @@
     "unableToReadAudioEngineState": "无法读取音频引擎状态。",
     "unableToStartAudioEngine": "无法启动原生音频引擎。",
     "unableToStopAudioEngine": "无法停止原生音频引擎。",
+    "audioDeviceRecoveryUnavailable": "音频设备恢复决策已失效。",
+    "audioDeviceRecoveryFailed": "无法应用所选音频设备。",
     "invalidRpcRequest": "请求无效。",
     "lowLatencyModeUnavailable": "只能在走带停止且已选择有效 Output 时更改低延迟模式。",
     "protocolMismatch": "此应用组件使用了不兼容的协议版本。",

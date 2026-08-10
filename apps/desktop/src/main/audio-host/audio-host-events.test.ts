@@ -200,6 +200,64 @@ describe("drainHostEvents", () => {
     )
     expect(callbacks).toEqual([])
   })
+
+  it("decodes typed device recovery events and rejects malformed candidates", () => {
+    const recoveries: unknown[] = []
+    const recovery = {
+      recovery_id: 3,
+      revision: 4,
+      candidate_revision: 2,
+      attempt_generation: 8,
+      phase: "waiting-for-change",
+      original_config: {
+        backend: "mock",
+        input_device_id: "original",
+        output_device_id: "original",
+        buffer_size: 128,
+        session_sample_rate: 48_000
+      },
+      candidates: {
+        inputs: [
+          {
+            id: "input",
+            name: "Input",
+            is_default: false,
+            default_sample_rate: 48_000,
+            min_buffer_size: 32,
+            max_buffer_size: 2048,
+            channel_count: 2
+          }
+        ],
+        outputs: []
+      },
+      lost_directions: ["output"],
+      fault: "device-not-available"
+    }
+    drainHostEvents(
+      clientWithEvents([
+        { type: "audio-device-recovery-changed", recovery },
+        {
+          type: "audio-device-recovery-changed",
+          recovery: { ...recovery, candidates: { inputs: [{ id: 7 }], outputs: [] } }
+        },
+        { type: "audio-device-recovery-changed", recovery: null }
+      ]),
+      async () => {},
+      new Set(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      (value) => recoveries.push(value)
+    )
+    expect(recoveries).toHaveLength(2)
+    expect(recoveries[0]).toMatchObject({
+      recoveryId: 3,
+      originalPreferences: { backend: "mock", inputDeviceId: "original" },
+      lostDirections: ["output"]
+    })
+    expect(recoveries[1]).toBeNull()
+  })
 })
 
 describe("AraCallbackSequenceTracker", () => {

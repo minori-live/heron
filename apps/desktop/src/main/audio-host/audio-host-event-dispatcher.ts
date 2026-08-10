@@ -1,6 +1,7 @@
 import { AraCallbackSequenceTracker } from "./audio-host-events"
 import type {
   AraHostCallback,
+  NativeAudioDeviceRecoverySnapshot,
   PluginSidechainRouteRequest,
   PluginHostNotification
 } from "./audio-host-events"
@@ -17,6 +18,9 @@ export class AudioHostEventDispatcher {
   private pluginHandler: (notification: PluginHostNotification) => void | Promise<void> = () => {}
   private sidechainHandler: (request: PluginSidechainRouteRequest) => void | Promise<void> =
     () => {}
+  private recoveryHandler: (
+    recovery: NativeAudioDeviceRecoverySnapshot | null
+  ) => void | Promise<void> = () => {}
 
   constructor(private readonly operations: AudioHostEventOperations) {}
 
@@ -32,6 +36,12 @@ export class AudioHostEventDispatcher {
     handler: (request: PluginSidechainRouteRequest) => void | Promise<void>
   ): void {
     this.sidechainHandler = handler
+  }
+
+  setDeviceRecoveryHandler(
+    handler: (recovery: NativeAudioDeviceRecoverySnapshot | null) => void | Promise<void>
+  ): void {
+    this.recoveryHandler = handler
   }
 
   dispatchAra(callback: AraHostCallback): void {
@@ -63,6 +73,16 @@ export class AudioHostEventDispatcher {
         .catch(async (error: unknown) => {
           console.error("Could not commit a VST3 side-chain route", error)
           await this.operations.rejectSidechainRoute(request)
+        })
+    )
+  }
+
+  dispatchDeviceRecovery(recovery: NativeAudioDeviceRecoverySnapshot | null): void {
+    this.track(
+      Promise.resolve()
+        .then(() => this.recoveryHandler(recovery))
+        .catch((error: unknown) => {
+          console.error("Could not reconcile audio device recovery", error)
         })
     )
   }

@@ -4,6 +4,8 @@ import { computed, ref, shallowRef } from "vue"
 import { INITIAL_AUDIO_RUNTIME_SNAPSHOT } from "@heron/contracts"
 import type {
   AudioEngineRef,
+  AudioDeviceRecoveryRef,
+  AudioDeviceRecoverySnapshot,
   AudioHostRef,
   AudioLifecycleState,
   AudioPreferences,
@@ -95,6 +97,7 @@ export const useAudioRuntimeStore = defineStore("audio-runtime", () => {
   const lastUpdatedAt = ref<number | null>(null)
   const audioHostRef = shallowRef<AudioHostRef | null>(null)
   const audioEngineRef = shallowRef<AudioEngineRef | null>(null)
+  const audioRecoveryRef = shallowRef<AudioDeviceRecoveryRef | null>(null)
   const transportRef = shallowRef<TransportRef | null>(null)
   const midiRuntimeRef = shallowRef<MidiRuntimeRef | null>(null)
   const transportRevision = ref(0)
@@ -136,17 +139,24 @@ export const useAudioRuntimeStore = defineStore("audio-runtime", () => {
     }
 
     lifecycle.value =
-      snapshot.state === "running"
-        ? { status: "running", runtime: snapshot, error: null }
-        : snapshot.state === "error"
-          ? {
-              status: "error",
-              runtime: snapshot,
-              error: lifecycle.value.error ?? t("errors.nativeAudioEngineStopped")
-            }
-          : { status: "stopped", runtime: snapshot, error: null }
+      lifecycle.value.status === "recovering"
+        ? { ...lifecycle.value, runtime: snapshot }
+        : snapshot.state === "running"
+          ? { status: "running", runtime: snapshot, error: null }
+          : snapshot.state === "error"
+            ? {
+                status: "error",
+                runtime: snapshot,
+                error: lifecycle.value.error ?? t("errors.nativeAudioEngineStopped")
+              }
+            : { status: "stopped", runtime: snapshot, error: null }
     lastUpdatedAt.value = capturedAt
     record(snapshot, capturedAt)
+  }
+
+  function completeRecovery(snapshot: AudioRuntimeSnapshot): void {
+    lifecycle.value = { status: "stopped", runtime: lifecycle.value.runtime, error: null }
+    updateRuntime(snapshot)
   }
 
   async function refresh(): Promise<void> {
@@ -155,10 +165,13 @@ export const useAudioRuntimeStore = defineStore("audio-runtime", () => {
     const result = await window.heron.audioEngineSnapshot(readMeta(audioEngineRef.value))
     if (generation !== requestGeneration) return
     if (!result.ok) {
+      const message = rpcErrorMessage(result.error)
+      rpcError.value = message
+      if (lifecycle.value.status === "recovering") return
       lifecycle.value = {
         status: "error",
         runtime: runtime.value,
-        error: rpcErrorMessage(result.error)
+        error: message
       }
       return
     }
@@ -218,6 +231,46 @@ export const useAudioRuntimeStore = defineStore("audio-runtime", () => {
     return result.value.runtime
   }
 
+  async function selectRecoveryDevice(
+    preferences: AudioPreferences
+  ): Promise<AudioRuntimeSnapshot> {
+    const target = audioRecoveryRef.value
+    const recovery = lifecycle.value.status === "recovering" ? lifecycle.value.recovery : null
+    if (!target || !recovery) throw new Error(t("errors.audioDeviceRecoveryUnavailable"))
+    lifecycle.value = {
+      status: "recovering",
+      runtime: lifecycle.value.runtime,
+      error: null,
+      recovery: { ...recovery, phase: "applying-selection", failure: null }
+    }
+    const result = await window.heron.selectAudioRecoveryDevice(
+      mutationMeta(target, "audio-device-recovery-select"),
+      preferences
+    )
+    if (!result.ok) {
+      rpcError.value = rpcErrorMessage(result.error)
+      throw new Error(rpcError.value)
+    }
+    applyResources(result.value)
+    audioRecoveryRef.value = null
+    completeRecovery(result.value.runtime)
+    return result.value.runtime
+  }
+
+  async function keepRestoredDevice(): Promise<void> {
+    const target = audioRecoveryRef.value
+    if (!target) throw new Error(t("errors.audioDeviceRecoveryUnavailable"))
+    const result = await window.heron.keepRestoredAudioDevice(
+      mutationMeta(target, "audio-device-recovery-keep")
+    )
+    if (!result.ok) {
+      rpcError.value = rpcErrorMessage(result.error)
+      throw new Error(rpcError.value)
+    }
+    audioRecoveryRef.value = null
+    if (lifecycle.value.status === "recovering") completeRecovery(lifecycle.value.runtime)
+  }
+
   async function startRoundTripLatencyMeasurement(
     request: RoundTripLatencyMeasurementRequest
   ): Promise<RoundTripLatencyMeasurement> {
@@ -257,6 +310,7 @@ export const useAudioRuntimeStore = defineStore("audio-runtime", () => {
   function applyResources(resources: AudioResourceSnapshot): void {
     audioHostRef.value = structuredClone(resources.host)
     audioEngineRef.value = resources.engine ? structuredClone(resources.engine) : null
+    audioRecoveryRef.value = resources.recovery ? structuredClone(resources.recovery) : null
     transportRef.value = resources.transport ? structuredClone(resources.transport) : null
     midiRuntimeRef.value = structuredClone(resources.midiRuntime)
     transportRevision.value = resources.revision
@@ -278,6 +332,9 @@ export const useAudioRuntimeStore = defineStore("audio-runtime", () => {
   }
 
   const sessionXruns = computed(() => Math.max(0, runtime.value.xruns - xrunBaseline.value))
+  const recovery = computed<AudioDeviceRecoverySnapshot | null>(() =>
+    lifecycle.value.status === "recovering" ? lifecycle.value.recovery : null
+  )
 
   const statistics = computed<AudioTelemetryStatistics>(() => {
     const roundTrip = compact(latencyHistory.value.map((sample) => sample.roundTripLatencyMs))
@@ -429,6 +486,8 @@ export const useAudioRuntimeStore = defineStore("audio-runtime", () => {
     lastUpdatedAt,
     audioHostRef,
     audioEngineRef,
+    audioRecoveryRef,
+    recovery,
     transportRef,
     midiRuntimeRef,
     transportRevision,
@@ -438,6 +497,8 @@ export const useAudioRuntimeStore = defineStore("audio-runtime", () => {
     refresh,
     startEngine,
     stopEngine,
+    selectRecoveryDevice,
+    keepRestoredDevice,
     startRoundTripLatencyMeasurement,
     refreshRoundTripLatencyMeasurement,
     startPolling,
