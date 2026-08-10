@@ -20,6 +20,7 @@ const props = withDefaults(
     modal?: boolean
     closeLabel?: string
     dismissible?: boolean
+    reserveCloseSpace?: boolean
   }>(),
   {
     eyebrow: undefined,
@@ -27,7 +28,8 @@ const props = withDefaults(
     size: "md",
     modal: true,
     closeLabel: "Close dialog",
-    dismissible: true
+    dismissible: true,
+    reserveCloseSpace: false
   }
 )
 
@@ -65,13 +67,15 @@ defineSlots<{
               </DialogDescription>
             </div>
           </slot>
-          <DialogClose
-            v-if="props.dismissible"
-            class="ui-dialog__close"
-            :aria-label="props.closeLabel"
-          >
-            <span aria-hidden="true">×</span>
-          </DialogClose>
+          <div v-if="props.dismissible || props.reserveCloseSpace" class="ui-dialog__close-slot">
+            <DialogClose
+              v-if="props.dismissible"
+              class="ui-dialog__close"
+              :aria-label="props.closeLabel"
+            >
+              <span aria-hidden="true">×</span>
+            </DialogClose>
+          </div>
         </header>
         <div class="ui-dialog__body" tabindex="0">
           <slot />
@@ -160,11 +164,18 @@ defineSlots<{
   line-height: var(--ui-type-leading-normal);
 }
 
-.ui-dialog__close {
+.ui-dialog__close-slot {
   display: inline-grid;
   width: var(--ui-control-sm);
   min-width: var(--ui-control-sm);
   height: var(--ui-control-sm);
+  place-items: center;
+}
+
+.ui-dialog__close {
+  display: inline-grid;
+  width: 100%;
+  height: 100%;
   padding: 0;
   place-items: center;
   color: var(--ui-color-text-muted);

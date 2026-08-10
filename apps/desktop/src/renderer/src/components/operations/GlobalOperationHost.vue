@@ -26,6 +26,7 @@ const open = computed({
     :title="t('operation.eyebrow')"
     size="sm"
     :dismissible="active.state !== 'running'"
+    reserve-close-space
   >
     <OperationProgressDialog :operation="active" @cancel="store.cancel(active.id)" />
   </UiDialog>

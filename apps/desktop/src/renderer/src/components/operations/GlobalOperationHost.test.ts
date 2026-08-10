@@ -36,6 +36,8 @@ describe("GlobalOperationHost", () => {
     expect(dialog?.querySelector(".ui-dialog__eyebrow")).toBeNull()
     expect(dialog?.querySelector(".ui-dialog__title")?.textContent).toBe("Background operation")
     expect(dialog?.querySelector(".ui-dialog__description")).toBeNull()
+    expect(dialog?.querySelector(".ui-dialog__close-slot")).not.toBeNull()
+    expect(dialog?.querySelector(".ui-dialog__close")).toBeNull()
     expect(dialog?.querySelector(".operation-description")?.textContent?.trim()).toBe(
       "Saving project · Saving project archive"
     )
