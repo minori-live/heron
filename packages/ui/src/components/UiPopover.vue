@@ -9,6 +9,7 @@ const props = withDefaults(
     sideOffset?: number
     collisionPadding?: number
     modal?: boolean
+    contentClass?: string
   }>(),
   {
     align: "center",
@@ -27,7 +28,7 @@ const props = withDefaults(
     </PopoverTrigger>
     <PopoverPortal>
       <PopoverContent
-        class="ui-popover"
+        :class="['ui-popover', props.contentClass]"
         :align="props.align"
         :side="props.side"
         :side-offset="props.sideOffset"

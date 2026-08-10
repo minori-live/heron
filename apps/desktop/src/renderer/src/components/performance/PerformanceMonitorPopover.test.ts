@@ -45,9 +45,7 @@ function mountPopover(
     global: {
       stubs: {
         UiPopover: { template: '<div><slot name="trigger"/><slot/></div>' },
-        PerformanceResourceSections: { template: '<div class="resources" />' },
-        PerformanceAudioSection: { template: '<div class="audio" />' },
-        PerformanceAudioRuntimeSection: { template: '<div class="runtime" />' }
+        PerformanceSummaryList: { template: '<div class="summary" />' }
       }
     }
   })
@@ -83,6 +81,7 @@ describe("PerformanceMonitorPopover", () => {
     expect(wrapper.find(".performance-trigger").text()).toContain("MEM 82%")
     const alerts = wrapper.findAll(".performance-alert")
     expect(alerts.length).toBeGreaterThanOrEqual(3)
+    expect(wrapper.find(".alerts-heading").text()).toContain(`${alerts.length} active`)
     expect(wrapper.text()).toContain("Audio interruption")
     expect(wrapper.text()).toContain("42.0 ms")
   })
