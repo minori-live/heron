@@ -33,14 +33,14 @@ export function memorySnapshot(totalBytes: number, availableBytes: number): Memo
  * Swap counters are not part of `vm_stat` physical page totals and are ignored.
  */
 export function parseMacMemorySnapshot(output: string, totalBytes: number): MemorySnapshot | null {
-  const pageSize = Number(/page size of (?<bytes>\d+) bytes/u.exec(output)?.groups?.bytes)
+  const pageSize = Number(output.match(/page size of (?<bytes>\d+) bytes/u)?.groups?.bytes)
   if (!Number.isSafeInteger(pageSize) || pageSize <= 0) return null
 
   const pages = new Map<string, number>()
   for (const line of output.split(/\r?\n/u)) {
-    const match = /^Pages (?<name>free|inactive|speculative):\s+(?<count>\d+)\.?$/u.exec(
-      line.trim()
-    )
+    const match = line
+      .trim()
+      .match(/^Pages (?<name>free|inactive|speculative):\s+(?<count>\d+)\.?$/u)
     const name = match?.groups?.name
     const count = match?.groups?.count
     if (!name || !count) continue
