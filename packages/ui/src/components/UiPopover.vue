@@ -16,7 +16,8 @@ const props = withDefaults(
     side: "bottom",
     sideOffset: 8,
     collisionPadding: 8,
-    modal: false
+    modal: false,
+    contentClass: undefined
   }
 )
 </script>
