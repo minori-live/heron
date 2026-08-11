@@ -109,8 +109,11 @@ describe("MixerInstrumentInput", () => {
             editorOpen: false,
             failure: {
               instanceId: "instrument-plugin",
+              instanceGeneration: 3,
+              graphRevision: 17,
               category: "plugin-rejected",
               stage: "process",
+              outcome: "failed",
               recoverable: true,
               diagnosticId: "plugin:instrument-plugin:process",
               message: "The instrument rejected an audio block."

@@ -37,8 +37,11 @@ const failed: PluginRuntimeStatus = {
   failureStage: "process",
   failure: {
     instanceId: plugin.id,
+    instanceGeneration: 3,
+    graphRevision: 17,
     category: "invalid-output",
     stage: "process",
+    outcome: "failed",
     recoverable: true,
     diagnosticId: "plugin:fx-1:process",
     message: "the plug-in produced non-finite audio"

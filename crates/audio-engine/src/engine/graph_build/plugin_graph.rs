@@ -12,6 +12,7 @@ pub(super) struct PluginGraphBuild {
 }
 
 pub(super) struct PluginGraphInput<'a> {
+    pub(super) graph_revision: u64,
     pub(super) sample_rate: u32,
     pub(super) native_plugins: Vec<NativePluginInstance>,
     pub(super) native_sends: &'a [NativeMixerSend],
@@ -24,6 +25,7 @@ pub(super) struct PluginGraphInput<'a> {
 
 pub(super) fn build_plugin_graph(input: PluginGraphInput<'_>) -> Result<PluginGraphBuild> {
     let PluginGraphInput {
+        graph_revision,
         sample_rate,
         native_plugins,
         native_sends,
@@ -93,6 +95,8 @@ pub(super) fn build_plugin_graph(input: PluginGraphInput<'_>) -> Result<PluginGr
         let is_low_latency_bypassed = low_latency_bypassed.contains(&plugin.instance_id);
         plugins_by_channel[channel_index].push(LivePlugin {
             instance_id: plugin.instance_id,
+            instance_generation: plugin.instance_generation,
+            graph_revision,
             processor: plugin.processor,
             audio_mode: plugin.audio_mode,
             enabled: plugin.enabled,

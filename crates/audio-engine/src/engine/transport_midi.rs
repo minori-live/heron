@@ -6,6 +6,8 @@ use super::{
 
 pub(super) struct LivePlugin {
     pub(super) instance_id: String,
+    pub(super) instance_generation: u32,
+    pub(super) graph_revision: u64,
     pub(super) processor: Option<AudioPluginProcessorHandle>,
     pub(super) audio_mode: PluginAudioMode,
     pub(super) enabled: bool,
@@ -100,6 +102,7 @@ impl LivePlugin {
             frame_count,
         };
         *width = output_width;
+        processor.set_failure_context(self.instance_generation, self.graph_revision);
         if !processor.process_block(frames, &sidechains, context) {
             if self.is_instrument {
                 frames.fill([0.0; 2]);

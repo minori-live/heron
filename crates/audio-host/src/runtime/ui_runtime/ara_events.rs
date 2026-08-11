@@ -1,6 +1,6 @@
 use super::{
-    ControlResult, EmbeddedUiHost, HostEvent, PluginFailureCategory, PluginFailureStage,
-    PluginProcessFailure, PluginRuntimeFailure, std_mpsc,
+    ControlResult, EmbeddedUiHost, HostEvent, PluginFailureCategory, PluginFailureOutcome,
+    PluginFailureStage, PluginProcessFailure, PluginRuntimeFailure, std_mpsc,
 };
 
 impl EmbeddedUiHost {
@@ -18,8 +18,8 @@ impl EmbeddedUiHost {
                     .collect::<Vec<_>>()
             },
         );
-        for (instance_id, processor, failure) in failures {
-            let (category, message) = match failure {
+        for (instance_id, processor, report) in failures {
+            let (category, message) = match report.failure {
                 PluginProcessFailure::Rejected => (
                     PluginFailureCategory::PluginRejected,
                     "the plug-in rejected an audio processing block",
@@ -34,8 +34,11 @@ impl EmbeddedUiHost {
                 self.host_events.try_send(HostEvent::PluginFailure {
                     failure: PluginRuntimeFailure {
                         instance_id,
+                        instance_generation: report.instance_generation,
+                        graph_revision: report.graph_revision,
                         category,
                         stage: PluginFailureStage::Process,
+                        outcome: PluginFailureOutcome::Failed,
                         recoverable: true,
                         diagnostic_id,
                         message: message.to_owned(),

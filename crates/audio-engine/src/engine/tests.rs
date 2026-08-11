@@ -93,6 +93,8 @@ fn test_process_context() -> ProcessContext {
 fn missing_effect(mode: PluginAudioMode, enabled: bool) -> LivePlugin {
     LivePlugin {
         instance_id: "missing-effect".to_owned(),
+        instance_generation: 1,
+        graph_revision: 1,
         processor: None,
         audio_mode: mode,
         enabled,

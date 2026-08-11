@@ -21,6 +21,14 @@ owning slot, where the user can explicitly retry. Retry currently re-arms the
 still-owned processor; it does not unload the module, recreate ARA objects, or
 claim a new instance generation.
 
+Delivery Slice 1 is complete on this branch. Rust and TypeScript share the
+category, stage, terminal-outcome, instance-generation, and graph-revision
+contract. Strict Rust and Electron-main decoders reject malformed or ambient
+fields, and cross-language MessagePack fixtures lock the named encoding. The
+feature-gated fixture harness deterministically rejects every returning stage,
+maps every category to one terminal outcome, and converts only an unwind-safe,
+host-owned non-real-time fixture panic into `host-panic`.
+
 Initialize, restore, parameter, editor, state-save, and ARA returning failures,
 generation-based instance replacement, repeated-failure fingerprint
 quarantine, notifications/health details, platform matrices, and soak evidence
@@ -118,7 +126,7 @@ mutation outcome and reconciliation path rather than guessing.
 
 ## Delivery slices
 
-### 1. Typed failure taxonomy and fixture harness
+### 1. Typed failure taxonomy and fixture harness — complete
 
 - Define Rust and TypeScript failure category/stage unions and generation data.
 - Extend MessagePack fixtures and strict decoders before adding UI behavior.
@@ -130,6 +138,12 @@ mutation outcome and reconciliation path rather than guessing.
 
 Exit: every supported failure maps to one typed terminal result, and malformed
 failure data is rejected without changing graph or project state.
+
+Evidence: protocol fixture tests cover all seven stages and six categories;
+Rust rejects missing, unknown, and ambient failure fields; Electron main
+rejects invalid generation, revision, outcome, recoverability, category, stage,
+and extra fields. The pure fixture harness has no graph or project mutation
+authority. Actual lifecycle call-site containment remains Slice 3.
 
 ### 2. Instance-level audio fallback
 

@@ -106,6 +106,7 @@ export class AudioGraphCompiler {
       })),
       plugins: graph.plugins.map((plugin) => ({
         instance_id: plugin.id,
+        instance_generation: 1,
         channel_id: plugin.channelId,
         role: plugin.role,
         slot_order: plugin.slotOrder,

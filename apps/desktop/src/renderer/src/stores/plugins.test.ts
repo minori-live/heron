@@ -322,8 +322,11 @@ describe("plugin store", () => {
       resourceRevision: 1,
       payload: {
         instanceId: "plugin-1",
+        instanceGeneration: 3,
+        graphRevision: 17,
         category: "invalid-output",
         stage: "process",
+        outcome: "failed",
         recoverable: true,
         diagnosticId: "plugin:plugin-1:process",
         message: "the plug-in produced non-finite audio"

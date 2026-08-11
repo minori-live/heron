@@ -360,6 +360,7 @@ mod tests {
     ) -> LivePluginInstance {
         LivePluginInstance {
             instance_id: id.to_owned(),
+            instance_generation: 1,
             channel_id: channel_id.to_owned(),
             role: "effect".to_owned(),
             slot_order,

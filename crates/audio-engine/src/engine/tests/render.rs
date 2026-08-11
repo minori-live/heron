@@ -269,6 +269,8 @@ fn preview_plugin_enabled_switches_the_live_graph_without_rebuilding() {
     let mut runtime = transport_test_runtime(48_000, 1_000, 0, TRANSPORT_STOPPED);
     runtime.plugins_by_channel[0].push(LivePlugin {
         instance_id: "effect".to_owned(),
+        instance_generation: 1,
+        graph_revision: 1,
         processor: None,
         audio_mode: PluginAudioMode::Stereo,
         enabled: true,

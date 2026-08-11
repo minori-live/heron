@@ -34,9 +34,11 @@ describe("Rust MessagePack fixtures", () => {
       "ping",
       "typed-rpc-error",
       "plugin-event",
+      "plugin-failure-event",
       "heartbeat",
       "graph-transaction-resource-ref",
-      "recording-binary-payload"
+      "recording-binary-payload",
+      "plugin-failure-host-panic"
     ])
   })
 

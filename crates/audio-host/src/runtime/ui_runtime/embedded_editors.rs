@@ -1127,6 +1127,7 @@ mod tests {
             clips: Vec::new(),
             plugins: vec![LivePluginInstance {
                 instance_id: "effect".to_owned(),
+                instance_generation: 1,
                 channel_id: "target".to_owned(),
                 role: "effect".to_owned(),
                 slot_order: 0,

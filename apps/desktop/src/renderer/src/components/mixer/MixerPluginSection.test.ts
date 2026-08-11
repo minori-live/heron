@@ -234,8 +234,11 @@ describe("MixerPluginSection", () => {
             editorOpen: false,
             failure: {
               instanceId: "plugin",
+              instanceGeneration: 3,
+              graphRevision: 17,
               category: "invalid-output",
               stage: "process",
+              outcome: "failed",
               recoverable: true,
               diagnosticId: "plugin:plugin:process",
               message: "The plug-in produced non-finite audio."

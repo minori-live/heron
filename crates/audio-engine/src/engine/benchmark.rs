@@ -188,6 +188,7 @@ fn benchmark_graph(
         .enumerate()
         .map(|(index, (instance_id, processor))| NativePluginInstance {
             instance_id: instance_id.clone(),
+            instance_generation: 1,
             channel_index: (index % spec.tracks) as u32,
             role: "insert".into(),
             slot_order: (index / spec.tracks) as u32,

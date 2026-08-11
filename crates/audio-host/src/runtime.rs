@@ -36,9 +36,9 @@ use heron_dsp_runtime::protocol::{
     GraphCandidateSnapshot, GraphDeploymentSnapshot, GraphDeploymentStatus, GraphOperationOutcome,
     GraphOperationSnapshot, GraphTransactionRequest, GraphTransactionValue, GraphUpdate, HostEvent,
     IPC_PROTOCOL_VERSION, LiveLatencyPolicy, LiveMixerGraph, MidiNoteBatch, MixerChannelMeter,
-    PluginFailureCategory, PluginFailureStage, PluginRuntimeFailure, RecordingResult,
-    RecordingWaveform, ResourceKind, ResourceRef, RoundTripLatencyMeasurement, RpcError,
-    RpcErrorCategory, RpcErrorCode, RpcErrorDetails, RpcFailure, RpcMutationOutcome,
+    PluginFailureCategory, PluginFailureOutcome, PluginFailureStage, PluginRuntimeFailure,
+    RecordingResult, RecordingWaveform, ResourceKind, ResourceRef, RoundTripLatencyMeasurement,
+    RpcError, RpcErrorCategory, RpcErrorCode, RpcErrorDetails, RpcFailure, RpcMutationOutcome,
     RpcRequestMeta, RpcResult, RpcRetry, RpcSuccess, TransportState,
 };
 use heron_dsp_runtime::tempo::{TempoEvent, TimeSignatureEvent};

@@ -178,7 +178,7 @@ export const usePluginStore = defineStore("plugins", () => {
         ...runtime.value,
         [failure.instanceId]: {
           instanceId: failure.instanceId,
-          state: failure.recoverable ? "failed" : "quarantined",
+          state: failure.outcome,
           editorOpen: current?.editorOpen ?? false,
           ...(current?.editorMode ? { editorMode: current.editorMode } : {}),
           failureStage:

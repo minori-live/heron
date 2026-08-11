@@ -4,6 +4,7 @@ import type {
   AraCallbackEvent,
   PluginEditorPreference,
   PluginFailureCategory,
+  PluginFailureOutcome,
   PluginFailureStage,
   PluginRuntimeFailure
 } from "@heron/contracts"
@@ -85,6 +86,18 @@ const pluginFailureStages = new Set<PluginFailureStage>([
   "state-save",
   "ara"
 ])
+const pluginFailureOutcomes = new Set<PluginFailureOutcome>(["failed", "quarantined"])
+const pluginFailureFields = new Set([
+  "instance_id",
+  "instance_generation",
+  "graph_revision",
+  "category",
+  "stage",
+  "outcome",
+  "recoverable",
+  "diagnostic_id",
+  "message"
+])
 
 function finiteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value)
@@ -94,13 +107,21 @@ function decodePluginRuntimeFailure(value: unknown): PluginRuntimeFailure | null
   if (!value || typeof value !== "object") return null
   const failure = value as Record<string, unknown>
   if (
+    Object.keys(failure).some((field) => !pluginFailureFields.has(field)) ||
     typeof failure.instance_id !== "string" ||
     failure.instance_id.length === 0 ||
+    !Number.isSafeInteger(failure.instance_generation) ||
+    (failure.instance_generation as number) < 1 ||
+    !Number.isSafeInteger(failure.graph_revision) ||
+    (failure.graph_revision as number) < 0 ||
     typeof failure.category !== "string" ||
     !pluginFailureCategories.has(failure.category as PluginFailureCategory) ||
     typeof failure.stage !== "string" ||
     !pluginFailureStages.has(failure.stage as PluginFailureStage) ||
+    typeof failure.outcome !== "string" ||
+    !pluginFailureOutcomes.has(failure.outcome as PluginFailureOutcome) ||
     typeof failure.recoverable !== "boolean" ||
+    (failure.outcome === "failed") !== failure.recoverable ||
     typeof failure.diagnostic_id !== "string" ||
     failure.diagnostic_id.length === 0 ||
     typeof failure.message !== "string"
@@ -109,8 +130,11 @@ function decodePluginRuntimeFailure(value: unknown): PluginRuntimeFailure | null
   }
   return {
     instanceId: failure.instance_id,
+    instanceGeneration: failure.instance_generation as number,
+    graphRevision: failure.graph_revision as number,
     category: failure.category as PluginFailureCategory,
     stage: failure.stage as PluginFailureStage,
+    outcome: failure.outcome as PluginFailureOutcome,
     recoverable: failure.recoverable,
     diagnosticId: failure.diagnostic_id,
     message: failure.message

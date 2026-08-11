@@ -326,10 +326,15 @@ export type PluginFailureStage =
   | "state-save"
   | "ara"
 
+export type PluginFailureOutcome = "failed" | "quarantined"
+
 export interface PluginRuntimeFailure {
   instanceId: string
+  instanceGeneration: number
+  graphRevision: number
   category: PluginFailureCategory
   stage: PluginFailureStage
+  outcome: PluginFailureOutcome
   recoverable: boolean
   diagnosticId: string
   message: string
