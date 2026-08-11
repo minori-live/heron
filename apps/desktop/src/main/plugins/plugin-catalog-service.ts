@@ -271,6 +271,10 @@ export class PluginCatalogService {
     await this.runtime.closeEditor(instanceId)
   }
 
+  retry(instanceId: string): Promise<PluginRuntimeStatus> {
+    return this.runtime.retry(instanceId)
+  }
+
   parameters(instanceId: string): Promise<PluginParameterInfo[]> {
     return this.runtime.parameters(instanceId)
   }

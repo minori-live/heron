@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onUnmounted, shallowRef } from "vue"
 import { useI18n } from "vue-i18n"
-import { GripVertical, Power, Trash2 } from "@lucide/vue"
+import { GripVertical, Power, RotateCcw, Trash2 } from "@lucide/vue"
 import type {
   MixerChannelState,
+  PluginFailureCategory,
   PluginDescriptor,
   PluginInstanceState,
   PluginRuntimeStatus
@@ -37,6 +38,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   open: [instanceId: string]
+  retry: [instanceId: string]
   toggle: [instanceId: string, enabled: boolean]
   remove: [instanceId: string]
   insert: [selection: PluginSelection, slotOrder: number]
@@ -71,6 +73,24 @@ function inputWidthAt(slotOrder: number): PluginSignalWidth {
 
 function pluginState(plugin: PluginInstanceState): PluginRuntimeStatus["state"] {
   return pluginDisplayState(plugin, props.runtime[plugin.id])
+}
+
+function canRetry(plugin: PluginInstanceState): boolean {
+  return props.runtime[plugin.id]?.failure?.recoverable === true
+}
+
+function toggleOrRetry(plugin: PluginInstanceState): void {
+  if (canRetry(plugin)) emit("retry", plugin.id)
+  else emit("toggle", plugin.id, !plugin.enabled)
+}
+
+function failureMessage(category: PluginFailureCategory): string {
+  return t(`plugins.failure.${category}`)
+}
+
+function pluginFailureMessage(plugin: PluginInstanceState): string | undefined {
+  const failure = props.runtime[plugin.id]?.failure
+  return failure ? failureMessage(failure.category) : undefined
 }
 
 function accepts(event: DragEvent): boolean {
@@ -186,6 +206,7 @@ function confirmDrop(selection: PluginSelection): void {
             pluginState(plugin),
             { 'drag-source': draggedInstanceId === plugin.id }
           ]"
+          :title="pluginFailureMessage(plugin)"
           :aria-label="
             t('mixer.pluginSection.pluginState', {
               name: plugin.descriptor.name,
@@ -226,17 +247,20 @@ function confirmDrop(selection: PluginSelection): void {
               type="button"
               :aria-pressed="plugin.enabled"
               :aria-label="
-                t('mixer.pluginSection.bypassPlugin', {
-                  action: plugin.enabled
-                    ? t('mixer.pluginSection.bypass')
-                    : t('mixer.pluginSection.enable'),
-                  name: plugin.descriptor.name
-                })
+                canRetry(plugin)
+                  ? t('plugins.pluginSlot.retry', { name: plugin.descriptor.name })
+                  : t('mixer.pluginSection.bypassPlugin', {
+                      action: plugin.enabled
+                        ? t('mixer.pluginSection.bypass')
+                        : t('mixer.pluginSection.enable'),
+                      name: plugin.descriptor.name
+                    })
               "
               @pointerdown.stop
-              @click.stop="emit('toggle', plugin.id, !plugin.enabled)"
+              @click.stop="toggleOrRetry(plugin)"
             >
-              <Power :size="9" />
+              <RotateCcw v-if="canRetry(plugin)" :size="9" />
+              <Power v-else :size="9" />
             </button>
             <button
               type="button"

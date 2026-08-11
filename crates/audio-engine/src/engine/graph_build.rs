@@ -176,6 +176,7 @@ pub(super) fn build_mixer_runtime(
     });
     let (clips, content_end_frame) = load_audio_clips(native.clips, &channels, native.sample_rate)?;
     let plugin_build = build_plugin_graph(PluginGraphInput {
+        graph_revision: native.generation,
         sample_rate: native.sample_rate,
         native_plugins: native.plugins,
         native_sends: &native.sends,

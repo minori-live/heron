@@ -98,6 +98,32 @@ describe("AudioHostPluginClient", () => {
     expect(client.loadedInstanceIds()).toEqual(["plugin-1"])
   })
 
+  it("retries only an instance still owned by the host", async () => {
+    const { client, request } = createClient()
+
+    await expect(client.retryPlugin("plugin-1")).rejects.toThrow(
+      "Audio plug-in instance is not loaded"
+    )
+    request
+      .mockResolvedValueOnce({
+        result: {
+          type: "plugin-loaded",
+          runtime_handle: 7,
+          latency_samples: 32,
+          tail_samples: 64
+        }
+      })
+      .mockResolvedValueOnce({ result: { type: "ok" } })
+
+    await client.loadPlugin(plugin, 48_000)
+    await expect(client.retryPlugin("plugin-1")).resolves.toBeUndefined()
+
+    expect(request).toHaveBeenLastCalledWith({
+      type: "retry-plugin",
+      instance_id: "plugin-1"
+    })
+  })
+
   it("loads a hosted mono-to-stereo effect with its native mono processor layout", async () => {
     const { client, request } = createClient()
     request.mockResolvedValue({

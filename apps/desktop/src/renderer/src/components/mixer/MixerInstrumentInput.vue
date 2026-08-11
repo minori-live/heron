@@ -17,6 +17,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   open: [instanceId: string]
+  retry: [instanceId: string]
   remove: [instanceId: string]
   assign: [selection: PluginSelection]
 }>()
@@ -27,6 +28,18 @@ const instrumentState = computed<PluginRuntimeStatus["state"]>(() => {
   if (!props.instrument) return "unloaded"
   return pluginDisplayState(props.instrument, props.runtime[props.instrument.id])
 })
+const failure = computed(() =>
+  props.instrument ? props.runtime[props.instrument.id]?.failure : undefined
+)
+const failureMessage = computed(() =>
+  failure.value ? t(`plugins.failure.${failure.value.category}`) : undefined
+)
+
+function openOrRetry(): void {
+  if (!props.instrument) return
+  if (failure.value?.recoverable) emit("retry", props.instrument.id)
+  else emit("open", props.instrument.id)
+}
 
 function allowDrop(event: DragEvent): void {
   if (![...(event.dataTransfer?.types ?? [])].includes(PLUGIN_DRAG_TYPE)) return
@@ -53,6 +66,7 @@ function confirmDrop(selection: PluginSelection): void {
     <article
       v-if="instrument"
       :class="['instrument-input', instrumentState]"
+      :title="failureMessage"
       :aria-label="
         t('mixer.instrumentInput.ariaLabel', {
           name: instrument.descriptor.name,
@@ -67,9 +81,13 @@ function confirmDrop(selection: PluginSelection): void {
         type="button"
         class="instrument-name"
         :title="instrument.descriptor.name"
-        :aria-label="t('mixer.instrumentInput.openEditor', { name: instrument.descriptor.name })"
+        :aria-label="
+          failure?.recoverable
+            ? t('plugins.instrumentSlot.retry')
+            : t('mixer.instrumentInput.openEditor', { name: instrument.descriptor.name })
+        "
         @pointerdown.stop
-        @click.stop="emit('open', instrument.id)"
+        @click.stop="openOrRetry"
       >
         {{ instrument.descriptor.name }}
       </button>

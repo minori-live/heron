@@ -187,6 +187,7 @@ async function deleteChannel(channelId: string): Promise<void> {
         @add-send="mixerStore.addSend"
         @delete-send="mixerStore.deleteSend"
         @open-plugin="pluginStore.openEditor"
+        @retry-plugin="pluginStore.retry"
         @toggle-plugin="togglePlugin"
         @remove-plugin="removePlugin"
         @insert-plugin="insertPlugin"

@@ -222,6 +222,46 @@ describe("MixerPluginSection", () => {
     wrapper.unmount()
   })
 
+  it("offers retry instead of changing creative bypass after a contained failure", async () => {
+    const wrapper = mount(MixerPluginSection, {
+      props: {
+        channel,
+        inserts: [plugin],
+        runtime: {
+          plugin: {
+            instanceId: "plugin",
+            state: "failed",
+            editorOpen: false,
+            failure: {
+              instanceId: "plugin",
+              instanceGeneration: 3,
+              graphRevision: 17,
+              category: "invalid-output",
+              stage: "process",
+              outcome: "failed",
+              recoverable: true,
+              diagnosticId: "plugin:plugin:process",
+              message: "The plug-in produced non-finite audio."
+            },
+            latencySamples: 0,
+            tailSamples: 0,
+            error: "The plug-in produced non-finite audio."
+          }
+        },
+        effectPlugins: [],
+        slotRows: 1,
+        initialInputWidth: "stereo"
+      }
+    })
+
+    expect(wrapper.get('[aria-label="Compressor plugin failed"]').attributes("title")).toBe(
+      "The plug-in produced non-finite audio."
+    )
+    await wrapper.get('button[aria-label="Retry Compressor"]').trigger("click")
+    expect(wrapper.emitted("retry")?.at(-1)).toEqual(["plugin"])
+    expect(wrapper.emitted("toggle")).toBeUndefined()
+  })
+
   it("snaps rack moves before or after a row and previews the final slot", async () => {
     const delayDescriptor = {
       ...descriptor,

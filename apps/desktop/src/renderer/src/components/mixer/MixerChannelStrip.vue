@@ -55,6 +55,7 @@ const emit = defineEmits<{
   addSend: [sourceChannelId: string, target: MixerRouteTarget]
   deleteSend: [sendId: string]
   openPlugin: [instanceId: string]
+  retryPlugin: [instanceId: string]
   togglePlugin: [instanceId: string, enabled: boolean]
   removePlugin: [instanceId: string]
   insertPlugin: [channelId: string, selection: PluginSelection, slotOrder: number]
@@ -108,6 +109,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       :instrument-plugins="instrumentPlugins"
       @update-channel="emit('updateChannel', channel.id, $event)"
       @open-plugin="emit('openPlugin', $event)"
+      @retry-plugin="emit('retryPlugin', $event)"
       @remove-plugin="emit('removePlugin', $event)"
       @assign-instrument="emit('assignInstrument', channel.id, $event)"
     />
@@ -120,6 +122,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       :slot-rows="pluginSlotRows"
       :initial-input-width="insertInitialInputWidth"
       @open="emit('openPlugin', $event)"
+      @retry="emit('retryPlugin', $event)"
       @toggle="(id, enabled) => emit('togglePlugin', id, enabled)"
       @remove="emit('removePlugin', $event)"
       @insert="(selection, slotOrder) => emit('insertPlugin', channel.id, selection, slotOrder)"

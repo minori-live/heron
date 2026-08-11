@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use super::plugin_failure_fixture::{PluginFailureFixture, PluginFailureFixtureContext};
 use super::*;
 
 #[derive(Deserialize)]
@@ -73,6 +74,130 @@ fn macos_application_capture_target_round_trips_bundle_identifier() {
 }
 
 #[test]
+fn every_returning_plugin_stage_has_a_deterministic_failure_fixture() {
+    let context = PluginFailureFixtureContext {
+        instance_id: "fixture-plugin".to_owned(),
+        instance_generation: 7,
+        graph_revision: 11,
+    };
+    let stages = [
+        PluginFailureStage::Initialize,
+        PluginFailureStage::Restore,
+        PluginFailureStage::Process,
+        PluginFailureStage::Parameter,
+        PluginFailureStage::Editor,
+        PluginFailureStage::StateSave,
+        PluginFailureStage::Ara,
+    ];
+
+    for stage in stages {
+        let failure = PluginFailureFixture::returning(stage)
+            .reject::<()>(&context)
+            .expect_err("a returning fixture must reject deterministically");
+        assert_eq!(failure.instance_generation, 7);
+        assert_eq!(failure.graph_revision, 11);
+        assert_eq!(failure.stage, stage);
+        assert_eq!(failure.outcome, PluginFailureOutcome::Failed);
+        assert!(failure.recoverable);
+    }
+}
+
+#[test]
+fn every_plugin_failure_category_maps_to_one_typed_terminal_outcome() {
+    let context = PluginFailureFixtureContext {
+        instance_id: "fixture-plugin".to_owned(),
+        instance_generation: 7,
+        graph_revision: 11,
+    };
+    let expected = [
+        (
+            PluginFailureCategory::PluginRejected,
+            PluginFailureOutcome::Failed,
+        ),
+        (
+            PluginFailureCategory::InvalidOutput,
+            PluginFailureOutcome::Failed,
+        ),
+        (
+            PluginFailureCategory::HostPanic,
+            PluginFailureOutcome::Quarantined,
+        ),
+        (
+            PluginFailureCategory::QueueOverflow,
+            PluginFailureOutcome::Failed,
+        ),
+        (
+            PluginFailureCategory::StaleGeneration,
+            PluginFailureOutcome::Failed,
+        ),
+        (
+            PluginFailureCategory::HostState,
+            PluginFailureOutcome::Quarantined,
+        ),
+    ];
+
+    for (category, outcome) in expected {
+        let failure = PluginFailureFixture::category(category)
+            .reject::<()>(&context)
+            .expect_err("a category fixture must reject deterministically");
+        assert_eq!(failure.category, category);
+        assert_eq!(failure.outcome, outcome);
+        assert_eq!(failure.recoverable, outcome == PluginFailureOutcome::Failed);
+    }
+}
+
+#[test]
+fn host_panic_fixture_catches_only_an_unwind_safe_non_realtime_callback() {
+    let context = PluginFailureFixtureContext {
+        instance_id: "fixture-plugin".to_owned(),
+        instance_generation: 7,
+        graph_revision: 11,
+    };
+    let success =
+        PluginFailureFixture::catch_host_panic(PluginFailureStage::Editor, &context, || 42);
+    assert_eq!(success, Ok(42));
+
+    let failure =
+        PluginFailureFixture::catch_host_panic(PluginFailureStage::Editor, &context, || {
+            panic!("deterministic host-owned fixture panic")
+        })
+        .expect_err("the fixture panic must become a typed failure");
+    assert_eq!(failure.category, PluginFailureCategory::HostPanic);
+    assert_eq!(failure.stage, PluginFailureStage::Editor);
+    assert_eq!(failure.outcome, PluginFailureOutcome::Quarantined);
+    assert!(!failure.recoverable);
+}
+
+#[test]
+fn malformed_plugin_failures_are_rejected_by_rust_deserialization() {
+    let valid = serde_json::json!({
+        "instance_id": "fixture-plugin",
+        "instance_generation": 7,
+        "graph_revision": 11,
+        "category": "plugin-rejected",
+        "stage": "initialize",
+        "outcome": "failed",
+        "recoverable": true,
+        "diagnostic_id": "fixture:initialize",
+        "message": "fixture rejection"
+    });
+    let mut missing_generation = valid.clone();
+    missing_generation
+        .as_object_mut()
+        .expect("fixture JSON is an object")
+        .remove("instance_generation");
+    assert!(serde_json::from_value::<PluginRuntimeFailure>(missing_generation).is_err());
+
+    let mut unknown_stage = valid.clone();
+    unknown_stage["stage"] = serde_json::json!("native-crash");
+    assert!(serde_json::from_value::<PluginRuntimeFailure>(unknown_stage).is_err());
+
+    let mut extra_field = valid;
+    extra_field["ambient_current_plugin"] = serde_json::json!(true);
+    assert!(serde_json::from_value::<PluginRuntimeFailure>(extra_field).is_err());
+}
+
+#[test]
 fn typescript_messagepack_fixtures_decode_as_rust_protocol_types() {
     let fixtures: Vec<MessagePackFixture> = serde_json::from_str(include_str!(
         "../../tests/fixtures/audio-host-messagepack.json"
@@ -82,7 +207,7 @@ fn typescript_messagepack_fixtures_decode_as_rust_protocol_types() {
         .iter()
         .filter(|fixture| fixture.producer == "typescript")
         .collect::<Vec<_>>();
-    assert_eq!(typescript_fixtures.len(), 3);
+    assert_eq!(typescript_fixtures.len(), 4);
 
     for fixture in typescript_fixtures {
         let bytes = decode_base64(&fixture.base64);
@@ -120,7 +245,7 @@ fn rust_messagepack_fixtures_match_named_struct_encoding() {
         .iter()
         .filter(|fixture| fixture.producer == "rust")
         .collect::<Vec<_>>();
-    assert_eq!(rust_fixtures.len(), 3);
+    assert_eq!(rust_fixtures.len(), 4);
 
     for fixture in rust_fixtures {
         let bytes = decode_base64(&fixture.base64);
@@ -146,6 +271,15 @@ fn rust_messagepack_fixtures_match_named_struct_encoding() {
             "priority-response" => {
                 let value = rmp_serde::from_slice::<PriorityResponse>(&bytes)
                     .expect("Rust priority response fixture must decode");
+                assert_eq!(
+                    serde_json::to_value(&value).expect("fixture must normalize"),
+                    fixture.normalized
+                );
+                rmp_serde::to_vec_named(&value)
+            }
+            "host-event" => {
+                let value = rmp_serde::from_slice::<HostEvent>(&bytes)
+                    .expect("Rust host event fixture must decode");
                 assert_eq!(
                     serde_json::to_value(&value).expect("fixture must normalize"),
                     fixture.normalized
@@ -599,6 +733,7 @@ fn clip(id: &str) -> LiveMixerClip {
 fn plugin(instance_id: &str) -> LivePluginInstance {
     LivePluginInstance {
         instance_id: instance_id.into(),
+        instance_generation: 1,
         channel_id: "audio-1".into(),
         role: "insert".into(),
         slot_order: 0,

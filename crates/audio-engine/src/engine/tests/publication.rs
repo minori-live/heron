@@ -234,6 +234,7 @@ fn same_revision_rebuild_preserves_a_newer_plugin_bypass_preview() {
     let mut stale_graph = simple_native_graph();
     stale_graph.plugins.push(NativePluginInstance {
         instance_id: "fx".to_owned(),
+        instance_generation: 1,
         channel_index: 0,
         role: "insert".to_owned(),
         slot_order: 0,
@@ -290,6 +291,7 @@ fn apply_plugin_timing_returns_replacement_only_when_values_change() {
         clips: Vec::new(),
         plugins: vec![NativePluginInstance {
             instance_id: "session-fx".to_owned(),
+            instance_generation: 1,
             channel_index: 0,
             role: "insert".to_owned(),
             slot_order: 0,

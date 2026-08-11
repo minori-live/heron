@@ -5,6 +5,7 @@ import type {
   PluginSidechainRouteRequest,
   PluginHostNotification
 } from "./audio-host-events"
+import type { PluginRuntimeFailure } from "@heron/contracts"
 
 export interface AudioHostEventOperations {
   helperEpoch(): string | null
@@ -21,6 +22,7 @@ export class AudioHostEventDispatcher {
   private recoveryHandler: (
     recovery: NativeAudioDeviceRecoverySnapshot | null
   ) => void | Promise<void> = () => {}
+  private pluginFailureHandler: (failure: PluginRuntimeFailure) => void | Promise<void> = () => {}
 
   constructor(private readonly operations: AudioHostEventOperations) {}
 
@@ -42,6 +44,10 @@ export class AudioHostEventDispatcher {
     handler: (recovery: NativeAudioDeviceRecoverySnapshot | null) => void | Promise<void>
   ): void {
     this.recoveryHandler = handler
+  }
+
+  setPluginFailureHandler(handler: (failure: PluginRuntimeFailure) => void | Promise<void>): void {
+    this.pluginFailureHandler = handler
   }
 
   dispatchAra(callback: AraHostCallback): void {
@@ -83,6 +89,16 @@ export class AudioHostEventDispatcher {
         .then(() => this.recoveryHandler(recovery))
         .catch((error: unknown) => {
           console.error("Could not reconcile audio device recovery", error)
+        })
+    )
+  }
+
+  dispatchPluginFailure(failure: PluginRuntimeFailure): void {
+    this.track(
+      Promise.resolve()
+        .then(() => this.pluginFailureHandler(failure))
+        .catch((error: unknown) => {
+          console.error("Could not reconcile an audio plug-in failure", error)
         })
     )
   }

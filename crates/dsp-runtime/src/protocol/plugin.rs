@@ -30,6 +30,50 @@ pub struct PluginStateEnvelope {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+pub enum PluginFailureCategory {
+    PluginRejected,
+    InvalidOutput,
+    HostPanic,
+    QueueOverflow,
+    StaleGeneration,
+    HostState,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PluginFailureStage {
+    Initialize,
+    Restore,
+    Process,
+    Parameter,
+    Editor,
+    StateSave,
+    Ara,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PluginFailureOutcome {
+    Failed,
+    Quarantined,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PluginRuntimeFailure {
+    pub instance_id: String,
+    pub instance_generation: u32,
+    pub graph_revision: u64,
+    pub category: PluginFailureCategory,
+    pub stage: PluginFailureStage,
+    pub outcome: PluginFailureOutcome,
+    pub recoverable: bool,
+    pub diagnostic_id: String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum PluginEditorMode {
     Native,
     Parameters,
@@ -184,6 +228,8 @@ pub struct PluginAuxInputConfiguration {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LivePluginInstance {
     pub instance_id: String,
+    #[serde(default = "initial_plugin_generation")]
+    pub instance_generation: u32,
     pub channel_id: String,
     pub role: String,
     pub slot_order: u32,
@@ -196,6 +242,10 @@ pub struct LivePluginInstance {
     pub aux_input_buses: Vec<LivePluginAuxInputBus>,
     pub latency_samples: u32,
     pub tail_samples: Option<u32>,
+}
+
+const fn initial_plugin_generation() -> u32 {
+    1
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -155,6 +155,9 @@ pub enum ControlCommand {
     SavePluginState {
         instance_id: String,
     },
+    RetryPlugin {
+        instance_id: String,
+    },
     OpenPluginEditor {
         instance_id: String,
         preference: PluginEditorPreference,

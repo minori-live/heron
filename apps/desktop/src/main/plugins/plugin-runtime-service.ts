@@ -16,6 +16,7 @@ export interface PluginRuntime {
   setParameter(change: PluginParameterChange): Promise<void>
   openEditor(instanceId: string): Promise<{ editorMode: PluginEditorMode; open: boolean }>
   closeEditor(instanceId: string): Promise<void>
+  retry(instanceId: string): Promise<void>
 }
 
 export class PluginRuntimeService {
@@ -43,6 +44,23 @@ export class PluginRuntimeService {
 
   async closeEditor(instanceId: string): Promise<void> {
     await this.runtime?.closeEditor(instanceId)
+  }
+
+  async retry(instanceId: string): Promise<PluginRuntimeStatus> {
+    if (!this.runtime) throw new Error("The native audio plug-in runtime is not running")
+    const { plugin, sampleRate } = await this.runtime.resolveInstance(instanceId)
+    await this.runtime.retry(instanceId)
+    const timing = await this.runtime.load(plugin, sampleRate)
+    return {
+      instanceId,
+      state: plugin.enabled ? "active" : "bypassed",
+      editorOpen: false,
+      failureStage: null,
+      failure: null,
+      latencySamples: timing.latencySamples,
+      tailSamples: timing.tailSamples,
+      error: null
+    }
   }
 
   parameters(instanceId: string): Promise<PluginParameterInfo[]> {

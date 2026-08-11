@@ -2,7 +2,7 @@
 import { useI18n } from "vue-i18n"
 import { shallowRef } from "vue"
 import { SquareArrowOutUpRight, Trash2 } from "@lucide/vue"
-import type { PluginDescriptor } from "@heron/contracts"
+import type { PluginDescriptor, PluginFailureCategory } from "@heron/contracts"
 import type { PluginInstanceState, PluginRuntimeStatus } from "@heron/contracts"
 import { PLUGIN_DRAG_TYPE, readPluginDrag } from "./plugin-drag"
 
@@ -19,6 +19,10 @@ const emit = defineEmits<{
 
 const dragging = shallowRef(false)
 const { t } = useI18n()
+
+function failureMessage(category: PluginFailureCategory): string {
+  return t(`plugins.failure.${category}`)
+}
 
 function dragOver(event: DragEvent): void {
   if (![...(event.dataTransfer?.types ?? [])].includes(PLUGIN_DRAG_TYPE)) return
@@ -57,7 +61,11 @@ function drop(event: DragEvent): void {
         ><small>{{ plugin.descriptor.vendor }}</small>
       </div>
       <button
-        :aria-label="t('plugins.instrumentSlot.openEditor')"
+        :aria-label="
+          runtime?.failure?.recoverable
+            ? t('plugins.instrumentSlot.retry')
+            : t('plugins.instrumentSlot.openEditor')
+        "
         @click="$emit('open', plugin.id)"
       >
         <SquareArrowOutUpRight :size="11" />
@@ -67,7 +75,10 @@ function drop(event: DragEvent): void {
       </button>
     </div>
     <p v-else>{{ t("plugins.instrumentSlot.chooseHint") }}</p>
-    <small v-if="runtime?.error" class="slot-error">{{ runtime.error }}</small>
+    <small v-if="runtime?.failure" class="slot-error" role="status">
+      {{ failureMessage(runtime.failure.category) }}
+    </small>
+    <small v-else-if="runtime?.error" class="slot-error">{{ runtime.error }}</small>
   </section>
 </template>
 

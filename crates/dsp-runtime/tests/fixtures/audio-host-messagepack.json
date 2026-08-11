@@ -53,6 +53,26 @@
     }
   },
   {
+    "name": "plugin-failure-event",
+    "producer": "typescript",
+    "wireType": "host-event",
+    "base64": "gqR0eXBlrnBsdWdpbi1mYWlsdXJlp2ZhaWx1cmWJq2luc3RhbmNlX2lkrGZpeHR1cmUtaW5pdLNpbnN0YW5jZV9nZW5lcmF0aW9uA65ncmFwaF9yZXZpc2lvbhGoY2F0ZWdvcnmvcGx1Z2luLXJlamVjdGVkpXN0YWdlqmluaXRpYWxpemWnb3V0Y29tZaZmYWlsZWSrcmVjb3ZlcmFibGXDrWRpYWdub3N0aWNfaWSsZml4dHVyZTppbml0p21lc3NhZ2XZIGZpeHR1cmUgaW5pdGlhbGl6YXRpb24gcmVqZWN0aW9u",
+    "normalized": {
+      "type": "plugin-failure",
+      "failure": {
+        "instance_id": "fixture-init",
+        "instance_generation": 3,
+        "graph_revision": 17,
+        "category": "plugin-rejected",
+        "stage": "initialize",
+        "outcome": "failed",
+        "recoverable": true,
+        "diagnostic_id": "fixture:init",
+        "message": "fixture initialization rejection"
+      }
+    }
+  },
+  {
     "name": "heartbeat",
     "producer": "rust",
     "wireType": "priority-response",
@@ -141,6 +161,26 @@
             "bytes": [0, 127, 128, 255]
           }
         }
+      }
+    }
+  },
+  {
+    "name": "plugin-failure-host-panic",
+    "producer": "rust",
+    "wireType": "host-event",
+    "base64": "gqR0eXBlrnBsdWdpbi1mYWlsdXJlp2ZhaWx1cmWJq2luc3RhbmNlX2lkrWZpeHR1cmUtcGFuaWOzaW5zdGFuY2VfZ2VuZXJhdGlvbgSuZ3JhcGhfcmV2aXNpb24SqGNhdGVnb3J5qmhvc3QtcGFuaWOlc3RhZ2WmZWRpdG9yp291dGNvbWWrcXVhcmFudGluZWSrcmVjb3ZlcmFibGXCrWRpYWdub3N0aWNfaWStZml4dHVyZTpwYW5pY6dtZXNzYWdlsmZpeHR1cmUgaG9zdCBwYW5pYw==",
+    "normalized": {
+      "type": "plugin-failure",
+      "failure": {
+        "instance_id": "fixture-panic",
+        "instance_generation": 4,
+        "graph_revision": 18,
+        "category": "host-panic",
+        "stage": "editor",
+        "outcome": "quarantined",
+        "recoverable": false,
+        "diagnostic_id": "fixture:panic",
+        "message": "fixture host panic"
       }
     }
   }

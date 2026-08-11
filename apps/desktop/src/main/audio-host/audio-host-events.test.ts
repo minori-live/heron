@@ -258,6 +258,53 @@ describe("drainHostEvents", () => {
     })
     expect(recoveries[1]).toBeNull()
   })
+
+  it("decodes typed plug-in failures and rejects malformed failure records", () => {
+    const failures: unknown[] = []
+    const valid = {
+      instance_id: "fx-1",
+      instance_generation: 3,
+      graph_revision: 17,
+      category: "invalid-output",
+      stage: "process",
+      outcome: "failed",
+      recoverable: true,
+      diagnostic_id: "plugin:fx-1:process",
+      message: "the plug-in produced non-finite audio"
+    }
+    drainHostEvents(
+      clientWithEvents([
+        { type: "plugin-failure", failure: valid },
+        { type: "plugin-failure", failure: { ...valid, category: "native-crash" } },
+        { type: "plugin-failure", failure: { ...valid, instance_generation: 0 } },
+        { type: "plugin-failure", failure: { ...valid, graph_revision: -1 } },
+        { type: "plugin-failure", failure: { ...valid, outcome: "unknown" } },
+        { type: "plugin-failure", failure: { ...valid, outcome: "quarantined" } },
+        { type: "plugin-failure", failure: { ...valid, ambient_current_plugin: true } }
+      ]),
+      async () => {},
+      new Set(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      (failure) => failures.push(failure)
+    )
+    expect(failures).toEqual([
+      {
+        instanceId: "fx-1",
+        instanceGeneration: 3,
+        graphRevision: 17,
+        category: "invalid-output",
+        stage: "process",
+        outcome: "failed",
+        recoverable: true,
+        diagnosticId: "plugin:fx-1:process",
+        message: "the plug-in produced non-finite audio"
+      }
+    ])
+  })
 })
 
 describe("AraCallbackSequenceTracker", () => {

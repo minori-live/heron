@@ -1,6 +1,13 @@
 import { decode } from "@msgpack/msgpack"
 import type { AudioHostRuntime } from "@heron/dsp-node"
-import type { AraCallbackEvent, PluginEditorPreference } from "@heron/contracts"
+import type {
+  AraCallbackEvent,
+  PluginEditorPreference,
+  PluginFailureCategory,
+  PluginFailureOutcome,
+  PluginFailureStage,
+  PluginRuntimeFailure
+} from "@heron/contracts"
 import { decodeAudioDeviceRecovery } from "./audio-device-recovery"
 import type { NativeAudioDeviceRecoverySnapshot } from "./audio-device-recovery"
 import type { AudioHostDeviceRecovery } from "./wire"
@@ -62,9 +69,76 @@ const quarantineCategories = new Set([
   "provider-panic",
   "host-state"
 ] as const)
+const pluginFailureCategories = new Set<PluginFailureCategory>([
+  "plugin-rejected",
+  "invalid-output",
+  "host-panic",
+  "queue-overflow",
+  "stale-generation",
+  "host-state"
+])
+const pluginFailureStages = new Set<PluginFailureStage>([
+  "initialize",
+  "restore",
+  "process",
+  "parameter",
+  "editor",
+  "state-save",
+  "ara"
+])
+const pluginFailureOutcomes = new Set<PluginFailureOutcome>(["failed", "quarantined"])
+const pluginFailureFields = new Set([
+  "instance_id",
+  "instance_generation",
+  "graph_revision",
+  "category",
+  "stage",
+  "outcome",
+  "recoverable",
+  "diagnostic_id",
+  "message"
+])
 
 function finiteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value)
+}
+
+function decodePluginRuntimeFailure(value: unknown): PluginRuntimeFailure | null {
+  if (!value || typeof value !== "object") return null
+  const failure = value as Record<string, unknown>
+  if (
+    Object.keys(failure).some((field) => !pluginFailureFields.has(field)) ||
+    typeof failure.instance_id !== "string" ||
+    failure.instance_id.length === 0 ||
+    !Number.isSafeInteger(failure.instance_generation) ||
+    (failure.instance_generation as number) < 1 ||
+    !Number.isSafeInteger(failure.graph_revision) ||
+    (failure.graph_revision as number) < 0 ||
+    typeof failure.category !== "string" ||
+    !pluginFailureCategories.has(failure.category as PluginFailureCategory) ||
+    typeof failure.stage !== "string" ||
+    !pluginFailureStages.has(failure.stage as PluginFailureStage) ||
+    typeof failure.outcome !== "string" ||
+    !pluginFailureOutcomes.has(failure.outcome as PluginFailureOutcome) ||
+    typeof failure.recoverable !== "boolean" ||
+    (failure.outcome === "failed") !== failure.recoverable ||
+    typeof failure.diagnostic_id !== "string" ||
+    failure.diagnostic_id.length === 0 ||
+    typeof failure.message !== "string"
+  ) {
+    return null
+  }
+  return {
+    instanceId: failure.instance_id,
+    instanceGeneration: failure.instance_generation as number,
+    graphRevision: failure.graph_revision as number,
+    category: failure.category as PluginFailureCategory,
+    stage: failure.stage as PluginFailureStage,
+    outcome: failure.outcome as PluginFailureOutcome,
+    recoverable: failure.recoverable,
+    diagnosticId: failure.diagnostic_id,
+    message: failure.message
+  }
 }
 
 function decodeAraCallbackEvent(value: unknown): AraCallbackEvent | null {
@@ -171,12 +245,14 @@ export function drainHostEvents(
   onAraCallback?: (callback: AraHostCallback) => void,
   onPluginHostNotification?: (notification: PluginHostNotification) => void,
   onPluginSidechainRouteRequested?: (request: PluginSidechainRouteRequest) => void,
-  onDeviceRecoveryChanged?: (recovery: NativeAudioDeviceRecoverySnapshot | null) => void
+  onDeviceRecoveryChanged?: (recovery: NativeAudioDeviceRecoverySnapshot | null) => void,
+  onPluginFailure?: (failure: PluginRuntimeFailure) => void
 ): void {
   const latestPreferences = new Map<string, PluginEditorPreference>()
   const closedEditors = new Set<string>()
   const pluginNotifications: PluginHostNotification[] = []
   const sidechainRequests: PluginSidechainRouteRequest[] = []
+  const pluginFailures: PluginRuntimeFailure[] = []
   for (const event of client.drainEvents()) {
     const decoded = decode(event) as {
       type?: string
@@ -195,10 +271,14 @@ export function drainHostEvents(
       input_port_key?: string
       source_channel_id?: string | null
       recovery?: AudioHostDeviceRecovery | null
+      failure?: unknown
     }
     if (decoded.type === "audio-device-recovery-changed") {
       const recovery = decodeAudioDeviceRecovery(decoded.recovery)
       if (recovery !== undefined) onDeviceRecoveryChanged?.(recovery)
+    } else if (decoded.type === "plugin-failure") {
+      const failure = decodePluginRuntimeFailure(decoded.failure)
+      if (failure) pluginFailures.push(failure)
     } else if (decoded.type === "graph-published" && decoded.revision !== undefined) {
       // Telemetry carries the same revision; draining avoids idle event buildup.
     } else if (
@@ -285,5 +365,8 @@ export function drainHostEvents(
   }
   if (onPluginSidechainRouteRequested) {
     for (const request of sidechainRequests) onPluginSidechainRouteRequested(request)
+  }
+  if (onPluginFailure) {
+    for (const failure of pluginFailures) onPluginFailure(failure)
   }
 }

@@ -65,6 +65,25 @@ impl EmbeddedUiHost {
                 let _ = reply.send(ControlResult::Accepted);
                 return;
             }
+            ActorCommand::Control(ControlCommand::RetryPlugin { instance_id }) => {
+                let result = self.processors.lock().map_or_else(
+                    |_| control_error! { message: "plug-in processor registry is poisoned".into() },
+                    |processors| {
+                        processors.get(&instance_id).map_or_else(
+                            || control_error! { message: "plug-in processor is unavailable".into() },
+                            |processor| {
+                                if processor.retry_after_process_failure() {
+                                    ControlResult::Accepted
+                                } else {
+                                    control_error! { message: "plug-in has no retryable processing failure".into() }
+                                }
+                            },
+                        )
+                    },
+                );
+                let _ = reply.send(result);
+                return;
+            }
             ActorCommand::Control(ControlCommand::UnloadPlugin { instance_id }) => {
                 self.close_embedded_editor(&instance_id, true);
                 if let Ok(mut processors) = self.processors.lock() {
@@ -293,6 +312,7 @@ impl EmbeddedUiHost {
             return;
         }
         if matches!(command, ActorCommand::Control(ControlCommand::Ping)) {
+            self.poll_plugin_process_failures();
             let parameter_outputs = self
                 .clap
                 .as_ref()
@@ -523,5 +543,77 @@ impl EmbeddedUiHost {
             },
         };
         let _ = reply.send(result);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::runtime::ui_runtime::test_support::{FixtureFailure, host, processor};
+
+    fn retry(host: &mut EmbeddedUiHost, instance_id: &str) -> ControlResult {
+        let (reply, result) = tokio::sync::oneshot::channel();
+        host.execute_audio_plugin_request(ActorRequest {
+            command: ActorCommand::Control(ControlCommand::RetryPlugin {
+                instance_id: instance_id.to_owned(),
+            }),
+            reply,
+        });
+        result
+            .blocking_recv()
+            .expect("retry request should return one terminal result")
+    }
+
+    #[test]
+    fn retry_requires_an_owned_processor_with_a_reported_failure() {
+        let (mut host, _events) = host(1);
+
+        assert!(matches!(
+            retry(&mut host, "missing"),
+            ControlResult::Error { .. }
+        ));
+
+        host.processors
+            .lock()
+            .expect("processor registry should be available")
+            .insert("healthy".to_owned(), processor(None));
+        assert!(matches!(
+            retry(&mut host, "healthy"),
+            ControlResult::Error { .. }
+        ));
+
+        host.processors
+            .lock()
+            .expect("processor registry should be available")
+            .insert(
+                "failed".to_owned(),
+                processor(Some(FixtureFailure::Rejected)),
+            );
+        assert!(matches!(
+            retry(&mut host, "failed"),
+            ControlResult::Accepted
+        ));
+        assert!(matches!(
+            retry(&mut host, "failed"),
+            ControlResult::Error { .. }
+        ));
+    }
+
+    #[test]
+    fn retry_reports_a_poisoned_processor_registry() {
+        let (mut host, _events) = host(1);
+        let processors = host.processors.clone();
+        let _ = std::thread::spawn(move || {
+            let _guard = processors
+                .lock()
+                .expect("processor registry should initially be available");
+            panic!("poison the processor registry for the test");
+        })
+        .join();
+
+        assert!(matches!(
+            retry(&mut host, "plugin-1"),
+            ControlResult::Error { .. }
+        ));
     }
 }

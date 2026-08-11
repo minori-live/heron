@@ -1,5 +1,66 @@
 use super::*;
 use crate::NativeApplicationCaptureTarget;
+use heron_audio_plugin::{AudioPluginProcessor, AudioPluginProcessorHandle, SidechainSource};
+
+#[derive(Clone)]
+struct MutatingFailedProcessor;
+
+impl AudioPluginProcessor for MutatingFailedProcessor {
+    fn clone_box(&self) -> Box<dyn AudioPluginProcessor> {
+        Box::new(self.clone())
+    }
+
+    fn process_block(
+        &mut self,
+        frames: &mut [[f32; 2]],
+        _sidechains: &dyn SidechainSource,
+        _context: &ProcessContext,
+    ) -> bool {
+        frames.fill([99.0, 99.0]);
+        false
+    }
+}
+
+fn failed_plugin(is_instrument: bool) -> LivePlugin {
+    LivePlugin {
+        instance_id: "failed".to_owned(),
+        instance_generation: 7,
+        graph_revision: 11,
+        processor: Some(AudioPluginProcessorHandle::new(MutatingFailedProcessor)),
+        audio_mode: PluginAudioMode::Stereo,
+        enabled: true,
+        is_instrument,
+        latency_samples: 0,
+        low_latency_bypassed: false,
+        main_delay: StereoDelayLine::new(0),
+        bypass_delay: StereoDelayLine::new(0),
+        dry_block: vec![[0.0, 0.0]; MAX_PLUGIN_BLOCK_FRAMES],
+        aux_inputs: Vec::new(),
+    }
+}
+
+#[test]
+fn returned_process_failure_restores_dry_effect_audio_and_silences_instruments() {
+    let context = test_process_context();
+    let mut width = SignalWidth::Stereo;
+    let mut failed_effect = failed_plugin(false);
+    let failure_observer = failed_effect
+        .processor
+        .as_ref()
+        .expect("the failure fixture has a processor")
+        .clone();
+    let effect = process_test_plugin(&mut failed_effect, [0.25, -0.5], &mut width, &context);
+    assert_eq!(effect, [0.25, -0.5]);
+    let report = failure_observer
+        .take_unreported_process_failure()
+        .expect("the engine must publish the fixture failure context");
+    assert_eq!(report.instance_generation, 7);
+    assert_eq!(report.graph_revision, 11);
+
+    let instrument =
+        process_test_plugin(&mut failed_plugin(true), [0.25, -0.5], &mut width, &context);
+    assert_eq!(instrument, [0.0, 0.0]);
+}
 
 #[test]
 fn hidden_channel_adapters_downmix_and_upmix_at_chain_boundaries() {
@@ -126,6 +187,7 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
         plugins: vec![
             NativePluginInstance {
                 instance_id: "missing".to_owned(),
+                instance_generation: 1,
                 channel_index: 0,
                 role: "insert".to_owned(),
                 slot_order: 0,
@@ -138,6 +200,7 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
             },
             NativePluginInstance {
                 instance_id: "bypassed".to_owned(),
+                instance_generation: 1,
                 channel_index: 1,
                 role: "insert".to_owned(),
                 slot_order: 0,
@@ -253,6 +316,7 @@ fn build_mixer_runtime_rejects_instrument_plugin_on_audio_track() {
     let mut graph = simple_native_graph();
     graph.plugins.push(NativePluginInstance {
         instance_id: "synth".into(),
+        instance_generation: 1,
         channel_index: 0,
         role: "instrument".into(),
         slot_order: 0,
@@ -280,6 +344,7 @@ fn build_mixer_runtime_compiles_a_simple_graph_with_monitoring_and_pdc() {
     graph.channels[0].input_monitoring = true;
     graph.plugins.push(NativePluginInstance {
         instance_id: "fx".into(),
+        instance_generation: 1,
         channel_index: 0,
         role: "insert".into(),
         slot_order: 0,
@@ -363,6 +428,7 @@ fn sidechain_pdc_aligns_at_the_target_plugin_slot() {
     graph.plugins = vec![
         NativePluginInstance {
             instance_id: "source-latency".into(),
+            instance_generation: 1,
             channel_index: 0,
             role: "insert".into(),
             slot_order: 0,
@@ -375,6 +441,7 @@ fn sidechain_pdc_aligns_at_the_target_plugin_slot() {
         },
         NativePluginInstance {
             instance_id: "sidechain-target".into(),
+            instance_generation: 1,
             channel_index: 1,
             role: "insert".into(),
             slot_order: 0,
@@ -442,6 +509,7 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
     graph.plugins = vec![
         NativePluginInstance {
             instance_id: "target-latency".into(),
+            instance_generation: 1,
             channel_index: 1,
             role: "insert".into(),
             slot_order: 0,
@@ -454,6 +522,7 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
         },
         NativePluginInstance {
             instance_id: "sidechain-target".into(),
+            instance_generation: 1,
             channel_index: 1,
             role: "insert".into(),
             slot_order: 1,
@@ -506,6 +575,7 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
         let mut graph = simple_native_graph();
         graph.plugins.push(NativePluginInstance {
             instance_id: "invalid-sidechain".into(),
+            instance_generation: 1,
             channel_index: target,
             role: "insert".into(),
             slot_order: 0,
@@ -538,6 +608,7 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
     let mut disconnected = simple_native_graph();
     disconnected.plugins.push(NativePluginInstance {
         instance_id: "disconnected-sidechain".into(),
+        instance_generation: 1,
         channel_index: 0,
         role: "insert".into(),
         slot_order: 0,
@@ -790,6 +861,7 @@ fn compiled_snapshot_covers_instrument_bus_master_and_active_plugin_paths() {
         clips: Vec::new(),
         plugins: vec![NativePluginInstance {
             instance_id: "active".into(),
+            instance_generation: 1,
             channel_index: 0,
             role: "instrument".into(),
             slot_order: 0,

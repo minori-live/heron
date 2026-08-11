@@ -93,6 +93,8 @@ fn test_process_context() -> ProcessContext {
 fn missing_effect(mode: PluginAudioMode, enabled: bool) -> LivePlugin {
     LivePlugin {
         instance_id: "missing-effect".to_owned(),
+        instance_generation: 1,
+        graph_revision: 1,
         processor: None,
         audio_mode: mode,
         enabled,
@@ -101,6 +103,7 @@ fn missing_effect(mode: PluginAudioMode, enabled: bool) -> LivePlugin {
         low_latency_bypassed: false,
         main_delay: StereoDelayLine::new(0),
         bypass_delay: StereoDelayLine::new(0),
+        dry_block: vec![[0.0, 0.0]; MAX_PLUGIN_BLOCK_FRAMES],
         aux_inputs: Vec::new(),
     }
 }

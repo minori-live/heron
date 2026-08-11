@@ -155,6 +155,13 @@ const api: HeronDesktopApi = {
     ipcRenderer.on(IPC_CHANNELS.pluginEditorClosedEvent, handler)
     return () => ipcRenderer.removeListener(IPC_CHANNELS.pluginEditorClosedEvent, handler)
   },
+  subscribePluginRuntime: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, value: Parameters<typeof listener>[0]) =>
+      listener(value)
+    ipcRenderer.on(IPC_CHANNELS.pluginRuntimeEvent, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.pluginRuntimeEvent, handler)
+  },
+  retryPlugin: (meta, instanceId) => invokeRpc(IPC_CHANNELS.pluginRetry, meta, instanceId),
   subscribeAraCallbacks: (listener) => {
     const handler = (
       _event: Electron.IpcRendererEvent,

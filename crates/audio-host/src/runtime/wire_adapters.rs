@@ -209,6 +209,7 @@ pub(super) fn live_graph(
             Ok(engine::NativePluginInstance {
                 processor,
                 instance_id: plugin.instance_id.clone(),
+                instance_generation: plugin.instance_generation,
                 channel_index: channel_index(&plugin.channel_id)?,
                 role: plugin.role.clone(),
                 slot_order: plugin.slot_order,
@@ -1040,6 +1041,7 @@ mod tests {
             }],
             plugins: vec![LivePluginInstance {
                 instance_id: "effect".to_owned(),
+                instance_generation: 1,
                 channel_id: "track".to_owned(),
                 role: "effect".to_owned(),
                 slot_order: 1,

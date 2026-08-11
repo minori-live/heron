@@ -48,6 +48,7 @@ export const usePluginStore = defineStore("plugins", () => {
   let catalogFailureIds = new Set<string>()
   let unsubscribe: (() => void) | null = null
   let unsubscribeEditorClosed: (() => void) | null = null
+  let unsubscribeRuntime: (() => void) | null = null
   let parameterSequence = 0n
   const openingEditors = new Map<string, Promise<void>>()
   let scanSourceEpoch: string | null = null
@@ -169,6 +170,25 @@ export const usePluginStore = defineStore("plugins", () => {
     unsubscribe ??= window.heron.subscribePluginScan(receiveScanEvent)
     unsubscribeEditorClosed ??= window.heron.subscribePluginEditorClosed((event) => {
       markEditorClosed(event.payload.instanceId)
+    })
+    unsubscribeRuntime ??= window.heron.subscribePluginRuntime((event) => {
+      const failure = event.payload
+      const current = runtime.value[failure.instanceId]
+      runtime.value = {
+        ...runtime.value,
+        [failure.instanceId]: {
+          instanceId: failure.instanceId,
+          state: failure.outcome,
+          editorOpen: current?.editorOpen ?? false,
+          ...(current?.editorMode ? { editorMode: current.editorMode } : {}),
+          failureStage:
+            failure.stage === "ara" || failure.stage === "parameter" ? null : failure.stage,
+          failure,
+          latencySamples: current?.latencySamples ?? 0,
+          tailSamples: current?.tailSamples ?? null,
+          error: failure.message
+        }
+      }
     })
     const target = projectStore.desktopSession
     if (!target) {
@@ -378,6 +398,10 @@ export const usePluginStore = defineStore("plugins", () => {
     // Opening an editor does not modify the project, but its request must use
     // the graph handle that survives any already-running project mutation.
     await projectStore.waitForProjectMutations()
+    if (runtime.value[instanceId]?.failure?.recoverable) {
+      await retry(instanceId)
+      if (runtime.value[instanceId]?.failure) return
+    }
     const target = projectStore.projectGraphRef
     if (!target) return
     const result = await window.heron.openPluginEditor(
@@ -413,6 +437,20 @@ export const usePluginStore = defineStore("plugins", () => {
       return
     }
     markEditorClosed(instanceId)
+  }
+
+  async function retry(instanceId: string): Promise<void> {
+    const target = projectStore.projectGraphRef
+    if (!target) return
+    const result = await window.heron.retryPlugin(
+      mutationMeta(target, "plugin-retry", projectStore.projectRevision),
+      instanceId
+    )
+    if (!result.ok) {
+      error.value = rpcErrorMessage(result.error)
+      return
+    }
+    runtime.value = { ...runtime.value, [instanceId]: result.value }
   }
 
   async function setParameter(change: PluginParameterChange): Promise<void> {
@@ -500,6 +538,8 @@ export const usePluginStore = defineStore("plugins", () => {
     unsubscribe = null
     unsubscribeEditorClosed?.()
     unsubscribeEditorClosed = null
+    unsubscribeRuntime?.()
+    unsubscribeRuntime = null
   })
 
   return {
@@ -524,6 +564,7 @@ export const usePluginStore = defineStore("plugins", () => {
     assignInstrument,
     openEditor,
     closeEditor,
+    retry,
     setParameter,
     resources,
     reset

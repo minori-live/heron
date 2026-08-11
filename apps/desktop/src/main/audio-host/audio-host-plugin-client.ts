@@ -163,6 +163,13 @@ export class AudioHostPluginClient {
     this.recoveryBypassed.delete(instanceId)
   }
 
+  async retryPlugin(instanceId: string): Promise<void> {
+    if (!this.loadedPlugins.has(instanceId)) {
+      throw new Error("Audio plug-in instance is not loaded")
+    }
+    await this.request({ type: "retry-plugin", instance_id: instanceId })
+  }
+
   async pluginParameters(instanceId: string): Promise<PluginParameterInfo[]> {
     const response = await this.request({
       type: "plugin-parameters",

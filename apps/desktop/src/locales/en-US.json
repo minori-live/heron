@@ -1237,12 +1237,21 @@
       "inserts": "INSERTS",
       "emptyHint": "Use an empty insert slot in the Mixer to add an effect."
     },
+    "failure": {
+      "plugin-rejected": "The plug-in rejected an audio processing block.",
+      "invalid-output": "The plug-in produced non-finite audio.",
+      "host-panic": "The plug-in host stopped this operation after an internal failure.",
+      "queue-overflow": "The plug-in host could not queue this operation.",
+      "stale-generation": "This plug-in operation belongs to an older instance.",
+      "host-state": "The plug-in host is not in a valid state for this operation."
+    },
     "instrumentSlot": {
       "ariaLabel": "Instrument slot",
       "heading": "INSTRUMENT",
       "vst3": "VST3",
       "empty": "EMPTY",
       "openEditor": "Open instrument editor",
+      "retry": "Retry instrument",
       "remove": "Remove instrument",
       "chooseHint": "Use the instrument slot in the Mixer to choose an instrument."
     },
@@ -1253,6 +1262,7 @@
       "bypass": "Bypass",
       "enable": "Enable",
       "toggle": "{action} {name}",
+      "retry": "Retry {name}",
       "openEditor": "Open {name} editor",
       "remove": "Remove {name}"
     },

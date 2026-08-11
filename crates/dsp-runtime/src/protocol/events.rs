@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    AraCallbackEvent, AudioDeviceRecovery, MidiInputSnapshot, PluginEditorPreference, RpcError,
+    AraCallbackEvent, AudioDeviceRecovery, MidiInputSnapshot, PluginEditorPreference,
+    PluginRuntimeFailure, RpcError,
 };
 
 /// Unsolicited helper notifications use a separate channel so editor and
@@ -37,6 +38,9 @@ pub enum HostEvent {
         instance_id: String,
         kind: String,
         value: String,
+    },
+    PluginFailure {
+        failure: PluginRuntimeFailure,
     },
     AraCallback {
         instance_id: String,

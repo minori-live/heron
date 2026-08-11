@@ -212,6 +212,7 @@ struct EmbeddedUiRuntime {
 
 impl EmbeddedUiRuntime {
     fn drain(&mut self) -> bool {
+        self.application.poll_plugin_process_failures();
         self.application.drain_embedded_ui_mailbox()
     }
 }

@@ -3,7 +3,67 @@
 //! Format implementations own their ABI and control-thread objects. The audio
 //! engine only receives cloneable processor endpoints defined by this crate.
 
-use std::{collections::HashMap, fmt, hash::Hash};
+use std::{
+    collections::HashMap,
+    fmt,
+    hash::Hash,
+    sync::{
+        Arc,
+        atomic::{AtomicU8, AtomicU32, AtomicU64, Ordering},
+    },
+};
+
+/// A recoverable processing failure observed at the format-neutral boundary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum PluginProcessFailure {
+    Rejected = 1,
+    InvalidOutput = 2,
+}
+
+/// Stable runtime context captured with a processing failure.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PluginProcessFailureReport {
+    pub failure: PluginProcessFailure,
+    pub instance_generation: u32,
+    pub graph_revision: u64,
+}
+
+impl PluginProcessFailure {
+    const fn from_byte(value: u8) -> Option<Self> {
+        match value {
+            1 => Some(Self::Rejected),
+            2 => Some(Self::InvalidOutput),
+            _ => None,
+        }
+    }
+}
+
+struct PluginProcessFailureState {
+    failure: AtomicU8,
+    instance_generation: AtomicU32,
+    graph_revision: AtomicU64,
+}
+
+impl PluginProcessFailureState {
+    fn new() -> Self {
+        Self {
+            failure: AtomicU8::new(0),
+            instance_generation: AtomicU32::new(1),
+            graph_revision: AtomicU64::new(0),
+        }
+    }
+
+    fn mark(&self, failure: PluginProcessFailure) {
+        let _ =
+            self.failure
+                .compare_exchange(0, failure as u8, Ordering::Release, Ordering::Relaxed);
+    }
+
+    fn failure(&self) -> Option<PluginProcessFailure> {
+        PluginProcessFailure::from_byte(self.failure.load(Ordering::Acquire) & 0x7f)
+    }
+}
 
 /// Plug-in binary format understood by the host registry.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -265,6 +325,7 @@ pub trait AudioPluginProcessor: Send {
 pub struct AudioPluginProcessorHandle {
     inner: Box<dyn AudioPluginProcessor>,
     duplicate_mono_output: bool,
+    failure: Arc<PluginProcessFailureState>,
 }
 
 impl AudioPluginProcessorHandle {
@@ -274,6 +335,7 @@ impl AudioPluginProcessorHandle {
         Self {
             inner: Box::new(processor),
             duplicate_mono_output: false,
+            failure: Arc::new(PluginProcessFailureState::new()),
         }
     }
 
@@ -290,13 +352,85 @@ impl AudioPluginProcessorHandle {
         sidechains: &dyn SidechainSource,
         context: &ProcessContext,
     ) -> bool {
+        if self.failure.failure().is_some() {
+            return false;
+        }
         let processed = self.inner.process_block(frames, sidechains, context);
-        if processed && self.duplicate_mono_output {
+        if !processed {
+            self.failure.mark(PluginProcessFailure::Rejected);
+            return false;
+        }
+        if frames
+            .iter()
+            .any(|frame| !frame[0].is_finite() || !frame[1].is_finite())
+        {
+            self.failure.mark(PluginProcessFailure::InvalidOutput);
+            return false;
+        }
+        if self.duplicate_mono_output {
             for frame in frames {
                 frame[1] = frame[0];
             }
         }
-        processed
+        true
+    }
+
+    /// Selects the active runtime generation before entering third-party code.
+    /// A sticky failure keeps the context captured by its first transition.
+    pub fn set_failure_context(&self, instance_generation: u32, graph_revision: u64) {
+        if self.failure.failure.load(Ordering::Acquire) != 0 {
+            return;
+        }
+        self.failure
+            .instance_generation
+            .store(instance_generation, Ordering::Relaxed);
+        self.failure
+            .graph_revision
+            .store(graph_revision, Ordering::Relaxed);
+    }
+
+    /// Returns the first processing failure once across every clone of this
+    /// handle. The audio thread only sets atomics; control code owns reporting.
+    pub fn take_unreported_process_failure(&self) -> Option<PluginProcessFailureReport> {
+        let mut state = self.failure.failure.load(Ordering::Acquire);
+        loop {
+            if state == 0 || state & 0x80 != 0 {
+                return None;
+            }
+            match self.failure.failure.compare_exchange_weak(
+                state,
+                state | 0x80,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => {
+                    return PluginProcessFailure::from_byte(state).map(|failure| {
+                        PluginProcessFailureReport {
+                            failure,
+                            instance_generation: self
+                                .failure
+                                .instance_generation
+                                .load(Ordering::Relaxed),
+                            graph_revision: self.failure.graph_revision.load(Ordering::Relaxed),
+                        }
+                    });
+                }
+                Err(current) => state = current,
+            }
+        }
+    }
+
+    /// Makes a previously taken failure eligible for reporting again when the
+    /// bounded host-event queue could not accept it.
+    pub fn make_process_failure_reportable(&self) {
+        self.failure.failure.fetch_and(0x7f, Ordering::Release);
+    }
+
+    /// Re-arms a processor after an explicit user retry. This does not rebuild
+    /// or restore the native instance; callers must use it only for a returned
+    /// processing failure where the instance remains owned and valid.
+    pub fn retry_after_process_failure(&self) -> bool {
+        self.failure.failure.swap(0, Ordering::AcqRel) != 0
     }
 
     pub fn retire(&mut self) {
@@ -366,6 +500,7 @@ impl Clone for AudioPluginProcessorHandle {
         Self {
             inner: self.inner.clone_box(),
             duplicate_mono_output: self.duplicate_mono_output,
+            failure: Arc::clone(&self.failure),
         }
     }
 }
@@ -374,7 +509,7 @@ impl Clone for AudioPluginProcessorHandle {
 mod tests {
     use super::{
         AudioPluginProcessor, AudioPluginProcessorHandle, AudioPortToken, ParameterTokenMap,
-        ProcessContext, SidechainSource,
+        PluginProcessFailure, ProcessContext, SidechainSource,
     };
 
     #[derive(Clone)]
@@ -419,6 +554,25 @@ mod tests {
     }
 
     struct NoSidechains;
+
+    #[derive(Clone)]
+    struct NonFiniteProcessor;
+
+    impl AudioPluginProcessor for NonFiniteProcessor {
+        fn clone_box(&self) -> Box<dyn AudioPluginProcessor> {
+            Box::new(self.clone())
+        }
+
+        fn process_block(
+            &mut self,
+            frames: &mut [[f32; 2]],
+            _sidechains: &dyn SidechainSource,
+            _context: &ProcessContext,
+        ) -> bool {
+            frames[0][1] = f32::NAN;
+            true
+        }
+    }
 
     impl SidechainSource for NoSidechains {
         fn frames(&self, _port: AudioPortToken) -> Option<&[[f32; 2]]> {
@@ -482,5 +636,48 @@ mod tests {
 
         assert!(!cloned.process_block(&mut frames, &NoSidechains, &process_context()));
         assert_eq!(frames, [[4.0, 9.0]]);
+        let report = processor
+            .take_unreported_process_failure()
+            .expect("the rejected block must be reported");
+        assert_eq!(report.failure, PluginProcessFailure::Rejected);
+        assert_eq!(report.instance_generation, 1);
+        assert_eq!(report.graph_revision, 0);
+        assert_eq!(cloned.take_unreported_process_failure(), None);
+    }
+
+    #[test]
+    fn non_finite_output_fails_the_shared_handle_once() {
+        let mut processor = AudioPluginProcessorHandle::new(NonFiniteProcessor);
+        let mut cloned = processor.clone();
+        let mut frames = [[0.25, 0.5]];
+
+        processor.set_failure_context(7, 11);
+        assert!(!processor.process_block(&mut frames, &NoSidechains, &process_context()));
+        let report = cloned
+            .take_unreported_process_failure()
+            .expect("the invalid output must be reported");
+        assert_eq!(report.failure, PluginProcessFailure::InvalidOutput);
+        assert_eq!(report.instance_generation, 7);
+        assert_eq!(report.graph_revision, 11);
+        frames = [[1.0, 2.0]];
+        assert!(!cloned.process_block(&mut frames, &NoSidechains, &process_context()));
+        assert_eq!(frames, [[1.0, 2.0]]);
+        assert_eq!(processor.take_unreported_process_failure(), None);
+        processor.make_process_failure_reportable();
+        assert_eq!(
+            cloned
+                .take_unreported_process_failure()
+                .map(|report| report.failure),
+            Some(PluginProcessFailure::InvalidOutput)
+        );
+
+        assert!(processor.retry_after_process_failure());
+        assert!(!cloned.process_block(&mut frames, &NoSidechains, &process_context()));
+        assert_eq!(
+            processor
+                .take_unreported_process_failure()
+                .map(|report| report.failure),
+            Some(PluginProcessFailure::InvalidOutput)
+        );
     }
 }

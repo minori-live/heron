@@ -114,6 +114,7 @@ pub struct NativeMixerClip {
 #[derive(Clone)]
 pub struct NativePluginInstance {
     pub instance_id: String,
+    pub instance_generation: u32,
     pub channel_index: u32,
     pub role: String,
     pub slot_order: u32,

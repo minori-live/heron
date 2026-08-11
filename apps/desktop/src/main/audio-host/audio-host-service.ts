@@ -42,6 +42,7 @@ import type {
   PluginParameterCommand,
   PluginParameterEnqueueResult,
   PluginParameterInfo,
+  PluginRuntimeFailure,
   ProjectGraphRef,
   RpcRequestMeta,
   RpcResult,
@@ -204,7 +205,8 @@ export class AudioHostService {
       (callback) => this.events.dispatchAra(callback),
       (notification) => this.events.dispatchPlugin(notification),
       (request) => this.events.dispatchSidechain(request),
-      (recovery) => this.events.dispatchDeviceRecovery(recovery)
+      (recovery) => this.events.dispatchDeviceRecovery(recovery),
+      (failure) => this.events.dispatchPluginFailure(failure)
     )
   }
 
@@ -228,6 +230,10 @@ export class AudioHostService {
     handler: (recovery: NativeAudioDeviceRecoverySnapshot | null) => void | Promise<void>
   ): void {
     this.events.setDeviceRecoveryHandler(handler)
+  }
+
+  setPluginFailureHandler(handler: (failure: PluginRuntimeFailure) => void | Promise<void>): void {
+    this.events.setPluginFailureHandler(handler)
   }
 
   setMidiControlEventHandler(handler: (event: MidiControlEvent) => void | Promise<void>): void {
@@ -640,6 +646,10 @@ export class AudioHostService {
     return this.plugins.loadPlugin(plugin, sampleRate)
   }
 
+  retryPlugin(instanceId: string): Promise<void> {
+    return this.plugins.retryPlugin(instanceId)
+  }
+
   pluginParameters(instanceId: string): Promise<PluginParameterInfo[]> {
     return this.plugins.pluginParameters(instanceId)
   }
@@ -769,7 +779,8 @@ export class AudioHostService {
       (callback) => this.events.dispatchAra(callback),
       (notification) => this.events.dispatchPlugin(notification),
       (request) => this.events.dispatchSidechain(request),
-      (recovery) => this.events.dispatchDeviceRecovery(recovery)
+      (recovery) => this.events.dispatchDeviceRecovery(recovery),
+      (failure) => this.events.dispatchPluginFailure(failure)
     )
     if (this.client === client) this.client = null
     client.close()
@@ -855,6 +866,7 @@ export class AudioHostService {
       if (!client || this.stopping) return
       try {
         const pending = client.drainUiWork()
+        this.gateway.drainEvents(client)
         this.editorWindows?.drain(client)
         for (const event of client.drainMidiControlEvents?.() ?? []) {
           const type = event.type === "note" ? "note" : "control-change"

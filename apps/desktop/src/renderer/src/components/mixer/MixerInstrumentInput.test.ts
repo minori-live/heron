@@ -97,4 +97,41 @@ describe("MixerInstrumentInput", () => {
     await wrapper.get('button[title="Mono: 1 channel output"]').trigger("click")
     expect(wrapper.emitted("assign")?.at(-1)).toEqual([{ descriptor, audioMode: "mono" }])
   })
+
+  it("retries a contained instrument failure without opening its editor", async () => {
+    const wrapper = mount(MixerInstrumentInput, {
+      props: {
+        instrument,
+        runtime: {
+          "instrument-plugin": {
+            instanceId: "instrument-plugin",
+            state: "failed",
+            editorOpen: false,
+            failure: {
+              instanceId: "instrument-plugin",
+              instanceGeneration: 3,
+              graphRevision: 17,
+              category: "plugin-rejected",
+              stage: "process",
+              outcome: "failed",
+              recoverable: true,
+              diagnosticId: "plugin:instrument-plugin:process",
+              message: "The instrument rejected an audio block."
+            },
+            latencySamples: 0,
+            tailSamples: null,
+            error: "The instrument rejected an audio block."
+          }
+        },
+        plugins: [descriptor]
+      }
+    })
+
+    expect(wrapper.get(".instrument-input").attributes("title")).toBe(
+      "The plug-in rejected an audio processing block."
+    )
+    await wrapper.get('button[aria-label="Retry instrument"]').trigger("click")
+    expect(wrapper.emitted("retry")?.at(-1)).toEqual(["instrument-plugin"])
+    expect(wrapper.emitted("open")).toBeUndefined()
+  })
 })
