@@ -212,7 +212,26 @@ export function startApplication(
         }, 220)
       })
       loadMainWindow(window)
-      installApplicationMenu(process.platform, applicationSettings.shortcuts)
+      installApplicationMenu(
+        process.platform,
+        applicationSettings.shortcuts,
+        projectService.current !== null
+      )
+      const stopApplicationMenuLifecycleSync = services.lifecycle.applicationState.subscribe(
+        (event) => {
+          if (event.type !== "project") return
+          void settings
+            .get()
+            .then((current) => {
+              installApplicationMenu(
+                process.platform,
+                current.shortcuts,
+                event.state.status === "open"
+              )
+            })
+            .catch(() => undefined)
+        }
+      )
 
       const handleActivate = (): void => {
         if (!mainWindow || mainWindow.isDestroyed()) {
@@ -229,6 +248,7 @@ export function startApplication(
             dispose(): void {
               app.removeListener("activate", handleActivate)
               setWindowProjectService(null)
+              stopApplicationMenuLifecycleSync()
             }
           },
           ipcRegistration,

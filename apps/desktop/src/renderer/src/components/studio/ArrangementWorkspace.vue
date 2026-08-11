@@ -434,7 +434,11 @@ function handleArrangementDrop(event: DragEvent): void {
 </script>
 
 <template>
-  <section class="arrangement" :aria-label="t('studio.arrangement.ariaLabel')">
+  <section
+    class="arrangement"
+    data-tutorial="studio-arrangement"
+    :aria-label="t('studio.arrangement.ariaLabel')"
+  >
     <div class="arrangement-toolbar">
       <GlobalTracksToggle :expanded="globalTracksExpanded" @toggle="viewStore.toggleGlobalTracks" />
       <ArrangementZoomControls

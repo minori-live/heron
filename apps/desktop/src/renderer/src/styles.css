@@ -28,6 +28,52 @@ button,
   background: var(--accent-strong);
 }
 
+.driver-popover.heron-tutorial-popover {
+  max-width: 340px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  color: var(--text-primary);
+  background: var(--surface-2);
+  box-shadow: var(--ui-shadow-lg);
+  font-family: var(--ui-type-family-body);
+}
+
+.driver-popover.heron-tutorial-popover .driver-popover-title {
+  color: var(--text-primary);
+  font-family: var(--ui-type-family-display);
+  font-size: var(--ui-font-size-md);
+}
+
+.driver-popover.heron-tutorial-popover .driver-popover-description,
+.driver-popover.heron-tutorial-popover .driver-popover-progress-text {
+  color: var(--text-muted);
+  line-height: var(--ui-type-leading-relaxed);
+}
+
+.driver-popover.heron-tutorial-popover button {
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: var(--surface-3);
+  text-shadow: none;
+}
+
+.driver-popover.heron-tutorial-popover button:hover,
+.driver-popover.heron-tutorial-popover button:focus-visible {
+  color: var(--text-primary);
+  background: var(--surface-active);
+}
+
+.driver-popover.heron-tutorial-popover .driver-popover-next-btn {
+  border-color: var(--accent-strong);
+  color: var(--button-primary-text);
+  background: var(--button-primary);
+}
+
+.driver-popover.heron-tutorial-popover .driver-popover-close-btn {
+  color: var(--text-muted);
+}
+
 .settings-button {
   position: relative;
   display: grid;

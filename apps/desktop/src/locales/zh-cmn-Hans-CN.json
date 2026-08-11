@@ -77,7 +77,8 @@
     "splitAtPlayhead": "在播放头处分割",
     "toggleFullScreen": "切换全屏",
     "audioBenchmark": "音频性能基准测试…",
-    "effectChainGraph": "效果链图…"
+    "effectChainGraph": "效果链图…",
+    "studioBasics": "Studio 基础教程…"
   },
   "dialog": {
     "actions": {
@@ -148,6 +149,7 @@
     "unableToCloseProject": "无法关闭工程。",
     "unableToLoadApplicationSettings": "无法加载应用程序设置。",
     "unableToSaveDisplaySettings": "无法保存显示设置。",
+    "unableToSaveTutorialProgress": "无法保存教程进度。",
     "unableToSaveMixerDisplaySettings": "无法保存混音台显示设置。",
     "unableToSaveMidiSettings": "无法保存 MIDI 设置。",
     "unableToSaveMidiControl": "无法保存 MIDI 控制映射。",
@@ -362,6 +364,10 @@
       "languageTitle": "语言",
       "languageDescription": "菜单、对话框、混音台、编排界面与设置文案会立即在整个应用中更新。",
       "languageAria": "语言",
+      "tutorialsTitle": "教程",
+      "tutorialsDescription": "控制尚未完成的产品教程是否自动启动。",
+      "tutorialsAutoStart": "自动显示 Studio 基础教程",
+      "tutorialsAutoStartDescription": "你仍可随时从“帮助”菜单手动重放。",
       "locales": {
         "en-US": {
           "label": "English",
@@ -522,6 +528,7 @@
           "toggle": "开始 / 停止录音"
         },
         "help": {
+          "studio-basics": "Studio 基础教程",
           "audio-benchmark": "音频性能基准测试",
           "effect-chain-graph": "效果链图"
         }
@@ -988,13 +995,52 @@
       "unavailable": "—"
     }
   },
+  "tutorials": {
+    "progress": "第 {'{{current}}'} 步，共 {'{{total}}'} 步",
+    "actions": {
+      "next": "下一步",
+      "previous": "上一步",
+      "done": "完成"
+    },
+    "studioBasics": {
+      "steps": {
+        "welcome": {
+          "title": "欢迎来到 Studio",
+          "description": "快速了解编排工程时最常用的控制与工作区域。"
+        },
+        "arrangement": {
+          "title": "编排区",
+          "description": "在时间线上编排轨道与片段、移动播放头，并塑造工程的时间结构。"
+        },
+        "transport": {
+          "title": "走带控制",
+          "description": "在这里返回开头、播放、循环选区或开始录音。"
+        },
+        "musicalDisplay": {
+          "title": "音乐参数显示",
+          "description": "查看当前位置，并编辑速度、拍号与调号。"
+        },
+        "inspector": {
+          "title": "检查器",
+          "description": "打开检查器以编辑当前所选轨道的参数。"
+        },
+        "lowerEditors": {
+          "title": "底部编辑器",
+          "description": "在保留编排区的同时，于底部面板打开混音台或钢琴卷帘。"
+        },
+        "rightPanels": {
+          "title": "工程工具",
+          "description": "在这里打开备注或媒体浏览器。你可以随时从“帮助 → Studio 基础教程”重放本教程。"
+        }
+      }
+    }
+  },
   "studio": {
     "common": {
       "comingSoon": "即将推出"
     },
     "topbar": {
       "inspector": "检查器",
-      "quickHelp": "快速帮助",
       "downloadManager": "下载管理器",
       "smartControls": "智能控制",
       "mixer": "混音台",

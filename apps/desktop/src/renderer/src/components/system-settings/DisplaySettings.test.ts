@@ -54,4 +54,20 @@ describe("DisplaySettings", () => {
     })
     expect(chineseOption!.attributes("aria-checked")).toBe("true")
   })
+
+  it("disables automatic Studio Basics from the tutorials setting", async () => {
+    const wrapper = mount(DisplaySettings, {
+      global: { plugins: [createPinia()] }
+    })
+    await flushPromises()
+
+    const checkbox = wrapper.get('input[type="checkbox"]')
+    expect(checkbox.element).toHaveProperty("checked", true)
+    await checkbox.setValue(false)
+    await flushPromises()
+
+    expect(window.heron.updateApplicationSettings).toHaveBeenCalledWith(expect.any(Object), {
+      tutorials: { autoStart: false, completedVersions: {} }
+    })
+  })
 })

@@ -64,6 +64,7 @@ describe("ProjectWelcome", () => {
           },
           pluginEditors: {},
           shortcuts: { keyboard: {}, midi: {} },
+          tutorials: { autoStart: true, completedVersions: {} },
           midiControl: { bindings: [], transformProfiles: [] },
           recentProjects: [{ path: "C:/song.heron", name: "Song", openedAt: 1 }]
         },

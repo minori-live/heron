@@ -129,7 +129,7 @@ export function registerSettingsRpcHandlers(context: IpcHandlerContext): void {
       const updated = await settings.update(patch)
       if (patch.locale !== undefined) {
         setMainLocale(updated.locale)
-        installApplicationMenu(process.platform, updated.shortcuts)
+        installApplicationMenu(process.platform, updated.shortcuts, projects.current !== null)
       }
       if (patch.locale !== undefined || patch.theme !== undefined) {
         await audioHostService
@@ -201,7 +201,7 @@ export function registerSettingsRpcHandlers(context: IpcHandlerContext): void {
       await audioHostService.configureMidiInput(current.midiSync, shortcuts, current.midiControl)
       try {
         const updated = await settings.configureShortcuts(shortcuts)
-        installApplicationMenu(process.platform, updated.shortcuts)
+        installApplicationMenu(process.platform, updated.shortcuts, projects.current !== null)
         return updated
       } catch (error) {
         await audioHostService.configureMidiInput(

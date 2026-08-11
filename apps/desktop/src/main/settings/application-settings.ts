@@ -6,7 +6,8 @@ import {
   DEFAULT_MIDI_CONTROL_PREFERENCES,
   isMeterReturnRate,
   MAX_MIDI_INPUT_OFFSET_MS,
-  SHORTCUT_MODIFIERS
+  SHORTCUT_MODIFIERS,
+  TUTORIAL_IDS
 } from "@heron/contracts"
 import type {
   ApplicationCommandId,
@@ -20,6 +21,7 @@ import type {
   PluginEditorPreference,
   RecordingBitDepth,
   ShortcutPreferences,
+  TutorialPreferences,
   ThemePreference
 } from "@heron/contracts"
 import { DEFAULT_LOCALE, isAppLocale } from "../../shared/i18n"
@@ -50,6 +52,34 @@ function isMeterPeakHold(value: unknown): value is MeterPeakHold {
 
 function isMidiCenterCStandard(value: unknown): value is MidiCenterCStandard {
   return value === "yamaha-c3" || value === "roland-c4"
+}
+
+export function validateTutorialPreferences(value: unknown): TutorialPreferences {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("Tutorial preferences must be an object")
+  }
+  const input = value as Partial<TutorialPreferences>
+  if (typeof input.autoStart !== "boolean") {
+    throw new TypeError("Tutorial auto-start must be a boolean")
+  }
+  if (
+    !input.completedVersions ||
+    typeof input.completedVersions !== "object" ||
+    Array.isArray(input.completedVersions)
+  ) {
+    throw new TypeError("Tutorial completion versions must be an object")
+  }
+  const completedVersions: TutorialPreferences["completedVersions"] = {}
+  for (const [id, version] of Object.entries(input.completedVersions)) {
+    if (!(TUTORIAL_IDS as readonly string[]).includes(id)) {
+      throw new TypeError("Unsupported tutorial ID")
+    }
+    if (!Number.isSafeInteger(version) || version < 0) {
+      throw new TypeError("Tutorial completion versions must be non-negative integers")
+    }
+    completedVersions[id as keyof typeof completedVersions] = version
+  }
+  return { autoStart: input.autoStart, completedVersions }
 }
 
 export function validateMidiSyncPreferences(value: unknown): MidiSyncPreferences {
@@ -283,6 +313,7 @@ export class ApplicationSettingsStore {
       },
       pluginEditors: {},
       shortcuts: { keyboard: {}, midi: {} },
+      tutorials: { autoStart: true, completedVersions: {} },
       recentProjects: []
     }
   }
@@ -341,6 +372,13 @@ export class ApplicationSettingsStore {
             return validateShortcutPreferences(raw.shortcuts)
           } catch {
             return value.shortcuts
+          }
+        })(),
+        tutorials: (() => {
+          try {
+            return validateTutorialPreferences(raw.tutorials)
+          } catch {
+            return value.tutorials
           }
         })(),
         recentProjects: Array.isArray(raw.recentProjects)
@@ -405,6 +443,9 @@ export class ApplicationSettingsStore {
         throw new TypeError("Low-latency plug-in budget must be an integer from 0 to 50 ms")
       }
       current.lowLatencyPluginBudgetMs = patch.lowLatencyPluginBudgetMs
+    }
+    if (patch.tutorials !== undefined) {
+      current.tutorials = validateTutorialPreferences(patch.tutorials)
     }
     return this.write(current)
   }

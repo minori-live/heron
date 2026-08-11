@@ -26,6 +26,7 @@ function settings(overrides: Partial<ApplicationSettings> = {}): ApplicationSett
     },
     pluginEditors: {},
     shortcuts: { keyboard: {}, midi: {} },
+    tutorials: { autoStart: true, completedVersions: {} },
     midiControl: { bindings: [], transformProfiles: [] },
     recentProjects: [],
     ...overrides
@@ -244,6 +245,23 @@ describe("optimistic display settings", () => {
     expect(store.settings?.meterReturnRate).toBe("fast")
     expect(window.heron.updateApplicationSettings).toHaveBeenLastCalledWith(expect.any(Object), {
       meterReturnRate: "fast"
+    })
+  })
+
+  it("persists tutorial auto-start and completion versions", async () => {
+    const store = useApplicationSettingsStore()
+    await store.load()
+
+    await expect(store.setTutorialAutoStart(false)).resolves.toBe(true)
+    expect(store.settings?.tutorials.autoStart).toBe(false)
+    expect(window.heron.updateApplicationSettings).toHaveBeenLastCalledWith(expect.any(Object), {
+      tutorials: { autoStart: false, completedVersions: {} }
+    })
+
+    await expect(store.markTutorialCompleted("studio-basics", 1)).resolves.toBe(true)
+    expect(store.settings?.tutorials.completedVersions["studio-basics"]).toBe(1)
+    expect(window.heron.updateApplicationSettings).toHaveBeenLastCalledWith(expect.any(Object), {
+      tutorials: { autoStart: false, completedVersions: { "studio-basics": 1 } }
     })
   })
 

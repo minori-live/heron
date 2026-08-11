@@ -3,6 +3,7 @@ import { computed, onMounted } from "vue"
 import { storeToRefs } from "pinia"
 import { useI18n } from "vue-i18n"
 import { Languages, Monitor, Moon, Sun } from "@lucide/vue"
+import { UiCheckbox } from "@heron/ui"
 import type { Component } from "vue"
 import type { AppLocale, ThemePreference } from "@heron/contracts"
 import SettingsPage from "../settings/SettingsPage.vue"
@@ -130,6 +131,19 @@ onMounted(() => {
           <span class="selection-dot" aria-hidden="true" />
         </button>
       </div>
+    </SettingsSection>
+
+    <SettingsSection
+      :title="t('settings.display.tutorialsTitle')"
+      :description="t('settings.display.tutorialsDescription')"
+    >
+      <UiCheckbox
+        :model-value="settings?.tutorials.autoStart ?? true"
+        :label="t('settings.display.tutorialsAutoStart')"
+        :description="t('settings.display.tutorialsAutoStartDescription')"
+        :disabled="loading"
+        @update:model-value="settingsStore.setTutorialAutoStart"
+      />
     </SettingsSection>
 
     <p v-if="error" class="display-error" role="alert">{{ error }}</p>

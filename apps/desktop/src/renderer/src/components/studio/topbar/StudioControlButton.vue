@@ -13,6 +13,7 @@ const props = withDefaults(
     unavailable?: boolean
     disabled?: boolean
     compactHidden?: boolean
+    tutorialTarget?: string
     tone?: "default" | "play" | "record" | "accent" | "loop" | "success"
   }>(),
   {
@@ -21,6 +22,7 @@ const props = withDefaults(
     unavailable: false,
     disabled: false,
     compactHidden: false,
+    tutorialTarget: undefined,
     tone: "default"
   }
 )
@@ -61,6 +63,7 @@ function activate(event: MouseEvent): void {
       :aria-pressed="pressed"
       :aria-label="label"
       :data-placeholder="unavailable ? '' : undefined"
+      :data-tutorial="tutorialTarget"
       @click="activate"
     >
       <slot />

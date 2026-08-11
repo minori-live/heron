@@ -3,7 +3,6 @@ import { useI18n } from "vue-i18n"
 import {
   AudioLines,
   BellRing,
-  CircleHelp,
   Download,
   Gauge,
   Library,
@@ -87,21 +86,23 @@ const { t } = useI18n()
       <StudioControlButton
         :label="t('studio.topbar.inspector')"
         :pressed="inspectorOpen"
+        tutorial-target="studio-inspector"
         tone="accent"
         compact-hidden
         @activate="emit('toggleInspector')"
       >
         <SlidersHorizontal :size="15" />
       </StudioControlButton>
-      <StudioControlButton :label="t('studio.topbar.quickHelp')" unavailable compact-hidden>
-        <CircleHelp :size="15" />
-      </StudioControlButton>
       <StudioControlButton :label="t('studio.topbar.downloadManager')" unavailable compact-hidden>
         <Download :size="15" />
       </StudioControlButton>
     </div>
 
-    <div class="control-group bottom-panel-group" data-topbar-group="bottom-panel">
+    <div
+      class="control-group bottom-panel-group"
+      data-topbar-group="bottom-panel"
+      data-tutorial="studio-lower-editors"
+    >
       <StudioControlButton :label="t('studio.topbar.smartControls')" unavailable compact-hidden>
         <Gauge :size="15" />
       </StudioControlButton>
@@ -124,7 +125,11 @@ const { t } = useI18n()
       </StudioControlButton>
     </div>
 
-    <div class="control-group transport-group" data-topbar-group="transport">
+    <div
+      class="control-group transport-group"
+      data-topbar-group="transport"
+      data-tutorial="studio-transport"
+    >
       <StudioTransportControls
         :engine-running="engineRunning"
         :recording="recording"
@@ -143,6 +148,7 @@ const { t } = useI18n()
 
     <StudioMusicalDisplay
       data-topbar-group="musical-display"
+      data-tutorial="studio-musical-display"
       :playhead-seconds="playheadSeconds"
       :tempo-map="tempoMap"
       :key-signature-events="keySignatureEvents"
@@ -203,7 +209,11 @@ const { t } = useI18n()
       @update-channel="(channelId, patch) => emit('updateMaster', channelId, patch)"
     />
 
-    <div class="control-group right-panel-group" data-topbar-group="right-panel">
+    <div
+      class="control-group right-panel-group"
+      data-topbar-group="right-panel"
+      data-tutorial="studio-right-panels"
+    >
       <StudioControlButton :label="t('studio.topbar.listEditors')" unavailable compact-hidden>
         <List :size="15" />
       </StudioControlButton>

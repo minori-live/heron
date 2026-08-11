@@ -88,6 +88,7 @@ export const defaultSettings: ApplicationSettings = {
     inputOffsetsMs: {}
   },
   pluginEditors: {},
+  tutorials: { autoStart: true, completedVersions: {} },
   recentProjects: []
 }
 

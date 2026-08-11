@@ -1,5 +1,5 @@
 import { useEventListener } from "@vueuse/core"
-import { computed, onMounted, onUnmounted } from "vue"
+import { computed, nextTick, onMounted, onUnmounted } from "vue"
 import { storeToRefs } from "pinia"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
@@ -33,6 +33,7 @@ import { useTransportStore } from "../stores/transport"
 import { planAudioClipSplit, planMidiClipSplits } from "../utils/clipEditing"
 import { secondsToTick } from "../utils/tempoMap"
 import { defaultCycleRange } from "../utils/cycleRange"
+import { useTutorialController } from "./useTutorialController"
 
 function defaultProject(name: string): CreateProjectRequest {
   return {
@@ -68,6 +69,7 @@ export function useApplicationCommands() {
   const recordingStore = useRecordingStore()
   const workspaceStore = useStudioWorkspaceStore()
   const transportStore = useTransportStore()
+  const { requestStudioBasics } = useTutorialController()
   const { lifecycle, session, busy: projectBusy } = storeToRefs(projectStore)
   const { canUndo, canRedo } = storeToRefs(mixerStore)
   const { active: activeRecording, busy: recordingBusy } = storeToRefs(recordingStore)
@@ -182,6 +184,11 @@ export function useApplicationCommands() {
       value: "help",
       label: t("menu.help"),
       items: [
+        {
+          value: "help.studio-basics",
+          label: t("menu.studioBasics"),
+          disabled: !projectReady.value
+        },
         {
           value: "help.audio-benchmark",
           label: t("menu.audioBenchmark")
@@ -351,6 +358,14 @@ export function useApplicationCommands() {
         break
       case "recording.toggle":
         await toggleRecording()
+        break
+      case "help.studio-basics":
+        if (!projectReady.value) break
+        if (router.currentRoute.value.name !== "studio") {
+          await router.push({ name: "studio" })
+          await nextTick()
+        }
+        requestStudioBasics()
         break
       case "help.audio-benchmark":
         benchmarkStore.open()

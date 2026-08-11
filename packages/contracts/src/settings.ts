@@ -34,6 +34,14 @@ export type MidiCenterCStandard = "yamaha-c3" | "roland-c4"
 export type AudioHostThreadSetting = "auto" | number
 export type PluginEditorMode = "native" | "parameters"
 
+export const TUTORIAL_IDS = ["studio-basics"] as const
+export type TutorialId = (typeof TUTORIAL_IDS)[number]
+
+export interface TutorialPreferences {
+  autoStart: boolean
+  completedVersions: Partial<Record<TutorialId, number>>
+}
+
 export interface PluginEditorPreference {
   mode: PluginEditorMode
   zoomPercent: number
@@ -64,6 +72,7 @@ export interface ApplicationSettings {
   audioHostRuntime: AudioHostRuntimePreferences
   pluginEditors: Record<string, PluginEditorPreference>
   shortcuts: ShortcutPreferences
+  tutorials: TutorialPreferences
   recentProjects: RecentProject[]
 }
 export interface ApplicationSettingsResourceSnapshot {
@@ -83,5 +92,6 @@ export type ApplicationSettingsPatch = Partial<
     | "meterReturnRate"
     | "midiCenterCStandard"
     | "lowLatencyPluginBudgetMs"
+    | "tutorials"
   >
 >

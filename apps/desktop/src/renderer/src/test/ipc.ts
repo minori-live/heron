@@ -107,6 +107,7 @@ export function testSettings(overrides: Partial<ApplicationSettings> = {}): Appl
     },
     pluginEditors: {},
     shortcuts: { keyboard: {}, midi: {} },
+    tutorials: { autoStart: true, completedVersions: {} },
     recentProjects: [],
     ...overrides
   }
