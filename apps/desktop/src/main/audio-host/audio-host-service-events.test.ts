@@ -1,3 +1,4 @@
+import { encode } from "@msgpack/msgpack"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { AudioHostService, fakeHost, resetFakeHost } from "./audio-host-service.fixture"
 
@@ -100,5 +101,82 @@ describe("AudioHostService events", () => {
     handler.resolve()
     await stop
     expect(stopped).toBe(true)
+  })
+
+  it("dispatches recovery and plug-in failure events while running and during shutdown", async () => {
+    const service = new AudioHostService(
+      {
+        workerThreads: "auto",
+        maxBlockingThreads: "auto"
+      },
+      undefined,
+      () => {},
+      async () => {}
+    )
+    const recoveries = vi.fn()
+    const failures = vi.fn()
+    service.setDeviceRecoveryHandler(recoveries)
+    service.setPluginFailureHandler(failures)
+    service.start()
+
+    const events = [
+      Buffer.from(encode({ type: "audio-device-recovery-changed", recovery: null })),
+      Buffer.from(
+        encode({
+          type: "plugin-failure",
+          failure: {
+            instance_id: "fx-1",
+            instance_generation: 3,
+            graph_revision: 17,
+            category: "invalid-output",
+            stage: "process",
+            outcome: "failed",
+            recoverable: true,
+            diagnostic_id: "plugin:fx-1:process",
+            message: "the plug-in produced non-finite audio"
+          }
+        })
+      )
+    ]
+    const client = fakeHost.Client.instances[0]!
+    vi.spyOn(client, "drainEvents").mockImplementation(() => events)
+    ;(
+      service as unknown as {
+        gateway: { drainEvents(client: InstanceType<typeof fakeHost.Client>): void }
+      }
+    ).gateway.drainEvents(client)
+
+    await vi.waitFor(() => {
+      expect(recoveries).toHaveBeenCalledWith(null)
+      expect(failures).toHaveBeenCalledWith(
+        expect.objectContaining({ instanceId: "fx-1", category: "invalid-output" })
+      )
+    })
+
+    await service.stop()
+    expect(recoveries.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(failures.mock.calls.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it("delegates plug-in retry to the owned runtime client", async () => {
+    const service = new AudioHostService(
+      {
+        workerThreads: "auto",
+        maxBlockingThreads: "auto"
+      },
+      undefined,
+      () => {},
+      async () => {}
+    )
+    const retryPlugin = vi.fn(async () => undefined)
+    ;(
+      service as unknown as {
+        plugins: { retryPlugin(instanceId: string): Promise<void> }
+      }
+    ).plugins.retryPlugin = retryPlugin
+
+    await service.retryPlugin("fx-1")
+
+    expect(retryPlugin).toHaveBeenCalledWith("fx-1")
   })
 })
