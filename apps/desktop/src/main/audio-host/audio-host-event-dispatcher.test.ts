@@ -50,4 +50,35 @@ describe("AudioHostEventDispatcher", () => {
     )
     error.mockRestore()
   })
+
+  it("dispatches plug-in failures and contains rejected reconciliation", async () => {
+    const dispatcher = new AudioHostEventDispatcher({
+      helperEpoch: () => "epoch-1",
+      rejectSidechainRoute: vi.fn()
+    })
+    const failure = {
+      instanceId: "plugin-1",
+      instanceGeneration: 7,
+      graphRevision: 11,
+      category: "plugin-rejected",
+      stage: "process",
+      outcome: "failed",
+      recoverable: true,
+      diagnosticId: "plugin:plugin-1:process",
+      message: "processing rejected"
+    } as const
+    const handler = vi.fn().mockRejectedValue(new Error("reconciliation failed"))
+    const error = vi.spyOn(console, "error").mockImplementation(() => {})
+    dispatcher.setPluginFailureHandler(handler)
+
+    dispatcher.dispatchPluginFailure(failure)
+    await dispatcher.settle()
+
+    expect(handler).toHaveBeenCalledWith(failure)
+    expect(error).toHaveBeenCalledWith(
+      "Could not reconcile an audio plug-in failure",
+      expect.any(Error)
+    )
+    error.mockRestore()
+  })
 })

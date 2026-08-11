@@ -141,3 +141,132 @@ impl EmbeddedUiHost {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::runtime::ui_runtime::test_support::{FixtureFailure, host, processor};
+
+    fn insert_failed_processor(host: &EmbeddedUiHost, failure: FixtureFailure) {
+        host.processors
+            .lock()
+            .expect("processor registry should be available")
+            .insert("plugin-1".to_owned(), processor(Some(failure)));
+    }
+
+    fn assert_process_failure(
+        event: HostEvent,
+        expected_category: PluginFailureCategory,
+        expected_message: &str,
+    ) {
+        let HostEvent::PluginFailure { failure } = event else {
+            panic!("expected a plug-in failure event");
+        };
+        assert_eq!(failure.instance_id, "plugin-1");
+        assert_eq!(failure.instance_generation, 7);
+        assert_eq!(failure.graph_revision, 11);
+        assert_eq!(failure.category, expected_category);
+        assert_eq!(failure.stage, PluginFailureStage::Process);
+        assert_eq!(failure.outcome, PluginFailureOutcome::Failed);
+        assert!(failure.recoverable);
+        assert_eq!(failure.diagnostic_id, "plugin:plugin-1:process");
+        assert_eq!(failure.message, expected_message);
+    }
+
+    #[test]
+    fn process_rejections_publish_one_typed_failure() {
+        let (host, events) = host(1);
+        insert_failed_processor(&host, FixtureFailure::Rejected);
+
+        host.poll_plugin_process_failures();
+
+        assert_process_failure(
+            events.recv().expect("failure event should be published"),
+            PluginFailureCategory::PluginRejected,
+            "the plug-in rejected an audio processing block",
+        );
+        host.poll_plugin_process_failures();
+        assert!(events.try_recv().is_err());
+    }
+
+    #[test]
+    fn invalid_output_publishes_the_captured_generation_and_revision() {
+        let (host, events) = host(1);
+        insert_failed_processor(&host, FixtureFailure::InvalidOutput);
+
+        host.poll_plugin_process_failures();
+
+        assert_process_failure(
+            events.recv().expect("failure event should be published"),
+            PluginFailureCategory::InvalidOutput,
+            "the plug-in produced non-finite audio",
+        );
+    }
+
+    #[test]
+    fn a_full_event_queue_makes_the_process_failure_reportable_again() {
+        let (host, events) = host(1);
+        host.host_events
+            .try_send(HostEvent::Ready)
+            .expect("test queue should accept its sentinel");
+        insert_failed_processor(&host, FixtureFailure::Rejected);
+
+        host.poll_plugin_process_failures();
+        assert_eq!(
+            events.recv().expect("sentinel should remain queued"),
+            HostEvent::Ready
+        );
+        host.poll_plugin_process_failures();
+
+        assert_process_failure(
+            events.recv().expect("failure should be retried"),
+            PluginFailureCategory::PluginRejected,
+            "the plug-in rejected an audio processing block",
+        );
+    }
+
+    #[test]
+    fn pending_ara_events_preserve_order_across_full_and_disconnected_queues() {
+        let (mut host, events) = host(1);
+        host.host_events
+            .try_send(HostEvent::Ready)
+            .expect("test queue should accept its sentinel");
+        host.pending_ara_events
+            .push_back(HostEvent::GraphPublished { revision: 9 });
+
+        host.flush_pending_ara_events();
+        assert_eq!(host.pending_ara_events.len(), 1);
+        assert_eq!(
+            events.recv().expect("sentinel should remain queued"),
+            HostEvent::Ready
+        );
+        host.flush_pending_ara_events();
+        assert_eq!(
+            events.recv().expect("pending event should be published"),
+            HostEvent::GraphPublished { revision: 9 }
+        );
+
+        host.pending_ara_events.push_back(HostEvent::Ready);
+        drop(events);
+        host.flush_pending_ara_events();
+        assert!(host.pending_ara_events.is_empty());
+    }
+
+    #[test]
+    fn ara_runtime_failures_keep_instance_and_phase_context() {
+        let (host, events) = host(1);
+
+        host.publish_ara_runtime_failure("ara-1", "transport rejected");
+
+        let HostEvent::RuntimeFailure {
+            plugin_instance_id,
+            phase,
+            ..
+        } = events.recv().expect("runtime failure should be published")
+        else {
+            panic!("expected a runtime failure event");
+        };
+        assert_eq!(plugin_instance_id.as_deref(), Some("ara-1"));
+        assert_eq!(phase.as_deref(), Some("ara-playback-callback"));
+    }
+}

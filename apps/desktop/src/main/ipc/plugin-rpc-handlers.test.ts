@@ -263,6 +263,61 @@ describe("registerPluginRpcHandlers", () => {
     expect(context.plugins.retry).toHaveBeenCalledWith("plugin-1")
   })
 
+  it("rejects retry without a string instance id", async () => {
+    const context = createContext()
+    registerPluginRpcHandlers(context)
+    const workspace = installWorkspace(context.lifecycle)
+
+    const result = await invoke(
+      electronMocks,
+      IPC_CHANNELS.pluginRetry,
+      mutationMeta(workspace.projectGraph, { expectedRevision: workspace.revision }),
+      42
+    )
+
+    expect(result).toMatchObject({ ok: false, error: { code: "validation-failed" } })
+    expect(context.plugins.retry).not.toHaveBeenCalled()
+  })
+
+  it("rejects retry for a plugin absent from the project graph", async () => {
+    const context = createContext()
+    registerPluginRpcHandlers(context)
+    const workspace = installWorkspace(context.lifecycle)
+
+    const result = await invoke(
+      electronMocks,
+      IPC_CHANNELS.pluginRetry,
+      mutationMeta(workspace.projectGraph, { expectedRevision: workspace.revision }),
+      "missing"
+    )
+
+    expect(result).toMatchObject({ ok: false, error: { code: "stale-resource" } })
+    expect(context.plugins.retry).not.toHaveBeenCalled()
+  })
+
+  it("reports a failed retry as not committed", async () => {
+    const context = createContext()
+    vi.mocked(context.plugins.retry).mockRejectedValue(new Error("native retry failed"))
+    registerPluginRpcHandlers(context)
+    const workspace = installWorkspace(context.lifecycle, {
+      ...createWorkspaceFrom(context),
+      graph: { ...emptyGraph, plugins: [plugin] }
+    })
+    const operationId = "op-retry-fail"
+    const requestMeta = mutationMeta(workspace.projectGraph, {
+      expectedRevision: workspace.revision,
+      mutation: { operationId, idempotencyKey: "idem-retry-fail" }
+    })
+
+    const result = await invoke(electronMocks, IPC_CHANNELS.pluginRetry, requestMeta, "plugin-1")
+
+    expect(result).toMatchObject({ ok: false, error: { code: "resource-unavailable" } })
+    expect(context.operations.registry.status(operationId)).toMatchObject({
+      ok: true,
+      value: { state: "not-committed" }
+    })
+  })
+
   it("closes a plugin editor", async () => {
     const context = createContext()
     registerPluginRpcHandlers(context)

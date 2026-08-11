@@ -545,3 +545,75 @@ impl EmbeddedUiHost {
         let _ = reply.send(result);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::runtime::ui_runtime::test_support::{FixtureFailure, host, processor};
+
+    fn retry(host: &mut EmbeddedUiHost, instance_id: &str) -> ControlResult {
+        let (reply, result) = tokio::sync::oneshot::channel();
+        host.execute_audio_plugin_request(ActorRequest {
+            command: ActorCommand::Control(ControlCommand::RetryPlugin {
+                instance_id: instance_id.to_owned(),
+            }),
+            reply,
+        });
+        result
+            .blocking_recv()
+            .expect("retry request should return one terminal result")
+    }
+
+    #[test]
+    fn retry_requires_an_owned_processor_with_a_reported_failure() {
+        let (mut host, _events) = host(1);
+
+        assert!(matches!(
+            retry(&mut host, "missing"),
+            ControlResult::Error { .. }
+        ));
+
+        host.processors
+            .lock()
+            .expect("processor registry should be available")
+            .insert("healthy".to_owned(), processor(None));
+        assert!(matches!(
+            retry(&mut host, "healthy"),
+            ControlResult::Error { .. }
+        ));
+
+        host.processors
+            .lock()
+            .expect("processor registry should be available")
+            .insert(
+                "failed".to_owned(),
+                processor(Some(FixtureFailure::Rejected)),
+            );
+        assert!(matches!(
+            retry(&mut host, "failed"),
+            ControlResult::Accepted
+        ));
+        assert!(matches!(
+            retry(&mut host, "failed"),
+            ControlResult::Error { .. }
+        ));
+    }
+
+    #[test]
+    fn retry_reports_a_poisoned_processor_registry() {
+        let (mut host, _events) = host(1);
+        let processors = host.processors.clone();
+        let _ = std::thread::spawn(move || {
+            let _guard = processors
+                .lock()
+                .expect("processor registry should initially be available");
+            panic!("poison the processor registry for the test");
+        })
+        .join();
+
+        assert!(matches!(
+            retry(&mut host, "plugin-1"),
+            ControlResult::Error { .. }
+        ));
+    }
+}
