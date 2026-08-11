@@ -2,12 +2,7 @@
 import { computed, shallowRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { Trash2 } from "@lucide/vue"
-import type {
-  PluginDescriptor,
-  PluginFailureCategory,
-  PluginInstanceState,
-  PluginRuntimeStatus
-} from "@heron/contracts"
+import type { PluginDescriptor, PluginInstanceState, PluginRuntimeStatus } from "@heron/contracts"
 import { PLUGIN_DRAG_TYPE, readPluginDrag } from "../plugins/plugin-drag"
 import PluginAudioModeMenu from "../plugins/PluginAudioModeMenu.vue"
 import { pluginAudioModeBadge, type PluginSelection } from "../plugins/plugin-audio-mode"
@@ -37,9 +32,7 @@ const failure = computed(() =>
   props.instrument ? props.runtime[props.instrument.id]?.failure : undefined
 )
 const failureMessage = computed(() =>
-  failure.value
-    ? t(`plugins.failure.${failure.value.category as PluginFailureCategory}`)
-    : undefined
+  failure.value ? t(`plugins.failure.${failure.value.category}`) : undefined
 )
 
 function openOrRetry(): void {
