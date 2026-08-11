@@ -35,7 +35,7 @@ button,
   color: var(--text-primary);
   background: var(--surface-2);
   box-shadow: var(--ui-shadow-lg);
-  font-family: var(--ui-type-family-body);
+  font-family: var(--ui-type-family-interface);
 }
 
 .driver-popover.heron-tutorial-popover .driver-popover-title {
