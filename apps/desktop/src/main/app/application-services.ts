@@ -1,5 +1,4 @@
-import { AssetMaterializer } from "../project"
-import { AssetAuditionService } from "../project"
+import { AssetAuditionService, AssetMaterializer } from "../project"
 import { AudioImportService } from "../project"
 import { AudioGraphCompiler } from "../project"
 import { AudioGraphPublisher } from "../project"
