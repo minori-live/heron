@@ -123,9 +123,9 @@ for at least two hours without reading source or developer documentation.
       attempt, even if the old device has already returned.
 - [ ] A recoverable plug-in initialize, restore, processing, editor, or state
       failure bypasses or disables only the affected instance without
-      invalidating the rest of the graph. The supported boundary and delivery
-      slices are defined in the
-      [plug-in failure containment plan](plugin-failure-containment-plan.md).
+      invalidating the rest of the graph. The supported boundary and required
+      recovery guarantees are defined in
+      [ADR-0011](adr/0011-in-process-plugin-failure-containment.md).
 - [ ] CPU pressure, XRUNs, and overload are visible to the user, but Heron does
       not change buffer size, bypass effects, or otherwise alter the performance
       without an explicit user action.

@@ -25,7 +25,7 @@ installed copies under `.agents/skills/`.
 - [Native call boundary](native-call-boundary.md)
 - [Renderer/main resource and error contract](cross-process-error-contract.md)
 - [Playback runtime architecture](playback-runtime.md)
-- [Plug-in failure containment plan](plugin-failure-containment-plan.md)
+- [ADR-0011: Contain returning plug-in failures in process](adr/0011-in-process-plugin-failure-containment.md)
 - [Project database development rules](project-database.md)
 
 ## Authority

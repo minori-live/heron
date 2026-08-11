@@ -98,8 +98,8 @@ and an unambiguous user choice are release requirements.
 Plug-in failure containment is deliberately in process. It covers failures that
 return, report, or can be safely validated at a host-owned boundary. It cannot
 contain access violations, aborts, memory corruption, or a plug-in call that
-never returns. The detailed boundary and implementation sequence are defined in
-the [plug-in failure containment plan](plugin-failure-containment-plan.md).
+never returns. The durable containment and recovery boundary is defined in
+[ADR-0011](adr/0011-in-process-plugin-failure-containment.md).
 
 ## Device recovery concurrency
 
