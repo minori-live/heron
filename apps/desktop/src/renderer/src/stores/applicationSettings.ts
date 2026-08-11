@@ -14,6 +14,8 @@ import type {
   MidiCenterCStandard,
   MidiControlPreferences,
   ShortcutPreferences,
+  TutorialId,
+  TutorialPreferences,
   ThemePreference
 } from "@heron/contracts"
 import { i18n } from "../i18n"
@@ -172,6 +174,58 @@ export const useApplicationSettingsStore = defineStore("application-settings", (
       error.value =
         reason instanceof Error ? reason.message : t("errors.unableToSaveDisplaySettings")
     }
+  }
+
+  async function updateTutorials(
+    operation: string,
+    next: TutorialPreferences,
+    failureKey: string
+  ): Promise<boolean> {
+    if (!settings.value) await load()
+    if (!settings.value) return false
+    const previous = settings.value
+    settings.value = { ...previous, tutorials: structuredClone(next) }
+    error.value = ""
+    try {
+      const applied = await applyMutation(operation, (meta) =>
+        window.heron.updateApplicationSettings(meta, { tutorials: next })
+      )
+      if (!applied) settings.value = previous
+      return applied
+    } catch (reason) {
+      settings.value = previous
+      error.value = reason instanceof Error ? reason.message : t(failureKey)
+      return false
+    }
+  }
+
+  async function setTutorialAutoStart(autoStart: boolean): Promise<boolean> {
+    if (!settings.value) await load()
+    if (!settings.value) return false
+    if (settings.value.tutorials.autoStart === autoStart) return true
+    return updateTutorials(
+      "settings-tutorial-auto-start",
+      { ...settings.value.tutorials, autoStart },
+      "errors.unableToSaveDisplaySettings"
+    )
+  }
+
+  async function markTutorialCompleted(id: TutorialId, version: number): Promise<boolean> {
+    if (!settings.value) await load()
+    if (!settings.value) return false
+    const completed = settings.value.tutorials.completedVersions[id] ?? 0
+    if (completed >= version) return true
+    return updateTutorials(
+      `settings-tutorial-complete-${id}`,
+      {
+        ...settings.value.tutorials,
+        completedVersions: {
+          ...settings.value.tutorials.completedVersions,
+          [id]: version
+        }
+      },
+      "errors.unableToSaveTutorialProgress"
+    )
   }
 
   async function updateDisplaySetting(
@@ -339,6 +393,8 @@ export const useApplicationSettingsStore = defineStore("application-settings", (
     update,
     setTheme,
     setLocale,
+    setTutorialAutoStart,
+    markTutorialCompleted,
     setMeterPeakHold,
     setMeterReturnRate,
     setMidiCenterCStandard,

@@ -66,7 +66,10 @@ function electronAccelerator(binding: KeyboardShortcutBinding | undefined): stri
   return [...modifiers, key].join("+")
 }
 
-function macApplicationMenu(shortcuts: ShortcutPreferences): MenuItemConstructorOptions[] {
+function macApplicationMenu(
+  shortcuts: ShortcutPreferences,
+  projectOpen: boolean
+): MenuItemConstructorOptions[] {
   const keyboard = resolveKeyboardShortcuts("darwin", shortcuts)
   const accelerator = (command: ApplicationCommandId) => electronAccelerator(keyboard[command])
   return [
@@ -134,6 +137,14 @@ function macApplicationMenu(shortcuts: ShortcutPreferences): MenuItemConstructor
     {
       role: "help",
       submenu: [
+        {
+          ...commandItem(
+            t("menu.studioBasics"),
+            "help.studio-basics",
+            accelerator("help.studio-basics")
+          ),
+          enabled: projectOpen
+        },
         commandItem(
           t("menu.audioBenchmark"),
           "help.audio-benchmark",
@@ -151,12 +162,13 @@ function macApplicationMenu(shortcuts: ShortcutPreferences): MenuItemConstructor
 
 export function installApplicationMenu(
   platform: NodeJS.Platform = process.platform,
-  shortcuts: ShortcutPreferences = { keyboard: {}, midi: {} }
+  shortcuts: ShortcutPreferences = { keyboard: {}, midi: {} },
+  projectOpen = false
 ): void {
   if (platform !== "darwin") {
     Menu.setApplicationMenu(null)
     return
   }
 
-  Menu.setApplicationMenu(Menu.buildFromTemplate(macApplicationMenu(shortcuts)))
+  Menu.setApplicationMenu(Menu.buildFromTemplate(macApplicationMenu(shortcuts, projectOpen)))
 }

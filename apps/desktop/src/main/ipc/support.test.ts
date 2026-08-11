@@ -202,7 +202,8 @@ describe("validateSettingsPatch", () => {
         locale: "en-US",
         meterPeakHold: "infinite",
         meterReturnRate: "iec-type-i",
-        midiCenterCStandard: "roland-c4"
+        midiCenterCStandard: "roland-c4",
+        tutorials: { autoStart: false, completedVersions: { "studio-basics": 1 } }
       })
     ).not.toThrow()
   })
@@ -225,7 +226,11 @@ describe("validateSettingsPatch", () => {
       [{ locale: "fr-FR" }, "Unsupported locale preference"],
       [{ meterPeakHold: "10s" }, "Unsupported meter peak hold"],
       [{ meterReturnRate: "instant" }, "Unsupported meter return rate"],
-      [{ midiCenterCStandard: "middle-c" }, "Unsupported MIDI center C standard"]
+      [{ midiCenterCStandard: "middle-c" }, "Unsupported MIDI center C standard"],
+      [
+        { tutorials: { autoStart: true, completedVersions: { unknown: 1 } } },
+        "Unsupported tutorial ID"
+      ]
     ]
 
     for (const [patch, message] of cases) {

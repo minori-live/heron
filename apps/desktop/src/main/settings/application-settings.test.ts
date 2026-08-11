@@ -21,6 +21,7 @@ describe("ApplicationSettingsStore", () => {
         workerThreads: "auto",
         maxBlockingThreads: "auto"
       },
+      tutorials: { autoStart: true, completedVersions: {} },
       pluginEditors: {}
     })
     await first.update({
@@ -41,6 +42,34 @@ describe("ApplicationSettingsStore", () => {
       meterReturnRate: "iec-type-i",
       midiCenterCStandard: "yamaha-c3"
     })
+  })
+
+  it("recovers and persists versioned tutorial preferences", async () => {
+    const userData = await mkdtemp(join(tmpdir(), "heron-tutorial-settings-"))
+    await writeFile(
+      join(userData, "settings.json"),
+      JSON.stringify({ recordingBitDepth: "pcm24" }),
+      "utf8"
+    )
+    const store = new ApplicationSettingsStore(userData)
+
+    expect((await store.get()).tutorials).toEqual({ autoStart: true, completedVersions: {} })
+    await store.update({
+      tutorials: { autoStart: false, completedVersions: { "studio-basics": 1 } }
+    })
+    expect((await new ApplicationSettingsStore(userData).get()).tutorials).toEqual({
+      autoStart: false,
+      completedVersions: { "studio-basics": 1 }
+    })
+
+    await expect(
+      store.update({
+        tutorials: {
+          autoStart: true,
+          completedVersions: { "studio-basics": -1 }
+        }
+      })
+    ).rejects.toThrow("non-negative integers")
   })
 
   it("defaults legacy files to Roland C4 and rejects unsupported center C standards", async () => {

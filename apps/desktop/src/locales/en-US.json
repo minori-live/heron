@@ -77,7 +77,8 @@
     "splitAtPlayhead": "Split at Playhead",
     "toggleFullScreen": "Toggle Full Screen",
     "audioBenchmark": "Audio Performance Benchmark…",
-    "effectChainGraph": "Effect Chain Graph…"
+    "effectChainGraph": "Effect Chain Graph…",
+    "studioBasics": "Studio Basics…"
   },
   "dialog": {
     "actions": {
@@ -148,6 +149,7 @@
     "unableToCloseProject": "Unable to close project.",
     "unableToLoadApplicationSettings": "Unable to load application settings.",
     "unableToSaveDisplaySettings": "Unable to save display settings.",
+    "unableToSaveTutorialProgress": "Unable to save tutorial progress.",
     "unableToSaveMixerDisplaySettings": "Unable to save mixer display settings.",
     "unableToSaveMidiSettings": "Unable to save MIDI settings.",
     "unableToSaveMidiControl": "Unable to save MIDI control mappings.",
@@ -362,6 +364,10 @@
       "languageTitle": "Language",
       "languageDescription": "Menus, dialogs, mixer, studio, and settings copy update immediately across the app.",
       "languageAria": "Language",
+      "tutorialsTitle": "Tutorials",
+      "tutorialsDescription": "Control whether unfinished product tutorials start automatically.",
+      "tutorialsAutoStart": "Automatically show Studio Basics",
+      "tutorialsAutoStartDescription": "You can always replay it manually from the Help menu.",
       "locales": {
         "en-US": {
           "label": "English",
@@ -522,6 +528,7 @@
           "toggle": "Start / stop recording"
         },
         "help": {
+          "studio-basics": "Studio Basics",
           "audio-benchmark": "Audio performance benchmark",
           "effect-chain-graph": "Effect chain graph"
         }
@@ -1360,13 +1367,52 @@
     "import": "Import MIDI",
     "importing": "Importing MIDI"
   },
+  "tutorials": {
+    "progress": "{'{{current}}'} of {'{{total}}'}",
+    "actions": {
+      "next": "Next",
+      "previous": "Previous",
+      "done": "Done"
+    },
+    "studioBasics": {
+      "steps": {
+        "welcome": {
+          "title": "Welcome to Studio",
+          "description": "Take a quick tour of the main controls and work areas used to build a project."
+        },
+        "arrangement": {
+          "title": "Arrangement",
+          "description": "Arrange tracks and regions on the timeline, move the playhead, and shape the project over time."
+        },
+        "transport": {
+          "title": "Transport",
+          "description": "Return to the start, play, cycle a range, or begin recording from here."
+        },
+        "musicalDisplay": {
+          "title": "Musical display",
+          "description": "See the current position and edit tempo, time signature, and key signature."
+        },
+        "inspector": {
+          "title": "Inspector",
+          "description": "Open the Inspector to edit parameters for the selected track."
+        },
+        "lowerEditors": {
+          "title": "Lower editors",
+          "description": "Open the Mixer or Piano Roll in the lower dock while keeping the arrangement visible."
+        },
+        "rightPanels": {
+          "title": "Project tools",
+          "description": "Open Notes or the Media Browser here. Replay this tour any time from Help → Studio Basics."
+        }
+      }
+    }
+  },
   "studio": {
     "common": {
       "comingSoon": "Coming soon"
     },
     "topbar": {
       "inspector": "Inspector",
-      "quickHelp": "Quick Help",
       "downloadManager": "Download Manager",
       "smartControls": "Smart Controls",
       "mixer": "Mixer",

@@ -238,6 +238,7 @@ describe("MixerChannelStrip", () => {
       },
       pluginEditors: {},
       shortcuts: { keyboard: {}, midi: {} },
+      tutorials: { autoStart: true, completedVersions: {} },
       midiControl: { bindings: [], transformProfiles: [] },
       recentProjects: []
     }
@@ -312,6 +313,7 @@ describe("MixerChannelStrip", () => {
       },
       pluginEditors: {},
       shortcuts: { keyboard: {}, midi: {} },
+      tutorials: { autoStart: true, completedVersions: {} },
       midiControl: { bindings: [], transformProfiles: [] },
       recentProjects: []
     }

@@ -24,6 +24,7 @@ import AboutHeronHost from "./components/about/AboutHeronHost.vue"
 import CompiledEffectGraphHost from "./components/effect-graph/CompiledEffectGraphHost.vue"
 import GlobalDialogHost from "./components/dialog/GlobalDialogHost.vue"
 import AudioDeviceRecoveryHost from "./components/device-recovery/AudioDeviceRecoveryHost.vue"
+import TutorialHost from "./components/tutorial/TutorialHost.vue"
 import AppChrome from "./components/application/AppChrome.vue"
 import AppRouteView from "./components/application/AppRouteView.vue"
 import { DEFAULT_LOCALE, rekaLocale } from "../../shared/i18n"
@@ -125,5 +126,6 @@ onUnmounted(() => {
     <CompiledEffectGraphHost />
     <GlobalDialogHost />
     <AudioDeviceRecoveryHost />
+    <TutorialHost />
   </UiProvider>
 </template>

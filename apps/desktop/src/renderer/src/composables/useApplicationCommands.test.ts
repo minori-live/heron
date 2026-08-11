@@ -10,6 +10,7 @@ import type {
   ProjectWorkspaceSnapshot
 } from "@heron/contracts"
 import { useApplicationCommands } from "./useApplicationCommands"
+import { useTutorialController } from "./useTutorialController"
 import { useGlobalDialog } from "./useGlobalDialog"
 import { useAudioRuntimeStore } from "../stores/audioRuntime"
 import { useAboutStore } from "../stores/about"
@@ -262,6 +263,25 @@ describe("useApplicationCommands", () => {
     await flushPromises()
 
     expect(router.currentRoute.value.name).toBe("system-settings")
+  })
+
+  it("replays Studio Basics from Help only while a project is open", async () => {
+    const { pinia, router } = createHarness()
+    const { studioBasicsRequest } = useTutorialController()
+    const initialRequest = studioBasicsRequest.value
+
+    nativeCommandListener?.(rpcEvent("help.studio-basics"))
+    await flushPromises()
+
+    expect(studioBasicsRequest.value).toBe(initialRequest)
+
+    useProjectStore(pinia).applyWorkspace(workspace(session))
+    await router.push({ name: "system-settings" })
+    nativeCommandListener?.(rpcEvent("help.studio-basics"))
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe("studio")
+    expect(studioBasicsRequest.value).toBe(initialRequest + 1)
   })
 
   it("splits the selected audio clip at the playhead from the application command", async () => {

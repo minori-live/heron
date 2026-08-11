@@ -27,6 +27,7 @@ export const APPLICATION_COMMAND_IDS = [
   "transport.toggle-loop",
   "transport.go-to-start",
   "recording.toggle",
+  "help.studio-basics",
   "help.audio-benchmark",
   "help.effect-chain-graph",
   "application.about"

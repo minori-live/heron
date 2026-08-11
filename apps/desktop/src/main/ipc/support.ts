@@ -22,6 +22,7 @@ import type {
 import { isAppLocale } from "../../shared/i18n"
 import { isTrustedMainRendererUrl } from "../../shared/renderer-security"
 import type { ApplicationSettingsStore } from "../settings"
+import { validateTutorialPreferences } from "../settings"
 import type { AudioHostService } from "../audio-host"
 import { sampleSystemMemory } from "./system-memory"
 
@@ -215,6 +216,9 @@ export function validateSettingsPatch(value: unknown): ApplicationSettingsPatch 
     patch.midiCenterCStandard !== "roland-c4"
   ) {
     throw new TypeError("Unsupported MIDI center C standard")
+  }
+  if (patch.tutorials !== undefined) {
+    patch.tutorials = validateTutorialPreferences(patch.tutorials)
   }
   return patch
 }

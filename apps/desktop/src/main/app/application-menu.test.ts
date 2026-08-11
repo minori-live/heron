@@ -53,6 +53,9 @@ describe("installApplicationMenu", () => {
     const effectGraph = help?.submenu?.find(
       (item: { label?: string }) => item.label === "Effect Chain Graph…"
     )
+    const studioBasics = help?.submenu?.find(
+      (item: { label?: string }) => item.label === "Studio Basics…"
+    )
 
     about?.click()
     preferences?.click()
@@ -87,8 +90,21 @@ describe("installApplicationMenu", () => {
     )
     expect(benchmark).toBeDefined()
     expect(effectGraph).toBeDefined()
+    expect(studioBasics?.enabled).toBe(false)
     expect(about).toBeDefined()
     expect(electron.setApplicationMenu).toHaveBeenCalledOnce()
+  })
+
+  it("enables Studio Basics in the macOS Help menu while a project is open", () => {
+    installApplicationMenu("darwin", { keyboard: {}, midi: {} }, true)
+
+    const template = electron.buildFromTemplate.mock.calls[0]?.[0]
+    const help = template?.find((item: { role?: string }) => item.role === "help")
+    const studioBasics = help?.submenu?.find(
+      (item: { label?: string }) => item.label === "Studio Basics…"
+    )
+
+    expect(studioBasics?.enabled).toBe(true)
   })
 
   it("rebuilds the macOS menu with Chinese labels after locale change", () => {
