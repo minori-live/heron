@@ -234,6 +234,35 @@ describe("registerPluginRpcHandlers", () => {
     expect(result).toMatchObject({ ok: false, error: { code: "validation-failed" } })
   })
 
+  it("retries a graph-resident failed plugin", async () => {
+    const context = createContext()
+    const status: PluginRuntimeStatus = {
+      instanceId: "plugin-1",
+      state: "active",
+      editorOpen: false,
+      latencySamples: 0,
+      tailSamples: null,
+      failure: null,
+      error: null
+    }
+    vi.mocked(context.plugins.retry).mockResolvedValue(status)
+    registerPluginRpcHandlers(context)
+    const workspace = installWorkspace(context.lifecycle, {
+      ...createWorkspaceFrom(context),
+      graph: { ...emptyGraph, plugins: [plugin] }
+    })
+
+    const result = await invoke(
+      electronMocks,
+      IPC_CHANNELS.pluginRetry,
+      mutationMeta(workspace.projectGraph, { expectedRevision: workspace.revision }),
+      "plugin-1"
+    )
+
+    expect(result).toMatchObject({ ok: true, value: status })
+    expect(context.plugins.retry).toHaveBeenCalledWith("plugin-1")
+  })
+
   it("closes a plugin editor", async () => {
     const context = createContext()
     registerPluginRpcHandlers(context)

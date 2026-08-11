@@ -258,6 +258,42 @@ describe("drainHostEvents", () => {
     })
     expect(recoveries[1]).toBeNull()
   })
+
+  it("decodes typed plug-in failures and rejects unknown categories", () => {
+    const failures: unknown[] = []
+    const valid = {
+      instance_id: "fx-1",
+      category: "invalid-output",
+      stage: "process",
+      recoverable: true,
+      diagnostic_id: "plugin:fx-1:process",
+      message: "the plug-in produced non-finite audio"
+    }
+    drainHostEvents(
+      clientWithEvents([
+        { type: "plugin-failure", failure: valid },
+        { type: "plugin-failure", failure: { ...valid, category: "native-crash" } }
+      ]),
+      async () => {},
+      new Set(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      (failure) => failures.push(failure)
+    )
+    expect(failures).toEqual([
+      {
+        instanceId: "fx-1",
+        category: "invalid-output",
+        stage: "process",
+        recoverable: true,
+        diagnosticId: "plugin:fx-1:process",
+        message: "the plug-in produced non-finite audio"
+      }
+    ])
+  })
 })
 
 describe("AraCallbackSequenceTracker", () => {

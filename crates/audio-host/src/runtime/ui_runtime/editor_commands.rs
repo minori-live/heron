@@ -65,6 +65,25 @@ impl EmbeddedUiHost {
                 let _ = reply.send(ControlResult::Accepted);
                 return;
             }
+            ActorCommand::Control(ControlCommand::RetryPlugin { instance_id }) => {
+                let result = self.processors.lock().map_or_else(
+                    |_| control_error! { message: "plug-in processor registry is poisoned".into() },
+                    |processors| {
+                        processors.get(&instance_id).map_or_else(
+                            || control_error! { message: "plug-in processor is unavailable".into() },
+                            |processor| {
+                                if processor.retry_after_process_failure() {
+                                    ControlResult::Accepted
+                                } else {
+                                    control_error! { message: "plug-in has no retryable processing failure".into() }
+                                }
+                            },
+                        )
+                    },
+                );
+                let _ = reply.send(result);
+                return;
+            }
             ActorCommand::Control(ControlCommand::UnloadPlugin { instance_id }) => {
                 self.close_embedded_editor(&instance_id, true);
                 if let Ok(mut processors) = self.processors.lock() {
@@ -293,6 +312,7 @@ impl EmbeddedUiHost {
             return;
         }
         if matches!(command, ActorCommand::Control(ControlCommand::Ping)) {
+            self.poll_plugin_process_failures();
             let parameter_outputs = self
                 .clap
                 .as_ref()

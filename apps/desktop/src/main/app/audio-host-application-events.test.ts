@@ -1,4 +1,5 @@
 import { IPC_CHANNELS } from "@heron/contracts"
+import type { PluginRuntimeFailure } from "@heron/contracts"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type {
   AraHostCallback,
@@ -11,6 +12,7 @@ describe("AudioHostApplicationEventBridge", () => {
   let araHandler: (callback: AraHostCallback) => void | Promise<void>
   let pluginHandler: (notification: PluginHostNotification) => void | Promise<void>
   let sidechainHandler: (request: PluginSidechainRouteRequest) => void | Promise<void>
+  let pluginFailureHandler: (failure: PluginRuntimeFailure) => void | Promise<void>
   let send: ReturnType<typeof vi.fn<(channel: string, event: unknown) => void>>
   let resolvePluginSidechainRoute: ReturnType<
     typeof vi.fn<
@@ -41,6 +43,9 @@ describe("AudioHostApplicationEventBridge", () => {
         },
         setPluginHostNotificationHandler: (handler) => {
           pluginHandler = handler
+        },
+        setPluginFailureHandler: (handler) => {
+          pluginFailureHandler = handler
         },
         setPluginSidechainRouteRequestHandler: (handler) => {
           sidechainHandler = handler
@@ -108,6 +113,27 @@ describe("AudioHostApplicationEventBridge", () => {
 
     expect(markProjectDirty).toHaveBeenCalledOnce()
     expect(openEditor).toHaveBeenCalledWith("plugin-1")
+  })
+
+  it("publishes typed plug-in process failures", async () => {
+    await pluginFailureHandler({
+      instanceId: "plugin-1",
+      category: "invalid-output",
+      stage: "process",
+      recoverable: true,
+      diagnosticId: "plugin:plugin-1:process",
+      message: "the plug-in produced non-finite audio"
+    })
+
+    expect(send).toHaveBeenCalledWith(
+      IPC_CHANNELS.pluginRuntimeEvent,
+      expect.objectContaining({
+        sourceEpoch: "helper-epoch",
+        sequence: 1,
+        resourceRevision: 1,
+        payload: expect.objectContaining({ instanceId: "plugin-1", stage: "process" })
+      })
+    )
   })
 
   it("commits side-chain changes before acknowledging and broadcasting them", async () => {

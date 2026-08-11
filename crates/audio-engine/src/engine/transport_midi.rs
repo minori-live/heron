@@ -14,6 +14,7 @@ pub(super) struct LivePlugin {
     pub(super) low_latency_bypassed: bool,
     pub(super) main_delay: StereoDelayLine,
     pub(super) bypass_delay: StereoDelayLine,
+    pub(super) dry_block: Vec<StereoFrame>,
     pub(super) aux_inputs: Vec<LivePluginAuxInput>,
 }
 
@@ -54,9 +55,10 @@ impl LivePlugin {
         context: &ProcessContext,
         post_pan: &[StereoFrame],
     ) {
-        for frame in frames.iter_mut() {
+        for (index, frame) in frames.iter_mut().enumerate() {
             *frame = self.main_delay.process(*frame);
             *frame = self.prepare_input(*frame, *width);
+            self.dry_block[index] = *frame;
         }
         let output_width = self.output_width();
         if self.low_latency_bypassed {
@@ -98,9 +100,13 @@ impl LivePlugin {
             frame_count,
         };
         *width = output_width;
-        if !processor.process_block(frames, &sidechains, context) && !self.is_instrument {
-            for frame in frames {
-                *frame = self.passthrough(*frame);
+        if !processor.process_block(frames, &sidechains, context) {
+            if self.is_instrument {
+                frames.fill([0.0; 2]);
+            } else {
+                for (frame, dry) in frames.iter_mut().zip(&self.dry_block) {
+                    *frame = self.bypass_delay.process(self.passthrough(*dry));
+                }
             }
         }
     }

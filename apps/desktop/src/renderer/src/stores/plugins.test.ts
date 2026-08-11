@@ -4,6 +4,7 @@ import { nextTick } from "vue"
 import type {
   ProjectGraphSnapshot,
   PluginDescriptor,
+  PluginRuntimeFailure,
   ProjectWorkspaceSnapshot,
   RpcEvent,
   RpcResult
@@ -265,6 +266,80 @@ describe("plugin store", () => {
       editorMode: "parameters"
     })
     expect(window.heron.getPluginParameters).not.toHaveBeenCalled()
+  })
+
+  it("records a contained process failure and retries before opening the editor", async () => {
+    const runtimeBridge: {
+      listener: ((event: RpcEvent<PluginRuntimeFailure>) => void) | null
+    } = { listener: null }
+    const mixerStore = useMixerStore()
+    const projectGraph = graph()
+    projectGraph.plugins.push({
+      id: "plugin-1",
+      channelId: "audio",
+      role: "insert",
+      slotOrder: 0,
+      locator: effectDescriptor.locator,
+      descriptor: effectDescriptor,
+      audioMode: "stereo",
+      enabled: true,
+      sidechainInputs: [],
+      state: { version: 1, chunks: [] }
+    })
+    mixerStore.graph = projectGraph
+    window.heron.subscribePluginRuntime = vi.fn((listener) => {
+      runtimeBridge.listener = listener
+      return () => {
+        runtimeBridge.listener = null
+      }
+    })
+    window.heron.listPlugins = vi
+      .fn()
+      .mockResolvedValue(
+        success({ scannerVersion: 7, scanning: false, scannedAt: 1, plugins: [effectDescriptor] })
+      )
+    window.heron.retryPlugin = vi.fn().mockResolvedValue(
+      success({
+        instanceId: "plugin-1",
+        state: "active",
+        editorOpen: false,
+        recoveryState: "recovered-bypassed",
+        failureStage: null,
+        failure: null,
+        latencySamples: 64,
+        tailSamples: 0,
+        error: null
+      })
+    )
+    window.heron.openPluginEditor = vi.fn().mockResolvedValue(editorOpenResult())
+    const store = usePluginStore()
+    await store.load()
+
+    runtimeBridge.listener?.({
+      protocolVersion: IPC_PROTOCOL_VERSION,
+      sourceEpoch: "helper-epoch",
+      sequence: 1,
+      resourceRevision: 1,
+      payload: {
+        instanceId: "plugin-1",
+        category: "invalid-output",
+        stage: "process",
+        recoverable: true,
+        diagnosticId: "plugin:plugin-1:process",
+        message: "the plug-in produced non-finite audio"
+      }
+    })
+    expect(store.runtime["plugin-1"]).toMatchObject({
+      state: "failed",
+      failureStage: "process",
+      error: "the plug-in produced non-finite audio"
+    })
+
+    await store.openEditor("plugin-1")
+
+    expect(window.heron.retryPlugin).toHaveBeenCalledWith(expect.any(Object), "plugin-1")
+    expect(window.heron.openPluginEditor).toHaveBeenCalledWith(expect.any(Object), "plugin-1")
+    expect(store.runtime["plugin-1"]?.state).toBe("active")
   })
 
   it("waits for project mutations and coalesces repeated editor clicks", async () => {

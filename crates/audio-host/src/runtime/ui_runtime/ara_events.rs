@@ -1,6 +1,53 @@
-use super::{ControlResult, EmbeddedUiHost, HostEvent, std_mpsc};
+use super::{
+    ControlResult, EmbeddedUiHost, HostEvent, PluginFailureCategory, PluginFailureStage,
+    PluginProcessFailure, PluginRuntimeFailure, std_mpsc,
+};
 
 impl EmbeddedUiHost {
+    pub(in crate::runtime) fn poll_plugin_process_failures(&self) {
+        let failures = self.processors.lock().map_or_else(
+            |_| Vec::new(),
+            |processors| {
+                processors
+                    .iter()
+                    .filter_map(|(instance_id, processor)| {
+                        processor
+                            .take_unreported_process_failure()
+                            .map(|failure| (instance_id.clone(), processor.clone(), failure))
+                    })
+                    .collect::<Vec<_>>()
+            },
+        );
+        for (instance_id, processor, failure) in failures {
+            let (category, message) = match failure {
+                PluginProcessFailure::Rejected => (
+                    PluginFailureCategory::PluginRejected,
+                    "the plug-in rejected an audio processing block",
+                ),
+                PluginProcessFailure::InvalidOutput => (
+                    PluginFailureCategory::InvalidOutput,
+                    "the plug-in produced non-finite audio",
+                ),
+            };
+            let diagnostic_id = format!("plugin:{instance_id}:process");
+            if matches!(
+                self.host_events.try_send(HostEvent::PluginFailure {
+                    failure: PluginRuntimeFailure {
+                        instance_id,
+                        category,
+                        stage: PluginFailureStage::Process,
+                        recoverable: true,
+                        diagnostic_id,
+                        message: message.to_owned(),
+                    },
+                }),
+                Err(std_mpsc::TrySendError::Full(_))
+            ) {
+                processor.make_process_failure_reportable();
+            }
+        }
+    }
+
     pub(super) fn poll_ara_callbacks(&mut self) {
         self.flush_pending_ara_events();
         let include_model_events = self.pending_ara_events.is_empty();

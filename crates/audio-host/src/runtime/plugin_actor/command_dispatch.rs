@@ -134,6 +134,7 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                 | ControlCommand::PluginParameters { .. }
                 | ControlCommand::SetPluginParameter { .. }
                 | ControlCommand::SavePluginState { .. }
+                | ControlCommand::RetryPlugin { .. }
                 | ControlCommand::OpenPluginEditor { .. }
                 | ControlCommand::ConfigurePluginEditorAppearance { .. }
                 | ControlCommand::ApplyPluginEditorAction { .. }

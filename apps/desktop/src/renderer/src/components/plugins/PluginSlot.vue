@@ -1,23 +1,38 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
-import { GripVertical, Power, SquareArrowOutUpRight, Trash2 } from "@lucide/vue"
-import type { PluginInstanceState, PluginRuntimeStatus } from "@heron/contracts"
+import { computed } from "vue"
+import { GripVertical, Power, RotateCcw, SquareArrowOutUpRight, Trash2 } from "@lucide/vue"
+import type {
+  PluginFailureCategory,
+  PluginInstanceState,
+  PluginRuntimeStatus
+} from "@heron/contracts"
 import { pluginAudioModeBadge } from "./plugin-audio-mode"
 import { writePluginDrag } from "./plugin-drag"
 import { pluginDisplayState } from "./plugin-display-state"
 
-defineProps<{
+const props = defineProps<{
   plugin: PluginInstanceState
   runtime?: PluginRuntimeStatus
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   open: [instanceId: string]
   toggle: [instanceId: string, enabled: boolean]
   remove: [instanceId: string]
 }>()
 
 const { t } = useI18n()
+const canRetry = computed(() => props.runtime?.failure?.recoverable === true)
+
+function toggleOrRetry(): void {
+  if (canRetry.value) emit("open", props.plugin.id)
+  else emit("toggle", props.plugin.id, !props.plugin.enabled)
+}
+
+function failureMessage(category: PluginFailureCategory): string {
+  return t(`plugins.failure.${category}`)
+}
 </script>
 
 <template>
@@ -52,14 +67,19 @@ const { t } = useI18n()
       type="button"
       :aria-pressed="plugin.enabled"
       :aria-label="
-        t('plugins.pluginSlot.toggle', {
-          action: plugin.enabled ? t('plugins.pluginSlot.bypass') : t('plugins.pluginSlot.enable'),
-          name: plugin.descriptor.name
-        })
+        canRetry
+          ? t('plugins.pluginSlot.retry', { name: plugin.descriptor.name })
+          : t('plugins.pluginSlot.toggle', {
+              action: plugin.enabled
+                ? t('plugins.pluginSlot.bypass')
+                : t('plugins.pluginSlot.enable'),
+              name: plugin.descriptor.name
+            })
       "
-      @click="$emit('toggle', plugin.id, !plugin.enabled)"
+      @click="toggleOrRetry"
     >
-      <Power :size="10" />
+      <RotateCcw v-if="canRetry" :size="10" />
+      <Power v-else :size="10" />
     </button>
     <button
       :aria-label="t('plugins.pluginSlot.openEditor', { name: plugin.descriptor.name })"
@@ -73,6 +93,9 @@ const { t } = useI18n()
     >
       <Trash2 :size="10" />
     </button>
+    <small v-if="runtime?.failure" class="failure-message" role="status">
+      {{ failureMessage(runtime.failure.category) }}
+    </small>
   </article>
 </template>
 
@@ -158,5 +181,10 @@ const { t } = useI18n()
   color: var(--text-muted);
   background: var(--daw-control);
   cursor: pointer;
+}
+.failure-message {
+  grid-column: 3 / -1;
+  color: var(--record);
+  white-space: normal;
 }
 </style>

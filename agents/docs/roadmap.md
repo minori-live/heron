@@ -121,14 +121,20 @@ for at least two hours without reading source or developer documentation.
       continues trying the previous device in the background.
 - [ ] A user's subsequent device choice wins over every earlier reconnect
       attempt, even if the old device has already returned.
-- [ ] A plug-in load failure bypasses that instance without invalidating the
-      rest of the graph.
+- [ ] A recoverable plug-in initialize, restore, processing, editor, or state
+      failure bypasses or disables only the affected instance without
+      invalidating the rest of the graph. The supported boundary and delivery
+      slices are defined in the
+      [plug-in failure containment plan](plugin-failure-containment-plan.md).
 - [ ] CPU pressure, XRUNs, and overload are visible to the user, but Heron does
       not change buffer size, bypass effects, or otherwise alter the performance
       without an explicit user action.
 - [ ] A fatal in-process plug-in or native failure may restart Heron. Plug-in
       process isolation is not part of Current because it would break the
       existing ARA ownership model.
+- [ ] The UI distinguishes a contained instance failure from a fatal native
+      failure and never claims that access violations, aborts, deadlocks, or
+      other non-returning third-party calls can be isolated in process.
 - [ ] Relaunch preserves the existing user choice between the saved project and
       the recoverable working copy.
 - [ ] Existing recording and playback of prepared accompaniment do not regress,

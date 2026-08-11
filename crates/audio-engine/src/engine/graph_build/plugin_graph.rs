@@ -101,6 +101,7 @@ pub(super) fn build_plugin_graph(input: PluginGraphInput<'_>) -> Result<PluginGr
             low_latency_bypassed: is_low_latency_bypassed,
             main_delay: StereoDelayLine::new(0),
             bypass_delay: StereoDelayLine::new(plugin.latency_samples as usize),
+            dry_block: vec![[0.0, 0.0]; MAX_PLUGIN_BLOCK_FRAMES],
             aux_inputs: plugin
                 .aux_input_buses
                 .into_iter()

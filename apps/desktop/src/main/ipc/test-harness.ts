@@ -275,6 +275,14 @@ export function createContext(
       scan: vi.fn(async () => ({ plugins: [], scannedAt: 1 })),
       openEditor: vi.fn(async () => ({ editorMode: "native" as const, open: true })),
       closeEditor: vi.fn(async () => undefined),
+      retry: vi.fn(async () => ({
+        instanceId: "plugin-1",
+        state: "active" as const,
+        editorOpen: false,
+        latencySamples: 0,
+        tailSamples: null,
+        error: null
+      })),
       parameters: vi.fn(async () => [])
     },
     midiImport: {

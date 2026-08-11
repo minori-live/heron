@@ -22,6 +22,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   updateChannel: [patch: MixerChannelPatch]
   openPlugin: [instanceId: string]
+  retryPlugin: [instanceId: string]
   removePlugin: [instanceId: string]
   assignInstrument: [selection: PluginSelection]
 }>()
@@ -42,6 +43,7 @@ const inputSummary = computed(() => {
       :runtime="pluginRuntime"
       :plugins="instrumentPlugins"
       @open="emit('openPlugin', $event)"
+      @retry="emit('retryPlugin', $event)"
       @remove="emit('removePlugin', $event)"
       @assign="emit('assignInstrument', $event)"
     />

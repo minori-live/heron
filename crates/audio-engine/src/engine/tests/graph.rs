@@ -1,5 +1,58 @@
 use super::*;
 use crate::NativeApplicationCaptureTarget;
+use heron_audio_plugin::{AudioPluginProcessor, AudioPluginProcessorHandle, SidechainSource};
+
+#[derive(Clone)]
+struct MutatingFailedProcessor;
+
+impl AudioPluginProcessor for MutatingFailedProcessor {
+    fn clone_box(&self) -> Box<dyn AudioPluginProcessor> {
+        Box::new(self.clone())
+    }
+
+    fn process_block(
+        &mut self,
+        frames: &mut [[f32; 2]],
+        _sidechains: &dyn SidechainSource,
+        _context: &ProcessContext,
+    ) -> bool {
+        frames.fill([99.0, 99.0]);
+        false
+    }
+}
+
+fn failed_plugin(is_instrument: bool) -> LivePlugin {
+    LivePlugin {
+        instance_id: "failed".to_owned(),
+        processor: Some(AudioPluginProcessorHandle::new(MutatingFailedProcessor)),
+        audio_mode: PluginAudioMode::Stereo,
+        enabled: true,
+        is_instrument,
+        latency_samples: 0,
+        low_latency_bypassed: false,
+        main_delay: StereoDelayLine::new(0),
+        bypass_delay: StereoDelayLine::new(0),
+        dry_block: vec![[0.0, 0.0]; MAX_PLUGIN_BLOCK_FRAMES],
+        aux_inputs: Vec::new(),
+    }
+}
+
+#[test]
+fn returned_process_failure_restores_dry_effect_audio_and_silences_instruments() {
+    let context = test_process_context();
+    let mut width = SignalWidth::Stereo;
+    let effect = process_test_plugin(
+        &mut failed_plugin(false),
+        [0.25, -0.5],
+        &mut width,
+        &context,
+    );
+    assert_eq!(effect, [0.25, -0.5]);
+
+    let instrument =
+        process_test_plugin(&mut failed_plugin(true), [0.25, -0.5], &mut width, &context);
+    assert_eq!(instrument, [0.0, 0.0]);
+}
 
 #[test]
 fn hidden_channel_adapters_downmix_and_upmix_at_chain_boundaries() {

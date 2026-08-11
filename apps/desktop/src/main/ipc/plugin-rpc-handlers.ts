@@ -237,6 +237,32 @@ export function registerPluginRpcHandlers(context: IpcHandlerContext): void {
     }
   })
 
+  registerRpcHandler(IPC_CHANNELS.pluginRetry, async ({ meta }, value: unknown) => {
+    if (typeof value !== "string" || value.length === 0) {
+      return rpcFailure(meta, error(meta, "validation"))
+    }
+    const workspace = state.workspaceSnapshot()
+    if (
+      !workspace ||
+      !sameRef(meta.target, workspace.projectGraph) ||
+      !workspace.graph.plugins.some((plugin) => plugin.id === value)
+    ) {
+      return rpcFailure(meta, error(meta, "stale"))
+    }
+    const guarded = beginMutation(context, meta, workspace.projectGraph)
+    if (guarded) return guarded
+    try {
+      const status = await plugins.retry(value)
+      const result = rpcSuccess(meta, status, { resourceRevision: workspace.revision })
+      finish(context, meta, "committed", result)
+      return result
+    } catch {
+      const result = rpcFailure(meta, error(meta, "unavailable"))
+      finish(context, meta, "not-committed", result)
+      return result
+    }
+  })
+
   registerRpcHandler(IPC_CHANNELS.pluginParametersGet, async ({ meta }) => {
     if (!meta.target || meta.target.kind !== "plugin-instance") {
       return rpcFailure(meta, error(meta, "validation"))

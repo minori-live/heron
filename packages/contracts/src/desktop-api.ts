@@ -54,6 +54,8 @@ import type {
   PluginParameterCommand,
   PluginParameterEnqueueResult,
   PluginParameterInfo,
+  PluginRuntimeFailure,
+  PluginRuntimeStatus,
   PluginScanEvent,
   PluginScanRequest
 } from "./plugins"
@@ -157,6 +159,8 @@ export const IPC_CHANNELS = {
   pluginEditorOpen: "plugin-editor:open",
   pluginEditorClose: "plugin-editor:close",
   pluginEditorClosedEvent: "plugin-editor:closed-event",
+  pluginRuntimeEvent: "plugin-runtime:event",
+  pluginRetry: "plugin:retry",
   araCallbackEvent: "ara:callback-event",
   pluginParametersGet: "plugin-parameters:get",
   pluginParameterSet: "plugin-parameter:set",
@@ -341,6 +345,8 @@ export interface HeronDesktopApi {
   subscribePluginEditorClosed(
     listener: (event: RpcEvent<{ instanceId: string }>) => void
   ): () => void
+  subscribePluginRuntime(listener: (event: RpcEvent<PluginRuntimeFailure>) => void): () => void
+  retryPlugin(meta: RpcRequestMeta, instanceId: string): Promise<RpcResult<PluginRuntimeStatus>>
   subscribeAraCallbacks(listener: (event: RpcEvent<AraCallbackNotification>) => void): () => void
   getPluginParameters(meta: RpcRequestMeta): Promise<RpcResult<PluginParameterInfo[]>>
   setPluginParameter(

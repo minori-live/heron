@@ -1536,12 +1536,21 @@
       "inserts": "插入",
       "emptyHint": "使用混音台中的空插入插槽添加效果。"
     },
+    "failure": {
+      "plugin-rejected": "插件拒绝了音频处理块。",
+      "invalid-output": "插件产生了非有限音频数据。",
+      "host-panic": "插件宿主因内部故障停止了此操作。",
+      "queue-overflow": "插件宿主无法将此操作加入队列。",
+      "stale-generation": "此插件操作属于旧实例。",
+      "host-state": "插件宿主当前状态不允许执行此操作。"
+    },
     "instrumentSlot": {
       "ariaLabel": "乐器插槽",
       "heading": "乐器",
       "vst3": "VST3",
       "empty": "空",
       "openEditor": "打开乐器编辑器",
+      "retry": "重试乐器",
       "remove": "移除乐器",
       "chooseHint": "使用混音台中的乐器插槽选择乐器。"
     },
@@ -1552,6 +1561,7 @@
       "bypass": "旁路",
       "enable": "启用",
       "toggle": "{action} {name}",
+      "retry": "重试 {name}",
       "openEditor": "打开 {name} 编辑器",
       "remove": "移除 {name}"
     },

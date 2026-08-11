@@ -1,8 +1,9 @@
 use self::embedded_editors::EmbeddedEditorHost;
 use super::{
     ActorCommand, ActorRequest, Arc, AtomicU64, ControlCommand, ControlResult, Duration, HashMap,
-    HostEvent, Instant, LiveMixerGraph, Mutex, Ordering, VecDeque, Vst3HostRequest, clap, engine,
-    mpsc, queue_background_graph_build, std_mpsc, vst3,
+    HostEvent, Instant, LiveMixerGraph, Mutex, Ordering, PluginFailureCategory, PluginFailureStage,
+    PluginProcessFailure, PluginRuntimeFailure, VecDeque, Vst3HostRequest, clap, engine, mpsc,
+    queue_background_graph_build, std_mpsc, vst3,
 };
 
 #[derive(Debug, Clone)]

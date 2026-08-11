@@ -41,7 +41,8 @@ export class AudioHostGateway {
     private readonly onAraCallback?: Parameters<typeof drainHostEvents>[4],
     private readonly onPluginHostNotification?: Parameters<typeof drainHostEvents>[5],
     private readonly onPluginSidechainRouteRequested?: Parameters<typeof drainHostEvents>[6],
-    private readonly onDeviceRecoveryChanged?: Parameters<typeof drainHostEvents>[7]
+    private readonly onDeviceRecoveryChanged?: Parameters<typeof drainHostEvents>[7],
+    private readonly onPluginFailure?: Parameters<typeof drainHostEvents>[8]
   ) {}
 
   request(command: Record<string, unknown>): Promise<ControlResponse> {
@@ -81,6 +82,12 @@ export class AudioHostGateway {
     if (response.result.type === "error") {
       throw requestError(command, response.result.error)
     }
+    this.drainEvents(client)
+    return response
+  }
+
+  drainEvents(client = this.client()): void {
+    if (!client) return
     drainHostEvents(
       client,
       this.onEditorPreferenceChanged,
@@ -89,9 +96,9 @@ export class AudioHostGateway {
       this.onAraCallback,
       this.onPluginHostNotification,
       this.onPluginSidechainRouteRequested,
-      this.onDeviceRecoveryChanged
+      this.onDeviceRecoveryChanged,
+      this.onPluginFailure
     )
-    return response
   }
 
   async settle(): Promise<void> {

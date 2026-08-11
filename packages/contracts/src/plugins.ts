@@ -309,6 +309,32 @@ export type PluginRuntimeState =
   | "quarantined"
   | "failed"
 
+export type PluginFailureCategory =
+  | "plugin-rejected"
+  | "invalid-output"
+  | "host-panic"
+  | "queue-overflow"
+  | "stale-generation"
+  | "host-state"
+
+export type PluginFailureStage =
+  | "initialize"
+  | "restore"
+  | "process"
+  | "parameter"
+  | "editor"
+  | "state-save"
+  | "ara"
+
+export interface PluginRuntimeFailure {
+  instanceId: string
+  category: PluginFailureCategory
+  stage: PluginFailureStage
+  recoverable: boolean
+  diagnosticId: string
+  message: string
+}
+
 export interface PluginRuntimeStatus {
   instanceId: string
   state: PluginRuntimeState
@@ -316,6 +342,7 @@ export interface PluginRuntimeStatus {
   editorMode?: PluginEditorMode
   recoveryState?: "none" | "recovered-bypassed"
   failureStage?: "initialize" | "restore" | "process" | "editor" | "state-save" | null
+  failure?: PluginRuntimeFailure | null
   latencySamples: number
   tailSamples: number | null
   error: string | null

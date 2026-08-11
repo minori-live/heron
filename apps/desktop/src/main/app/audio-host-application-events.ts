@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { IPC_CHANNELS, IPC_PROTOCOL_VERSION } from "@heron/contracts"
+import type { PluginRuntimeFailure } from "@heron/contracts"
 import type { AudioHostService, PluginSidechainRouteRequest } from "../audio-host"
 import type { PluginCatalogService } from "../plugins"
 import type { ProjectCommandService } from "../project"
@@ -18,6 +19,7 @@ export interface AudioHostApplicationEventOptions {
     | "setAraCallbackHandler"
     | "setPluginSidechainRouteRequestHandler"
     | "setPluginHostNotificationHandler"
+    | "setPluginFailureHandler"
   >
   projectCommands: Pick<ProjectCommandService, "currentWorkspace" | "execute">
   plugins: Pick<PluginCatalogService, "openEditor">
@@ -30,6 +32,7 @@ export class AudioHostApplicationEventBridge {
   private araSequence = 0
   private disposed = false
   private projectCommandSequence = 0
+  private pluginRuntimeSequence = 0
 
   constructor(private readonly options: AudioHostApplicationEventOptions) {}
 
@@ -69,6 +72,18 @@ export class AudioHostApplicationEventBridge {
       } else if (notification.kind === "open-editor") {
         await this.options.plugins.openEditor(notification.instanceId)
       }
+    })
+
+    this.options.audioHost.setPluginFailureHandler((failure: PluginRuntimeFailure) => {
+      if (this.disposed) return
+      this.pluginRuntimeSequence += 1
+      this.broadcast(IPC_CHANNELS.pluginRuntimeEvent, {
+        protocolVersion: IPC_PROTOCOL_VERSION,
+        sourceEpoch: this.options.audioHost.helperEpoch() ?? "0",
+        sequence: this.pluginRuntimeSequence,
+        resourceRevision: this.pluginRuntimeSequence,
+        payload: failure
+      })
     })
 
     this.options.audioHost.setPluginSidechainRouteRequestHandler(async (request) => {

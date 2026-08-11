@@ -30,6 +30,39 @@ pub struct PluginStateEnvelope {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+pub enum PluginFailureCategory {
+    PluginRejected,
+    InvalidOutput,
+    HostPanic,
+    QueueOverflow,
+    StaleGeneration,
+    HostState,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PluginFailureStage {
+    Initialize,
+    Restore,
+    Process,
+    Parameter,
+    Editor,
+    StateSave,
+    Ara,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PluginRuntimeFailure {
+    pub instance_id: String,
+    pub category: PluginFailureCategory,
+    pub stage: PluginFailureStage,
+    pub recoverable: bool,
+    pub diagnostic_id: String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum PluginEditorMode {
     Native,
     Parameters,

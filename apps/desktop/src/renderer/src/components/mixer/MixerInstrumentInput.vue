@@ -2,7 +2,12 @@
 import { computed, shallowRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { Trash2 } from "@lucide/vue"
-import type { PluginDescriptor, PluginInstanceState, PluginRuntimeStatus } from "@heron/contracts"
+import type {
+  PluginDescriptor,
+  PluginFailureCategory,
+  PluginInstanceState,
+  PluginRuntimeStatus
+} from "@heron/contracts"
 import { PLUGIN_DRAG_TYPE, readPluginDrag } from "../plugins/plugin-drag"
 import PluginAudioModeMenu from "../plugins/PluginAudioModeMenu.vue"
 import { pluginAudioModeBadge, type PluginSelection } from "../plugins/plugin-audio-mode"
@@ -17,6 +22,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   open: [instanceId: string]
+  retry: [instanceId: string]
   remove: [instanceId: string]
   assign: [selection: PluginSelection]
 }>()
@@ -27,6 +33,20 @@ const instrumentState = computed<PluginRuntimeStatus["state"]>(() => {
   if (!props.instrument) return "unloaded"
   return pluginDisplayState(props.instrument, props.runtime[props.instrument.id])
 })
+const failure = computed(() =>
+  props.instrument ? props.runtime[props.instrument.id]?.failure : undefined
+)
+const failureMessage = computed(() =>
+  failure.value
+    ? t(`plugins.failure.${failure.value.category as PluginFailureCategory}`)
+    : undefined
+)
+
+function openOrRetry(): void {
+  if (!props.instrument) return
+  if (failure.value?.recoverable) emit("retry", props.instrument.id)
+  else emit("open", props.instrument.id)
+}
 
 function allowDrop(event: DragEvent): void {
   if (![...(event.dataTransfer?.types ?? [])].includes(PLUGIN_DRAG_TYPE)) return
@@ -53,6 +73,7 @@ function confirmDrop(selection: PluginSelection): void {
     <article
       v-if="instrument"
       :class="['instrument-input', instrumentState]"
+      :title="failureMessage"
       :aria-label="
         t('mixer.instrumentInput.ariaLabel', {
           name: instrument.descriptor.name,
@@ -67,9 +88,13 @@ function confirmDrop(selection: PluginSelection): void {
         type="button"
         class="instrument-name"
         :title="instrument.descriptor.name"
-        :aria-label="t('mixer.instrumentInput.openEditor', { name: instrument.descriptor.name })"
+        :aria-label="
+          failure?.recoverable
+            ? t('plugins.instrumentSlot.retry')
+            : t('mixer.instrumentInput.openEditor', { name: instrument.descriptor.name })
+        "
         @pointerdown.stop
-        @click.stop="emit('open', instrument.id)"
+        @click.stop="openOrRetry"
       >
         {{ instrument.descriptor.name }}
       </button>

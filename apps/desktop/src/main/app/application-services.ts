@@ -107,7 +107,8 @@ export async function createApplicationServices(
         appearance: audioHost.pluginEditorAppearanceSnapshot()
       })
     },
-    closeEditor: (instanceId) => audioHost.closePluginEditor(instanceId)
+    closeEditor: (instanceId) => audioHost.closePluginEditor(instanceId),
+    retry: (instanceId) => audioHost.retryPlugin(instanceId)
   })
 
   const midiImport = new MidiImportService(projectGraph, projectCommands, plugins, projectService)
