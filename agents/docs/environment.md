@@ -48,7 +48,9 @@ NoteExpressionSynth from the recursive `third_party/vst3sdk` submodule.
 
 ## Running Commands
 
-In normal local development, if the shell has already activated `mise`, run the
+Always run project commands from a login shell so its normal startup files
+activate `mise` and the repository-managed toolchain. On Windows, use
+PowerShell 7 (`pwsh`), not Windows PowerShell 5.1 (`powershell.exe`). Run
 repository tasks directly:
 
 ```sh
@@ -72,23 +74,17 @@ mise run bench:quick
 mise run version:check
 ```
 
-AI agents, automation, IDE subprocesses, and other non-interactive shells may
-not inherit an activated `mise` environment. In those contexts, use
-`mise exec --` to explicitly inject the repository-managed toolchain:
+AI agents, automation, IDE subprocesses, and other non-interactive command
+runners must also use a login environment rather than bypassing normal shell
+startup. Verify the selected repository-managed tools directly:
 
 ```sh
-mise exec -- rustc --version
-mise exec -- cargo --version
-mise exec -- node --version
-mise exec -- pnpm --version
-mise exec -- apm --version
-mise exec -- mise run check
-```
-
-When running a project command from a non-login shell, prefer:
-
-```sh
-mise exec -- <command>
+rustc --version
+cargo --version
+node --version
+pnpm --version
+apm --version
+mise run check
 ```
 
 This prevents a system-global Node.js, pnpm, Rust, Cargo, or APM installation
@@ -97,12 +93,12 @@ from silently replacing the versions declared by the repository.
 Use pnpm workspace filters for package-level commands:
 
 ```sh
-mise exec -- pnpm --filter @heron/desktop test:unit
-mise exec -- pnpm --filter @heron/project-db test:integration
-mise exec -- pnpm --filter @heron/dsp-node build
-mise exec -- pnpm format:check
-mise exec -- pnpm lint
-mise exec -- cargo xtask test
+pnpm --filter @heron/desktop test:unit
+pnpm --filter @heron/project-db test:integration
+pnpm --filter @heron/dsp-node build
+pnpm format:check
+pnpm lint
+cargo xtask test
 ```
 
 pnpm scripts are JavaScript ecosystem leaf tasks. Use `cargo xtask` for direct

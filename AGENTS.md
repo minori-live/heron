@@ -81,24 +81,26 @@ project-database integration tests. `mise run format` applies Oxfmt and
 rustfmt; `mise run format-check` and `mise run lint` provide the corresponding
 non-mutating checks.
 
-When running from a non-login shell, use `mise exec --` so commands resolve the
-repository-managed Node.js, pnpm, Rust, and APM versions:
+Always run project commands from a login shell so its normal startup files
+activate the repository-managed Node.js, pnpm, Rust, and APM versions. On
+Windows, use PowerShell 7 (`pwsh`), not Windows PowerShell 5.1
+(`powershell.exe`).
 
 ```sh
-mise exec -- mise run check
-mise exec -- cargo --version
-mise exec -- pnpm --version
+mise run check
+cargo --version
+pnpm --version
 ```
 
 Use package-level scripts for narrower validation when appropriate:
 
 ```sh
-mise exec -- pnpm --filter @heron/desktop test:unit
-mise exec -- pnpm --filter @heron/project-db test:integration
-mise exec -- mise run test:e2e
-mise exec -- cargo xtask test
-mise exec -- pnpm format:check
-mise exec -- pnpm lint
+pnpm --filter @heron/desktop test:unit
+pnpm --filter @heron/project-db test:integration
+mise run test:e2e
+cargo xtask test
+pnpm format:check
+pnpm lint
 ```
 
 ## Supporting Notes

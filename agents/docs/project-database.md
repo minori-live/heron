@@ -42,9 +42,9 @@ The normalized project model has one truth source for each value:
 Use the Drizzle code-first migration workflow:
 
 1. Change the Drizzle schema.
-2. Run `mise exec -- pnpm db:generate`, backed by `drizzle-kit generate`.
+2. Run `pnpm db:generate`, backed by `drizzle-kit generate`.
 3. Review the generated SQL and Drizzle metadata together.
-4. Run `mise exec -- pnpm db:check`, project-database integration tests, and
+4. Run `pnpm db:check`, project-database integration tests, and
    the desktop main production build.
 5. Commit the schema change and generated migration artifacts in the same
    change.
