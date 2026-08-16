@@ -288,10 +288,10 @@ Every Storybook story runs Axe with `parameters.a11y.test = "error"`. Complex be
 Run:
 
 ```sh
-mise exec -- pnpm design:dev
-mise exec -- pnpm design:build
-mise exec -- pnpm design:test
-mise exec -- pnpm lint:design
+pnpm design:dev
+pnpm design:build
+pnpm design:test
+pnpm lint:design
 ```
 
 Storybook is local and CI-only. It is never deployed and is not included in Electron packaging.
@@ -303,7 +303,7 @@ The toolbar disables motion by default for deterministic interaction and reflow 
 **Motion enabled** only for a motion-specific review.
 
 Storybook browser tests plus the controls, menus, and reflow Playwright tests run in CI via
-`mise exec -- pnpm design:test`.
+`pnpm design:test`.
 
 ## Contribution checklist
 
