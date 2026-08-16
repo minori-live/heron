@@ -15,11 +15,11 @@ for the affected boundary.
 1. **Current — Live performance readiness.** Make Heron dependable and
    understandable for a singer-songwriter or livestream performer during a
    two-hour session.
-2. **Next — Studio creation completion.** Close the composition-to-export path
+2. **Next — Live project delivery.** Create, author, and perform from a
+   standalone `.hrl` document with hierarchical Set/Patch configuration while
+   sharing one Mixer domain model with Studio.
+3. **Later — Studio creation completion.** Close the composition-to-export path
    without relying on another DAW.
-3. **Later — Studio to Stage integration.** Turn material prepared in the
-   studio into a scene-oriented performance without creating a second project
-   model.
 
 Large feature blocks do not enter Current merely because work has already
 started. [The Live performance contract](product-live.md) is the authority for
@@ -167,7 +167,45 @@ for at least two hours without reading source or developer documentation.
 - [ ] Reconcile user-facing documentation with the behavior in the development
       build before the next release.
 
-## Next — Studio creation completion
+## Next — Live project delivery
+
+### Outcome
+
+A performer completes the path below with a standalone, recoverable Live
+document:
+
+```text
+create or import Live project -> configure exact audio and MIDI devices
+-> author Project / Set / Patch layers -> enter Perform Mode
+-> switch root and Patches safely -> capture intended changes -> save
+```
+
+The architecture and ownership contract is defined by
+[ADR-0012](adr/0012-separate-layered-live-documents.md). The milestone includes:
+
+- `.hrs` as the default extension for new Studio documents while `.heron`
+  remains an equally supported Studio extension;
+- independent `.hrl` create, open, save, working-copy recovery, schema,
+  template, and migration paths;
+- one-time full Mixer import from a Studio document when creating a Live
+  document, without linking, synchronization, or merge;
+- fixed Project, Set, and Patch ownership, field-level inheritance, validated
+  Copy, and recursive dependency-aware deletion;
+- strict project-owned audio and MIDI device configuration plus hierarchical,
+  additive MIDI bindings;
+- distinct Edit and Perform modes, runtime override capture, and deterministic
+  root/Patch resolution;
+- atomic Patch activation with stale-generation protection, failure rollback,
+  and the initial bounded `cut` transition policy; and
+- a minimum useful declarative performance UI whose concrete persisted schema
+  is refined before implementation and cannot contain executable content.
+
+Next exits only after the complete journey works on every supported release
+platform, archive and activation failures preserve the documented recoverable
+state, and a real target user can prepare and complete a representative
+performance without editing a Studio timeline.
+
+## Later — Studio creation completion
 
 ### Outcome
 
@@ -178,23 +216,10 @@ create project -> configure devices -> record MIDI or simple audio
 -> edit -> load instruments and effects -> mix -> export a playable file
 ```
 
-The milestone will be decomposed into journey-level acceptance criteria after
-Current exits. Candidate scope includes composition depth, recording usability,
-automation, grouping, stem export, and the editing details exposed by real-user
-tests. Existing implementations are inputs to that planning; they are not
-automatically considered complete.
-
-## Later — Studio to Stage integration
-
-### Outcome
-
-Material, instruments, effects, routing, and controller intent prepared in the
-studio can be presented as a scene-oriented performance without conversion to a
-separate project format.
-
-Scene workflow, performance-facing tools, and the transition between editing
-and performance remain deliberately outside Current. Low-latency monitoring and
-Live reliability are prerequisites, not substitutes for this milestone.
+This milestone follows Live project delivery. Candidate scope includes
+composition depth, recording usability, automation, grouping, stem export, and
+the editing details exposed by real-user tests. Existing implementations are
+inputs to that planning; they are not automatically considered complete.
 
 ## Backlog without schedule
 

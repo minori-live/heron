@@ -30,8 +30,8 @@ coherent workspace that serves:
 - **Live performance** — preparing material in the studio and bringing the same
   instruments, effects, routing, and musical ideas to the stage.
 
-These workflows should reinforce one another instead of living as separate
-products or incompatible project formats.
+These workflows should reinforce one another through shared Mixer semantics and
+an explicit Studio-to-Live path instead of becoming unrelated products.
 
 ## Project goals
 
@@ -63,9 +63,11 @@ recording, MIDI clips, and VST® 3 hosting. The current product focus is a
 complete Live performance path for singer-songwriters and livestream performers:
 familiar Mixer interaction, external control, visible system health, device
 recovery, and verified two-hour stability on Windows, macOS, and Linux. Studio
-creation completion follows; scene-oriented Studio-to-Stage integration comes
-later. Large plug-in-format and built-in-rack expansions remain backlog work
-unless they block that user path.
+to Stage follows with standalone `.hrl` Live documents, hierarchical Set/Patch
+authoring, project-owned controls, and a declarative performance UI. Studio
+creation completion follows that Live project milestone. Large plug-in-format
+and built-in-rack expansions remain backlog work unless they block that user
+path.
 
 <img src="packages/ui/src/assets/VST_Compatible_Logo_Steinberg.svg" alt="VST Compatible" width="128">
 

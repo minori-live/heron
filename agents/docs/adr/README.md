@@ -55,3 +55,4 @@ review.
 - [ADR-0009: Keep MIDI control event-driven and outside project history](0009-event-driven-midi-control.md)
 - [ADR-0010: Persist versioned renderer tutorial preferences](0010-versioned-renderer-tutorial-preferences.md)
 - [ADR-0011: Contain returning plug-in failures in process](0011-in-process-plugin-failure-containment.md)
+- [ADR-0012: Add separate layered Live documents over the shared Mixer model](0012-separate-layered-live-documents.md)
