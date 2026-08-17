@@ -57,7 +57,7 @@ runs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        $llvmRoot = mise where 'github:llvm/llvm-project'
+        $llvmRoot = mise where 'http:llvm'
         "LIBCLANG_PATH=$llvmRoot\bin" | Out-File -FilePath $env:GITHUB_ENV -Append
 
     - name: Prepare ASIO SDK on Windows
