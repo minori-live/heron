@@ -51,39 +51,6 @@ checksum = "sha256:83d20c23f5c5f64b3b328785e35b23c532e33057a97ed6294acaca3781b78
 url = "https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.zip"
 url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/401716525"
 
-[[tools."github:llvm/llvm-project"]]
-version = "llvmorg-22.1.8"
-backend = "github:llvm/llvm-project"
-
-[tools."github:llvm/llvm-project".options]
-matching = "clang+llvm"
-
-[tools."github:llvm/llvm-project"."platforms.linux-arm64"]
-checksum = "sha256:79da771ffbd01facbcec218622262c9ba1286fd17800a7ff34bed051f65385de"
-url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.8/clang%2Bllvm-22.1.8-armv7a-linux-gnueabihf.tar.gz"
-url_api = "https://api.github.com/repos/llvm/llvm-project/releases/assets/472448719"
-
-[tools."github:llvm/llvm-project"."platforms.linux-arm64-musl"]
-checksum = "sha256:79da771ffbd01facbcec218622262c9ba1286fd17800a7ff34bed051f65385de"
-url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.8/clang%2Bllvm-22.1.8-armv7a-linux-gnueabihf.tar.gz"
-url_api = "https://api.github.com/repos/llvm/llvm-project/releases/assets/472448719"
-
-[tools."github:llvm/llvm-project"."platforms.linux-x64"]
-checksum = "sha256:79da771ffbd01facbcec218622262c9ba1286fd17800a7ff34bed051f65385de"
-url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.8/clang%2Bllvm-22.1.8-armv7a-linux-gnueabihf.tar.gz"
-url_api = "https://api.github.com/repos/llvm/llvm-project/releases/assets/472448719"
-
-[tools."github:llvm/llvm-project"."platforms.linux-x64-musl"]
-checksum = "sha256:79da771ffbd01facbcec218622262c9ba1286fd17800a7ff34bed051f65385de"
-url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.8/clang%2Bllvm-22.1.8-armv7a-linux-gnueabihf.tar.gz"
-url_api = "https://api.github.com/repos/llvm/llvm-project/releases/assets/472448719"
-
-[tools."github:llvm/llvm-project"."platforms.windows-x64"]
-checksum = "sha256:d96c2cc1736f4eb7fa43cb9bbdf56d93551a9ae0a9aadb9c99c3c3b2b712a234"
-url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.8/clang%2Bllvm-22.1.8-x86_64-pc-windows-msvc.tar.xz"
-url_api = "https://api.github.com/repos/llvm/llvm-project/releases/assets/449359319"
-provenance = "github-attestations"
-
 [[tools."github:microsoft/apm"]]
 version = "0.28.0"
 backend = "github:microsoft/apm"
@@ -122,6 +89,17 @@ url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/503748778"
 checksum = "sha256:b7085454956a8fa60aa61c062c566095bffe6bc1d6c0902f3a6657b1d1d7fc85"
 url = "https://github.com/microsoft/apm/releases/download/v0.28.0/apm-windows-x86_64.zip"
 url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/503748775"
+
+[[tools."http:llvm"]]
+version = "22.1.8"
+backend = "http:llvm"
+
+[tools."http:llvm".options]
+strip_components = "1"
+
+[tools."http:llvm"."platforms.windows-x64"]
+checksum = "sha256:d96c2cc1736f4eb7fa43cb9bbdf56d93551a9ae0a9aadb9c99c3c3b2b712a234"
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.8/clang%2Bllvm-22.1.8-x86_64-pc-windows-msvc.tar.xz"
 
 [[tools.node]]
 version = "26.7.0"

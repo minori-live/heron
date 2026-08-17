@@ -38,10 +38,13 @@ they need workspace packages. Rust-only tasks such as `check-fast` and the
 
 Windows native builds always include cpal's ASIO backend. Windows development
 hosts therefore require Visual Studio's Desktop development with C++ workload
-and LLVM/Clang with `LIBCLANG_PATH` set to the directory containing
-`libclang.dll`. `asio-sys` downloads the Steinberg ASIO SDK automatically;
-set `CPAL_ASIO_DIR` only when using a preinstalled SDK. Runtime ASIO validation
-also requires a 64-bit vendor ASIO driver or a fallback such as ASIO4ALL.
+and the LLVM/Clang toolchain pinned by `mise.toml`. The LLVM release artifact is
+installed from its immutable URL with a checked-in SHA-256 checksum, avoiding
+GitHub API release discovery. Set `LIBCLANG_PATH` to the installed toolchain's
+`bin` directory containing `libclang.dll`. `asio-sys` downloads the Steinberg
+ASIO SDK automatically; set `CPAL_ASIO_DIR` only when using a preinstalled SDK.
+Runtime ASIO validation also requires a 64-bit vendor ASIO driver or a fallback
+such as ASIO4ALL.
 The production VST3 probe and host are Rust binaries. CMake and the C++ workload
 are only required when building Steinberg SDK fixtures such as AGain and
 NoteExpressionSynth from the recursive `third_party/vst3sdk` submodule.
