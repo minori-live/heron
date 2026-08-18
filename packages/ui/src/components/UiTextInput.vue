@@ -19,9 +19,9 @@ const props = withDefaults(
 const attrs = useAttrs()
 
 const sizeClasses = {
-  sm: "min-h-[var(--ui-control-sm)] px-ui-2 text-ui-xs",
-  md: "min-h-[var(--ui-control-md)] px-ui-3 text-ui-sm",
-  lg: "min-h-[var(--ui-control-lg)] px-ui-4 text-ui-md"
+  sm: "min-h-[var(--ui-control-sm)] px-ui-2 text-[var(--ui-type-size-control)]",
+  md: "min-h-[var(--ui-control-md)] px-ui-3 text-[var(--ui-type-size-body-compact)]",
+  lg: "min-h-[var(--ui-control-lg)] px-ui-4 text-[var(--ui-type-size-label)]"
 } as const
 </script>
 
@@ -29,7 +29,7 @@ const sizeClasses = {
   <input
     v-bind="attrs"
     v-model="model"
-    class="ui-input min-w-0 w-full border border-solid border-ui-border rounded-ui-md bg-ui-canvas-subtle text-ui-text leading-ui-normal transition-[border-color,background] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed disabled:opacity-[var(--ui-opacity-disabled)]"
+    class="ui-input min-w-0 w-full border border-solid border-ui-border rounded-ui-md bg-ui-control font-ui-data text-ui-text-muted leading-ui-normal transition-[border-color,background] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed disabled:opacity-[var(--ui-opacity-disabled)]"
     :class="sizeClasses[props.size]"
     :aria-invalid="props.invalid || undefined"
   />

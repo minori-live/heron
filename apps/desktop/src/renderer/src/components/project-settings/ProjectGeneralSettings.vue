@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
-import { UiSelect } from "@heron/ui"
+import { UiNumberInput, UiSelect, UiTextInput } from "@heron/ui"
 import { PROJECT_SAMPLE_RATES } from "@heron/contracts"
 import type { ProjectConfiguration } from "@heron/contracts"
 import SettingsPage from "../settings/SettingsPage.vue"
@@ -11,14 +11,6 @@ const configuration = defineModel<ProjectConfiguration>({ required: true })
 
 function update(patch: Partial<ProjectConfiguration>): void {
   configuration.value = { ...configuration.value, ...patch }
-}
-
-function textValue(event: Event): string {
-  return (event.target as HTMLInputElement).value
-}
-
-function numberValue(event: Event): number {
-  return Number((event.target as HTMLInputElement).value)
 }
 </script>
 
@@ -36,7 +28,11 @@ function numberValue(event: Event): number {
     >
       <label class="field">
         <span>{{ t("settings.project.general.identity.nameLabel") }}</span>
-        <input :value="configuration.name" required @input="update({ name: textValue($event) })" />
+        <UiTextInput
+          :model-value="configuration.name"
+          required
+          @update:model-value="update({ name: $event })"
+        />
       </label>
     </SettingsSection>
 
@@ -63,12 +59,12 @@ function numberValue(event: Event): number {
         </label>
         <label class="field">
           <span>{{ t("settings.project.general.sessionFormat.meterNumerator") }}</span>
-          <input
-            :value="configuration.timeSignatureNumerator"
-            type="number"
-            min="1"
-            max="32"
-            @input="update({ timeSignatureNumerator: numberValue($event) })"
+          <UiNumberInput
+            :model-value="configuration.timeSignatureNumerator"
+            :min="1"
+            :max="32"
+            size="md"
+            @update:model-value="$event !== null && update({ timeSignatureNumerator: $event })"
           />
         </label>
         <label class="field">
@@ -130,23 +126,6 @@ function numberValue(event: Event): number {
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
   text-transform: uppercase;
-}
-
-.field input {
-  width: 100%;
-  height: 40px;
-  padding: 0 11px;
-  border: 1px solid var(--line-strong);
-  border-radius: 7px;
-  color: var(--text-primary);
-  background: var(--surface-1);
-  outline: none;
-  text-transform: none;
-}
-
-.field input:focus-visible {
-  border-color: var(--focus);
-  box-shadow: var(--ui-focus-ring);
 }
 
 .field small {

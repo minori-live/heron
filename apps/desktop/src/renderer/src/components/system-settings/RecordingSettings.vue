@@ -2,7 +2,7 @@
 import { computed, onMounted, shallowRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { storeToRefs } from "pinia"
-import { UiSelect, UiSlider } from "@heron/ui"
+import { UiCheckbox, UiSelect, UiSlider } from "@heron/ui"
 import type { RecordingBitDepth } from "@heron/contracts"
 import SettingsPage from "../settings/SettingsPage.vue"
 import SettingsSection from "../settings/SettingsSection.vue"
@@ -54,8 +54,7 @@ async function commitLowLatencyBudget(): Promise<void> {
   else lowLatencyBudgetDraft.value = lowLatencyModeStore.snapshot.pluginBudgetMs
 }
 
-function setSoftwareMonitoring(event: Event): void {
-  const enabled = (event.currentTarget as HTMLInputElement).checked
+function setSoftwareMonitoring(enabled: boolean): void {
   void settingsStore.setSoftwareMonitoringEnabled(enabled).catch(() => undefined)
 }
 </script>
@@ -125,18 +124,13 @@ function setSoftwareMonitoring(event: Event): void {
       :title="t('settings.audio.recording.softwareMonitoring.title')"
       :description="t('settings.audio.recording.softwareMonitoring.description')"
     >
-      <label class="monitoring-control">
-        <input
-          type="checkbox"
-          :checked="settings?.softwareMonitoringEnabled ?? false"
-          :disabled="loading || applyingSoftwareMonitoring"
-          @change="setSoftwareMonitoring"
-        />
-        <span>
-          <b>{{ t("settings.audio.recording.softwareMonitoring.enable") }}</b>
-          <small>{{ t("settings.audio.recording.softwareMonitoring.warning") }}</small>
-        </span>
-      </label>
+      <UiCheckbox
+        :model-value="settings?.softwareMonitoringEnabled ?? false"
+        :label="t('settings.audio.recording.softwareMonitoring.enable')"
+        :description="t('settings.audio.recording.softwareMonitoring.warning')"
+        :disabled="loading || applyingSoftwareMonitoring"
+        @update:model-value="setSoftwareMonitoring"
+      />
       <p class="monitoring-state" aria-live="polite">
         {{
           applyingSoftwareMonitoring
@@ -233,30 +227,6 @@ function setSoftwareMonitoring(event: Event): void {
   gap: 10px;
 }
 
-.monitoring-control {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  max-width: 620px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.monitoring-control input {
-  margin-top: 3px;
-  accent-color: var(--mixer-input);
-}
-
-.monitoring-control span {
-  display: grid;
-  gap: 5px;
-}
-
-.monitoring-control b {
-  font-size: var(--ui-type-size-body-compact);
-}
-
-.monitoring-control small,
 .monitoring-state {
   color: var(--text-muted);
   font-size: var(--ui-type-size-caption);

@@ -1,8 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/vue3-vite"
+import { expect, userEvent, within } from "storybook/test"
 
 import UiCascadingSelect from "./UiCascadingSelect.vue"
 import UiCheckbox from "./UiCheckbox.vue"
 import UiField from "./UiField.vue"
+import UiNumberInput from "./UiNumberInput.vue"
 import UiRadioGroup from "./UiRadioGroup.vue"
 import UiSelect from "./UiSelect.vue"
 import UiSlider from "./UiSlider.vue"
@@ -112,6 +114,58 @@ export const Disabled: Story = {
       </div>
     `
   })
+}
+
+export const PreferenceControls: Story = {
+  render: () => ({
+    components: { UiCheckbox, UiNumberInput, UiSelect },
+    data: () => ({
+      monitoring: true,
+      bufferSize: "256",
+      workerThreads: 4,
+      options: [
+        { label: "128 samples", value: "128" },
+        { label: "256 samples", value: "256" },
+        { label: "512 samples", value: "512" }
+      ]
+    }),
+    template: `
+      <div class="ui-preferences-surface" style="display:grid;max-width:34rem;gap:var(--ui-space-5);padding:var(--ui-space-5);background:var(--canvas)">
+        <UiCheckbox
+          v-model="monitoring"
+          label="Software monitoring"
+          description="Hear armed inputs through Heron. Long descriptions wrap without changing the control alignment."
+        />
+        <UiSelect
+          v-model="bufferSize"
+          :options="options"
+          size="sm"
+          aria-label="Buffer size"
+        />
+        <UiNumberInput
+          v-model="workerThreads"
+          :min="1"
+          :max="16"
+          size="sm"
+          aria-label="Worker threads"
+        />
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ui-space-3)">
+          <UiSelect v-model="bufferSize" :options="options" size="sm" aria-label="Invalid buffer size" invalid />
+          <UiNumberInput v-model="workerThreads" size="sm" aria-label="Invalid worker threads" invalid />
+          <UiNumberInput :model-value="8" size="sm" aria-label="Disabled worker threads" disabled />
+        </div>
+        <UiCheckbox label="Unavailable preference" description="The disabled state remains legible." disabled />
+      </div>
+    `
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const checkbox = canvas.getByRole("checkbox", { name: /^Software monitoring/ })
+    await userEvent.click(checkbox)
+    await expect(checkbox).not.toBeChecked()
+    await userEvent.click(canvas.getByRole("spinbutton", { name: "Worker threads" }))
+    await expect(canvas.getByRole("spinbutton", { name: "Worker threads" })).toHaveFocus()
+  }
 }
 
 export const SelectSizesAndGroups: Story = {

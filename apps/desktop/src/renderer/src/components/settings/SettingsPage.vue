@@ -13,7 +13,7 @@ defineSlots<{
 
 <template>
   <section
-    class="min-w-0 overflow-auto bg-[var(--canvas)] px-[clamp(30px,4.5vw,68px)] pb-[60px] pt-[38px]"
+    class="ui-preferences-surface min-w-0 overflow-auto bg-[var(--canvas)] px-[clamp(30px,4.5vw,68px)] pb-[60px] pt-[38px]"
   >
     <header class="settings-page-intro max-w-[900px]">
       <span class="settings-page-path">

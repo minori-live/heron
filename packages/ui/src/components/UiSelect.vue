@@ -30,7 +30,7 @@ const props = withDefaults(
     <select
       v-model="model"
       v-bind="$attrs"
-      class="ui-select min-w-0 w-full cursor-default appearance-none overflow-hidden truncate border border-solid border-ui-border rounded-ui-md bg-ui-canvas-subtle text-ui-text transition-[border-color,background-color] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed disabled:opacity-[var(--ui-opacity-disabled)]"
+      class="ui-select min-w-0 w-full cursor-default appearance-none overflow-hidden truncate border border-solid border-ui-border rounded-ui-md bg-ui-control text-ui-text-muted transition-[border-color,background-color] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed disabled:opacity-[var(--ui-opacity-disabled)]"
       :aria-invalid="props.invalid || undefined"
     >
       <option v-if="props.placeholder" value="" disabled>{{ props.placeholder }}</option>
@@ -68,6 +68,7 @@ const props = withDefaults(
 <style scoped>
 .ui-select {
   grid-area: 1 / 1;
+  font-family: var(--ui-type-family-data);
 }
 
 .ui-select:hover:not(:disabled) {
@@ -120,19 +121,19 @@ const props = withDefaults(
 .ui-select-shell--sm .ui-select {
   min-height: var(--ui-control-sm);
   padding: 0 calc(var(--ui-space-3) + 12px) 0 var(--ui-space-2);
-  font-size: var(--ui-font-size-xs);
+  font-size: var(--ui-type-size-control);
 }
 
 .ui-select-shell--md .ui-select {
   min-height: var(--ui-control-md);
   padding: 0 calc(var(--ui-space-4) + 12px) 0 var(--ui-space-3);
-  font-size: var(--ui-font-size-sm);
+  font-size: var(--ui-type-size-body-compact);
 }
 
 .ui-select-shell--lg .ui-select {
   min-height: var(--ui-control-lg);
   padding: 0 calc(var(--ui-space-5) + 12px) 0 var(--ui-space-4);
-  font-size: var(--ui-font-size-md);
+  font-size: var(--ui-type-size-label);
 }
 
 .ui-select__separator {

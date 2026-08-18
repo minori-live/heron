@@ -21,7 +21,9 @@ describe("AudioRuntimeSettings", () => {
 
     expect(wrapper.text()).toContain("2 workers")
     await wrapper.get('select[aria-label="Worker thread mode"]').setValue("manual")
-    await wrapper.get('input[aria-label="Worker threads"]').setValue("3")
+    const workerThreads = wrapper.get('[role="spinbutton"][aria-label="Worker threads"]')
+    await workerThreads.setValue("3")
+    await workerThreads.trigger("blur")
     await wrapper.get('button[type="button"]').trigger("click")
 
     expect(wrapper.emitted("apply")?.[0]?.[0]).toEqual({

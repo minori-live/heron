@@ -165,6 +165,18 @@ for (const file of rendererFiles) {
   auditUtilities(file, source)
 
   const normalized = file.split(sep).join("/")
+  const isSettingsSource =
+    normalized.includes("/components/settings/") ||
+    normalized.includes("/components/system-settings/") ||
+    normalized.includes("/components/project-settings/")
+
+  if (isSettingsSource && !isTest) {
+    for (const match of source.matchAll(
+      /<select\b|<input\b[^>]*\btype=["'](?:checkbox|number)["']/gi
+    )) {
+      report(file, "settings-control-boundary", `${match[0]} must use an @heron/ui control`)
+    }
+  }
   const domainShadow =
     normalized.includes("/components/mixer/") ||
     normalized.includes("/components/studio/") ||
