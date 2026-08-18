@@ -35,11 +35,11 @@ const errorId = props.error ? `${controlId}-error` : undefined
 
 <template>
   <div
-    class="ui-field"
+    class="ui-field grid min-w-0 gap-ui-2"
     :class="`ui-field--${props.layout}`"
     :data-invalid="Boolean(props.error) || undefined"
   >
-    <label class="ui-field__label" :for="controlId">
+    <label class="ui-field__label text-ui-sm font-600 text-ui-text" :for="controlId">
       {{ props.label }}
       <span v-if="props.required" class="ui-field__required" aria-hidden="true">*</span>
       <span v-if="props.required" class="ui-visually-hidden"> (required)</span>
@@ -47,7 +47,7 @@ const errorId = props.error ? `${controlId}-error` : undefined
     <p v-if="props.description" :id="descriptionId" class="ui-field__description">
       {{ props.description }}
     </p>
-    <div class="ui-field__control">
+    <div class="ui-field__control min-w-0">
       <slot :control-id="controlId" :description-id="descriptionId" :error-id="errorId" />
     </div>
     <p v-if="props.error" :id="errorId" class="ui-field__error" role="alert">
@@ -57,22 +57,6 @@ const errorId = props.error ? `${controlId}-error` : undefined
 </template>
 
 <style scoped>
-.ui-field {
-  display: grid;
-  gap: var(--ui-space-2);
-  min-width: 0;
-}
-
-.ui-field__label {
-  color: var(--ui-color-text);
-  font-size: var(--ui-font-size-sm);
-  font-weight: var(--ui-type-weight-semibold);
-}
-
-.ui-field__control {
-  min-width: 0;
-}
-
 .ui-field--inline {
   grid-template-areas:
     "label control"

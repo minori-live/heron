@@ -19,7 +19,9 @@ function formatLatency(value: number | null): string {
 </script>
 
 <template>
-  <footer class="statusbar">
+  <footer
+    class="statusbar col-span-full flex min-w-0 items-center gap-ui-4 border-t border-t-solid bg-[var(--daw-statusbar)] py-0 pe-[6px] ps-[13px] text-[var(--text-muted)] [border-top-color:var(--line-strong)]"
+  >
     <span class="engine-state"
       ><i :class="{ active: runtime.state === 'running' }" />{{
         runtime.state === "running"
@@ -62,15 +64,6 @@ function formatLatency(value: number | null): string {
 
 <style scoped>
 .statusbar {
-  grid-column: 1/-1;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-width: 0;
-  padding: 0 6px 0 13px;
-  border-top: 1px solid var(--line-strong);
-  color: var(--text-muted);
-  background: var(--daw-statusbar);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
 }

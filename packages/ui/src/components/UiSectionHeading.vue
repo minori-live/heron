@@ -13,62 +13,31 @@ const props = withDefaults(
 </script>
 
 <template>
-  <header class="ui-section-heading">
-    <div class="ui-section-heading__copy">
-      <component :is="`h${props.level}`" class="ui-section-heading__title">
+  <header class="ui-section-heading flex min-w-0 items-start justify-between gap-ui-4">
+    <div class="grid min-w-0 gap-ui-2">
+      <component
+        :is="`h${props.level}`"
+        class="m-0 text-ui-lg font-600 text-ui-text leading-ui-tight"
+      >
         {{ props.title }}
       </component>
-      <p v-if="props.description" class="ui-section-heading__description">
+      <p
+        v-if="props.description"
+        class="m-0 max-w-[48rem] text-ui-sm text-ui-text-muted leading-ui-normal"
+      >
         {{ props.description }}
       </p>
     </div>
-    <div v-if="$slots.actions" class="ui-section-heading__actions">
+    <div
+      v-if="$slots.actions"
+      class="ui-section-heading__actions flex flex-none flex-wrap gap-ui-2"
+    >
       <slot name="actions" />
     </div>
   </header>
 </template>
 
 <style scoped>
-.ui-section-heading {
-  display: flex;
-  min-width: 0;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--ui-space-4);
-}
-
-.ui-section-heading__copy {
-  display: grid;
-  min-width: 0;
-  gap: var(--ui-space-2);
-}
-
-.ui-section-heading__title,
-.ui-section-heading__description {
-  margin: 0;
-}
-
-.ui-section-heading__title {
-  color: var(--ui-color-text);
-  font-size: var(--ui-font-size-lg);
-  font-weight: var(--ui-type-weight-semibold);
-  line-height: var(--ui-type-leading-tight);
-}
-
-.ui-section-heading__description {
-  max-width: 48rem;
-  color: var(--ui-color-text-muted);
-  font-size: var(--ui-font-size-sm);
-  line-height: var(--ui-type-leading-normal);
-}
-
-.ui-section-heading__actions {
-  display: flex;
-  flex: none;
-  flex-wrap: wrap;
-  gap: var(--ui-space-2);
-}
-
 @media (max-width: 30rem) {
   .ui-section-heading {
     flex-direction: column;

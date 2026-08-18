@@ -19,8 +19,8 @@ describe("UiSurface", () => {
     const wrapper = mount(UiSurface, { slots: { default: "Mixer" } })
 
     expect(wrapper.element.tagName).toBe("SECTION")
-    expect(wrapper.classes()).toContain("ui-surface--base")
-    expect(wrapper.classes()).toContain("ui-surface--padding-md")
+    expect(wrapper.attributes("data-level")).toBe("base")
+    expect(wrapper.attributes("data-padding")).toBe("md")
     expect(wrapper.text()).toBe("Mixer")
   })
 
@@ -30,8 +30,8 @@ describe("UiSurface", () => {
     })
 
     expect(wrapper.element.tagName).toBe("ASIDE")
-    expect(wrapper.classes()).toContain("ui-surface--raised")
-    expect(wrapper.classes()).toContain("ui-surface--padding-none")
+    expect(wrapper.attributes("data-level")).toBe("raised")
+    expect(wrapper.attributes("data-padding")).toBe("none")
   })
 })
 
@@ -41,14 +41,14 @@ describe("UiSpinner", () => {
 
     expect(wrapper.attributes("role")).toBe("status")
     expect(wrapper.get(".ui-visually-hidden").text()).toBe("Loading")
-    expect(wrapper.classes()).toContain("ui-spinner--md")
+    expect(wrapper.attributes("data-size")).toBe("md")
   })
 
   it("uses the supplied label and size", () => {
     const wrapper = mount(UiSpinner, { props: { label: "Scanning plug-ins", size: "lg" } })
 
     expect(wrapper.get(".ui-visually-hidden").text()).toBe("Scanning plug-ins")
-    expect(wrapper.classes()).toContain("ui-spinner--lg")
+    expect(wrapper.attributes("data-size")).toBe("lg")
   })
 
   it("hides the decorative ring from assistive technology", () => {
@@ -64,8 +64,8 @@ describe("UiEmptyState", () => {
 
     expect(wrapper.get("h2").text()).toBe("No projects yet")
     expect(wrapper.find("p").exists()).toBe(false)
-    expect(wrapper.find(".ui-empty-state__icon").exists()).toBe(false)
-    expect(wrapper.find(".ui-empty-state__actions").exists()).toBe(false)
+    expect(wrapper.find('[aria-hidden="true"]').exists()).toBe(false)
+    expect(wrapper.find("button").exists()).toBe(false)
   })
 
   it("renders the description, icon, and actions slots", () => {
@@ -78,9 +78,8 @@ describe("UiEmptyState", () => {
     })
 
     expect(wrapper.get("p").text()).toBe("Create one to get started.")
-    expect(wrapper.get(".ui-empty-state__icon").attributes("aria-hidden")).toBe("true")
-    expect(wrapper.find(".ui-empty-state__icon .glyph").exists()).toBe(true)
-    expect(wrapper.get(".ui-empty-state__actions").text()).toBe("New project")
+    expect(wrapper.get('[aria-hidden="true"]').find(".glyph").exists()).toBe(true)
+    expect(wrapper.get("button").text()).toBe("New project")
   })
 })
 
@@ -90,7 +89,7 @@ describe("UiLoadingState", () => {
 
     expect(wrapper.attributes("role")).toBe("status")
     expect(wrapper.attributes("aria-live")).toBe("polite")
-    expect(wrapper.find(".ui-spinner").exists()).toBe(true)
+    expect(wrapper.findAll('[role="status"]')).toHaveLength(2)
     expect(wrapper.find('[role="progressbar"]').exists()).toBe(false)
     expect(wrapper.get("strong").text()).toBe("Scanning plug-ins")
   })
@@ -100,7 +99,7 @@ describe("UiLoadingState", () => {
       props: { title: "Rendering stems", description: "12 of 48 clips", value: 25, max: 48 }
     })
 
-    expect(wrapper.find(".ui-spinner").exists()).toBe(false)
+    expect(wrapper.findAll('[role="status"]')).toHaveLength(1)
     const progress = wrapper.get('[role="progressbar"]')
     expect(progress.attributes("aria-valuenow")).toBe("25")
     expect(progress.attributes("aria-valuemax")).toBe("48")
@@ -110,7 +109,7 @@ describe("UiLoadingState", () => {
   it("keeps the progress bar indeterminate for a null value", () => {
     const wrapper = mount(UiLoadingState, { props: { title: "Opening project", value: null } })
 
-    expect(wrapper.find(".ui-spinner").exists()).toBe(false)
+    expect(wrapper.findAll('[role="status"]')).toHaveLength(1)
     expect(wrapper.get('[role="progressbar"]').attributes("aria-valuenow")).toBeUndefined()
   })
 })
@@ -119,9 +118,9 @@ describe("UiSectionHeading", () => {
   it("renders a level 2 heading by default", () => {
     const wrapper = mount(UiSectionHeading, { props: { title: "Audio device" } })
 
-    expect(wrapper.get(".ui-section-heading__title").element.tagName).toBe("H2")
-    expect(wrapper.find(".ui-section-heading__description").exists()).toBe(false)
-    expect(wrapper.find(".ui-section-heading__actions").exists()).toBe(false)
+    expect(wrapper.get("h2").text()).toBe("Audio device")
+    expect(wrapper.find("p").exists()).toBe(false)
+    expect(wrapper.find("button").exists()).toBe(false)
   })
 
   it("renders the requested heading level with a description and actions", () => {
@@ -130,9 +129,9 @@ describe("UiSectionHeading", () => {
       slots: { actions: '<button type="button">Rescan</button>' }
     })
 
-    expect(wrapper.get(".ui-section-heading__title").element.tagName).toBe("H3")
-    expect(wrapper.get(".ui-section-heading__description").text()).toBe("Choose the interface.")
-    expect(wrapper.get(".ui-section-heading__actions").text()).toBe("Rescan")
+    expect(wrapper.get("h3").text()).toBe("Audio device")
+    expect(wrapper.get("p").text()).toBe("Choose the interface.")
+    expect(wrapper.get("button").text()).toBe("Rescan")
   })
 })
 
@@ -254,9 +253,9 @@ describe("UiToolbar", () => {
       slots: { default: "<button type='button'>Play</button>" }
     })
 
-    expect(bare.find(".ui-toolbar__section--start").exists()).toBe(false)
-    expect(bare.find(".ui-toolbar__section--end").exists()).toBe(false)
-    expect(bare.classes()).toContain("ui-toolbar--standard")
+    expect(bare.attributes("role")).toBe("toolbar")
+    expect(bare.attributes("data-density")).toBe("standard")
+    expect(bare.findAll("span")).toHaveLength(0)
 
     const full = mount(UiToolbar, {
       props: { label: "Transport" },
@@ -267,8 +266,9 @@ describe("UiToolbar", () => {
       }
     })
 
-    expect(full.get(".ui-toolbar__section--start").text()).toBe("Left")
-    expect(full.get(".ui-toolbar__section--end").text()).toBe("Right")
+    expect(full.text()).toContain("Left")
+    expect(full.text()).toContain("Right")
+    expect(full.findAll("span").map((section) => section.text())).toEqual(["Left", "Right"])
   })
 })
 
@@ -279,7 +279,7 @@ describe("UiStatusNotice", () => {
     expect(wrapper.attributes("role")).toBeUndefined()
     expect(wrapper.attributes("aria-live")).toBeUndefined()
     expect(wrapper.attributes("data-tone")).toBe("neutral")
-    expect(wrapper.find(".ui-status-notice__title").exists()).toBe(false)
+    expect(wrapper.find("strong").exists()).toBe(false)
   })
 
   it("uses a polite status region and shows the optional title", () => {
@@ -291,7 +291,7 @@ describe("UiStatusNotice", () => {
     expect(wrapper.attributes("role")).toBe("status")
     expect(wrapper.attributes("aria-live")).toBe("polite")
     expect(wrapper.attributes("data-tone")).toBe("success")
-    expect(wrapper.get(".ui-status-notice__title").text()).toBe("Recording saved")
+    expect(wrapper.get("strong").text()).toBe("Recording saved")
   })
 })
 
@@ -306,7 +306,8 @@ describe("UiButton", () => {
     expect(button.attributes("disabled")).toBeDefined()
     expect(button.attributes("aria-disabled")).toBe("true")
     expect(button.attributes("aria-busy")).toBeUndefined()
-    expect(button.classes()).toEqual(expect.arrayContaining(["ui-button--danger", "ui-button--lg"]))
+    expect(button.attributes("data-variant")).toBe("danger")
+    expect(button.attributes("data-size")).toBe("lg")
   })
 
   it("leaves an idle button interactive and defaults to type button", () => {

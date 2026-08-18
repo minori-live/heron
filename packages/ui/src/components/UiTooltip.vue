@@ -22,9 +22,16 @@ const props = withDefaults(
       <slot />
     </TooltipTrigger>
     <TooltipPortal>
-      <TooltipContent class="ui-tooltip" :side="props.side" :side-offset="6">
+      <TooltipContent
+        class="z-[var(--ui-z-tooltip)] inline-flex max-w-[min(22rem,calc(100vw-2rem))] items-center gap-ui-2 border border-solid border-ui-border rounded-ui-sm bg-ui-surface-raised px-ui-3 py-ui-2 text-ui-xs text-ui-text leading-ui-normal shadow-ui-md"
+        data-ui-part="tooltip-content"
+        :side="props.side"
+        :side-offset="6"
+      >
         <span>{{ props.text }}</span>
-        <kbd v-if="props.shortcut">{{ props.shortcut }}</kbd>
+        <kbd v-if="props.shortcut" class="font-ui-interface text-ui-text-muted">{{
+          props.shortcut
+        }}</kbd>
         <TooltipArrow class="ui-tooltip__arrow" />
       </TooltipContent>
     </TooltipPortal>
@@ -32,27 +39,6 @@ const props = withDefaults(
 </template>
 
 <style>
-.ui-tooltip {
-  z-index: var(--ui-z-tooltip);
-  display: inline-flex;
-  max-width: min(22rem, calc(100vw - 2rem));
-  align-items: center;
-  gap: var(--ui-space-2);
-  padding: var(--ui-space-2) var(--ui-space-3);
-  color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-sm);
-  box-shadow: var(--ui-shadow-md);
-  font-size: var(--ui-font-size-xs);
-  line-height: var(--ui-type-leading-normal);
-}
-
-.ui-tooltip kbd {
-  color: var(--ui-color-text-muted);
-  font: inherit;
-}
-
 .ui-tooltip__arrow {
   fill: var(--ui-color-surface-raised);
 }

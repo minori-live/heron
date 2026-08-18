@@ -16,15 +16,20 @@ onMounted(() => void startup.load())
 </script>
 
 <template>
-  <main class="splash-shell" :data-phase="startup.progress.phase">
-    <header class="brand">
-      <h1 class="brand-heading"><HeronLogo class="brand-logo" /></h1>
+  <main
+    class="splash-shell relative grid h-full w-full grid-rows-[1fr_auto] overflow-hidden border border-solid border-ui-border bg-ui-canvas-subtle px-[48px] pb-[40px] pt-[44px] shadow-[var(--ui-shadow-highlight-inset)]"
+    :data-phase="startup.progress.phase"
+  >
+    <header
+      class="brand relative z-[var(--ui-z-local-content)] flex flex-col items-center justify-center self-stretch text-center"
+    >
+      <h1 class="m-0"><HeronLogo class="brand-logo" /></h1>
       <p class="project-url">{{ projectUrl }}</p>
       <p class="version">v{{ appVersion }}</p>
     </header>
 
-    <section class="startup-status" aria-live="polite">
-      <div class="status-heading">
+    <section class="relative z-[var(--ui-z-local-content)] w-full" aria-live="polite">
+      <div class="status-heading mb-[10px] flex items-center justify-between">
         <p>{{ startup.progress.label }}</p>
         <strong>{{ percentage }}%</strong>
       </div>
@@ -65,16 +70,6 @@ onMounted(() => void startup.load())
 }
 
 .splash-shell {
-  position: relative;
-  display: grid;
-  grid-template-rows: 1fr auto;
-  width: 100%;
-  height: 100%;
-  padding: 44px 48px 40px;
-  overflow: hidden;
-  border: 1px solid var(--ui-color-border);
-  background: var(--ui-color-canvas-subtle);
-  box-shadow: var(--ui-shadow-highlight-inset);
   -webkit-app-region: drag;
 }
 
@@ -91,21 +86,6 @@ onMounted(() => void startup.load())
   transform-origin: 50% 48%;
   animation: splash-glow-breathe 4.8s ease-in-out infinite;
   will-change: opacity, transform;
-}
-
-.brand {
-  position: relative;
-  z-index: var(--ui-z-local-content);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  align-self: stretch;
-  text-align: center;
-}
-
-.brand-heading {
-  margin: 0;
 }
 
 .brand-logo {
@@ -136,17 +116,7 @@ onMounted(() => void startup.load())
   font-variant-numeric: tabular-nums;
 }
 
-.startup-status {
-  position: relative;
-  z-index: var(--ui-z-local-content);
-  width: 100%;
-}
-
 .status-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
   color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-control);
 }

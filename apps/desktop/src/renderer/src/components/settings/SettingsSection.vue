@@ -11,27 +11,21 @@ defineSlots<{
 </script>
 
 <template>
-  <section class="settings-section">
+  <section
+    class="settings-section grid grid-cols-[minmax(170px,230px)_minmax(0,1fr)] gap-[48px] border-b border-b-solid py-[25px] [border-bottom-color:var(--line-soft)]"
+  >
     <header class="settings-section-copy">
       <span v-if="eyebrow">{{ eyebrow }}</span>
       <h3>{{ title }}</h3>
       <p>{{ description }}</p>
     </header>
-    <div class="settings-section-control">
+    <div class="min-w-0">
       <slot />
     </div>
   </section>
 </template>
 
 <style scoped>
-.settings-section {
-  display: grid;
-  grid-template-columns: minmax(170px, 230px) minmax(0, 1fr);
-  gap: 48px;
-  padding: 25px 0;
-  border-bottom: 1px solid var(--line-soft);
-}
-
 .settings-section-copy span {
   display: block;
   margin-bottom: 7px;
@@ -53,10 +47,6 @@ defineSlots<{
   color: var(--text-muted);
   font-size: var(--ui-type-size-body-compact);
   line-height: var(--ui-type-leading-normal);
-}
-
-.settings-section-control {
-  min-width: 0;
 }
 
 @media (max-width: 1120px) {

@@ -11,6 +11,32 @@ Product-specific controls were retained where their interaction is intrinsically
 two-dimensional. Their colors now come from the domain palette or runtime CSS variables, and
 their focus/keyboard semantics remain part of desktop tests.
 
+## UnoCSS migration classification (2026-08-18)
+
+The current 40 `@heron/ui` and 137 Desktop renderer Vue files fall into one of three explicit
+ownership groups:
+
+1. **Utility-owned structure.** Ordinary flex/grid layout, spacing, sizing, overflow, typography,
+   and simple chrome were migrated in `UiButton`, `UiCheckbox`, `UiDialog`, `UiEmptyState`,
+   `UiField`, `UiIconButton`, `UiLoadingState`, `UiNumberInput`, `UiPopover`, `UiProgress`,
+   `UiSectionHeading`, `UiSelect`, `UiSpinner`, `UiStatusNotice`, `UiSurface`, `UiTextInput`,
+   `UiToolbar`, and `UiTooltip`. Desktop migration covers `AppChrome`, `AppRouteView`, Splash,
+   the settings containers, `StudioWorkspace`, `StudioTopbar`, `StudioStatusbar`,
+   `ArrangementWorkspace`, and `MixerConsole`.
+2. **Scoped domain styling retained.** Mixer controls, faders, meters, rotary/curve controls,
+   waveforms, arrangement and piano-roll geometry, timeline/global lanes, menus, gradients,
+   pseudo-elements, resize handles, and runtime-positioned elements retain scoped CSS. Partially
+   migrated files keep only these stateful or geometric rules after their structural declarations
+   moved to utilities.
+3. **No local visual ownership.** Route views, hosts, providers, logos, and controller-only
+   components without ordinary local layout remain composition/API boundaries and require no
+   utility conversion.
+
+This classification applies to every Vue file in the two scanned roots rather than treating a
+remaining `<style>` block as unfinished work. `lint:design` scans those roots plus design-system
+stories and rejects dynamic utility construction, raw utility colors, numeric utility z-indexes,
+and undefined semantic utility tokens.
+
 ## Application and views
 
 - [x] `App.vue` — `UiProvider`; application lifecycle remains in stores.

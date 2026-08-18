@@ -3,6 +3,7 @@ import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite"
 import vue from "@vitejs/plugin-vue"
 import { heronFontsOptions } from "@heron/ui/fonts"
 import Unfonts from "unplugin-fonts/vite"
+import UnoCSS from "unocss/vite"
 import { defineConfig } from "vite"
 import { appVersionDefine } from "./build/app-version.ts"
 import { injectRendererContentSecurityPolicy } from "./src/shared/renderer-csp.ts"
@@ -18,6 +19,7 @@ export default defineConfig(({ command }) => ({
         handler: (html) => injectRendererContentSecurityPolicy(html, command === "build")
       }
     },
+    UnoCSS({ configFile: resolve(import.meta.dirname, "../../uno.config.ts") }),
     vue(),
     Unfonts(heronFontsOptions),
     VueI18nPlugin({

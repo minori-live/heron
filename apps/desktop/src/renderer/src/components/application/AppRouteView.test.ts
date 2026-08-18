@@ -31,7 +31,7 @@ describe("AppRouteView", () => {
       }
     })
 
-    expect(wrapper.get(".app-route-view").attributes("class")).toContain("app-route-view")
+    expect(wrapper.get('[data-testid="app-route-view"]')).toBeTruthy()
     expect(wrapper.get('[data-route="welcome"]').text()).toBe("Welcome")
 
     await router.push("/settings")

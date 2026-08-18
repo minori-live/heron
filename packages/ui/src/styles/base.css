@@ -55,6 +55,21 @@ textarea {
   border: 0 !important;
 }
 
+/* Preference panels use the quieter product chrome instead of action-heavy form colors. */
+.ui-preferences-surface {
+  --ui-color-action: var(--accent);
+  --ui-color-action-hover: var(--accent-soft);
+  --ui-color-action-pressed: var(--accent-strong);
+  --ui-color-action-text: var(--ui-color-text-inverse);
+  --ui-color-border: var(--line-strong);
+  --ui-color-border-strong: var(--accent);
+  --ui-color-control: var(--surface-3);
+  --ui-color-control-hover: var(--daw-control-hover);
+  --ui-color-focus: var(--focus);
+  --ui-color-text-muted: var(--text-secondary);
+  --ui-color-text-subtle: var(--text-secondary);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

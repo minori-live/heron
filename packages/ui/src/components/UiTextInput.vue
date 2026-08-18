@@ -17,31 +17,25 @@ const props = withDefaults(
   }
 )
 const attrs = useAttrs()
+
+const sizeClasses = {
+  sm: "min-h-[var(--ui-control-sm)] px-ui-2 text-[var(--ui-type-size-control)]",
+  md: "min-h-[var(--ui-control-md)] px-ui-3 text-[var(--ui-type-size-body-compact)]",
+  lg: "min-h-[var(--ui-control-lg)] px-ui-4 text-[var(--ui-type-size-label)]"
+} as const
 </script>
 
 <template>
   <input
     v-bind="attrs"
     v-model="model"
-    class="ui-input"
-    :class="`ui-input--${props.size}`"
+    class="ui-input min-w-0 w-full border border-solid border-ui-border rounded-ui-md bg-ui-control font-ui-data text-ui-text-muted leading-ui-normal transition-[border-color,background] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed disabled:opacity-[var(--ui-opacity-disabled)]"
+    :class="sizeClasses[props.size]"
     :aria-invalid="props.invalid || undefined"
   />
 </template>
 
 <style scoped>
-.ui-input {
-  width: 100%;
-  min-width: 0;
-  color: var(--ui-color-text);
-  background: var(--ui-color-canvas-subtle);
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
-  transition:
-    border-color var(--ui-motion-fast) var(--ui-ease-standard),
-    background var(--ui-motion-fast) var(--ui-ease-standard);
-}
-
 .ui-input:hover:not(:disabled) {
   border-color: var(--ui-color-border-strong);
 }
@@ -50,30 +44,7 @@ const attrs = useAttrs()
   border-color: var(--ui-color-focus);
 }
 
-.ui-input:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
 .ui-input[aria-invalid="true"] {
   border-color: var(--ui-color-danger);
-}
-
-.ui-input--sm {
-  min-height: var(--ui-control-sm);
-  padding: 0 var(--ui-space-2);
-  font-size: var(--ui-font-size-xs);
-}
-
-.ui-input--md {
-  min-height: var(--ui-control-md);
-  padding: 0 var(--ui-space-3);
-  font-size: var(--ui-font-size-sm);
-}
-
-.ui-input--lg {
-  min-height: var(--ui-control-lg);
-  padding: 0 var(--ui-space-4);
-  font-size: var(--ui-font-size-md);
 }
 </style>

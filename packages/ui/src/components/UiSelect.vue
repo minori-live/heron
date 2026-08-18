@@ -23,11 +23,14 @@ const props = withDefaults(
 </script>
 
 <template>
-  <span class="ui-select-shell" :class="`ui-select-shell--${props.size}`">
+  <span
+    class="ui-select-shell relative isolate inline-grid min-w-0 w-full text-ui-text-subtle"
+    :class="`ui-select-shell--${props.size}`"
+  >
     <select
       v-model="model"
       v-bind="$attrs"
-      class="ui-select"
+      class="ui-select min-w-0 w-full cursor-default appearance-none overflow-hidden truncate border border-solid border-ui-border rounded-ui-md bg-ui-control text-ui-text-muted transition-[border-color,background-color] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed disabled:opacity-[var(--ui-opacity-disabled)]"
       :aria-invalid="props.invalid || undefined"
     >
       <option v-if="props.placeholder" value="" disabled>{{ props.placeholder }}</option>
@@ -63,31 +66,9 @@ const props = withDefaults(
 </template>
 
 <style scoped>
-.ui-select-shell {
-  position: relative;
-  display: inline-grid;
-  width: 100%;
-  min-width: 0;
-  color: var(--ui-color-text-subtle);
-  isolation: isolate;
-}
-
 .ui-select {
   grid-area: 1 / 1;
-  width: 100%;
-  min-width: 0;
-  appearance: none;
-  overflow: hidden;
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
-  color: var(--ui-color-text);
-  background: var(--ui-color-canvas-subtle);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: default;
-  transition:
-    border-color var(--ui-motion-fast) var(--ui-ease-standard),
-    background-color var(--ui-motion-fast) var(--ui-ease-standard);
+  font-family: var(--ui-type-family-data);
 }
 
 .ui-select:hover:not(:disabled) {
@@ -99,11 +80,6 @@ const props = withDefaults(
   outline: 2px solid var(--ui-color-focus);
   outline-offset: 1px;
   box-shadow: var(--ui-focus-ring);
-}
-
-.ui-select:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
 }
 
 .ui-select:disabled + .ui-select__chevron {
@@ -145,19 +121,19 @@ const props = withDefaults(
 .ui-select-shell--sm .ui-select {
   min-height: var(--ui-control-sm);
   padding: 0 calc(var(--ui-space-3) + 12px) 0 var(--ui-space-2);
-  font-size: var(--ui-font-size-xs);
+  font-size: var(--ui-type-size-control);
 }
 
 .ui-select-shell--md .ui-select {
   min-height: var(--ui-control-md);
   padding: 0 calc(var(--ui-space-4) + 12px) 0 var(--ui-space-3);
-  font-size: var(--ui-font-size-sm);
+  font-size: var(--ui-type-size-body-compact);
 }
 
 .ui-select-shell--lg .ui-select {
   min-height: var(--ui-control-lg);
   padding: 0 calc(var(--ui-space-5) + 12px) 0 var(--ui-space-4);
-  font-size: var(--ui-font-size-md);
+  font-size: var(--ui-type-size-label);
 }
 
 .ui-select__separator {

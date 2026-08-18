@@ -435,11 +435,13 @@ function handleArrangementDrop(event: DragEvent): void {
 
 <template>
   <section
-    class="arrangement"
+    class="arrangement relative grid min-h-0 min-w-0 grid-rows-[43px_minmax(0,1fr)] overflow-hidden bg-[var(--daw-workspace)]"
     data-tutorial="studio-arrangement"
     :aria-label="t('studio.arrangement.ariaLabel')"
   >
-    <div class="arrangement-toolbar">
+    <div
+      class="arrangement-toolbar flex items-center justify-end border-b border-b-solid bg-[var(--surface-1)] py-0 pe-[14px] ps-[15px] [border-bottom-color:var(--line-soft)]"
+    >
       <GlobalTracksToggle :expanded="globalTracksExpanded" @toggle="viewStore.toggleGlobalTracks" />
       <ArrangementZoomControls
         class="arrangement-zoom-controls"
@@ -455,16 +457,24 @@ function handleArrangementDrop(event: DragEvent): void {
       />
     </div>
 
-    <div class="timeline-grid">
+    <div class="timeline-grid min-h-0 min-w-0">
       <div
         ref="viewport"
-        class="timeline-viewport"
+        class="timeline-viewport h-full w-full min-h-0 min-w-0 overflow-auto bg-[var(--daw-lane)]"
         data-testid="timeline-viewport"
         @scroll="handleScroll"
         @wheel="handleWheel"
       >
-        <div class="timeline-scroll-content" :style="scrollContentStyle">
-          <div ref="rail" class="timeline-rail" data-testid="timeline-rail" :style="railStyle">
+        <div
+          class="timeline-scroll-content isolate grid min-h-full min-w-full w-max"
+          :style="scrollContentStyle"
+        >
+          <div
+            ref="rail"
+            class="timeline-rail sticky left-0 z-[var(--ui-z-local-sticky)] grid min-h-0 border-r border-r-solid bg-[var(--daw-track-header)] [border-right-color:var(--line-soft)]"
+            data-testid="timeline-rail"
+            :style="railStyle"
+          >
             <div class="ruler-corner">{{ t("studio.arrangement.tracks") }}</div>
             <template v-if="globalTracksExpanded">
               <GlobalLaneHeader
@@ -550,7 +560,7 @@ function handleArrangementDrop(event: DragEvent): void {
           </div>
           <div
             ref="content"
-            class="timeline-content"
+            class="timeline-content relative z-[var(--ui-z-local-base)] grid min-h-full"
             :style="contentStyle"
             @dragover="updateArrangementDrag"
             @drop="handleArrangementDrop"
@@ -672,63 +682,11 @@ function handleArrangementDrop(event: DragEvent): void {
 </template>
 
 <style scoped>
-.arrangement {
-  position: relative;
-  display: grid;
-  grid-template-rows: 43px minmax(0, 1fr);
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  background: var(--daw-workspace);
-}
-.arrangement-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 0 14px 0 15px;
-  border-bottom: 1px solid var(--line-soft);
-  background: var(--surface-1);
-}
 .arrangement-zoom-controls {
   margin-left: auto;
 }
 .timeline-grid {
   --arrangement-rail-width: 220px;
-
-  min-width: 0;
-  min-height: 0;
-}
-.timeline-scroll-content {
-  display: grid;
-  width: max-content;
-  min-width: 100%;
-  min-height: 100%;
-  isolation: isolate;
-}
-.timeline-rail,
-.timeline-content {
-  display: grid;
-}
-.timeline-content {
-  position: relative;
-  z-index: var(--ui-z-local-base);
-  min-height: 100%;
-}
-.timeline-rail {
-  position: sticky;
-  z-index: var(--ui-z-local-sticky);
-  left: 0;
-  min-height: 0;
-  border-right: 1px solid var(--line-soft);
-  background: var(--daw-track-header);
-}
-.timeline-viewport {
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
-  overflow: auto;
-  background: var(--daw-lane);
 }
 .ruler-corner {
   display: flex;

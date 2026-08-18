@@ -18,7 +18,9 @@ describe("ProjectSettingsPage", () => {
 
     await wrapper.get("input[required]").setValue("Session")
     await wrapper.get("select").setValue("44100")
-    await wrapper.findAll('input[type="number"]')[0]!.setValue("7")
+    const meterNumerator = wrapper.get('[role="spinbutton"]')
+    await meterNumerator.setValue("7")
+    await meterNumerator.trigger("blur")
     await wrapper.findAll("select").at(-1)!.setValue("aggregate")
     await wrapper.get("form").trigger("submit")
 

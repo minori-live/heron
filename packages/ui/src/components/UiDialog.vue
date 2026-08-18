@@ -39,6 +39,12 @@ defineSlots<{
   actions?(): unknown
   trigger?(): unknown
 }>()
+
+const sizeClasses = {
+  sm: "max-w-[28rem]",
+  md: "max-w-[38rem]",
+  lg: "max-w-[56rem]"
+} as const
 </script>
 
 <template>
@@ -47,40 +53,63 @@ defineSlots<{
       <slot name="trigger" />
     </DialogTrigger>
     <DialogPortal>
-      <DialogOverlay class="ui-dialog__overlay" />
+      <DialogOverlay
+        class="fixed inset-0 z-[var(--ui-z-overlay)] bg-ui-overlay [backdrop-filter:blur(3px)]"
+      />
       <DialogContent
-        class="ui-dialog"
-        :class="`ui-dialog--${props.size}`"
+        class="ui-dialog fixed left-1/2 top-1/2 z-[var(--ui-z-dialog)] grid max-h-[min(46rem,calc(100dvh-2rem))] w-[calc(100vw-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden border border-solid border-ui-border rounded-ui-lg bg-ui-surface text-ui-text shadow-ui-lg [transform:translate(-50%,-50%)]"
+        :class="sizeClasses[props.size]"
+        :data-size="props.size"
         @escape-key-down="props.dismissible ? undefined : $event.preventDefault()"
         @pointer-down-outside="props.dismissible ? undefined : $event.preventDefault()"
         @interact-outside="props.dismissible ? undefined : $event.preventDefault()"
       >
-        <header class="ui-dialog__header">
+        <header
+          class="ui-dialog__header flex min-w-0 items-start justify-between gap-ui-4 border-b border-b-solid border-ui-border px-ui-6 py-ui-5"
+        >
           <slot name="header">
-            <div class="ui-dialog__heading">
-              <span v-if="props.eyebrow" class="ui-dialog__eyebrow">
+            <div class="grid min-w-0 gap-ui-2">
+              <span
+                v-if="props.eyebrow"
+                class="text-ui-xs font-600 text-ui-text-subtle leading-ui-normal [font-family:var(--ui-type-family-data)] [letter-spacing:var(--ui-type-tracking-wider)] uppercase"
+              >
                 {{ props.eyebrow }}
               </span>
-              <DialogTitle class="ui-dialog__title">{{ props.title }}</DialogTitle>
-              <DialogDescription v-if="props.description" class="ui-dialog__description">
+              <DialogTitle class="m-0 text-ui-xl font-600 leading-ui-tight">
+                {{ props.title }}
+              </DialogTitle>
+              <DialogDescription
+                v-if="props.description"
+                class="m-0 text-ui-sm text-ui-text-muted leading-ui-normal"
+              >
                 {{ props.description }}
               </DialogDescription>
             </div>
           </slot>
-          <div v-if="props.dismissible || props.reserveCloseSpace" class="ui-dialog__close-slot">
+          <div
+            v-if="props.dismissible || props.reserveCloseSpace"
+            class="inline-grid h-[var(--ui-control-sm)] min-w-[var(--ui-control-sm)] w-[var(--ui-control-sm)] place-items-center"
+            data-dialog-part="close-slot"
+          >
             <DialogClose
               v-if="props.dismissible"
-              class="ui-dialog__close"
+              class="ui-dialog__close inline-grid h-full w-full cursor-pointer place-items-center border border-solid border-transparent rounded-ui-md bg-transparent p-0 text-ui-xl text-ui-text-muted"
               :aria-label="props.closeLabel"
             >
               <span aria-hidden="true">×</span>
             </DialogClose>
           </div>
         </header>
-        <div class="ui-dialog__body" tabindex="0">
+        <div
+          class="ui-dialog__body min-h-0 min-w-0 overflow-auto p-ui-6 [overscroll-behavior:contain] [scrollbar-gutter:stable]"
+          tabindex="0"
+        >
           <slot />
         </div>
-        <footer v-if="$slots.actions" class="ui-dialog__actions">
+        <footer
+          v-if="$slots.actions"
+          class="ui-dialog__actions flex flex-wrap justify-end gap-ui-3 border-t border-t-solid border-ui-border px-ui-6 py-ui-4"
+        >
           <slot name="actions" />
         </footer>
       </DialogContent>
@@ -89,129 +118,14 @@ defineSlots<{
 </template>
 
 <style>
-.ui-dialog__overlay {
-  position: fixed;
-  z-index: var(--ui-z-overlay);
-  inset: 0;
-  background: var(--ui-color-overlay);
-  backdrop-filter: blur(3px);
-}
-
-.ui-dialog {
-  position: fixed;
-  z-index: var(--ui-z-dialog);
-  top: 50%;
-  left: 50%;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  width: calc(100vw - 2rem);
-  max-height: min(46rem, calc(100dvh - 2rem));
-  overflow: hidden;
-  color: var(--ui-color-text);
-  background: var(--ui-color-surface);
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-lg);
-  box-shadow: var(--ui-shadow-lg);
-  transform: translate(-50%, -50%);
-}
-
-.ui-dialog--sm {
-  max-width: 28rem;
-}
-
-.ui-dialog--md {
-  max-width: 38rem;
-}
-
-.ui-dialog--lg {
-  max-width: 56rem;
-}
-
-.ui-dialog__header {
-  display: flex;
-  min-width: 0;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--ui-space-4);
-  padding: var(--ui-space-5) var(--ui-space-6);
-  border-bottom: 1px solid var(--ui-color-border);
-}
-
-.ui-dialog__heading {
-  display: grid;
-  min-width: 0;
-  gap: var(--ui-space-2);
-}
-
-.ui-dialog__eyebrow {
-  color: var(--ui-color-text-subtle);
-  font: var(--ui-type-weight-semibold) var(--ui-font-size-xs) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
-  text-transform: uppercase;
-}
-
-.ui-dialog__title {
-  margin: 0;
-  font-size: var(--ui-font-size-xl);
-  font-weight: var(--ui-type-weight-semibold);
-  line-height: var(--ui-type-leading-tight);
-}
-
-.ui-dialog__description {
-  margin: 0;
-  color: var(--ui-color-text-muted);
-  font-size: var(--ui-font-size-sm);
-  line-height: var(--ui-type-leading-normal);
-}
-
-.ui-dialog__close-slot {
-  display: inline-grid;
-  width: var(--ui-control-sm);
-  min-width: var(--ui-control-sm);
-  height: var(--ui-control-sm);
-  place-items: center;
-}
-
-.ui-dialog__close {
-  display: inline-grid;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  place-items: center;
-  color: var(--ui-color-text-muted);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--ui-radius-md);
-  font-size: var(--ui-font-size-xl);
-  cursor: pointer;
-}
-
 .ui-dialog__close:hover {
   color: var(--ui-color-text);
   background: var(--ui-color-surface-hover);
 }
 
-.ui-dialog__body {
-  min-width: 0;
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  padding: var(--ui-space-6);
-}
-
 .ui-dialog__body:focus-visible {
   outline: var(--ui-focus-width) solid var(--ui-color-focus);
   outline-offset: calc(var(--ui-focus-width) * -1);
-}
-
-.ui-dialog__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--ui-space-3);
-  padding: var(--ui-space-4) var(--ui-space-6);
-  border-top: 1px solid var(--ui-color-border);
 }
 
 @media (max-width: 30rem) {

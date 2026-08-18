@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from "vue"
 import { useI18n } from "vue-i18n"
-import { UiSelect } from "@heron/ui"
+import { UiNumberInput, UiSelect } from "@heron/ui"
 import type {
   AudioHostRuntimePreferences,
   ResolvedAudioHostRuntimePreferences
@@ -45,12 +45,13 @@ function setMode(key: keyof AudioHostRuntimePreferences, mode: string, fallback:
 
 function setNumber(
   key: keyof AudioHostRuntimePreferences,
-  event: Event,
+  value: number | null,
   minimum: number,
   maximum: number
 ): void {
-  const value = Number((event.target as HTMLInputElement).value)
-  if (Number.isInteger(value)) draft[key] = Math.min(maximum, Math.max(minimum, value))
+  if (value !== null && Number.isInteger(value)) {
+    draft[key] = Math.min(maximum, Math.max(minimum, value))
+  }
 }
 </script>
 
@@ -90,14 +91,14 @@ function setNumber(
           <option value="auto">{{ t("common.auto") }}</option>
           <option value="manual">{{ t("common.manual") }}</option>
         </UiSelect>
-        <input
+        <UiNumberInput
           v-if="draft.workerThreads !== 'auto'"
-          type="number"
-          min="1"
-          max="8"
-          :value="draft.workerThreads"
+          :model-value="draft.workerThreads"
+          :min="1"
+          :max="8"
+          size="sm"
           :aria-label="t('settings.audio.engine.workerThreads.countAria')"
-          @input="setNumber('workerThreads', $event, 1, 8)"
+          @update:model-value="setNumber('workerThreads', $event, 1, 8)"
         />
         <small>{{ t("settings.audio.engine.workerThreads.range") }}</small>
       </div>
@@ -119,14 +120,14 @@ function setNumber(
           <option value="auto">{{ t("common.auto") }}</option>
           <option value="manual">{{ t("common.manual") }}</option>
         </UiSelect>
-        <input
+        <UiNumberInput
           v-if="draft.maxBlockingThreads !== 'auto'"
-          type="number"
-          min="2"
-          max="16"
-          :value="draft.maxBlockingThreads"
+          :model-value="draft.maxBlockingThreads"
+          :min="2"
+          :max="16"
+          size="sm"
           :aria-label="t('settings.audio.engine.blockingThreads.countAria')"
-          @input="setNumber('maxBlockingThreads', $event, 2, 16)"
+          @update:model-value="setNumber('maxBlockingThreads', $event, 2, 16)"
         />
         <small>{{ t("settings.audio.engine.blockingThreads.range") }}</small>
       </div>
@@ -181,7 +182,6 @@ function setNumber(
   gap: 8px;
 }
 
-.thread-control input,
 .runtime-actions button {
   height: 36px;
   border: 1px solid var(--line-strong);
@@ -189,11 +189,6 @@ function setNumber(
   color: var(--text-secondary);
   background: var(--surface-3);
   font: var(--ui-type-size-body-compact) var(--ui-type-family-data);
-}
-
-.thread-control input {
-  min-width: 0;
-  padding: 0 10px;
 }
 
 .thread-control :deep(.ui-select-shell) {

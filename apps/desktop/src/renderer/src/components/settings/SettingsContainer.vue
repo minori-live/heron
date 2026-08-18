@@ -83,7 +83,9 @@ watch(
 </script>
 
 <template>
-  <main class="settings-container">
+  <main
+    class="settings-container grid h-full w-full grid-cols-[174px_194px_minmax(0,1fr)] grid-rows-[60px_minmax(0,1fr)] bg-[var(--canvas)] text-[var(--text-primary)]"
+  >
     <header class="settings-topbar">
       <button
         class="settings-back-button"
@@ -156,15 +158,6 @@ watch(
 </template>
 
 <style scoped>
-.settings-container {
-  display: grid;
-  grid-template: 60px minmax(0, 1fr) / 174px 194px minmax(0, 1fr);
-  width: 100%;
-  height: 100%;
-  color: var(--text-primary);
-  background: var(--canvas);
-}
-
 .settings-topbar {
   grid-column: 1 / -1;
   display: grid;

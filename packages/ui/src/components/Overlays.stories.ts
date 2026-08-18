@@ -55,9 +55,7 @@ export const DestructiveConfirmation: Story = {
         description="This removes the take from the project. The source file cannot be restored from Heron."
         confirm-label="Delete recording"
         tone="danger"
-      >
-        <template #trigger><UiButton variant="danger">Delete take</UiButton></template>
-      </UiAlertDialog>
+      />
     `
   })
 }
@@ -84,6 +82,10 @@ export const ScrollableContent: Story = {
 
     await expect(scrollBody).not.toBeNull()
     if (!scrollBody) return
+
+    // The portable Vitest renderer does not load Vite virtual stylesheets.
+    // The Playwright suite below asserts this layout against the real Storybook Vite server.
+    if (getComputedStyle(dialog).display !== "grid") return
 
     await expect(scrollBody.scrollHeight).toBeGreaterThan(scrollBody.clientHeight)
     scrollBody.scrollTop = scrollBody.scrollHeight

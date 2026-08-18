@@ -8,6 +8,7 @@ import { UiProvider } from "@heron/ui"
 import { useLocaleFonts } from "@heron/ui/locale-fonts"
 import "unfonts.css"
 import "@heron/ui/styles.css"
+import "virtual:uno.css"
 import "./preview.css"
 
 setup((app) => {

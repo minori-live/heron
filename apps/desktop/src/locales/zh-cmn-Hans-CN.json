@@ -1342,7 +1342,6 @@
     "console": {
       "ariaLabel": "混音台",
       "title": "混音台",
-      "summary": "{audio} 条音频 · {instrument} 条乐器 · {aux} 条辅助 · {outputs} 个输出",
       "actions": {
         "ariaLabel": "混音台操作",
         "addAudio": "添加音频轨",

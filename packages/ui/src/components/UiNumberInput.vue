@@ -40,7 +40,7 @@ const props = withDefaults(
   <NumberFieldRoot
     :id="props.id"
     v-model="model"
-    class="ui-number-input"
+    class="ui-number-input inline-grid min-w-0"
     :class="`ui-number-input--${props.size}`"
     :name="props.name"
     :min="props.min"
@@ -53,7 +53,7 @@ const props = withDefaults(
   >
     <NumberFieldInput
       v-bind="$attrs"
-      class="ui-number-input__field"
+      class="ui-number-input__field min-w-0 w-full border border-solid border-ui-border rounded-ui-md bg-ui-control text-ui-text-muted [font-variant-numeric:tabular-nums] transition-[border-color,background] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed"
       :placeholder="props.placeholder"
       :aria-invalid="props.invalid || undefined"
     />
@@ -61,27 +61,13 @@ const props = withDefaults(
 </template>
 
 <style scoped>
-.ui-number-input {
-  display: inline-grid;
-  min-width: 0;
-}
-
-.ui-number-input__field {
-  width: 100%;
-  min-width: 0;
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
-  color: var(--ui-color-text);
-  background: var(--ui-color-canvas-subtle);
-  font-variant-numeric: tabular-nums;
-  transition:
-    border-color var(--ui-motion-fast) var(--ui-ease-standard),
-    background var(--ui-motion-fast) var(--ui-ease-standard);
-}
-
 .ui-number-input__field:hover:not(:disabled) {
   border-color: var(--ui-color-border-strong);
   background: var(--ui-color-control);
+}
+
+.ui-number-input__field {
+  font-family: var(--ui-type-family-data);
 }
 
 .ui-number-input__field:focus {
@@ -96,10 +82,6 @@ const props = withDefaults(
   opacity: var(--ui-opacity-disabled);
 }
 
-.ui-number-input__field:disabled {
-  cursor: not-allowed;
-}
-
 .ui-number-input--compact .ui-number-input__field {
   min-height: var(--ui-control-compact);
   padding: 0 var(--ui-space-2);
@@ -110,18 +92,18 @@ const props = withDefaults(
 .ui-number-input--sm .ui-number-input__field {
   min-height: var(--ui-control-sm);
   padding: 0 var(--ui-space-2);
-  font-size: var(--ui-font-size-xs);
+  font-size: var(--ui-type-size-control);
 }
 
 .ui-number-input--md .ui-number-input__field {
   min-height: var(--ui-control-md);
   padding: 0 var(--ui-space-3);
-  font-size: var(--ui-font-size-sm);
+  font-size: var(--ui-type-size-body-compact);
 }
 
 .ui-number-input--lg .ui-number-input__field {
   min-height: var(--ui-control-lg);
   padding: 0 var(--ui-space-4);
-  font-size: var(--ui-font-size-md);
+  font-size: var(--ui-type-size-label);
 }
 </style>

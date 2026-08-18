@@ -27,7 +27,7 @@ const percentage = computed(() =>
 
 <template>
   <div
-    class="ui-progress"
+    class="ui-progress relative h-2 w-full overflow-hidden rounded-ui-pill bg-ui-surface-active"
     :class="{ 'ui-progress--indeterminate': normalizedValue === null }"
     role="progressbar"
     :aria-label="props.label"
@@ -36,28 +36,14 @@ const percentage = computed(() =>
     :aria-valuenow="normalizedValue ?? undefined"
     :aria-valuetext="props.valueText"
   >
-    <span class="ui-progress__bar" :style="{ width: `${percentage}%` }" />
+    <span
+      class="ui-progress__bar block h-full bg-ui-action [border-radius:inherit] transition-[width] duration-[var(--ui-motion-normal)] ease-[var(--ui-ease-standard)]"
+      :style="{ width: `${percentage}%` }"
+    />
   </div>
 </template>
 
 <style scoped>
-.ui-progress {
-  position: relative;
-  width: 100%;
-  height: 0.5rem;
-  overflow: hidden;
-  background: var(--ui-color-surface-active);
-  border-radius: var(--ui-radius-pill);
-}
-
-.ui-progress__bar {
-  display: block;
-  height: 100%;
-  background: var(--ui-color-action);
-  border-radius: inherit;
-  transition: width var(--ui-motion-normal) var(--ui-ease-standard);
-}
-
 .ui-progress--indeterminate .ui-progress__bar {
   width: 36% !important;
   animation: ui-progress-indeterminate 1.2s var(--ui-ease-standard) infinite;
