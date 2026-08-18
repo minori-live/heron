@@ -21,59 +21,24 @@ const controlId = props.id ?? `ui-checkbox-${generatedId}`
 </script>
 
 <template>
-  <label class="ui-checkbox" :class="{ 'ui-checkbox--disabled': props.disabled }">
+  <label
+    class="inline-flex min-w-0 items-start gap-ui-3 text-ui-text"
+    :class="
+      props.disabled ? 'cursor-not-allowed opacity-[var(--ui-opacity-disabled)]' : 'cursor-pointer'
+    "
+  >
     <input
       :id="controlId"
       v-model="model"
-      class="ui-checkbox__control"
+      class="mt-[0.125rem] h-5 w-5 flex-none [accent-color:var(--ui-color-action)]"
       type="checkbox"
       :disabled="props.disabled"
     />
-    <span class="ui-checkbox__copy">
-      <span class="ui-checkbox__label">{{ props.label }}</span>
-      <span v-if="props.description" class="ui-checkbox__description">
+    <span class="grid gap-ui-1 leading-ui-normal">
+      <span class="text-ui-sm font-500">{{ props.label }}</span>
+      <span v-if="props.description" class="text-ui-xs text-ui-text-muted">
         {{ props.description }}
       </span>
     </span>
   </label>
 </template>
-
-<style scoped>
-.ui-checkbox {
-  display: inline-flex;
-  min-width: 0;
-  align-items: flex-start;
-  gap: var(--ui-space-3);
-  color: var(--ui-color-text);
-  cursor: pointer;
-}
-
-.ui-checkbox--disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.ui-checkbox__control {
-  width: 1.25rem;
-  height: 1.25rem;
-  flex: none;
-  margin: 0.125rem 0 0;
-  accent-color: var(--ui-color-action);
-}
-
-.ui-checkbox__copy {
-  display: grid;
-  gap: var(--ui-space-1);
-  line-height: var(--ui-type-leading-normal);
-}
-
-.ui-checkbox__label {
-  font-size: var(--ui-font-size-sm);
-  font-weight: var(--ui-type-weight-medium);
-}
-
-.ui-checkbox__description {
-  color: var(--ui-color-text-muted);
-  font-size: var(--ui-font-size-xs);
-}
-</style>

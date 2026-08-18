@@ -12,8 +12,10 @@ defineSlots<{
 </script>
 
 <template>
-  <section class="settings-page">
-    <header class="settings-page-intro">
+  <section
+    class="min-w-0 overflow-auto bg-[var(--canvas)] px-[clamp(30px,4.5vw,68px)] pb-[60px] pt-[38px]"
+  >
+    <header class="settings-page-intro max-w-[900px]">
       <span class="settings-page-path">
         {{ category }}
         <b aria-hidden="true">/</b>
@@ -22,25 +24,15 @@ defineSlots<{
       <h2>{{ title }}</h2>
       <p>{{ description }}</p>
     </header>
-    <div class="settings-page-body">
+    <div
+      class="settings-page-body mt-[25px] max-w-[900px] border-t border-solid [border-top-color:var(--line-soft)]"
+    >
       <slot />
     </div>
   </section>
 </template>
 
 <style scoped>
-.settings-page {
-  min-width: 0;
-  overflow: auto;
-  padding: 38px clamp(30px, 4.5vw, 68px) 60px;
-  background: var(--canvas);
-}
-
-.settings-page-intro,
-.settings-page-body {
-  max-width: 900px;
-}
-
 .settings-page-path {
   color: var(--accent);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
@@ -65,10 +57,5 @@ defineSlots<{
   color: var(--text-muted);
   font-size: var(--ui-type-size-body-compact);
   line-height: var(--ui-type-leading-normal);
-}
-
-.settings-page-body {
-  margin-top: 25px;
-  border-top: 1px solid var(--line-soft);
 }
 </style>

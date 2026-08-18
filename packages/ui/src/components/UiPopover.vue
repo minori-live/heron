@@ -29,7 +29,10 @@ const props = withDefaults(
     </PopoverTrigger>
     <PopoverPortal>
       <PopoverContent
-        :class="['ui-popover', props.contentClass]"
+        :class="[
+          'z-[var(--ui-z-popover)] max-h-[min(36rem,calc(100dvh-1rem))] max-w-[min(28rem,calc(100vw-1rem))] overflow-auto border border-solid border-ui-border rounded-ui-md bg-ui-surface-raised p-ui-3 text-ui-text shadow-ui-md',
+          props.contentClass
+        ]"
         :align="props.align"
         :side="props.side"
         :side-offset="props.sideOffset"
@@ -43,19 +46,6 @@ const props = withDefaults(
 </template>
 
 <style>
-.ui-popover {
-  z-index: var(--ui-z-popover);
-  max-width: min(28rem, calc(100vw - 1rem));
-  max-height: min(36rem, calc(100dvh - 1rem));
-  overflow: auto;
-  padding: var(--ui-space-3);
-  color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
-  box-shadow: var(--ui-shadow-md);
-}
-
 .ui-popover__arrow {
   fill: var(--ui-color-surface-raised);
 }

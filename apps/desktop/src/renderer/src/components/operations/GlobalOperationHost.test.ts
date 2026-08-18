@@ -32,12 +32,11 @@ describe("GlobalOperationHost", () => {
     })
     await wrapper.vm.$nextTick()
     const dialog = document.body.querySelector("[role=dialog]")
-    expect(dialog?.querySelectorAll(".ui-dialog__title")).toHaveLength(1)
-    expect(dialog?.querySelector(".ui-dialog__eyebrow")).toBeNull()
-    expect(dialog?.querySelector(".ui-dialog__title")?.textContent).toBe("Background operation")
-    expect(dialog?.querySelector(".ui-dialog__description")).toBeNull()
-    expect(dialog?.querySelector(".ui-dialog__close-slot")).not.toBeNull()
-    expect(dialog?.querySelector(".ui-dialog__close")).toBeNull()
+    expect(dialog?.querySelectorAll("h2")).toHaveLength(1)
+    expect(dialog?.querySelector("h2")?.textContent).toBe("Background operation")
+    expect(dialog?.querySelector("header p")).toBeNull()
+    expect(dialog?.querySelector('[data-dialog-part="close-slot"]')).not.toBeNull()
+    expect(dialog?.querySelector('[aria-label="Close dialog"]')).toBeNull()
     expect(dialog?.querySelector(".operation-description")?.textContent?.trim()).toBe(
       "Saving project · Saving project archive"
     )

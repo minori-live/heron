@@ -190,7 +190,7 @@ describe("PianoRollDock", () => {
     vi.spyOn(crypto, "randomUUID").mockReturnValue("00000000-0000-4000-8000-000000000001")
 
     const wrapper = mount(PianoRollDock, { global: { plugins: [pinia] } })
-    const grid = wrapper.get<HTMLElement>(".grid")
+    const grid = wrapper.get<HTMLElement>('[data-testid="piano-roll-note-grid"]')
     mockGridBounds(grid.element)
     await grid.trigger("pointerdown", { pointerId: 1, clientX: 150, clientY: 1_206 })
     expect(execute).not.toHaveBeenCalled()
@@ -223,7 +223,7 @@ describe("PianoRollDock", () => {
     const execute = vi.spyOn(mixer, "execute").mockResolvedValue(true)
 
     const wrapper = mount(PianoRollDock, { global: { plugins: [pinia] } })
-    const grid = wrapper.get<HTMLElement>(".grid")
+    const grid = wrapper.get<HTMLElement>('[data-testid="piano-roll-note-grid"]')
     mockGridBounds(grid.element)
     await grid.trigger("pointerdown", { pointerId: 1, clientX: 150, clientY: 1_206 })
     await grid.trigger("pointermove", { pointerId: 1, clientX: 210, clientY: 1_206 })
@@ -256,7 +256,7 @@ describe("PianoRollDock", () => {
     vi.spyOn(mixer, "execute").mockResolvedValue(true)
 
     const wrapper = mount(PianoRollDock, { global: { plugins: [pinia] } })
-    const grid = wrapper.get<HTMLElement>(".grid")
+    const grid = wrapper.get<HTMLElement>('[data-testid="piano-roll-note-grid"]')
     mockGridBounds(grid.element)
 
     await grid.trigger("pointerdown", { pointerId: 1, clientX: 100, clientY: 1_200 })
@@ -287,7 +287,7 @@ describe("PianoRollDock", () => {
     const execute = vi.spyOn(mixer, "execute").mockResolvedValue(true)
 
     const wrapper = mount(PianoRollDock, { global: { plugins: [pinia] } })
-    const grid = wrapper.get<HTMLElement>(".grid")
+    const grid = wrapper.get<HTMLElement>('[data-testid="piano-roll-note-grid"]')
     mockGridBounds(grid.element)
     const note = wrapper.get<HTMLElement>("button.note")
 

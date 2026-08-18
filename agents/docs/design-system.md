@@ -95,6 +95,18 @@ Runtime track, waveform, peak, and lane colors must enter through a documented C
 property. Never interpolate a runtime value into a CSS selector or use it as the only carrier of
 state.
 
+## UnoCSS utility boundary
+
+UnoCSS is the shared build-time vocabulary for ordinary layout, spacing, sizing, typography, and
+simple states. Its theme resolves to the semantic custom properties above; it does not own a
+second palette or reset. Desktop, Splash, and Storybook load the root `uno.config.ts` and the same
+generated stylesheet.
+
+Use complete, statically extractable utility names. Do not interpolate utility fragments, use
+preset palette colors, or introduce numeric z-index utilities. Keep runtime geometry in typed
+`:style` bindings backed by feature-local custom properties. Keep pseudo-elements, masks,
+gradients, complex selectors, and specialized DAW control rendering in scoped CSS.
+
 ## Component selection
 
 ### Provider

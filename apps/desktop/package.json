@@ -59,6 +59,7 @@
     "happy-dom": "catalog:",
     "pinia": "catalog:",
     "typescript": "catalog:",
+    "unocss": "catalog:",
     "unplugin-fonts": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",

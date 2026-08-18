@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "node:fs"
 import { extname, join, relative, sep } from "node:path"
+import { heronUnoColorNames } from "../uno.config.ts"
 
 const workspaceRoot = process.cwd()
 const rendererRoot = join(workspaceRoot, "apps/desktop/src/renderer/src")
@@ -7,6 +8,15 @@ const designSystemRoot = join(workspaceRoot, "apps/design-system/src")
 const uiRoot = join(workspaceRoot, "packages/ui/src")
 const sourceExtensions = new Set([".css", ".mdx", ".ts", ".vue"])
 const failures: string[] = []
+const allowedUiUtilityNames = new Set<string>([
+  ...heronUnoColorNames,
+  "xs",
+  "sm",
+  "md",
+  "lg",
+  "xl",
+  "2xl"
+])
 
 function collectFiles(directory: string): string[] {
   return readdirSync(directory).flatMap((entry) => {
@@ -44,6 +54,15 @@ const typographyInlineProperty =
 const fontShorthand = /(?<!-)\bfont\s*:\s*([^;}\r\n]+)/gi
 const legacyTypographyToken =
   /var\(--(?:font-(?:sans|mono|display|utility)|ui-font-(?:sans|mono)|ui-weight-[\w-]+|ui-line-[\w-]+)\)/g
+const presetColorUtility =
+  /\b(?:bg|text|border|outline|ring|fill|stroke)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-\d{2,3})?\b/g
+const numericZIndexUtility = /\bz-\[?-?\d+\]?\b/g
+const dynamicUtilityInterpolation =
+  /(?:^|[\s"'`])(?:bg|text|border|outline|ring|fill|stroke|p[trblxy]?|m[trblxy]?|gap|grid|flex|w|h|min-w|min-h|max-w|max-h|rounded|shadow|z)-[^\s`"']*\$\{/gm
+const semanticUtility = /\b(?:bg|text|border|outline|ring|fill|stroke)-ui-([\w-]+)\b/g
+const borderWidthUtility = /(?:^|\s)(border(?:-[trblxy])?(?:-(?:0|1|2|4|8))?)(?=\s|$)/
+const borderStyleUtility = /(?:^|\s)border-(?:solid|dashed|dotted|double|none|hidden)(?=\s|$)/
+const singleLineString = /(["'`])([^"'`\r\n]*)\1/g
 
 function auditTypography(file: string, source: string, isTokenSource = false): void {
   if (isTokenSource) return
@@ -85,6 +104,33 @@ function auditTokenReferences(file: string, source: string): void {
   }
 }
 
+function auditUtilities(file: string, source: string): void {
+  for (const match of source.matchAll(presetColorUtility)) {
+    report(file, "preset-color-utility", match[0])
+  }
+  for (const match of source.matchAll(numericZIndexUtility)) {
+    report(file, "numeric-z-index-utility", match[0])
+  }
+  for (const match of source.matchAll(dynamicUtilityInterpolation)) {
+    report(file, "dynamic-utility", match[0].trim())
+  }
+  for (const match of source.matchAll(semanticUtility)) {
+    const name = match[1]
+    if (name !== undefined && !allowedUiUtilityNames.has(name)) {
+      report(file, "undefined-ui-utility", match[0])
+    }
+  }
+  if (extname(file) === ".vue") {
+    for (const match of source.matchAll(singleLineString)) {
+      const utilities = match[2] ?? ""
+      const borderWidth = utilities.match(borderWidthUtility)?.[1]
+      if (borderWidth !== undefined && !borderStyleUtility.test(utilities)) {
+        report(file, "border-style-utility", `${borderWidth} requires an explicit border style`)
+      }
+    }
+  }
+}
+
 for (const file of rendererFiles) {
   const source = readFileSync(file, "utf8")
   const isTest = /\.test\.ts$/.test(file)
@@ -105,6 +151,7 @@ for (const file of rendererFiles) {
   }
   auditTypography(file, source)
   auditTokenReferences(file, source)
+  auditUtilities(file, source)
 
   const normalized = file.split(sep).join("/")
   const domainShadow =
@@ -142,6 +189,7 @@ for (const file of uiFiles) {
   }
   auditTypography(file, source, isTokenSource)
   auditTokenReferences(file, source)
+  auditUtilities(file, source)
 
   if (/from\s+["'](?:pinia|vue-router|@heron\/contracts|electron)["']|window\.heron/.test(source)) {
     report(file, "ui-package-boundary", "UI primitives cannot depend on product state or runtime")
@@ -152,6 +200,7 @@ for (const file of designSystemFiles) {
   const source = readFileSync(file, "utf8")
   auditTypography(file, source)
   auditTokenReferences(file, source)
+  auditUtilities(file, source)
 }
 
 const manifests = [

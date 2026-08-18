@@ -37,6 +37,7 @@
     "react-dom": "19.2.8",
     "storybook": "catalog:",
     "typescript": "catalog:",
+    "unocss": "catalog:",
     "unplugin-fonts": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",

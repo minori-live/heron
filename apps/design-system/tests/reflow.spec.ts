@@ -48,3 +48,44 @@ test("workspace toolbar keeps overflow local at 320 CSS px and 200% text", async
   )
   expect(viewportOverflow).toBeLessThanOrEqual(1)
 })
+
+test("dialog keeps long content scrolling inside its body", async ({ page }) => {
+  await page.goto(
+    "/iframe.html?id=components-overlays-dialog--scrollable-content&viewMode=story&globals=theme:dark;motion:disabled"
+  )
+
+  const dialog = page.getByRole("dialog", { name: "Benchmark results" })
+  const scrollBody = dialog.locator(".ui-dialog__body")
+  await expect(dialog).toHaveCSS("display", "grid")
+  await expect(scrollBody).toHaveCSS("overflow-y", "auto")
+  await expect
+    .poll(() => scrollBody.evaluate((element) => element.scrollHeight > element.clientHeight))
+    .toBe(true)
+
+  await scrollBody.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+  await expect.poll(() => scrollBody.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+})
+
+test("author-styled controls use flat solid borders without native bevels", async ({ page }) => {
+  await page.goto(
+    "/iframe.html?id=components-actions-button--default&viewMode=story&globals=theme:dark;motion:disabled"
+  )
+  await expect(page.getByRole("button", { name: "Save project" })).toHaveCSS(
+    "border-top-style",
+    "solid"
+  )
+
+  await page.goto(
+    "/iframe.html?id=components-forms-field--complete-form&viewMode=story&globals=theme:dark;motion:disabled"
+  )
+  await expect(page.getByRole("textbox", { name: "Project name" })).toHaveCSS(
+    "border-top-style",
+    "solid"
+  )
+  await expect(page.getByRole("combobox", { name: "Audio driver" })).toHaveCSS(
+    "border-top-style",
+    "solid"
+  )
+})

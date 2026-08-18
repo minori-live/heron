@@ -40,11 +40,12 @@ describe("UiDialog", () => {
     })
     await flushPromises()
 
-    expect(portal(".ui-dialog__eyebrow").text()).toBe("Project")
-    expect(portal(".ui-dialog__title").text()).toBe("Unsaved changes")
-    expect(portal(".ui-dialog__description").text()).toBe("Save before closing?")
-    expect(portal(".ui-dialog__body").text()).toContain("Three tracks changed.")
-    expect(portal(".ui-dialog__actions").text()).toContain("Save")
+    const dialog = portal('[role="dialog"]')
+    expect(dialog.get("h2").text()).toBe("Unsaved changes")
+    expect(dialog.text()).toContain("Project")
+    expect(dialog.text()).toContain("Save before closing?")
+    expect(dialog.text()).toContain("Three tracks changed.")
+    expect(dialog.findAll("button").map((button) => button.text())).toContain("Save")
   })
 
   it("stays closed until the model opens it", async () => {
@@ -67,7 +68,7 @@ describe("UiDialog", () => {
     })
     await flushPromises()
 
-    expect(portal(".ui-dialog").classes()).toContain("ui-dialog--lg")
+    expect(portal('[role="dialog"]').attributes("data-size")).toBe("lg")
     expect(document.body.querySelector(".ui-dialog__actions")).toBeNull()
   })
 
@@ -78,7 +79,7 @@ describe("UiDialog", () => {
     })
     await flushPromises()
 
-    const close = portal(".ui-dialog__close")
+    const close = portal('[aria-label="Dismiss export"]')
     expect(close.attributes("aria-label")).toBe("Dismiss export")
     await close.trigger("click")
     await flushPromises()
@@ -93,8 +94,8 @@ describe("UiDialog", () => {
     })
     await flushPromises()
 
-    expect(document.body.querySelector(".ui-dialog__close")).toBeNull()
-    expect(document.body.querySelector(".ui-dialog__close-slot")).toBeNull()
+    expect(document.body.querySelector('[aria-label="Close dialog"]')).toBeNull()
+    expect(document.body.querySelector('[data-dialog-part="close-slot"]')).toBeNull()
   })
 
   it("can reserve stable header space while the close button is unavailable", async () => {
@@ -109,15 +110,15 @@ describe("UiDialog", () => {
     })
     await flushPromises()
 
-    const closeSlot = document.body.querySelector(".ui-dialog__close-slot")
+    const closeSlot = document.body.querySelector('[data-dialog-part="close-slot"]')
     expect(closeSlot).not.toBeNull()
-    expect(document.body.querySelector(".ui-dialog__close")).toBeNull()
+    expect(document.body.querySelector('[aria-label="Close dialog"]')).toBeNull()
 
     await wrapper.setProps({ dismissible: true })
     await flushPromises()
 
-    expect(document.body.querySelector(".ui-dialog__close-slot")).toBe(closeSlot)
-    expect(document.body.querySelector(".ui-dialog__close")).not.toBeNull()
+    expect(document.body.querySelector('[data-dialog-part="close-slot"]')).toBe(closeSlot)
+    expect(document.body.querySelector('[aria-label="Close dialog"]')).not.toBeNull()
   })
 
   it("replaces the default heading with a header slot", async () => {
@@ -128,7 +129,7 @@ describe("UiDialog", () => {
     })
     await flushPromises()
 
-    expect(document.body.querySelector(".ui-dialog__title")).toBeNull()
+    expect(portal('[role="dialog"]').findAll("h2")).toHaveLength(1)
     expect(portal(".custom-heading").text()).toBe("Custom")
   })
 
@@ -324,7 +325,7 @@ describe("UiTooltip", () => {
     await new DOMWrapper(document.body.querySelector<HTMLElement>("button")).trigger("focus")
     await flushPromises()
 
-    const tooltip = portal(".ui-tooltip")
+    const tooltip = portal('[data-ui-part="tooltip-content"]')
     expect(tooltip.text()).toContain("Play")
     expect(tooltip.get("kbd").text()).toBe("Space")
   })
@@ -342,7 +343,7 @@ describe("UiTooltip", () => {
     await new DOMWrapper(document.body.querySelector<HTMLElement>("button")).trigger("focus")
     await flushPromises()
 
-    expect(document.body.querySelector(".ui-tooltip")).toBeNull()
+    expect(document.body.querySelector('[role="tooltip"]')).toBeNull()
   })
 })
 
@@ -357,7 +358,6 @@ describe("UiIconButton", () => {
 
     const button = wrapper.get("button")
     expect(button.attributes("aria-label")).toBe("Toggle metronome")
-    expect(button.classes()).toContain("ui-icon-button")
     expect(button.text()).toBe("M")
   })
 
@@ -379,7 +379,8 @@ describe("UiIconButton", () => {
     const button = wrapper.get("button")
     expect(button.attributes("aria-pressed")).toBe("true")
     expect(button.attributes("disabled")).toBeDefined()
-    expect(button.classes()).toContain("ui-button--sm")
+    expect(button.attributes("data-size")).toBe("sm")
+    expect(button.attributes("data-variant")).toBe("secondary")
   })
 })
 
@@ -460,7 +461,7 @@ describe("UiProvider", () => {
     await new DOMWrapper(document.body.querySelector<HTMLElement>("button")).trigger("focus")
     await flushPromises()
 
-    expect(portal(".ui-tooltip").attributes("dir")).toBe("rtl")
+    expect(portal('[data-ui-part="tooltip-content"]').attributes("dir")).toBe("rtl")
   })
 
   it("holds tooltips back until the configured delay elapses", async () => {
@@ -475,6 +476,6 @@ describe("UiProvider", () => {
     await new DOMWrapper(document.body.querySelector<HTMLElement>("button")).trigger("pointerenter")
     await flushPromises()
 
-    expect(document.body.querySelector(".ui-tooltip")).toBeNull()
+    expect(document.body.querySelector('[role="tooltip"]')).toBeNull()
   })
 })

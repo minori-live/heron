@@ -35,7 +35,7 @@ function executeWindowCommand(command: ApplicationWindowCommandId): void {
 </script>
 
 <template>
-  <div class="app-chrome">
+  <div class="grid h-full w-full grid-rows-[38px_minmax(0,1fr)] overflow-hidden bg-ui-canvas">
     <AppTitleBar
       :platform="platform"
       :menus="menus"
@@ -44,25 +44,8 @@ function executeWindowCommand(command: ApplicationWindowCommandId): void {
       @command="emit('command', $event)"
       @window-command="executeWindowCommand"
     />
-    <div class="app-chrome__content">
+    <div class="ui-fill-available overflow-hidden">
       <slot />
     </div>
   </div>
 </template>
-
-<style scoped>
-.app-chrome {
-  display: grid;
-  grid-template-rows: 38px minmax(0, 1fr);
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: var(--canvas);
-}
-
-.app-chrome__content {
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-</style>

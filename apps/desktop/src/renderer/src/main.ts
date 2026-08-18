@@ -7,6 +7,7 @@ import { router } from "./router"
 import { useApplicationSettingsStore } from "./stores/applicationSettings"
 import "unfonts.css"
 import "@heron/ui/styles.css"
+import "./uno"
 import "./styles.css"
 
 async function bootstrap(): Promise<void> {

@@ -26,13 +26,21 @@ const props = withDefaults(
 )
 
 const attrs = useAttrs()
+
+const sizeClasses = {
+  sm: "min-h-[var(--ui-control-sm)] px-ui-3 text-ui-xs",
+  md: "min-h-[var(--ui-control-md)] px-ui-4 text-ui-sm",
+  lg: "min-h-[var(--ui-control-lg)] px-ui-5 text-ui-md"
+} as const
 </script>
 
 <template>
   <button
     v-bind="attrs"
-    class="ui-button"
-    :class="[`ui-button--${props.variant}`, `ui-button--${props.size}`]"
+    class="ui-button ui-inline-center min-w-0 min-h-[var(--ui-target-min)] cursor-pointer gap-ui-2 border border-solid border-transparent rounded-ui-md font-600 leading-ui-tight text-center [overflow-wrap:anywhere] transition-[color,background,border-color] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed disabled:opacity-[var(--ui-opacity-disabled)]"
+    :class="[`ui-button--${props.variant}`, sizeClasses[props.size]]"
+    :data-variant="props.variant"
+    :data-size="props.size"
     :type="props.type"
     :disabled="props.disabled || props.loading"
     :aria-disabled="props.disabled || props.loading || undefined"
@@ -44,44 +52,6 @@ const attrs = useAttrs()
 </template>
 
 <style scoped>
-.ui-button {
-  display: inline-flex;
-  min-width: 0;
-  min-height: var(--ui-target-min);
-  align-items: center;
-  justify-content: center;
-  gap: var(--ui-space-2);
-  border: 1px solid transparent;
-  border-radius: var(--ui-radius-md);
-  font-weight: var(--ui-type-weight-semibold);
-  line-height: var(--ui-type-leading-tight);
-  text-align: center;
-  overflow-wrap: anywhere;
-  cursor: pointer;
-  transition:
-    color var(--ui-motion-fast) var(--ui-ease-standard),
-    background var(--ui-motion-fast) var(--ui-ease-standard),
-    border-color var(--ui-motion-fast) var(--ui-ease-standard);
-}
-
-.ui-button--sm {
-  min-height: var(--ui-control-sm);
-  padding: 0 var(--ui-space-3);
-  font-size: var(--ui-font-size-xs);
-}
-
-.ui-button--md {
-  min-height: var(--ui-control-md);
-  padding: 0 var(--ui-space-4);
-  font-size: var(--ui-font-size-sm);
-}
-
-.ui-button--lg {
-  min-height: var(--ui-control-lg);
-  padding: 0 var(--ui-space-5);
-  font-size: var(--ui-font-size-md);
-}
-
 .ui-button--primary {
   color: var(--ui-color-action-text);
   background: var(--ui-color-action);
@@ -119,11 +89,6 @@ const attrs = useAttrs()
 
 .ui-button--danger:hover:not(:disabled) {
   background: var(--ui-color-danger-hover);
-}
-
-.ui-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
 }
 
 .ui-button__content {

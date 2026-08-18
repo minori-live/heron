@@ -112,8 +112,13 @@ async function deleteChannel(channelId: string): Promise<void> {
 </script>
 
 <template>
-  <section class="mixer-console" :aria-label="t('mixer.console.ariaLabel')">
-    <header class="mixer-toolbar">
+  <section
+    class="mixer-console relative grid min-h-0 min-w-0 grid-rows-[43px_minmax(0,1fr)] overflow-hidden bg-[var(--daw-workspace)]"
+    :aria-label="t('mixer.console.ariaLabel')"
+  >
+    <header
+      class="mixer-toolbar flex items-center justify-between gap-ui-4 border-b border-solid bg-[var(--surface-1)] py-0 pe-[11px] ps-[14px] [border-bottom-color:var(--line-strong)]"
+    >
       <div>
         <span>{{ t("mixer.console.title") }}</span>
         <strong>{{
@@ -160,7 +165,10 @@ async function deleteChannel(channelId: string): Promise<void> {
         </button>
       </nav>
     </header>
-    <div class="channel-scroll" :style="sectionStyle">
+    <div
+      class="channel-scroll flex min-h-0 min-w-0 items-start overflow-auto"
+      :style="sectionStyle"
+    >
       <MixerSectionLabels />
       <MixerChannelStrip
         v-for="channel in mixerStore.orderedChannels"
@@ -205,24 +213,6 @@ async function deleteChannel(channelId: string): Promise<void> {
 </template>
 
 <style scoped>
-.mixer-console {
-  position: relative;
-  display: grid;
-  grid-template-rows: 43px minmax(0, 1fr);
-  min-width: 0;
-  min-height: 0;
-  background: var(--daw-workspace);
-  overflow: hidden;
-}
-.mixer-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 0 11px 0 14px;
-  border-bottom: 1px solid var(--line-strong);
-  background: var(--surface-1);
-}
 .mixer-toolbar > div span,
 .mixer-toolbar > div strong {
   display: block;
@@ -268,11 +258,6 @@ async function deleteChannel(channelId: string): Promise<void> {
   outline-offset: 1px;
 }
 .channel-scroll {
-  display: flex;
-  align-items: flex-start;
-  min-width: 0;
-  min-height: 0;
-  overflow: auto;
   background-color: var(--ui-domain-color-4f4f4f);
   background-image: linear-gradient(
     90deg,

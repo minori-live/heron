@@ -42,8 +42,8 @@ useEventListener(window, "pointerup", stopResize)
 </script>
 
 <template>
-  <section class="studio-workspace">
-    <div class="arrangement-mode">
+  <section class="block min-h-0 min-w-0 overflow-hidden bg-[var(--daw-workspace)]">
+    <div class="arrangement-mode relative flex h-full min-h-0 min-w-0 flex-col">
       <ArrangementWorkspace
         :recording-id="recordingId"
         :recording-started-at="recordingStartedAt"
@@ -55,14 +55,18 @@ useEventListener(window, "pointerup", stopResize)
       />
       <div
         v-if="workspaceStore.lowerDockOpen"
-        class="dock-resizer"
+        class="dock-resizer relative z-[var(--ui-z-local-controls)] mt-[-2px] h-[5px] flex-none cursor-ns-resize border-b border-t border-solid bg-[var(--daw-resizer)] [border-bottom-color:var(--line-soft)] [border-top-color:var(--line-strong)]"
         :class="{ active: resizing }"
         role="separator"
         :aria-label="t('studio.arrangement.resizeMixerDockAria')"
         @pointerdown="startResize"
       />
-      <div v-if="workspaceStore.lowerDockOpen" class="lower-dock" :style="workspaceStore.dockStyle">
-        <MixerConsole v-if="workspaceStore.activeLowerDock === 'mixer'" class="mixer-dock" />
+      <div
+        v-if="workspaceStore.lowerDockOpen"
+        class="flex min-h-0 flex-none flex-col overflow-hidden"
+        :style="workspaceStore.dockStyle"
+      >
+        <MixerConsole v-if="workspaceStore.activeLowerDock === 'mixer'" class="min-h-0 flex-1" />
         <PianoRollDock v-else @close="workspaceStore.closeLowerDock" />
       </div>
     </div>
@@ -70,47 +74,9 @@ useEventListener(window, "pointerup", stopResize)
 </template>
 
 <style scoped>
-.studio-workspace {
-  display: block;
-  min-width: 0;
-  min-height: 0;
-  background: var(--daw-workspace);
-  overflow: hidden;
-}
-.arrangement-mode {
-  position: relative;
-  display: flex;
-  min-width: 0;
-  min-height: 0;
-  height: 100%;
-  flex-direction: column;
-}
 .arrangement-mode > :first-child {
   min-height: 120px;
   flex: 1;
-}
-.lower-dock {
-  display: flex;
-  min-height: 0;
-  flex: none;
-  flex-direction: column;
-  overflow: hidden;
-}
-.mixer-dock {
-  min-height: 0;
-  flex: none;
-  flex: 1;
-}
-.dock-resizer {
-  position: relative;
-  z-index: var(--ui-z-local-controls);
-  flex: none;
-  height: 5px;
-  margin-top: -2px;
-  border-top: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line-soft);
-  background: var(--daw-resizer);
-  cursor: ns-resize;
 }
 .dock-resizer::after {
   content: "";

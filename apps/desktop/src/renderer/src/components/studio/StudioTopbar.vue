@@ -81,8 +81,13 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <header class="topbar">
-    <div class="control-group left-panel-group" data-topbar-group="left-panel">
+  <header
+    class="topbar col-span-full flex h-[56px] min-w-0 items-center justify-between gap-[clamp(4px,0.55vw,10px)] border-b border-solid px-[12px] py-[5px] [border-bottom-color:var(--line-strong)]"
+  >
+    <div
+      class="control-group left-panel-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"
+      data-topbar-group="left-panel"
+    >
       <StudioControlButton
         :label="t('studio.topbar.inspector')"
         :pressed="inspectorOpen"
@@ -99,7 +104,7 @@ const { t } = useI18n()
     </div>
 
     <div
-      class="control-group bottom-panel-group"
+      class="control-group bottom-panel-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"
       data-topbar-group="bottom-panel"
       data-tutorial="studio-lower-editors"
     >
@@ -126,7 +131,7 @@ const { t } = useI18n()
     </div>
 
     <div
-      class="control-group transport-group"
+      class="control-group transport-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"
       data-topbar-group="transport"
       data-tutorial="studio-transport"
     >
@@ -158,7 +163,10 @@ const { t } = useI18n()
       @update-key="emit('updateKey', $event)"
     />
 
-    <div class="control-group tools-group" data-topbar-group="tools">
+    <div
+      class="control-group tools-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"
+      data-topbar-group="tools"
+    >
       <StudioControlButton
         :label="t('studio.topbar.lowLatencyMode')"
         :tooltip="lowLatencyModeTooltip"
@@ -180,7 +188,10 @@ const { t } = useI18n()
       </StudioControlButton>
     </div>
 
-    <div class="control-group metronome-group" data-topbar-group="metronome">
+    <div
+      class="control-group metronome-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"
+      data-topbar-group="metronome"
+    >
       <StudioControlButton
         :label="t('studio.topbar.countIn')"
         :pressed="countInEnabled"
@@ -210,7 +221,7 @@ const { t } = useI18n()
     />
 
     <div
-      class="control-group right-panel-group"
+      class="control-group right-panel-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"
       data-topbar-group="right-panel"
       data-tutorial="studio-right-panels"
     >
@@ -242,28 +253,13 @@ const { t } = useI18n()
 
 <style scoped>
 .topbar {
-  grid-column: 1/-1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-width: 0;
-  height: 56px;
-  gap: clamp(4px, 0.55vw, 10px);
-  padding: 5px 12px;
-  border-bottom: 1px solid var(--line-strong);
   background: color-mix(in srgb, var(--surface-1) 96%, transparent);
   box-shadow:
     0 1px 0 var(--ui-domain-color-ffffff05) inset,
     0 8px 22px var(--shadow);
 }
 .control-group {
-  display: flex;
-  align-items: center;
-  flex: none;
-  gap: 1px;
-  padding: 2px;
   border: 1px solid color-mix(in srgb, var(--line-strong) 72%, transparent);
-  border-radius: 8px;
   background: color-mix(in srgb, var(--daw-control) 78%, transparent);
   box-shadow: 0 1px 0 var(--ui-domain-color-ffffff05) inset;
 }

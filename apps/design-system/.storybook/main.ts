@@ -5,6 +5,7 @@ import type { StorybookConfig } from "@storybook/vue3-vite"
 import { heronFontsOptions } from "@heron/ui/fonts"
 import vue from "@vitejs/plugin-vue"
 import Unfonts from "unplugin-fonts/vite"
+import UnoCSS from "unocss/vite"
 
 const configDirectory = dirname(fileURLToPath(import.meta.url))
 const workspaceRoot = resolve(configDirectory, "../../..")
@@ -44,7 +45,12 @@ const config: StorybookConfig = {
 
     return {
       ...viteConfig,
-      plugins: [vue(), Unfonts(heronFontsOptions), ...plugins],
+      plugins: [
+        UnoCSS({ configFile: resolve(workspaceRoot, "uno.config.ts") }),
+        vue(),
+        Unfonts(heronFontsOptions),
+        ...plugins
+      ],
       resolve: {
         ...viteConfig.resolve,
         alias: [

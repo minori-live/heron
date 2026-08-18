@@ -7,5 +7,11 @@
     "moduleResolution": "NodeNext",
     "types": ["node"]
   },
-  "include": ["eslint.config.ts", "oxfmt.config.ts", "oxlint.config.ts", "scripts/**/*.ts"]
+  "include": [
+    "eslint.config.ts",
+    "oxfmt.config.ts",
+    "oxlint.config.ts",
+    "uno.config.ts",
+    "scripts/**/*.ts"
+  ]
 }

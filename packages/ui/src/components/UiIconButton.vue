@@ -22,12 +22,18 @@ const props = withDefaults(
     pressed: undefined
   }
 )
+
+const sizeClasses = {
+  sm: "min-w-[var(--ui-control-sm)] w-[var(--ui-control-sm)] p-0",
+  md: "min-w-[var(--ui-control-md)] w-[var(--ui-control-md)] p-0",
+  lg: "min-w-[var(--ui-control-lg)] w-[var(--ui-control-lg)] p-0"
+} as const
 </script>
 
 <template>
   <UiTooltip :text="props.tooltip ?? props.label">
     <UiButton
-      class="ui-icon-button"
+      :class="sizeClasses[props.size]"
       :variant="props.variant"
       :size="props.size"
       :loading="props.loading"
@@ -39,21 +45,3 @@ const props = withDefaults(
     </UiButton>
   </UiTooltip>
 </template>
-
-<style scoped>
-.ui-icon-button {
-  width: var(--ui-control-md);
-  min-width: var(--ui-control-md);
-  padding: 0;
-}
-
-.ui-icon-button.ui-button--sm {
-  width: var(--ui-control-sm);
-  min-width: var(--ui-control-sm);
-}
-
-.ui-icon-button.ui-button--lg {
-  width: var(--ui-control-lg);
-  min-width: var(--ui-control-lg);
-}
-</style>

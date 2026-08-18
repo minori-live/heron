@@ -5,6 +5,7 @@ import { createPinia } from "pinia"
 import SplashApp from "./SplashApp.vue"
 import "unfonts.css"
 import "@heron/ui/styles.css"
+import "../uno"
 
 const app = createApp(SplashApp as DefineComponent)
 app.use(createPinia())

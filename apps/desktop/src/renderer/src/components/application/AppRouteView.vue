@@ -3,10 +3,14 @@ import { RouterView } from "vue-router"
 </script>
 
 <template>
-  <div class="app-route-host">
+  <div class="relative isolate h-full w-full overflow-hidden">
     <RouterView v-slot="{ Component, route }">
       <Transition name="app-route">
-        <div :key="route.fullPath" class="app-route-view">
+        <div
+          :key="route.fullPath"
+          class="ui-fill-available absolute inset-0 overflow-hidden"
+          data-testid="app-route-view"
+        >
           <component :is="Component" />
         </div>
       </Transition>
@@ -15,22 +19,6 @@ import { RouterView } from "vue-router"
 </template>
 
 <style scoped>
-.app-route-host {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.app-route-view {
-  position: absolute;
-  inset: 0;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-
 .app-route-enter-active {
   z-index: var(--ui-z-local-content);
   transition:

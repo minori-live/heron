@@ -52,6 +52,7 @@ const {
     <PianoRollKeyboard />
     <div
       class="grid"
+      data-testid="piano-roll-note-grid"
       :style="{
         width: `${gridWidth}px`,
         height: `${pianoRollStore.rowHeight * 128}px`,
