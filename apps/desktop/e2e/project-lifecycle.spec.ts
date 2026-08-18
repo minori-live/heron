@@ -211,6 +211,27 @@ test("records into a Large Object and reopens the PGlite project archive", async
       await mixerDockToggle.click()
     }
     const visibleMixer = page.locator(".mixer-console:visible")
+    async function expectMixerChannelCounts(counts: {
+      audio: number
+      instrument: number
+      aux: number
+      output: number
+    }): Promise<void> {
+      await Promise.all([
+        expect(visibleMixer.getByRole("article", { name: / audio channel$/ })).toHaveCount(
+          counts.audio
+        ),
+        expect(visibleMixer.getByRole("article", { name: / instrument channel$/ })).toHaveCount(
+          counts.instrument
+        ),
+        expect(visibleMixer.getByRole("article", { name: / aux channel$/ })).toHaveCount(
+          counts.aux
+        ),
+        expect(visibleMixer.getByRole("article", { name: / output channel$/ })).toHaveCount(
+          counts.output
+        )
+      ])
+    }
     const metronomeStrip = visibleMixer.getByRole("article", {
       name: "Metronome instrument channel"
     })
@@ -253,7 +274,7 @@ test("records into a Large Object and reopens the PGlite project archive", async
 
     await page.getByRole("button", { name: "Add audio track" }).click()
     await page.getByRole("button", { name: "Add aux channel" }).click()
-    await expect(visibleMixer.getByText("2 audio · 0 instrument · 1 aux · 1 outputs")).toBeVisible()
+    await expectMixerChannelCounts({ audio: 2, instrument: 0, aux: 1, output: 1 })
     const audioOneVolume = visibleMixer.getByRole("slider", { name: "Audio 1 volume", exact: true })
     const volumeBounds = await audioOneVolume.boundingBox()
     expect(volumeBounds).not.toBeNull()
@@ -266,9 +287,9 @@ test("records into a Large Object and reopens the PGlite project archive", async
       "none"
     )
     await page.getByRole("button", { name: "Undo mixer change" }).click()
-    await expect(visibleMixer.getByText("2 audio · 0 instrument · 0 aux · 1 outputs")).toBeVisible()
+    await expectMixerChannelCounts({ audio: 2, instrument: 0, aux: 0, output: 1 })
     await page.getByRole("button", { name: "Redo mixer change" }).click()
-    await expect(visibleMixer.getByText("2 audio · 0 instrument · 1 aux · 1 outputs")).toBeVisible()
+    await expectMixerChannelCounts({ audio: 2, instrument: 0, aux: 1, output: 1 })
     await visibleMixer.getByRole("button", { name: "Audio 2 input channel" }).click()
     await page.getByRole("menuitem", { name: "Buses" }).hover()
     await page.getByRole("menuitemradio", { name: "BUS 1–2" }).click()
@@ -572,9 +593,9 @@ test("records into a Large Object and reopens the PGlite project archive", async
     await page.getByRole("button", { name: "Lifecycle" }).click()
     await expect(page.locator(".studio-shell")).toBeVisible({ timeout: 20_000 })
     await page.getByRole("button", { name: "Add instrument track" }).click()
-    await expect(visibleMixer.getByText("2 audio · 1 instrument · 1 aux · 1 outputs")).toBeVisible()
+    await expectMixerChannelCounts({ audio: 2, instrument: 1, aux: 1, output: 1 })
     await page.getByRole("button", { name: "Undo mixer change" }).click()
-    await expect(visibleMixer.getByText("2 audio · 0 instrument · 1 aux · 1 outputs")).toBeVisible()
+    await expectMixerChannelCounts({ audio: 2, instrument: 0, aux: 1, output: 1 })
     await navigateTo("/settings/project")
     await expect(page.getByLabel("Sample rate")).toHaveValue("44100")
     await expect(page.getByLabel("Waveform channels")).toHaveValue("aggregate")

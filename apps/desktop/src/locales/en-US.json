@@ -1043,7 +1043,6 @@
     "console": {
       "ariaLabel": "Mixer console",
       "title": "MIXER",
-      "summary": "{audio} audio · {instrument} instrument · {aux} aux · {outputs} outputs",
       "actions": {
         "ariaLabel": "Mixer actions",
         "addAudio": "Add audio track",

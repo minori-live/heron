@@ -119,17 +119,7 @@ async function deleteChannel(channelId: string): Promise<void> {
     <header
       class="mixer-toolbar flex items-center justify-between gap-ui-4 border-b border-b-solid bg-[var(--surface-1)] py-0 pe-[11px] ps-[14px] [border-bottom-color:var(--line-strong)]"
     >
-      <div>
-        <span>{{ t("mixer.console.title") }}</span>
-        <strong>{{
-          t("mixer.console.summary", {
-            audio: mixerStore.audioTracks.length,
-            instrument: mixerStore.instrumentTracks.length,
-            aux: mixerStore.auxChannels.length,
-            outputs: mixerStore.outputs.length
-          })
-        }}</strong>
-      </div>
+      <span>{{ t("mixer.console.title") }}</span>
       <nav :aria-label="t('mixer.console.actions.ariaLabel')">
         <button
           :aria-label="t('mixer.console.actions.addAudio')"
@@ -213,20 +203,10 @@ async function deleteChannel(channelId: string): Promise<void> {
 </template>
 
 <style scoped>
-.mixer-toolbar > div span,
-.mixer-toolbar > div strong {
-  display: block;
-}
-.mixer-toolbar > div span {
+.mixer-toolbar > span {
   color: var(--accent);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-widest);
-}
-.mixer-toolbar > div strong {
-  margin-top: 3px;
-  color: var(--text-muted);
-  font-size: var(--ui-type-size-body-compact);
-  font-weight: var(--ui-type-weight-semibold);
 }
 .mixer-toolbar nav {
   display: flex;
