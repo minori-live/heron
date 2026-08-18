@@ -88,4 +88,13 @@ test("author-styled controls use flat solid borders without native bevels", asyn
     "border-top-style",
     "solid"
   )
+
+  await page.goto(
+    "/iframe.html?id=components-overlays-dialog--scrollable-content&viewMode=story&globals=theme:dark;motion:disabled"
+  )
+  const dialogHeader = page.getByRole("dialog", { name: "Benchmark results" }).locator("header")
+  await expect(dialogHeader).toHaveCSS("border-bottom-width", "1px")
+  await expect(dialogHeader).toHaveCSS("border-top-width", "0px")
+  await expect(dialogHeader).toHaveCSS("border-left-width", "0px")
+  await expect(dialogHeader).toHaveCSS("border-right-width", "0px")
 })

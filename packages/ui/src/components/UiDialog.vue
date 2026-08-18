@@ -65,7 +65,7 @@ const sizeClasses = {
         @interact-outside="props.dismissible ? undefined : $event.preventDefault()"
       >
         <header
-          class="ui-dialog__header flex min-w-0 items-start justify-between gap-ui-4 border-b border-solid border-ui-border px-ui-6 py-ui-5"
+          class="ui-dialog__header flex min-w-0 items-start justify-between gap-ui-4 border-b border-b-solid border-ui-border px-ui-6 py-ui-5"
         >
           <slot name="header">
             <div class="grid min-w-0 gap-ui-2">
@@ -108,7 +108,7 @@ const sizeClasses = {
         </div>
         <footer
           v-if="$slots.actions"
-          class="ui-dialog__actions flex flex-wrap justify-end gap-ui-3 border-t border-solid border-ui-border px-ui-6 py-ui-4"
+          class="ui-dialog__actions flex flex-wrap justify-end gap-ui-3 border-t border-t-solid border-ui-border px-ui-6 py-ui-4"
         >
           <slot name="actions" />
         </footer>

@@ -12,7 +12,7 @@ defineSlots<{
 
 <template>
   <section
-    class="settings-section grid grid-cols-[minmax(170px,230px)_minmax(0,1fr)] gap-[48px] border-b border-solid py-[25px] [border-bottom-color:var(--line-soft)]"
+    class="settings-section grid grid-cols-[minmax(170px,230px)_minmax(0,1fr)] gap-[48px] border-b border-b-solid py-[25px] [border-bottom-color:var(--line-soft)]"
   >
     <header class="settings-section-copy">
       <span v-if="eyebrow">{{ eyebrow }}</span>

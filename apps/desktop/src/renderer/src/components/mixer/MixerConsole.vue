@@ -117,7 +117,7 @@ async function deleteChannel(channelId: string): Promise<void> {
     :aria-label="t('mixer.console.ariaLabel')"
   >
     <header
-      class="mixer-toolbar flex items-center justify-between gap-ui-4 border-b border-solid bg-[var(--surface-1)] py-0 pe-[11px] ps-[14px] [border-bottom-color:var(--line-strong)]"
+      class="mixer-toolbar flex items-center justify-between gap-ui-4 border-b border-b-solid bg-[var(--surface-1)] py-0 pe-[11px] ps-[14px] [border-bottom-color:var(--line-strong)]"
     >
       <div>
         <span>{{ t("mixer.console.title") }}</span>

@@ -17,7 +17,7 @@ const densityClasses = {
 
 <template>
   <div
-    class="flex min-w-0 items-center gap-ui-2 border-b border-solid border-ui-border bg-ui-surface text-ui-text"
+    class="flex min-w-0 items-center gap-ui-2 border-b border-b-solid border-ui-border bg-ui-surface text-ui-text"
     :class="densityClasses[props.density]"
     :data-density="props.density"
     role="toolbar"

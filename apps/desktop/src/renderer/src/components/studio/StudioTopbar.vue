@@ -82,7 +82,7 @@ const { t } = useI18n()
 
 <template>
   <header
-    class="topbar col-span-full flex h-[56px] min-w-0 items-center justify-between gap-[clamp(4px,0.55vw,10px)] border-b border-solid px-[12px] py-[5px] [border-bottom-color:var(--line-strong)]"
+    class="topbar col-span-full flex h-[56px] min-w-0 items-center justify-between gap-[clamp(4px,0.55vw,10px)] border-b border-b-solid px-[12px] py-[5px] [border-bottom-color:var(--line-strong)]"
   >
     <div
       class="control-group left-panel-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"

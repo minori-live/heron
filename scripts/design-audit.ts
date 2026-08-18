@@ -60,8 +60,7 @@ const numericZIndexUtility = /\bz-\[?-?\d+\]?\b/g
 const dynamicUtilityInterpolation =
   /(?:^|[\s"'`])(?:bg|text|border|outline|ring|fill|stroke|p[trblxy]?|m[trblxy]?|gap|grid|flex|w|h|min-w|min-h|max-w|max-h|rounded|shadow|z)-[^\s`"']*\$\{/gm
 const semanticUtility = /\b(?:bg|text|border|outline|ring|fill|stroke)-ui-([\w-]+)\b/g
-const borderWidthUtility = /(?:^|\s)(border(?:-[trblxy])?(?:-(?:0|1|2|4|8))?)(?=\s|$)/
-const borderStyleUtility = /(?:^|\s)border-(?:solid|dashed|dotted|double|none|hidden)(?=\s|$)/
+const borderWidthUtility = /(?:^|\s)(border(?:-([trblxy]))?(?:-(?:0|1|2|4|8))?)(?=\s|$)/g
 const singleLineString = /(["'`])([^"'`\r\n]*)\1/g
 
 function auditTypography(file: string, source: string, isTokenSource = false): void {
@@ -123,9 +122,21 @@ function auditUtilities(file: string, source: string): void {
   if (extname(file) === ".vue") {
     for (const match of source.matchAll(singleLineString)) {
       const utilities = match[2] ?? ""
-      const borderWidth = utilities.match(borderWidthUtility)?.[1]
-      if (borderWidth !== undefined && !borderStyleUtility.test(utilities)) {
-        report(file, "border-style-utility", `${borderWidth} requires an explicit border style`)
+      for (const borderMatch of utilities.matchAll(borderWidthUtility)) {
+        const borderWidth = borderMatch[1]
+        if (borderWidth === undefined || borderWidth.endsWith("-0")) continue
+        const direction = borderMatch[2]
+        const stylePrefix = direction === undefined ? "border" : `border-${direction}`
+        const borderStyle = new RegExp(
+          `(?:^|\\s)${stylePrefix}-(?:solid|dashed|dotted|double|none|hidden)(?=\\s|$)`
+        )
+        if (!borderStyle.test(utilities)) {
+          report(
+            file,
+            "border-style-utility",
+            `${borderWidth} requires an explicit ${stylePrefix} style`
+          )
+        }
       }
     }
   }

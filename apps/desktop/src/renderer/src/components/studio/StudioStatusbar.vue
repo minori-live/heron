@@ -20,7 +20,7 @@ function formatLatency(value: number | null): string {
 
 <template>
   <footer
-    class="statusbar col-span-full flex min-w-0 items-center gap-ui-4 border-t border-solid bg-[var(--daw-statusbar)] py-0 pe-[6px] ps-[13px] text-[var(--text-muted)] [border-top-color:var(--line-strong)]"
+    class="statusbar col-span-full flex min-w-0 items-center gap-ui-4 border-t border-t-solid bg-[var(--daw-statusbar)] py-0 pe-[6px] ps-[13px] text-[var(--text-muted)] [border-top-color:var(--line-strong)]"
   >
     <span class="engine-state"
       ><i :class="{ active: runtime.state === 'running' }" />{{

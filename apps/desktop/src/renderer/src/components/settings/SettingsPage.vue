@@ -25,7 +25,7 @@ defineSlots<{
       <p>{{ description }}</p>
     </header>
     <div
-      class="settings-page-body mt-[25px] max-w-[900px] border-t border-solid [border-top-color:var(--line-soft)]"
+      class="settings-page-body mt-[25px] max-w-[900px] border-t border-t-solid [border-top-color:var(--line-soft)]"
     >
       <slot />
     </div>

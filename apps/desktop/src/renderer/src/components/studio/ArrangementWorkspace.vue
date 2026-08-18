@@ -440,7 +440,7 @@ function handleArrangementDrop(event: DragEvent): void {
     :aria-label="t('studio.arrangement.ariaLabel')"
   >
     <div
-      class="arrangement-toolbar flex items-center justify-end border-b border-solid bg-[var(--surface-1)] py-0 pe-[14px] ps-[15px] [border-bottom-color:var(--line-soft)]"
+      class="arrangement-toolbar flex items-center justify-end border-b border-b-solid bg-[var(--surface-1)] py-0 pe-[14px] ps-[15px] [border-bottom-color:var(--line-soft)]"
     >
       <GlobalTracksToggle :expanded="globalTracksExpanded" @toggle="viewStore.toggleGlobalTracks" />
       <ArrangementZoomControls
@@ -471,7 +471,7 @@ function handleArrangementDrop(event: DragEvent): void {
         >
           <div
             ref="rail"
-            class="timeline-rail sticky left-0 z-[var(--ui-z-local-sticky)] grid min-h-0 border-r border-solid bg-[var(--daw-track-header)] [border-right-color:var(--line-soft)]"
+            class="timeline-rail sticky left-0 z-[var(--ui-z-local-sticky)] grid min-h-0 border-r border-r-solid bg-[var(--daw-track-header)] [border-right-color:var(--line-soft)]"
             data-testid="timeline-rail"
             :style="railStyle"
           >

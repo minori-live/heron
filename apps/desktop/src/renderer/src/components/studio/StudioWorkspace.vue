@@ -55,7 +55,7 @@ useEventListener(window, "pointerup", stopResize)
       />
       <div
         v-if="workspaceStore.lowerDockOpen"
-        class="dock-resizer relative z-[var(--ui-z-local-controls)] mt-[-2px] h-[5px] flex-none cursor-ns-resize border-b border-t border-solid bg-[var(--daw-resizer)] [border-bottom-color:var(--line-soft)] [border-top-color:var(--line-strong)]"
+        class="dock-resizer relative z-[var(--ui-z-local-controls)] mt-[-2px] h-[5px] flex-none cursor-ns-resize border-b border-b-solid border-t border-t-solid bg-[var(--daw-resizer)] [border-bottom-color:var(--line-soft)] [border-top-color:var(--line-strong)]"
         :class="{ active: resizing }"
         role="separator"
         :aria-label="t('studio.arrangement.resizeMixerDockAria')"

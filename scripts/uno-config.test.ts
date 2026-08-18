@@ -11,16 +11,20 @@ void test("the Heron UnoCSS config emits token-backed static utilities", async (
     hover:bg-ui-action-hover
     text-ui-text
     border-ui-border
+    border-b
+    border-b-solid
     gap-ui-3
     rounded-ui-md
     z-[var(--ui-z-dialog)]
   `)
 
-  assert.equal(matched.size, 7)
+  assert.equal(matched.size, 9)
   assert.match(css, /background-color:var\(--ui-color-action\)/)
   assert.match(css, /background-color:var\(--ui-color-action-hover\)/)
   assert.match(css, /color:var\(--ui-color-text\)/)
   assert.match(css, /border-color:var\(--ui-color-border\)/)
+  assert.match(css, /border-bottom-width:1px/)
+  assert.match(css, /border-bottom-style:solid/)
   assert.match(css, /gap:var\(--ui-space-3\)/)
   assert.match(css, /border-radius:var\(--ui-radius-md\)/)
   assert.match(css, /z-index:var\(--ui-z-dialog\)/)
