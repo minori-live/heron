@@ -54,6 +54,13 @@ runtime ownership, not by arbitrary categories such as `types`, `helpers`, or
   code MUST NOT consume Drizzle rows or create a database proxy.
 - `@heron/ui` owns visual behavior and accessibility. It MUST NOT own routing,
   stores, preload calls, product persistence, or DAW workflow policy.
+- Desktop MUST compose visible interaction from public `@heron/ui` components. Native controls,
+  DOM gesture event types, pointer capture, `DataTransfer`, third-party visual-library imports, and
+  local hover/focus/active/drag state CSS are rejected by `lint:ui-boundary`.
+- Every public `@heron/ui` Vue export MUST have exactly one machine-readable Storybook catalog
+  entry. Interactive entries MUST provide a `play` test and the catalogued applicable states.
+- Global application commands, shortcut capture, and lifecycle listeners are the only Desktop DOM
+  listener exception and MUST stay in the named controller modules audited by the boundary policy.
 
 ### Electron main and preload
 

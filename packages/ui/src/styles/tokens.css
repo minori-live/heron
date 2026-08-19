@@ -27,6 +27,7 @@
   --ui-color-canvas: var(--ui-palette-neutral-950);
   --ui-color-canvas-subtle: var(--ui-palette-neutral-900);
   --ui-color-surface: var(--ui-palette-neutral-850);
+  --ui-color-surface-sunken: var(--ui-color-canvas-subtle);
   --ui-color-surface-raised: var(--ui-palette-neutral-800);
   --ui-color-surface-hover: var(--ui-palette-neutral-700);
   --ui-color-surface-active: var(--ui-palette-neutral-600);
@@ -34,6 +35,10 @@
   --ui-color-text: var(--ui-palette-neutral-50);
   --ui-color-text-muted: var(--ui-palette-neutral-300);
   --ui-color-text-subtle: var(--ui-palette-neutral-400);
+  --ui-clip-color: var(--ui-color-action);
+  --ui-lane-color: var(--ui-color-action);
+  --ui-velocity-color: var(--ui-signal-midi);
+  --ui-signal-automation: var(--ui-color-action);
   --ui-color-text-inverse: var(--ui-palette-neutral-950);
   --ui-color-border: var(--ui-palette-neutral-700);
   --ui-color-border-strong: var(--ui-palette-neutral-600);
@@ -99,6 +104,7 @@
   --ui-space-12: 3rem;
   --ui-space-16: 4rem;
 
+  --ui-radius-xs: 1px;
   --ui-radius-sm: 0.25rem;
   --ui-radius-md: 0.5rem;
   --ui-radius-lg: 0.75rem;
@@ -172,6 +178,7 @@
   --ui-shadow-sm: 0 1px 2px rgb(0 0 0 / 28%);
   --ui-shadow-md: 0 8px 24px rgb(0 0 0 / 34%);
   --ui-shadow-lg: 0 18px 56px rgb(0 0 0 / 46%);
+  --ui-shadow-glow: 0 0 8px color-mix(in srgb, var(--ui-color-action) 42%, transparent);
   --ui-shadow-selected-edge: 2px 0 0 var(--accent) inset;
   --ui-shadow-selected-outline: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent) inset;
   --ui-shadow-highlight-inset: 0 1px 0 color-mix(in srgb, var(--ui-color-text) 14%, transparent)
@@ -184,12 +191,12 @@
   --ui-motion-normal: 180ms;
   --ui-ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
-  --ui-z-dropdown: 40;
   --ui-z-popover: 50;
-  --ui-z-tooltip: 60;
   --ui-z-overlay: 80;
   --ui-z-dialog: 90;
   --ui-z-toast: 100;
+  --ui-z-dropdown: 110;
+  --ui-z-tooltip: 120;
   --ui-z-local-base: 0;
   --ui-z-local-content: 1;
   --ui-z-local-raised: 2;

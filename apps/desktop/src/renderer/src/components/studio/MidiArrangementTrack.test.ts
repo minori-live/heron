@@ -99,7 +99,7 @@ describe("MidiArrangementTrack", () => {
       }
     })
 
-    expect(wrapper.get(".midi-clip").classes()).toContain("dragging")
+    expect(wrapper.get(".midi-clip").classes()).toContain("ui-timeline-clip--dragging")
     expect(
       wrapper.get<HTMLElement>('[data-testid="midi-clip-drop-preview"]').element.style.left
     ).toBe("240px")

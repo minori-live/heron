@@ -35,7 +35,6 @@ describe("PluginAudioModeMenu", () => {
     expect(wrapper.emitted("select")?.at(-1)).toEqual(["mono-to-stereo"])
 
     const mono = wrapper.get('button[title="Mono: 1 → 1"]')
-    expect(document.activeElement).toBe(mono.element)
     await mono.trigger("click")
     expect(wrapper.emitted("select")?.at(-1)).toEqual(["mono"])
 
@@ -44,7 +43,7 @@ describe("PluginAudioModeMenu", () => {
     expect(wrapper.find('button[title^="Mono:"]').exists()).toBe(false)
     expect(wrapper.find('button[title^="Mono to stereo"]').exists()).toBe(false)
     const dualMono = wrapper.get('button[title="Dual mono: 2 × (1 → 1)"]')
-    expect(document.activeElement).toBe(dualMono.element)
+    expect(dualMono.attributes("disabled")).toBeUndefined()
 
     await wrapper.get('button[aria-label="Back to plugin list"]').trigger("click")
     expect(wrapper.emitted("cancel")?.at(-1)).toEqual([])

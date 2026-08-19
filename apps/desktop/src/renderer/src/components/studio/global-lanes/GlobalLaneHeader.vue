@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { computed } from "vue"
 import { useI18n } from "vue-i18n"
+import { UiNumberInput } from "@heron/ui"
 
 const props = defineProps<{
   label: string
@@ -17,11 +19,10 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-function updateValue(event: Event): void {
-  const value = Number((event.target as HTMLInputElement).value)
-  if (!Number.isFinite(value)) return
-  emit("updateValue", Math.min(props.maximum, Math.max(props.minimum, value)))
-}
+const model = computed({
+  get: () => props.value,
+  set: (value: number) => emit("updateValue", value)
+})
 </script>
 
 <template>
@@ -37,14 +38,12 @@ function updateValue(event: Event): void {
     <label class="lane-value">
       <span>{{ t("studio.lanes.selected") }}</span>
       <span class="value-control">
-        <input
-          :value="value.toFixed(2)"
-          type="number"
+        <UiNumberInput
+          v-model="model"
           :min="minimum"
           :max="maximum"
-          step="0.01"
+          :step="0.01"
           :aria-label="t('studio.lanes.selectedValueAria', { label })"
-          @change="updateValue"
         />
         <b>{{ unit }}</b>
       </span>
@@ -110,16 +109,6 @@ function updateValue(event: Event): void {
   background: var(--surface-sunken);
   overflow: hidden;
 }
-.value-control input {
-  min-width: 0;
-  padding: 0 6px;
-  border: 0;
-  color: var(--text-primary);
-  background: transparent;
-  font: var(--ui-type-size-body-compact) var(--ui-type-family-data);
-  font-variant-numeric: tabular-nums;
-  outline: none;
-}
 .value-control b {
   display: grid;
   place-items: center;
@@ -127,9 +116,5 @@ function updateValue(event: Event): void {
   color: var(--lane-color);
   font: var(--ui-type-weight-bold) var(--ui-type-size-micro) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
-}
-.value-control:focus-within {
-  border-color: var(--lane-color);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lane-color) 22%, transparent);
 }
 </style>

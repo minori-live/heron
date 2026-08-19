@@ -2,7 +2,7 @@
 import { computed, shallowRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { storeToRefs } from "pinia"
-import { UiSelect } from "@heron/ui"
+import { UiArrangementViewport, UiNumberInput, UiSelect, type UiDropIntent } from "@heron/ui"
 import { useProjectStore } from "../../stores/project"
 import { useTransportStore } from "../../stores/transport"
 import { useArrangementViewStore } from "../../stores/arrangementView"
@@ -28,7 +28,7 @@ import {
   timelineXToSeconds,
   timelineXToTick
 } from "../../utils/timelineCoordinates"
-import { readProjectMediaDrag, PROJECT_MEDIA_DRAG_TYPE } from "../../utils/mediaDrag"
+import { parseProjectMediaDrag, PROJECT_MEDIA_DRAG_TYPE } from "../../utils/mediaDrag"
 import { snapTicks } from "../../utils/pianoRoll"
 import { useArrangementViewport } from "./useArrangementViewport"
 import { useArrangementClipDrag } from "./useArrangementClipDrag"
@@ -163,17 +163,22 @@ const {
   openPianoRoll: workspaceStore.openPianoRollDock,
   midiClipName: (index) => t("studio.arrangement.midiClipName", { index })
 })
-const { contentWidth, viewportStartSeconds, viewportEndSeconds, handleScroll, handleWheel } =
-  useArrangementViewport({
-    tempoMap: () => mixerStore.graph.tempoMap,
-    pixelsPerQuarter,
-    visibleDuration,
-    zoomTime: viewStore.zoomTime,
-    zoomTrack: viewStore.zoomTrack,
-    zoomAmplitude: viewStore.zoomAmplitude
-  })
 const {
-  content,
+  scrollLeft,
+  contentWidth,
+  viewportStartSeconds,
+  viewportEndSeconds,
+  handleViewport,
+  handleWheel
+} = useArrangementViewport({
+  tempoMap: () => mixerStore.graph.tempoMap,
+  pixelsPerQuarter,
+  visibleDuration,
+  zoomTime: viewStore.zoomTime,
+  zoomTrack: viewStore.zoomTrack,
+  zoomAmplitude: viewStore.zoomAmplitude
+})
+const {
   clipDrag,
   dragPreview,
   handleClipDragStart,
@@ -198,7 +203,6 @@ const {
   handleMidiClipDragEnd
 } = useMidiClipDrag({
   clips: midiClipList,
-  content,
   tempoMap: () => mixerStore.graph.tempoMap,
   pixelsPerQuarter,
   snap: pianoRollSnap,
@@ -261,30 +265,22 @@ function updateProjectEnd(endTick: number): void {
 function handleWaveformFrameCount(frameCount: number, sampleRate: number): void {
   if (sampleRate > 0) liveDurationSeconds.value = frameCount / sampleRate
 }
-function updateArrangementDrag(event: DragEvent): void {
+function updateArrangementDrag(event: UiDropIntent): void {
   updateClipDrag(event)
   updateMidiClipDrag(event)
-  if (
-    event.dataTransfer?.types.includes(PROJECT_MEDIA_DRAG_TYPE) ||
-    (event.dataTransfer?.files.length ?? 0) > 0
-  ) {
-    event.preventDefault()
-    event.dataTransfer!.dropEffect = "copy"
-  }
 }
 
-function dropPosition(event: DragEvent): {
+function dropPosition(event: UiDropIntent): {
   trackId: string | null
   trackKind: string | null
   startFrame: number
   startTick: number
 } {
-  const lane = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-track-id]")
-  const x = Math.max(0, event.clientX - (content.value?.getBoundingClientRect().left ?? 0))
+  const x = Math.max(0, event.point.x)
   const seconds = timelineXToSeconds(mixerStore.graph.tempoMap, x, pixelsPerQuarter.value)
   return {
-    trackId: lane?.dataset.trackId ?? null,
-    trackKind: lane?.dataset.trackKind ?? null,
+    trackId: event.targetId ?? null,
+    trackKind: event.targetKind ?? null,
     startFrame: Math.max(0, Math.round(seconds * mixerStore.graph.sampleRate)),
     startTick: snapTicks(
       timelineXToTick(mixerStore.graph.tempoMap, x, pixelsPerQuarter.value),
@@ -363,11 +359,9 @@ async function placeMidiAsset(
 }
 
 async function handleExternalMediaDrop(
-  event: DragEvent,
+  paths: readonly string[],
   position: ReturnType<typeof dropPosition>
 ): Promise<void> {
-  const files = Array.from(event.dataTransfer?.files ?? [])
-  const paths = projectStore.resolveDroppedFilePaths(files)
   const audioPaths = paths.filter((path) => /\.(?:wav|bwf|mp3|flac)$/i.test(path))
   const midiPath = paths.find((path) => /\.midi?$/i.test(path))
   if (audioPaths.length > 0) {
@@ -413,23 +407,32 @@ async function handleExternalMediaDrop(
   }
 }
 
-function handleArrangementDrop(event: DragEvent): void {
+function handleArrangementDrop(event: UiDropIntent): void {
   handleClipDrop(event)
   handleMidiClipDrop(event)
-  const payload = readProjectMediaDrag(event.dataTransfer)
+  const payload = parseProjectMediaDrag(
+    event.data.find((entry) => entry.mime === PROJECT_MEDIA_DRAG_TYPE)?.value ?? ""
+  )
   const position = dropPosition(event)
   if (payload) {
-    event.preventDefault()
     mediaDropError.value = ""
     if (payload.kind === "audio") void placeAudioAsset(payload.assetId, position)
     else void placeMidiAsset(payload.assetId, position)
     return
   }
-  if ((event.dataTransfer?.files.length ?? 0) > 0) {
-    event.preventDefault()
+  const paths = event.data
+    .filter((entry) => entry.mime === "application/x-heron-file-path")
+    .map((entry) => entry.value)
+  if (paths.length > 0) {
     mediaDropError.value = ""
-    void handleExternalMediaDrop(event, position)
+    void handleExternalMediaDrop(paths, position)
   }
+}
+
+function resolveDroppedFiles(files: readonly unknown[]): string[] {
+  return projectStore.resolveDroppedFilePaths(
+    files as Parameters<typeof projectStore.resolveDroppedFilePaths>[0]
+  )
 }
 </script>
 
@@ -458,12 +461,22 @@ function handleArrangementDrop(event: DragEvent): void {
     </div>
 
     <div class="timeline-grid min-h-0 min-w-0">
-      <div
-        ref="viewport"
+      <UiArrangementViewport
         class="timeline-viewport h-full w-full min-h-0 min-w-0 overflow-auto bg-[var(--daw-lane)]"
         data-testid="timeline-viewport"
-        @scroll="handleScroll"
+        :label="t('studio.arrangement.ariaLabel')"
+        :mime-types="[
+          PROJECT_MEDIA_DRAG_TYPE,
+          'application/x-heron-clip',
+          'application/x-heron-midi-clip'
+        ]"
+        accept-files
+        :resolve-files="resolveDroppedFiles"
+        :scroll-left="scrollLeft"
+        @viewport="handleViewport"
         @wheel="handleWheel"
+        @drag-move="updateArrangementDrag"
+        @drop="handleArrangementDrop"
       >
         <div
           class="timeline-scroll-content isolate grid min-h-full min-w-full w-max"
@@ -472,6 +485,7 @@ function handleArrangementDrop(event: DragEvent): void {
           <div
             ref="rail"
             class="timeline-rail sticky left-0 z-[var(--ui-z-local-sticky)] grid min-h-0 border-r border-r-solid bg-[var(--daw-track-header)] [border-right-color:var(--line-soft)]"
+            data-ui-arrangement-rail
             data-testid="timeline-rail"
             :style="railStyle"
           >
@@ -493,18 +507,14 @@ function handleArrangementDrop(event: DragEvent): void {
                 color="var(--ui-domain-color-f2a65a)"
               >
                 <template #controls>
-                  <input
-                    :value="selectedMeter.numerator"
-                    type="number"
-                    min="1"
-                    max="32"
+                  <UiNumberInput
+                    :model-value="selectedMeter.numerator"
+                    :min="1"
+                    :max="32"
                     :aria-label="t('studio.arrangement.meterNumeratorAria')"
-                    @change="
+                    @update:model-value="
                       updateSelectedMeter({
-                        numerator: Math.min(
-                          32,
-                          Math.max(1, Number(($event.target as HTMLInputElement).value))
-                        )
+                        numerator: Math.min(32, Math.max(1, $event ?? selectedMeter.numerator))
                       })
                     "
                   />
@@ -559,11 +569,8 @@ function handleArrangementDrop(event: DragEvent): void {
             />
           </div>
           <div
-            ref="content"
             class="timeline-content relative z-[var(--ui-z-local-base)] grid min-h-full"
             :style="contentStyle"
-            @dragover="updateArrangementDrag"
-            @drop="handleArrangementDrop"
           >
             <TimelineRuler
               :content-width="contentWidth"
@@ -673,7 +680,7 @@ function handleArrangementDrop(event: DragEvent): void {
             <div class="empty-lane" aria-hidden="true" />
           </div>
         </div>
-      </div>
+      </UiArrangementViewport>
     </div>
     <p v-if="recordingError || error || mediaDropError" class="playback-error" role="alert">
       {{ recordingError || error || mediaDropError }}

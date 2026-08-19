@@ -3,12 +3,21 @@ import { computed, onBeforeUnmount, shallowRef, watch } from "vue"
 import { storeToRefs } from "pinia"
 import { FileAudio, FileMusic, Import, Play, Search, Square, X } from "@lucide/vue"
 import type { ProjectAssetSummary } from "@heron/contracts"
+import {
+  UiActionRow,
+  UiButton,
+  UiDraggableItem,
+  UiIconButton,
+  UiSegmentedControl,
+  UiTextInput,
+  type UiDragData
+} from "@heron/ui"
 import { useI18n } from "vue-i18n"
 import { useProjectStore } from "../../stores/project"
 import { useMidiImportStore } from "../../stores/midiImport"
 import { useMediaBrowserStore } from "../../stores/mediaBrowser"
 import { useStudioWorkspaceStore } from "../../stores/studioWorkspace"
-import { writeProjectMediaDrag } from "../../utils/mediaDrag"
+import { PROJECT_MEDIA_DRAG_TYPE } from "../../utils/mediaDrag"
 
 type AssetFilter = "all" | ProjectAssetSummary["kind"]
 
@@ -22,6 +31,12 @@ const { selectedAssetId, auditioningAssetId, auditionFailed } = storeToRefs(medi
 const query = shallowRef("")
 const filter = shallowRef<AssetFilter>("all")
 const busy = shallowRef(false)
+const filterOptions = computed(() =>
+  (["all", "audio", "midi"] as const).map((value) => ({
+    value,
+    label: t(`studio.mediaBrowser.filter.${value}`)
+  }))
+)
 
 const assets = computed(() => {
   const needle = query.value.trim().toLocaleLowerCase()
@@ -67,8 +82,13 @@ async function importMidi(): Promise<void> {
   }
 }
 
-function startDrag(event: DragEvent, asset: ProjectAssetSummary): void {
-  if (event.dataTransfer) writeProjectMediaDrag(event.dataTransfer, asset)
+function dragData(asset: ProjectAssetSummary): readonly UiDragData[] {
+  return [
+    {
+      mime: PROJECT_MEDIA_DRAG_TYPE,
+      value: JSON.stringify({ assetId: asset.id, kind: asset.kind })
+    }
+  ]
 }
 
 onBeforeUnmount(() => {
@@ -83,87 +103,83 @@ onBeforeUnmount(() => {
         <span>{{ t("studio.mediaBrowser.eyebrow") }}</span>
         <h2>{{ t("studio.mediaBrowser.title") }}</h2>
       </div>
-      <button
+      <UiIconButton
         class="icon-button"
-        type="button"
-        :aria-label="t('studio.mediaBrowser.close')"
+        :label="t('studio.mediaBrowser.close')"
+        size="sm"
         @click="workspaceStore.closeRightPanel"
       >
         <X :size="15" />
-      </button>
+      </UiIconButton>
     </header>
 
     <div class="import-row">
-      <button type="button" :disabled="busy" @click="importAudio">
+      <UiButton size="sm" :disabled="busy" @click="importAudio">
         <Import :size="14" />
         {{ t("studio.mediaBrowser.importAudio") }}
-      </button>
-      <button type="button" :disabled="busy" @click="importMidi">
+      </UiButton>
+      <UiButton size="sm" :disabled="busy" @click="importMidi">
         <FileMusic :size="14" />
         {{ t("studio.mediaBrowser.importMidi") }}
-      </button>
+      </UiButton>
     </div>
 
     <label class="search-field">
       <Search :size="12" aria-hidden="true" />
-      <input
+      <UiTextInput
         v-model="query"
+        size="sm"
         type="search"
         :aria-label="t('studio.mediaBrowser.search')"
         :placeholder="t('studio.mediaBrowser.search')"
       />
     </label>
 
-    <div class="filter-row" role="group" :aria-label="t('studio.mediaBrowser.filterAria')">
-      <button
-        v-for="value in ['all', 'audio', 'midi'] as const"
-        :key="value"
-        type="button"
-        :class="{ active: filter === value }"
-        @click="filter = value"
-      >
-        {{ t(`studio.mediaBrowser.filter.${value}`) }}
-      </button>
-    </div>
+    <UiSegmentedControl
+      v-model="filter"
+      class="filter-row"
+      :label="t('studio.mediaBrowser.filterAria')"
+      :options="filterOptions"
+      size="compact"
+    />
 
-    <div class="asset-list" role="listbox" :aria-label="t('studio.mediaBrowser.assets')">
-      <div
+    <div class="asset-list" :aria-label="t('studio.mediaBrowser.assets')">
+      <UiDraggableItem
         v-for="asset in assets"
         :key="asset.id"
-        class="asset-row"
-        :class="{ selected: selectedAssetId === asset.id }"
-        role="option"
-        tabindex="0"
-        :aria-selected="selectedAssetId === asset.id"
-        draggable="true"
-        @click="mediaBrowserStore.select(asset.id)"
-        @focus="mediaBrowserStore.select(asset.id)"
-        @keydown.enter="mediaBrowserStore.select(asset.id)"
-        @dragstart="startDrag($event, asset)"
+        class="asset-drag"
+        :data="dragData(asset)"
+        effect-allowed="copy"
       >
-        <span class="kind-mark" :data-kind="asset.kind">
-          <FileAudio v-if="asset.kind === 'audio'" :size="14" />
-          <FileMusic v-else :size="14" />
-        </span>
-        <span class="asset-copy">
-          <strong>{{ asset.name }}</strong>
-          <small>{{ detail(asset) }}</small>
-        </span>
-        <button
-          v-if="asset.kind === 'audio'"
-          class="audition-button"
-          type="button"
-          :aria-label="
-            auditioningAssetId === asset.id
-              ? t('studio.mediaBrowser.stopAudition', { name: asset.name })
-              : t('studio.mediaBrowser.startAudition', { name: asset.name })
-          "
-          @click.stop="mediaBrowserStore.toggleAudition(asset)"
-        >
-          <Square v-if="auditioningAssetId === asset.id" :size="11" fill="currentColor" />
-          <Play v-else :size="12" fill="currentColor" />
-        </button>
-      </div>
+        <div class="asset-row" :class="{ selected: selectedAssetId === asset.id }">
+          <UiActionRow
+            :label="asset.name"
+            :description="detail(asset)"
+            :selected="selectedAssetId === asset.id"
+            @activate="mediaBrowserStore.select(asset.id)"
+          >
+            <template #leading
+              ><span class="kind-mark" :data-kind="asset.kind">
+                <FileAudio v-if="asset.kind === 'audio'" :size="14" />
+                <FileMusic v-else :size="14" /> </span
+            ></template>
+          </UiActionRow>
+          <UiIconButton
+            v-if="asset.kind === 'audio'"
+            class="audition-button"
+            size="sm"
+            :label="
+              auditioningAssetId === asset.id
+                ? t('studio.mediaBrowser.stopAudition', { name: asset.name })
+                : t('studio.mediaBrowser.startAudition', { name: asset.name })
+            "
+            @click="mediaBrowserStore.toggleAudition(asset)"
+          >
+            <Square v-if="auditioningAssetId === asset.id" :size="11" fill="currentColor" />
+            <Play v-else :size="12" fill="currentColor" />
+          </UiIconButton>
+        </div>
+      </UiDraggableItem>
       <div v-if="assets.length === 0" class="empty-state">
         <strong>{{ t("studio.mediaBrowser.emptyTitle") }}</strong>
         <span>{{ t("studio.mediaBrowser.emptyDetail") }}</span>
@@ -244,9 +260,6 @@ onBeforeUnmount(() => {
   color: var(--text-faint);
   background: var(--daw-control);
 }
-.search-field:focus-within {
-  border-color: var(--focus);
-}
 .search-field input {
   min-width: 0;
   width: 100%;
@@ -313,14 +326,6 @@ onBeforeUnmount(() => {
   color: var(--text-secondary);
   background: transparent;
 }
-.asset-row:hover .audition-button,
-.asset-row.selected .audition-button {
-  border-color: var(--line-strong);
-  background: var(--daw-control);
-}
-.asset-row:hover {
-  background: var(--surface-hover);
-}
 .asset-row.selected {
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
@@ -383,10 +388,6 @@ onBeforeUnmount(() => {
   color: var(--danger);
   font-size: var(--ui-type-size-caption);
   background: color-mix(in srgb, var(--danger) 8%, var(--surface-1));
-}
-button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
 }
 button:disabled {
   opacity: 0.55;

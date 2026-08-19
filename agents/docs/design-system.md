@@ -55,8 +55,8 @@ with a text, shape, or programmatic state, so color is never the only carrier.
 6. **One interaction, one primitive.** Actions, modes, navigation, selection, and numeric values
    are different behaviors and must not share an improvised button style.
 7. **The canvas is exceptional, its chrome is not.** Notes, clips, waveforms, faders, rulers, and
-   meters may use domain geometry. Their toolbars, fields, menus, status, and selection controls
-   still use `@heron/ui`.
+   meters may use domain geometry, but their focus, keyboard, pointer, drag/drop, resize, and visible
+   interaction states still belong to Storybook components in `@heron/ui`.
 
 ## Package boundary
 
@@ -67,6 +67,11 @@ to prevent multiple runtimes.
 Renderer code imports Reka behavior only through `@heron/ui`. A controller host reads stores and
 passes serializable props to a presenter. A presenter emits intent; it does not call the preload
 API. Storybook product examples render from plain fixtures.
+
+Public UI emits never expose DOM events/elements or third-party objects. Gesture components emit
+`UiGestureIntent` phases and normalized coordinates; drag/drop emits `UiDragData`; keyboard and
+viewport wrappers emit UI-only command/state records. The package-internal `UiGestureSurface` is
+not exported as a generic escape hatch.
 
 ## Tokens
 
@@ -317,9 +322,16 @@ The toolbar disables motion by default for deterministic interaction and reflow 
 Storybook browser tests plus the controls, menus, and reflow Playwright tests run in CI via
 `pnpm design:test`.
 
+`apps/design-system/src/component-catalog.ts` is the machine-readable public contract. Every public
+Vue export has exactly one catalog entry naming its story file, story exports, interaction status,
+required states, and owner category. Interactive entries require at least one exported story with a
+`play` function. `pnpm lint:ui-boundary` checks this bidirectionally and rejects native interaction
+in Desktop or product-example templates.
+
 ## Contribution checklist
 
 - Choose an existing primitive before creating a new generic component.
+- Add or update the catalog entry and required state stories with every public Vue export.
 - Keep stores, routing, contracts, and preload calls outside `@heron/ui`.
 - Use semantic tokens; justify any domain palette or runtime signal color.
 - Keep every `--ui-` reference resolvable from the shared token sources.
@@ -327,7 +339,7 @@ Storybook browser tests plus the controls, menus, and reflow Playwright tests ru
 - Add a `play` test for multi-step behavior.
 - Confirm focus, Escape, dismissal, and restoration for overlays.
 - Confirm 320 px reflow and 200% text zoom for non-canvas UI.
-- Run `pnpm lint:design`, UI tests, Storybook tests, and the static Storybook build.
+- Run `pnpm lint:design`, `pnpm lint:ui-boundary`, UI tests, Storybook tests, and the static Storybook build.
 
 The completed renderer inventory is recorded in
 [design-system-audit.md](design-system-audit.md).

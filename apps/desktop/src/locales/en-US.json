@@ -34,7 +34,7 @@
     "settings": "Settings",
     "buildLabel": "Heron / build {version}",
     "categoriesAria": "{title} categories",
-    "pagesAria": "{category} settings pages"
+    "pagesAria": "{category} pages"
   },
   "app": {
     "name": "Heron",

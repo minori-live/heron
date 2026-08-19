@@ -14,6 +14,7 @@ const props = withDefaults(
     disabled?: boolean
     type?: "button" | "submit" | "reset"
     loadingLabel?: string
+    stopPropagation?: boolean
   }>(),
   {
     variant: "secondary",
@@ -21,11 +22,24 @@ const props = withDefaults(
     loading: false,
     disabled: false,
     type: "button",
-    loadingLabel: "Loading"
+    loadingLabel: "Loading",
+    stopPropagation: false
   }
 )
+const emit = defineEmits<{ click: [] }>()
 
 const attrs = useAttrs()
+
+function activate(event: MouseEvent): void {
+  if (props.stopPropagation) event.stopPropagation()
+  // Headless trigger adapters need the native event at runtime, while the public
+  // component contract intentionally exposes a payload-free user intent.
+  ;(emit as unknown as (name: "click", nativeEvent: MouseEvent) => void)("click", event)
+}
+
+function stopPointer(event: PointerEvent): void {
+  if (props.stopPropagation) event.stopPropagation()
+}
 
 const sizeClasses = {
   sm: "min-h-[var(--ui-control-sm)] px-ui-3 text-ui-xs",
@@ -45,6 +59,8 @@ const sizeClasses = {
     :disabled="props.disabled || props.loading"
     :aria-disabled="props.disabled || props.loading || undefined"
     :aria-busy="props.loading || undefined"
+    @pointerdown="stopPointer"
+    @click="activate"
   >
     <UiSpinner v-if="props.loading" size="sm" :label="props.loadingLabel" />
     <span class="ui-button__content"><slot /></span>
@@ -82,6 +98,17 @@ const sizeClasses = {
   background: transparent;
 }
 
+.ui-button--plain {
+  color: inherit;
+  background: transparent;
+}
+
+.ui-button--plain:hover:not(:disabled) {
+  border-color: transparent;
+  color: inherit;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
 .ui-button--danger {
   color: var(--ui-color-danger-text);
   background: var(--ui-color-danger);
@@ -89,6 +116,17 @@ const sizeClasses = {
 
 .ui-button--danger:hover:not(:disabled) {
   background: var(--ui-color-danger-hover);
+}
+
+.ui-button--danger-ghost {
+  color: inherit;
+  background: transparent;
+}
+
+.ui-button--danger-ghost:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--ui-color-danger) 45%, transparent);
+  color: var(--ui-color-danger-text);
+  background: color-mix(in srgb, var(--ui-color-danger) 42%, transparent);
 }
 
 .ui-button__content {

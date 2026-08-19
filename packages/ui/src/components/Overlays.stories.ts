@@ -57,7 +57,13 @@ export const DestructiveConfirmation: Story = {
         tone="danger"
       />
     `
-  })
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await expect(page.getByRole("alertdialog", { name: "Delete recording?" })).toBeVisible()
+    await userEvent.keyboard("{Escape}")
+    await expect(page.queryByRole("alertdialog", { name: "Delete recording?" })).toBeNull()
+  }
 }
 
 export const ScrollableContent: Story = {
@@ -106,5 +112,11 @@ export const Popover: Story = {
         </div>
       </UiPopover>
     `
-  })
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole("button", { name: "Routing" }))
+    await expect(await within(document.body).findByText("Output routing")).toBeVisible()
+    await userEvent.keyboard("{Escape}")
+  }
 }

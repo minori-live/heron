@@ -55,7 +55,7 @@ afterEach(() => {
 describe("AudioClipCard", () => {
   it("previews a frame-accurate trim and commits once on release", async () => {
     const wrapper = mountCard()
-    const handle = wrapper.get('[data-testid="audio-trim-start"]')
+    const handle = wrapper.get(".ui-timeline-clip__handle--start")
 
     await handle.trigger("pointerdown", { pointerId: 7, clientX: 960 })
     await handle.trigger("pointermove", { pointerId: 7, clientX: 1_200 })
@@ -90,8 +90,8 @@ describe("AudioClipCard", () => {
 
   it("exposes fade slider range semantics and commits menu actions", async () => {
     const wrapper = mountCard({ fadeInFrames: 12_000, fadeOutFrames: 24_000 })
-    const fadeIn = wrapper.get('[data-testid="audio-fade-in"]')
-    const fadeOut = wrapper.get('[data-testid="audio-fade-out"]')
+    const fadeIn = wrapper.get(".ui-timeline-clip__fade--in")
+    const fadeOut = wrapper.get(".ui-timeline-clip__fade--out")
 
     expect(fadeIn.attributes("aria-valuemin")).toBe("0")
     expect(fadeIn.attributes("aria-valuemax")).toBe("24000")
@@ -118,7 +118,7 @@ describe("AudioClipCard", () => {
 
   it("previews and commits a fade-out drag from the fade handle", async () => {
     const wrapper = mountCard({ fadeOutFrames: 0 })
-    const handle = wrapper.get('[data-testid="audio-fade-out"]')
+    const handle = wrapper.get(".ui-timeline-clip__fade--out")
 
     await handle.trigger("pointerdown", { pointerId: 4, clientX: 1_920 })
     await handle.trigger("pointermove", { pointerId: 4, clientX: 1_680 })

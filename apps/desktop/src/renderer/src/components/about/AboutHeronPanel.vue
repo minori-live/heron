@@ -143,16 +143,6 @@ const manualUrl = "https://heron.minori.live/manual/"
     border-color var(--ui-motion-fast) var(--ui-ease-standard);
 }
 
-.about-link:hover {
-  border-color: var(--ui-color-border-strong);
-  background: var(--ui-color-surface-hover);
-}
-
-.about-link:focus-visible {
-  outline: var(--ui-focus-width) solid var(--ui-color-focus);
-  outline-offset: var(--ui-focus-width);
-}
-
 .link-arrow {
   color: var(--ui-signal-audio);
   font-family: var(--ui-type-family-data);

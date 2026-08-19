@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, useTemplateRef, watch } from "vue"
+import { computed } from "vue"
 import { useI18n } from "vue-i18n"
+import { UiActionRow, UiIconButton } from "@heron/ui"
 import {
   pluginSupportsHostedAudioMode,
   type PluginAudioMode,
@@ -17,7 +18,6 @@ const emit = defineEmits<{
   select: [mode: PluginAudioMode]
   cancel: []
 }>()
-const modeList = useTemplateRef<HTMLDivElement>("modeList")
 const { t } = useI18n()
 const visibleOptions = computed(() =>
   pluginAudioModeOptions(props.descriptor.kind, props.inputWidth, t)
@@ -26,51 +26,34 @@ const visibleOptions = computed(() =>
 function isSupported(mode: PluginAudioMode): boolean {
   return pluginSupportsHostedAudioMode(props.descriptor, mode)
 }
-
-function focusFirstMode(): void {
-  modeList.value?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus()
-}
-
-function navigateModes(event: KeyboardEvent): void {
-  if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return
-  const buttons = [
-    ...(modeList.value?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? [])
-  ]
-  if (buttons.length === 0) return
-  event.preventDefault()
-  const current = buttons.indexOf(document.activeElement as HTMLButtonElement)
-  const next =
-    event.key === "Home"
-      ? 0
-      : event.key === "End"
-        ? buttons.length - 1
-        : event.key === "ArrowUp"
-          ? (current - 1 + buttons.length) % buttons.length
-          : (current + 1) % buttons.length
-  buttons[next]?.focus()
-}
-
-onMounted(focusFirstMode)
-watch(() => [props.descriptor, props.inputWidth], focusFirstMode, { flush: "post" })
 </script>
 
 <template>
   <section class="mode-menu" :aria-label="t('plugins.audioModeMenu.ariaLabel')">
     <header>
-      <button type="button" :aria-label="t('plugins.audioModeMenu.back')" @click="emit('cancel')">
+      <UiIconButton
+        size="sm"
+        density="compact"
+        variant="plain"
+        :label="t('plugins.audioModeMenu.back')"
+        @click="emit('cancel')"
+      >
         ‹
-      </button>
+      </UiIconButton>
       <span
         ><b>{{ descriptor.name }}</b
         ><small>{{ t("plugins.audioModeMenu.chooseMode") }}</small></span
       >
     </header>
-    <div ref="modeList" class="mode-list" @keydown="navigateModes">
-      <button
+    <div class="mode-list">
+      <UiActionRow
         v-for="option in visibleOptions"
         :key="option.value"
-        type="button"
         :disabled="!isSupported(option.value)"
+        :label="`${option.badge} · ${option.label}`"
+        :description="option.detail"
+        density="compact"
+        appearance="plain"
         :title="
           isSupported(option.value)
             ? t('plugins.audioModeMenu.supported', {
@@ -79,15 +62,12 @@ watch(() => [props.descriptor, props.inputWidth], focusFirstMode, { flush: "post
               })
             : t('plugins.audioModeMenu.notSupported', { label: option.label })
         "
-        @click="emit('select', option.value)"
+        @activate="emit('select', option.value)"
       >
-        <strong>{{ option.badge }}</strong>
-        <span
-          ><b>{{ option.label }}</b
-          ><small>{{ option.detail }}</small></span
-        >
-        <em v-if="!isSupported(option.value)">{{ t("plugins.audioModeMenu.unavailable") }}</em>
-      </button>
+        <template v-if="!isSupported(option.value)" #trailing>
+          <em>{{ t("plugins.audioModeMenu.unavailable") }}</em>
+        </template>
+      </UiActionRow>
     </div>
   </section>
 </template>
@@ -102,14 +82,6 @@ watch(() => [props.descriptor, props.inputWidth], focusFirstMode, { flush: "post
   grid-template-columns: 25px minmax(0, 1fr);
   align-items: center;
   gap: 7px;
-}
-.mode-menu header button {
-  height: 25px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  color: var(--text-secondary);
-  background: var(--daw-control);
-  cursor: pointer;
 }
 .mode-menu header span,
 .mode-menu header b,
@@ -132,46 +104,7 @@ watch(() => [props.descriptor, props.inputWidth], focusFirstMode, { flush: "post
   display: grid;
   gap: 4px;
 }
-.mode-list > button {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 5px 8px;
-  border: 1px solid var(--line-soft);
-  border-radius: 5px;
-  color: var(--text-secondary);
-  background: var(--daw-control);
-  text-align: left;
-  cursor: pointer;
-}
-.mode-list > button:hover:not(:disabled),
-.mode-list > button:focus-visible {
-  border-color: var(--focus);
-  color: var(--text-primary);
-  outline: none;
-}
-.mode-list > button:disabled {
-  opacity: 0.42;
-  cursor: not-allowed;
-}
-.mode-list > button > strong {
-  color: var(--accent);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-control) var(--ui-type-family-data);
-  text-align: center;
-}
-.mode-list span,
-.mode-list b,
-.mode-list small {
-  display: block;
-}
-.mode-list b {
-  font-size: var(--ui-type-size-control);
-}
-.mode-list small,
 .mode-list em {
-  margin-top: 2px;
   color: var(--text-faint);
   font: var(--ui-type-size-micro) var(--ui-type-family-data);
   font-style: normal;

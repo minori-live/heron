@@ -51,11 +51,11 @@ function removeAccelerationPoint(index: number): void {
 <template>
   <div class="profile-settings">
     <div class="profile-list" role="list">
-      <button
+      <UiButton
         v-for="profile in props.profiles"
         :key="profile.id"
         class="profile-row"
-        type="button"
+        variant="ghost"
         @click="emit('edit', profile)"
       >
         <span class="profile-icon"><SlidersHorizontal :size="15" /></span>
@@ -68,7 +68,7 @@ function removeAccelerationPoint(index: number): void {
         <span class="profile-origin">{{ profile.builtin ? "Built in" : "Custom" }}</span>
         <Copy v-if="profile.builtin" :size="14" aria-label="Duplicate profile" />
         <span v-else class="edit-label">Edit</span>
-      </button>
+      </UiButton>
     </div>
 
     <div v-if="draft" class="profile-editor">
@@ -172,17 +172,6 @@ function removeAccelerationPoint(index: number): void {
   color: var(--text-secondary);
   background: var(--surface-1);
   text-align: left;
-  cursor: pointer;
-}
-
-.profile-row:hover {
-  border-color: var(--line-strong);
-  background: var(--surface-2);
-}
-
-.profile-row:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 
 .profile-icon {

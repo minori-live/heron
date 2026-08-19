@@ -1,115 +1,61 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
-
+import { UiZoomControl } from "@heron/ui"
 const props = defineProps<{
   pixelsPerQuarter: number
   trackHeight: number
   amplitudeScale: number
 }>()
 const emit = defineEmits<{
-  setTime: [pixelsPerQuarter: number]
-  setTrack: [height: number]
-  setAmplitude: [scale: number]
+  setTime: [value: number]
+  setTrack: [value: number]
+  setAmplitude: [value: number]
   resetTime: []
   resetTrack: []
   resetAmplitude: []
 }>()
-
 const { t } = useI18n()
-const SLIDER_MAX = 100
-const TIME_MIN = 12.5
-const TIME_MAX = 800
-const TRACK_MIN = 72
-const TRACK_MAX = 320
-const AMPLITUDE_MIN = 0.5
-const AMPLITUDE_MAX = 8
-
-const timePosition = computed(() => logarithmicPosition(props.pixelsPerQuarter, TIME_MIN, TIME_MAX))
-const trackPosition = computed(() => linearPosition(props.trackHeight, TRACK_MIN, TRACK_MAX))
-const amplitudePosition = computed(() =>
-  logarithmicPosition(props.amplitudeScale, AMPLITUDE_MIN, AMPLITUDE_MAX)
-)
-
-function clampPosition(value: number): number {
-  return Math.min(SLIDER_MAX, Math.max(0, value))
-}
-function linearPosition(value: number, minimum: number, maximum: number): number {
-  return clampPosition(((value - minimum) / (maximum - minimum)) * SLIDER_MAX)
-}
-function logarithmicPosition(value: number, minimum: number, maximum: number): number {
-  return clampPosition((Math.log(value / minimum) / Math.log(maximum / minimum)) * SLIDER_MAX)
-}
-function linearValue(position: number, minimum: number, maximum: number): number {
-  return minimum + (clampPosition(position) / SLIDER_MAX) * (maximum - minimum)
-}
-function logarithmicValue(position: number, minimum: number, maximum: number): number {
-  return minimum * (maximum / minimum) ** (clampPosition(position) / SLIDER_MAX)
-}
-function inputPosition(event: Event): number {
-  return Number((event.target as HTMLInputElement).value)
-}
-function setTime(event: Event): void {
-  emit("setTime", logarithmicValue(inputPosition(event), TIME_MIN, TIME_MAX))
-}
-function setTrack(event: Event): void {
-  emit("setTrack", Math.round(linearValue(inputPosition(event), TRACK_MIN, TRACK_MAX)))
-}
-function setAmplitude(event: Event): void {
-  emit("setAmplitude", logarithmicValue(inputPosition(event), AMPLITUDE_MIN, AMPLITUDE_MAX))
-}
+const position = (value: number, min: number, max: number, logarithmic = false) =>
+  logarithmic
+    ? (Math.log(value / min) / Math.log(max / min)) * 100
+    : ((value - min) / (max - min)) * 100
+const value = (point: number, min: number, max: number, logarithmic = false) =>
+  logarithmic ? min * (max / min) ** (point / 100) : min + (point / 100) * (max - min)
+const time = computed(() => position(props.pixelsPerQuarter, 12.5, 800, true))
+const track = computed(() => position(props.trackHeight, 72, 320))
+const amplitude = computed(() => position(props.amplitudeScale, 0.5, 8, true))
 </script>
 
 <template>
   <div class="zoom-controls" :aria-label="t('studio.zoom.ariaLabel')">
-    <label class="zoom-control">
-      <span>{{ t("studio.zoom.time") }}</span>
-      <input
-        type="range"
-        min="0"
-        :max="SLIDER_MAX"
-        step="1"
-        :value="timePosition"
-        :style="{ '--zoom-fill': `${timePosition}%` }"
-        :aria-label="t('studio.zoom.timeZoom')"
-        :aria-valuetext="t('studio.zoom.timeZoomValue', { pixels: Math.round(pixelsPerQuarter) })"
-        :title="t('studio.zoom.timeZoomReset')"
-        @input="setTime"
-        @dblclick="emit('resetTime')"
-      />
-    </label>
-    <label class="zoom-control">
-      <span>{{ t("studio.zoom.track") }}</span>
-      <input
-        type="range"
-        min="0"
-        :max="SLIDER_MAX"
-        step="1"
-        :value="trackPosition"
-        :style="{ '--zoom-fill': `${trackPosition}%` }"
-        :aria-label="t('studio.zoom.trackHeight')"
-        :aria-valuetext="t('studio.zoom.trackHeightValue', { height: trackHeight })"
-        :title="t('studio.zoom.trackHeightReset')"
-        @input="setTrack"
-        @dblclick="emit('resetTrack')"
-      />
-    </label>
-    <label class="zoom-control">
-      <span>{{ t("studio.zoom.gain") }}</span>
-      <input
-        type="range"
-        min="0"
-        :max="SLIDER_MAX"
-        step="1"
-        :value="amplitudePosition"
-        :style="{ '--zoom-fill': `${amplitudePosition}%` }"
-        :aria-label="t('studio.zoom.waveformGain')"
-        :aria-valuetext="t('studio.zoom.waveformGainValue', { scale: amplitudeScale.toFixed(1) })"
-        :title="t('studio.zoom.waveformGainReset')"
-        @input="setAmplitude"
-        @dblclick="emit('resetAmplitude')"
-      />
-    </label>
+    <UiZoomControl
+      :model-value="time"
+      :label="t('studio.zoom.timeZoom')"
+      :reset-label="t('studio.zoom.timeZoomReset')"
+      :value-text="t('studio.zoom.timeZoomValue', { pixels: Math.round(pixelsPerQuarter) })"
+      visual="timeline"
+      @update:model-value="emit('setTime', value($event, 12.5, 800, true))"
+      @reset="emit('resetTime')"
+    />
+    <UiZoomControl
+      :model-value="track"
+      :label="t('studio.zoom.trackHeight')"
+      :reset-label="t('studio.zoom.trackHeightReset')"
+      :value-text="t('studio.zoom.trackHeightValue', { height: trackHeight })"
+      visual="track-height"
+      @update:model-value="emit('setTrack', Math.round(value($event, 72, 320)))"
+      @reset="emit('resetTrack')"
+    />
+    <UiZoomControl
+      :model-value="amplitude"
+      :label="t('studio.zoom.waveformGain')"
+      :reset-label="t('studio.zoom.waveformGainReset')"
+      :value-text="t('studio.zoom.waveformGainValue', { scale: amplitudeScale.toFixed(1) })"
+      visual="waveform"
+      @update:model-value="emit('setAmplitude', value($event, 0.5, 8, true))"
+      @reset="emit('resetAmplitude')"
+    />
   </div>
 </template>
 
@@ -118,76 +64,6 @@ function setAmplitude(event: Event): void {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 14px;
-}
-.zoom-control {
-  display: grid;
-  grid-template-columns: auto 86px;
-  align-items: center;
-  gap: 7px;
-}
-.zoom-control > span {
-  color: var(--text-faint);
-  font: var(--ui-type-weight-semibold) var(--ui-type-size-micro) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
-}
-.zoom-control input {
-  --zoom-fill: 0%;
-  width: 86px;
-  height: 14px;
-  margin: 0;
-  appearance: none;
-  background: transparent;
-  cursor: pointer;
-}
-.zoom-control input::-webkit-slider-runnable-track {
-  height: 3px;
-  border-radius: 0;
-  background: linear-gradient(
-    to right,
-    var(--accent) 0 var(--zoom-fill),
-    var(--line-strong) var(--zoom-fill) 100%
-  );
-}
-.zoom-control input::-webkit-slider-thumb {
-  width: 7px;
-  height: 13px;
-  margin-top: -5px;
-  border: 1px solid var(--text-muted);
-  border-radius: 1px;
-  appearance: none;
-  background: var(--daw-control);
-  box-shadow: 0 0 0 1px var(--surface-1);
-}
-.zoom-control input:hover::-webkit-slider-thumb {
-  border-color: var(--text-primary);
-}
-.zoom-control input:focus-visible {
-  outline: none;
-}
-.zoom-control input:focus-visible::-webkit-slider-thumb {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
-}
-.zoom-control input::-moz-range-track {
-  height: 3px;
-  border-radius: 0;
-  background: var(--line-strong);
-}
-.zoom-control input::-moz-range-progress {
-  height: 3px;
-  background: var(--accent);
-}
-.zoom-control input::-moz-range-thumb {
-  width: 7px;
-  height: 13px;
-  border: 1px solid var(--text-muted);
-  border-radius: 1px;
-  background: var(--daw-control);
-  box-shadow: 0 0 0 1px var(--surface-1);
-}
-.zoom-control input:focus-visible::-moz-range-thumb {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
+  gap: var(--ui-space-3);
 }
 </style>

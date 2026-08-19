@@ -349,8 +349,8 @@ defineExpose({
 
 .ui-menu__metadata,
 .ui-menu__shortcut {
-  color: var(--ui-color-menu-text-subtle);
-  font: var(--ui-type-size-micro) var(--ui-type-family-data);
+  color: var(--ui-color-menu-text);
+  font: var(--ui-type-size-caption) var(--ui-type-family-data);
   white-space: nowrap;
 }
 

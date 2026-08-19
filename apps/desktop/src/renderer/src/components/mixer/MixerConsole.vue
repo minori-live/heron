@@ -2,6 +2,7 @@
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { Plus, RotateCcw, RotateCw } from "@lucide/vue"
+import { UiButton, UiIconButton } from "@heron/ui"
 import { useGlobalDialog } from "../../composables/useGlobalDialog"
 import { useMixerStore } from "../../stores/mixer"
 import { usePluginStore } from "../../stores/plugins"
@@ -121,38 +122,48 @@ async function deleteChannel(channelId: string): Promise<void> {
     >
       <span>{{ t("mixer.console.title") }}</span>
       <nav :aria-label="t('mixer.console.actions.ariaLabel')">
-        <button
+        <UiButton
+          size="sm"
           :aria-label="t('mixer.console.actions.addAudio')"
           @click="mixerStore.createAudioTrack()"
         >
           <Plus :size="12" />{{ t("mixer.console.actions.addAudioLabel") }}
-        </button>
-        <button
+        </UiButton>
+        <UiButton
+          size="sm"
           :aria-label="t('mixer.console.actions.addInstrument')"
           @click="mixerStore.createInstrumentTrack"
         >
           <Plus :size="12" />{{ t("mixer.console.actions.addInstrumentLabel") }}
-        </button>
-        <button :aria-label="t('mixer.console.actions.addAux')" @click="mixerStore.createAux()">
+        </UiButton>
+        <UiButton
+          size="sm"
+          :aria-label="t('mixer.console.actions.addAux')"
+          @click="mixerStore.createAux()"
+        >
           <Plus :size="12" />{{ t("mixer.console.actions.addAuxLabel") }}
-        </button>
-        <button :aria-label="t('mixer.console.actions.addOutput')" @click="mixerStore.createOutput">
+        </UiButton>
+        <UiButton
+          size="sm"
+          :aria-label="t('mixer.console.actions.addOutput')"
+          @click="mixerStore.createOutput"
+        >
           <Plus :size="12" />{{ t("mixer.console.actions.addOutputLabel") }}
-        </button>
-        <button
-          :aria-label="t('mixer.console.actions.undo')"
+        </UiButton>
+        <UiIconButton
+          :label="t('mixer.console.actions.undo')"
           :disabled="!mixerStore.canUndo"
           @click="mixerStore.undo"
         >
           <RotateCcw :size="13" />
-        </button>
-        <button
-          :aria-label="t('mixer.console.actions.redo')"
+        </UiIconButton>
+        <UiIconButton
+          :label="t('mixer.console.actions.redo')"
           :disabled="!mixerStore.canRedo"
           @click="mixerStore.redo"
         >
           <RotateCw :size="13" />
-        </button>
+        </UiIconButton>
       </nav>
     </header>
     <div
@@ -211,31 +222,6 @@ async function deleteChannel(channelId: string): Promise<void> {
 .mixer-toolbar nav {
   display: flex;
   gap: 5px;
-}
-.mixer-toolbar button {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 27px;
-  padding: 0 8px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  color: var(--text-secondary);
-  background: var(--daw-control);
-  font-size: var(--ui-type-size-caption);
-  cursor: pointer;
-}
-.mixer-toolbar button:hover {
-  color: var(--text-primary);
-  background: var(--daw-control-hover);
-}
-.mixer-toolbar button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-.mixer-toolbar button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
 }
 .channel-scroll {
   background-color: var(--ui-domain-color-4f4f4f);

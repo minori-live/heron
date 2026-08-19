@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from "vue"
 import { useI18n } from "vue-i18n"
-import { UiNumberInput, UiSelect } from "@heron/ui"
+import { UiButton, UiNumberInput, UiSelect } from "@heron/ui"
 import type {
   AudioHostRuntimePreferences,
   ResolvedAudioHostRuntimePreferences
@@ -134,13 +134,17 @@ function setNumber(
     </SettingsSection>
 
     <div class="runtime-actions">
-      <button type="button" :disabled="applying || !dirty" @click="emit('apply', { ...draft })">
+      <UiButton
+        variant="primary"
+        :disabled="applying || !dirty"
+        @click="emit('apply', { ...draft })"
+      >
         {{
           applying
             ? t("settings.audio.engine.apply.restarting")
             : t("settings.audio.engine.apply.label")
         }}
-      </button>
+      </UiButton>
     </div>
     <p v-if="error" class="runtime-error" role="alert">{{ error }}</p>
   </SettingsPage>
@@ -208,12 +212,6 @@ function setNumber(
 
 .runtime-actions button {
   padding: 0 14px;
-  cursor: pointer;
-}
-
-.runtime-actions button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 
 .runtime-actions button:disabled {

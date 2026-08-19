@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { MoreHorizontal, Trash2 } from "@lucide/vue"
-import { UiPopover } from "@heron/ui"
+import { UiButton, UiColorInput, UiIconButton, UiPopover } from "@heron/ui"
 
-defineProps<{
+const props = defineProps<{
   channelName: string
   color: string
   deletable: boolean
@@ -15,38 +16,41 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const colorModel = computed({
+  get: () => props.color,
+  set: (color: string) => emit("updateColor", color.toUpperCase())
+})
 </script>
 
 <template>
   <UiPopover side="top" align="end" :side-offset="6">
     <template #trigger>
-      <button
+      <UiIconButton
         class="menu-trigger"
-        :aria-label="t('mixer.channelMenu.ariaLabel', { name: channelName })"
+        size="sm"
+        :label="t('mixer.channelMenu.ariaLabel', { name: channelName })"
       >
         <MoreHorizontal :size="13" />
-      </button>
+      </UiIconButton>
     </template>
     <div class="channel-menu">
       <label>
         <span>{{ t("mixer.channelMenu.channelColor") }}</span>
-        <input
-          type="color"
-          :value="color"
-          :aria-label="t('mixer.channelMenu.colorAria', { name: channelName })"
-          @change="
-            emit('updateColor', ($event.currentTarget as HTMLInputElement).value.toUpperCase())
-          "
+        <UiColorInput
+          v-model="colorModel"
+          :label="t('mixer.channelMenu.colorAria', { name: channelName })"
         />
       </label>
-      <button
+      <UiButton
         v-if="deletable"
         class="delete-action"
+        size="sm"
+        variant="danger"
         :aria-label="t('mixer.channelMenu.deleteAria', { name: channelName })"
         @click="emit('delete')"
       >
         <Trash2 :size="12" />{{ t("mixer.channelMenu.delete") }}
-      </button>
+      </UiButton>
     </div>
   </UiPopover>
 </template>
@@ -63,11 +67,6 @@ const { t } = useI18n()
   border-radius: 3px;
   color: var(--ui-domain-color-fff);
   background: var(--ui-domain-color-00000024);
-  cursor: pointer;
-}
-.menu-trigger:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
 }
 .channel-menu {
   display: grid;
@@ -87,14 +86,6 @@ const { t } = useI18n()
   color: var(--text-muted);
   font-size: var(--ui-type-size-control);
 }
-.channel-menu input {
-  width: 36px;
-  height: 24px;
-  padding: 1px;
-  border: 1px solid var(--line-strong);
-  border-radius: 3px;
-  background: var(--daw-control);
-}
 .delete-action {
   display: flex;
   align-items: center;
@@ -106,6 +97,5 @@ const { t } = useI18n()
   color: var(--record);
   background: color-mix(in srgb, var(--record) 9%, var(--daw-control));
   font-size: var(--ui-type-size-control);
-  cursor: pointer;
 }
 </style>

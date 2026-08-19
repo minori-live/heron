@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
+import { UiArrangementTrackSurface } from "@heron/ui"
 import type { MixerChannelPatch, MixerParameterPreview } from "@heron/contracts"
 import InlineTrackNameEditor from "../InlineTrackNameEditor.vue"
 import TrackHeightResizeHandle from "./TrackHeightResizeHandle.vue"
@@ -24,24 +25,21 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-function handleKeydown(event: KeyboardEvent, index: number): void {
-  if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return
-  event.preventDefault()
-  emit("reorder", index, event.key === "ArrowUp" ? -1 : 1)
-}
-
 function relayChannelUpdate(channelId: string, patch: MixerChannelPatch): void {
   emit("updateChannel", channelId, patch)
 }
 </script>
 
 <template>
-  <div
+  <UiArrangementTrackSurface
     v-for="({ track, scale }, index) in rows"
     :key="track.id"
     :class="['track-header', { selected: track.id === selectedChannelId }]"
-    @click="emit('select', track.id)"
-    @keydown="handleKeydown($event, index)"
+    :label="track.name"
+    :selected="track.id === selectedChannelId"
+    focusable
+    @select="emit('select', track.id)"
+    @reorder="emit('reorder', index, $event)"
   >
     <span class="track-color" :style="{ background: track.color }" /><strong>{{
       String(index + 1).padStart(2, "0")
@@ -67,7 +65,7 @@ function relayChannelUpdate(channelId: string, patch: MixerChannelPatch): void {
       @set-scale="emit('setScale', track.trackId, $event)"
       @reset="emit('resetScale', track.trackId)"
     />
-  </div>
+  </UiArrangementTrackSurface>
   <div class="track-spacer" aria-hidden="true" />
 </template>
 
@@ -87,22 +85,10 @@ function relayChannelUpdate(channelId: string, patch: MixerChannelPatch): void {
   color: var(--text-primary);
   background: var(--daw-track-header);
   text-align: left;
-  cursor: pointer;
-}
-.track-header:hover,
-.track-header:focus-within {
-  z-index: var(--ui-z-local-selection);
-}
-.track-header:hover {
-  background: var(--daw-track-header-hover);
 }
 .track-header.selected {
   background: var(--daw-track-header-selected);
   box-shadow: 3px 0 0 var(--accent) inset;
-}
-.track-header:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: -2px;
 }
 .track-color {
   grid-row: 1/3;

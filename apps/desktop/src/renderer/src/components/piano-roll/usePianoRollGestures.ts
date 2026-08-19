@@ -1,6 +1,6 @@
 import { computed, shallowRef, type ComputedRef, type CSSProperties } from "vue"
-import { useEventListener } from "@vueuse/core"
 import type { MidiClipState, MidiNotePatch, MidiNoteState, ProjectCommand } from "@heron/contracts"
+import type { UiGestureIntent, UiModifiers, UiPoint } from "@heron/ui"
 import type { PianoRollNoteRef, usePianoRollStore } from "../../stores/pianoRoll"
 import {
   MIN_NOTE_TICKS,
@@ -82,20 +82,27 @@ export interface PianoRollGestures {
   createPreviewStyle: ComputedRef<CSSProperties | null>
   eraseTargetKeys: ComputedRef<Set<string>>
   beginNoteGesture: (
-    event: PointerEvent,
+    intent: UiGestureIntent,
     clip: MidiClipState,
     note: MidiNoteState,
     mode: NoteGesture["mode"]
   ) => void
-  updateNoteGesture: (event: PointerEvent) => void
-  finishNoteGesture: (event: PointerEvent) => void
+  updateNoteGesture: (intent: UiGestureIntent) => void
+  finishNoteGesture: (intent: UiGestureIntent) => void
   cancelNoteGesture: () => void
-  handleNoteClick: (event: MouseEvent, clip: MidiClipState, note: MidiNoteState) => void
+  handleNoteClick: (modifiers: UiModifiers, clip: MidiClipState, note: MidiNoteState) => void
   handleNotePointerOver: (clip: MidiClipState, note: MidiNoteState) => void
-  handleGridPointerDown: (event: PointerEvent) => void
-  handleGridPointerMove: (event: PointerEvent) => void
-  handleGridPointerUp: (event: PointerEvent) => void
+  handleGridPointerDown: (intent: UiGestureIntent) => void
+  handleGridPointerMove: (intent: UiGestureIntent) => void
+  handleGridPointerUp: (intent: UiGestureIntent) => void
   cancelGridGesture: () => void
+  handleNoteGesture: (
+    mode: NoteGesture["mode"],
+    intent: UiGestureIntent,
+    clip: MidiClipState,
+    note: MidiNoteState
+  ) => void
+  handleGridGesture: (intent: UiGestureIntent) => void
 }
 
 export function createPianoRollGestures(
@@ -266,19 +273,14 @@ export function createPianoRollGestures(
     void batch(commands)
   }
 
-  useEventListener(window, "pointerup", () => {
-    if (gesture.value?.kind === "erase") finishEraseGesture()
-  })
-
   function beginNoteGesture(
-    event: PointerEvent,
+    intent: UiGestureIntent,
     clip: MidiClipState,
     note: MidiNoteState,
     mode: NoteGesture["mode"]
   ): void {
-    event.stopPropagation()
     const key = `${clip.id}:${note.id}`
-    if (pianoRollStore.tool === "erase" || event.altKey) {
+    if (pianoRollStore.tool === "erase" || intent.modifiers.alt) {
       suppressNextNoteClick(key)
       if (pianoRollStore.tool === "erase") {
         gesture.value = {
@@ -293,32 +295,30 @@ export function createPianoRollGestures(
     const reference = { clipId: clip.id, noteId: note.id }
     suppressedNoteClickKey = key
     if (!pianoRollStore.selectedNoteKeys.has(key)) {
-      pianoRollStore.selectNote(reference, event.ctrlKey || event.metaKey)
+      pianoRollStore.selectNote(reference, intent.modifiers.control || intent.modifiers.meta)
     }
-    ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
     gesture.value = {
       kind: "note",
-      startX: event.clientX,
-      startY: event.clientY,
-      currentX: event.clientX,
-      currentY: event.clientY,
+      startX: intent.point.x,
+      startY: intent.point.y,
+      currentX: intent.point.x,
+      currentY: intent.point.y,
       mode,
       items: selectedItems.value.map((item) => ({ ...item }))
     }
   }
 
-  function updateNoteGesture(event: PointerEvent): void {
+  function updateNoteGesture(intent: UiGestureIntent): void {
     const current = gesture.value
     if (current?.kind !== "note") return
-    event.preventDefault()
-    gesture.value = { ...current, currentX: event.clientX, currentY: event.clientY }
+    gesture.value = { ...current, currentX: intent.point.x, currentY: intent.point.y }
   }
 
-  function finishNoteGesture(event: PointerEvent): void {
+  function finishNoteGesture(intent: UiGestureIntent): void {
     const current = gesture.value
     if (current?.kind !== "note") return
     gesture.value = null
-    const edits = editsForGesture(current, event.clientX, event.clientY).filter(
+    const edits = editsForGesture(current, intent.point.x, intent.point.y).filter(
       (item) =>
         item.globalStartTick !== noteGlobalStart(item.clip, item.note) ||
         item.durationTicks !== item.note.durationTicks ||
@@ -337,14 +337,14 @@ export function createPianoRollGestures(
     suppressedNoteClickKey = null
   }
 
-  function handleNoteClick(event: MouseEvent, clip: MidiClipState, note: MidiNoteState): void {
+  function handleNoteClick(modifiers: UiModifiers, clip: MidiClipState, note: MidiNoteState): void {
     const key = `${clip.id}:${note.id}`
     if (suppressedNoteClickKey === key) {
       suppressedNoteClickKey = null
       return
     }
-    if (pianoRollStore.tool === "erase" || event.altKey) return
-    const additive = event.ctrlKey || event.metaKey
+    if (pianoRollStore.tool === "erase" || modifiers.alt) return
+    const additive = modifiers.control || modifiers.meta
     if (!pianoRollStore.selectedNoteKeys.has(key) || additive) {
       pianoRollStore.selectNote({ clipId: clip.id, noteId: note.id }, additive)
     }
@@ -354,13 +354,7 @@ export function createPianoRollGestures(
     eraseNote(clip, note)
   }
 
-  function gridPosition(event: PointerEvent): { x: number; y: number } {
-    const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect()
-    return { x: event.clientX - bounds.left, y: event.clientY - bounds.top }
-  }
-
-  function gridPoint(event: PointerEvent): { tick: number; key: number } {
-    const position = gridPosition(event)
+  function gridPoint(position: UiPoint): { tick: number; key: number } {
     const tick = snapTicks(position.x / pixelsPerTick.value, pianoRollStore.snap)
     const key = Math.max(0, Math.min(127, 127 - Math.floor(position.y / pianoRollStore.rowHeight)))
     return { tick, key }
@@ -387,8 +381,8 @@ export function createPianoRollGestures(
     return current.additive ? [...current.baseSelection, ...contained] : contained
   }
 
-  function handleGridPointerDown(event: PointerEvent): void {
-    const point = gridPoint(event)
+  function handleGridPointerDown(intent: UiGestureIntent): void {
+    const point = gridPoint(intent.point)
     pianoRollStore.editCursorTick = point.tick
     pianoRollStore.editCursorKey = point.key
     if (pianoRollStore.tool === "erase") {
@@ -397,7 +391,6 @@ export function createPianoRollGestures(
     }
     if (pianoRollStore.tool === "draw") {
       if (!activeClip.value) return
-      ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
       gesture.value = {
         kind: "create",
         clip: activeClip.value,
@@ -408,25 +401,23 @@ export function createPianoRollGestures(
       }
       return
     }
-    ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
-    const position = gridPosition(event)
+    const position = intent.point
     gesture.value = {
       kind: "marquee",
       anchorX: position.x,
       anchorY: position.y,
       currentX: position.x,
       currentY: position.y,
-      additive: event.ctrlKey || event.metaKey || event.shiftKey,
+      additive: intent.modifiers.control || intent.modifiers.meta || intent.modifiers.shift,
       baseSelection: [...pianoRollStore.selectedNotes],
       moved: false
     }
   }
 
-  function handleGridPointerMove(event: PointerEvent): void {
+  function handleGridPointerMove(intent: UiGestureIntent): void {
     const current = gesture.value
     if (current?.kind === "marquee") {
-      event.preventDefault()
-      const position = gridPosition(event)
+      const position = intent.point
       const moved =
         current.moved ||
         Math.max(Math.abs(position.x - current.anchorX), Math.abs(position.y - current.anchorY)) >=
@@ -437,15 +428,14 @@ export function createPianoRollGestures(
       return
     }
     if (current?.kind === "create") {
-      event.preventDefault()
-      const point = gridPoint(event)
+      const point = gridPoint(intent.point)
       const moved =
         current.moved || point.tick !== current.anchorTick || point.key !== current.currentKey
       gesture.value = { ...current, currentTick: point.tick, currentKey: point.key, moved }
     }
   }
 
-  function handleGridPointerUp(event: PointerEvent): void {
+  function handleGridPointerUp(intent: UiGestureIntent): void {
     const current = gesture.value
     if (current?.kind === "erase") {
       finishEraseGesture()
@@ -453,7 +443,7 @@ export function createPianoRollGestures(
     }
     if (current?.kind === "marquee") {
       gesture.value = null
-      const position = gridPosition(event)
+      const position = intent.point
       const moved =
         current.moved ||
         Math.max(Math.abs(position.x - current.anchorX), Math.abs(position.y - current.anchorY)) >=
@@ -507,6 +497,29 @@ export function createPianoRollGestures(
     if (kind === "marquee" || kind === "create" || kind === "erase") gesture.value = null
   }
 
+  function handleNoteGesture(
+    mode: NoteGesture["mode"],
+    intent: UiGestureIntent,
+    clip: MidiClipState,
+    note: MidiNoteState
+  ): void {
+    if (intent.phase === "start") beginNoteGesture(intent, clip, note, mode)
+    else if (intent.phase === "update") updateNoteGesture(intent)
+    else if (intent.phase === "commit") {
+      if (gesture.value?.kind === "erase") finishEraseGesture()
+      else finishNoteGesture(intent)
+    } else if (gesture.value?.kind === "erase") {
+      gesture.value = null
+    } else cancelNoteGesture()
+  }
+
+  function handleGridGesture(intent: UiGestureIntent): void {
+    if (intent.phase === "start") handleGridPointerDown(intent)
+    else if (intent.phase === "update") handleGridPointerMove(intent)
+    else if (intent.phase === "commit") handleGridPointerUp(intent)
+    else cancelGridGesture()
+  }
+
   return {
     gestureNotePreviews,
     gestureClipRanges,
@@ -519,6 +532,8 @@ export function createPianoRollGestures(
     cancelNoteGesture,
     handleNoteClick,
     handleNotePointerOver,
+    handleNoteGesture,
+    handleGridGesture,
     handleGridPointerDown,
     handleGridPointerMove,
     handleGridPointerUp,

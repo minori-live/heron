@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
-import { UiButton, UiDialog, UiSelect } from "@heron/ui"
+import { UiButton, UiDialog, UiForm, UiSelect } from "@heron/ui"
 import { useProjectStore } from "../../stores/project"
 import { useBounceStore } from "../../stores/bounce"
 import BounceFormatForm from "./BounceFormatForm.vue"
@@ -22,7 +22,7 @@ const { t } = useI18n()
     :close-label="t('bounce.actions.close')"
     :dismissible="!store.starting"
   >
-    <form class="bounce-form" @submit.prevent="store.start">
+    <UiForm class="bounce-form" @submit="store.start">
       <BounceFormatForm
         :settings="store.format"
         :sample-rate="store.sampleRate"
@@ -55,7 +55,7 @@ const { t } = useI18n()
         @update-include-tail="store.includeTail = $event"
       />
       <p v-if="store.error" class="bounce-error" role="alert">{{ store.error }}</p>
-    </form>
+    </UiForm>
     <template #actions>
       <UiButton variant="ghost" :disabled="store.starting" @click="store.close">
         {{ t("bounce.actions.cancel") }}

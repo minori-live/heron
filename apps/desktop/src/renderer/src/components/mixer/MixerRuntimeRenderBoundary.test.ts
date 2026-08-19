@@ -15,6 +15,8 @@ describe("mixer runtime render boundary", () => {
   it("subscribes to runtime telemetry inside the focused meter display", () => {
     expect(MixerChannelMeterDisplaySource).toContain("useMixerRuntimeStore")
     expect(MixerChannelMeterDisplaySource).toContain("runtimeStore.meterFor(props.channelId)")
+    expect(TrackGainControlSource).toContain("usePeakMeterDisplay")
     expect(TrackGainControlSource).toContain("useMixerRuntimeStore")
+    expect(TrackGainControlSource).toContain('runtimeStore.meterFor(props.channelId ?? "")')
   })
 })

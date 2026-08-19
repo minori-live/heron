@@ -2,6 +2,7 @@
 import { computed, nextTick, shallowRef, useTemplateRef, watch } from "vue"
 
 import type { UiRotaryControlRingWeight, UiRotaryControlSize } from "../types"
+import { trySetPointerCapture } from "./internal/pointerCapture"
 
 const props = withDefaults(
   defineProps<{
@@ -19,6 +20,7 @@ const props = withDefaults(
     size?: UiRotaryControlSize
     ringWeight?: UiRotaryControlRingWeight
     disabled?: boolean
+    meterLevelPercent?: number
   }>(),
   {
     valueLabel: undefined,
@@ -28,7 +30,8 @@ const props = withDefaults(
     accent: "var(--ui-color-action)",
     size: "standard",
     ringWeight: "standard",
-    disabled: false
+    disabled: false,
+    meterLevelPercent: undefined
   }
 )
 
@@ -71,6 +74,7 @@ const controlStyle = computed(() => {
 
   return {
     "--rotary-control-accent": props.accent,
+    "--rotary-control-meter-level": `${Math.max(0, Math.min(100, props.meterLevelPercent ?? 0))}%`,
     "--rotary-control-angle": `${-135 + clampedRatio * 270}deg`,
     "--rotary-control-progress": `conic-gradient(from 225deg, transparent 0deg ${Math.min(center, position)}deg, var(--rotary-control-accent) ${Math.min(center, position)}deg ${Math.max(center, position)}deg, transparent ${Math.max(center, position)}deg 270deg)`
   }
@@ -105,7 +109,7 @@ function beginPointerGesture(event: PointerEvent): void {
   dragging.value = true
   keyboardActive.value = false
   tooltipVisible.value = true
-  target.setPointerCapture?.(event.pointerId)
+  trySetPointerCapture(target, event.pointerId)
 }
 
 function movePointerGesture(event: PointerEvent): void {
@@ -293,6 +297,18 @@ function cancelEditing(): void {
   height: var(--rotary-control-target-size);
   place-items: center;
   flex: 0 0 auto;
+}
+
+.ui-rotary-control::before {
+  position: absolute;
+  bottom: 0.3125rem;
+  left: 0.125rem;
+  width: 0.125rem;
+  height: var(--rotary-control-meter-level);
+  max-height: calc(100% - 0.625rem);
+  border-radius: var(--ui-radius-pill);
+  background: linear-gradient(to top, var(--ui-signal-meter-safe), var(--ui-signal-meter-warning));
+  content: "";
 }
 
 .ui-rotary-control--ring-emphasized {

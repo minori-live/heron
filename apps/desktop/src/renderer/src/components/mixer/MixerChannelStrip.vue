@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
+import { UiButton, UiMixerSlot } from "@heron/ui"
 import type {
   MixerBusState,
   MixerChannelMeter,
@@ -91,16 +92,17 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
 </script>
 
 <template>
-  <article
+  <UiMixerSlot
     :class="['channel-strip', channel.kind, { selected }]"
     :style="{ '--strip-color': channel.color }"
-    :aria-label="
+    :label="
       t('mixer.channelStrip.ariaLabel', {
         name: channel.name,
         kind: t(`mixer.channelKind.${channel.kind}`)
       })
     "
-    @pointerdown="emit('select', channel.id)"
+    :selected="selected"
+    @select="emit('select', channel.id)"
   >
     <MixerInputSection
       :channel="channel"
@@ -154,11 +156,11 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
     />
 
     <section class="placeholder-section" data-section="group">
-      <button disabled aria-disabled="true">{{ t("mixer.channelStrip.noGroup") }}</button>
+      <UiButton size="sm" disabled>{{ t("mixer.channelStrip.noGroup") }}</UiButton>
     </section>
 
     <section class="placeholder-section automation-section" data-section="automation">
-      <button disabled aria-disabled="true">{{ t("mixer.channelStrip.read") }}</button>
+      <UiButton size="sm" disabled>{{ t("mixer.channelStrip.read") }}</UiButton>
     </section>
 
     <MixerPanKnob
@@ -180,7 +182,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       @bounce-output="emit('bounceOutput', channel)"
     />
 
-    <div class="channel-name" data-section="name" @click="emit('select', channel.id)">
+    <div class="channel-name" data-section="name">
       <i :style="{ backgroundColor: channel.color }" />
       <InlineTrackNameEditor
         class="channel-name-editor"
@@ -196,7 +198,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
         @delete="emit('deleteChannel', channel.id)"
       />
     </div>
-  </article>
+  </UiMixerSlot>
 </template>
 
 <style scoped>
@@ -254,7 +256,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   background: var(--ui-domain-color-575757);
 }
 
-.placeholder-section button {
+.placeholder-section :deep(.ui-button) {
   width: 100%;
   height: 25px;
   border: 1px solid var(--ui-domain-color-6b6b6b);
@@ -286,7 +288,6 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   color: var(--text-primary);
   background: color-mix(in srgb, var(--strip-color) 72%, var(--ui-domain-color-484848));
   text-align: left;
-  cursor: pointer;
 }
 
 .channel-name i {

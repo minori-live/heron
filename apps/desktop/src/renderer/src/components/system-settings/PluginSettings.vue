@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { UiButton } from "@heron/ui"
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import type { PluginCatalogSnapshot } from "@heron/contracts"
@@ -79,13 +80,13 @@ const lastScan = computed(() =>
       :description="t('settings.system.plugins.discovery.description')"
     >
       <div class="scan-control">
-        <button type="button" :disabled="scanBusy" @click="emit('rescan')">
+        <UiButton size="sm" :disabled="scanBusy" @click="emit('rescan')">
           {{
             scanBusy
               ? t("settings.system.plugins.discovery.scanning")
               : t("settings.system.plugins.discovery.rescan")
           }}
-        </button>
+        </UiButton>
         <span v-if="scanProgress" role="status">
           {{
             t("settings.system.plugins.discovery.progress", {
@@ -160,18 +161,7 @@ const lastScan = computed(() =>
   border-radius: 7px;
   color: var(--text-secondary);
   background: var(--surface-3);
-  cursor: pointer;
   font-size: var(--ui-type-size-body-compact);
-}
-
-.scan-control button:hover:not(:disabled) {
-  color: var(--text-primary);
-  background: var(--surface-4);
-}
-
-.scan-control button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 
 .scan-control button:disabled {

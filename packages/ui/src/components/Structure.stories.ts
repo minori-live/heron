@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/vue3-vite"
 
 import UiButton from "./UiButton.vue"
+import UiProvider from "./UiProvider.vue"
 import UiSectionHeading from "./UiSectionHeading.vue"
 import UiSurface from "./UiSurface.vue"
 
@@ -42,5 +43,12 @@ export const LongTextAtNarrowWidth: Story = {
         </UiSurface>
       </div>
     `
+  })
+}
+
+export const Provider: Story = {
+  render: () => ({
+    components: { UiButton, UiProvider },
+    template: `<UiProvider dir="rtl" locale="ar"><div dir="rtl"><UiButton>Provider content</UiButton></div></UiProvider>`
   })
 }

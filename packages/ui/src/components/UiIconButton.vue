@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { useAttrs } from "vue"
 import type { UiActionVariant, UiControlSize } from "../types"
 import UiButton from "./UiButton.vue"
 import UiTooltip from "./UiTooltip.vue"
+
+defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(
   defineProps<{
@@ -12,6 +15,8 @@ const props = withDefaults(
     loading?: boolean
     disabled?: boolean
     pressed?: boolean
+    stopPropagation?: boolean
+    density?: "standard" | "compact"
   }>(),
   {
     tooltip: undefined,
@@ -19,9 +24,21 @@ const props = withDefaults(
     size: "md",
     loading: false,
     disabled: false,
-    pressed: undefined
+    pressed: undefined,
+    stopPropagation: false,
+    density: "standard"
   }
 )
+const emit = defineEmits<{ click: [] }>()
+const attrs = useAttrs()
+
+function activate(nativeEvent?: unknown): void {
+  if (nativeEvent instanceof MouseEvent) {
+    ;(emit as unknown as (name: "click", event: MouseEvent) => void)("click", nativeEvent)
+  } else {
+    emit("click")
+  }
+}
 
 const sizeClasses = {
   sm: "min-w-[var(--ui-control-sm)] w-[var(--ui-control-sm)] p-0",
@@ -33,15 +50,29 @@ const sizeClasses = {
 <template>
   <UiTooltip :text="props.tooltip ?? props.label">
     <UiButton
-      :class="sizeClasses[props.size]"
+      v-bind="attrs"
+      :class="[sizeClasses[props.size], { 'ui-icon-button--compact': props.density === 'compact' }]"
       :variant="props.variant"
       :size="props.size"
       :loading="props.loading"
       :disabled="props.disabled"
       :aria-label="props.label"
       :aria-pressed="props.pressed"
+      :stop-propagation="props.stopPropagation"
+      @click="activate"
     >
       <slot />
     </UiButton>
   </UiTooltip>
 </template>
+
+<style>
+.ui-button.ui-icon-button--compact {
+  width: 1.125rem;
+  min-width: 1.125rem;
+  height: 1.25rem;
+  min-height: 1.25rem;
+  padding: 0;
+  border-radius: var(--ui-radius-sm);
+}
+</style>

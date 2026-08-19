@@ -48,13 +48,13 @@ describe("RightPanelHost", () => {
     const originalWidth = window.innerWidth
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 1_000 })
 
-    await separator.trigger("pointerdown", { pointerId: 7 })
+    await separator.trigger("pointerdown", { pointerId: 7, clientX: 680 })
     expect(capture).toHaveBeenCalledWith(7)
-    window.dispatchEvent(new PointerEvent("pointermove", { clientX: 600 }))
+    await separator.trigger("pointermove", { pointerId: 7, clientX: 600 })
     expect(workspace.rightPanelWidth).toBe(400)
 
-    window.dispatchEvent(new PointerEvent("pointerup"))
-    window.dispatchEvent(new PointerEvent("pointermove", { clientX: 700 }))
+    await separator.trigger("pointerup", { pointerId: 7, clientX: 600 })
+    await separator.trigger("pointermove", { pointerId: 7, clientX: 700 })
     expect(workspace.rightPanelWidth).toBe(400)
     await separator.trigger("keydown", { key: "End" })
     expect(workspace.rightPanelWidth).toBe(400)

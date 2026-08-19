@@ -38,7 +38,8 @@ const { t } = useI18n()
         tone="bounce"
         :label="t('mixer.channelControls.bounce', { name: channel.name })"
         :title="t('mixer.channelControls.bounceOutput')"
-        @click.stop="emit('bounceOutput')"
+        stop-propagation
+        @click="emit('bounceOutput')"
       >
         Bnc
       </UiMixerStateButton>
@@ -50,7 +51,8 @@ const { t } = useI18n()
           :pressed="channel.recordArmed"
           :label="t('mixer.channelControls.arm', { name: channel.name })"
           :title="t('mixer.channelControls.recordEnable')"
-          @click.stop="emit('updateChannel', { recordArmed: !channel.recordArmed })"
+          stop-propagation
+          @click="emit('updateChannel', { recordArmed: !channel.recordArmed })"
         >
           R
         </UiMixerStateButton>
@@ -69,7 +71,8 @@ const { t } = useI18n()
               : t('mixer.channelControls.inputMonitoringDisabled')
           "
           :disabled="!monitoringAvailable"
-          @click.stop="emit('updateChannel', { inputMonitoring: !channel.inputMonitoring })"
+          stop-propagation
+          @click="emit('updateChannel', { inputMonitoring: !channel.inputMonitoring })"
         >
           I
         </UiMixerStateButton>
@@ -80,7 +83,8 @@ const { t } = useI18n()
         tone="mute"
         :pressed="channel.muted"
         :label="t('mixer.channelControls.mute', { name: channel.name })"
-        @click.stop="emit('updateChannel', { muted: !channel.muted })"
+        stop-propagation
+        @click="emit('updateChannel', { muted: !channel.muted })"
       >
         M
       </UiMixerStateButton>
@@ -89,7 +93,8 @@ const { t } = useI18n()
         tone="solo"
         :pressed="channel.soloed"
         :label="t('mixer.channelControls.solo', { name: channel.name })"
-        @click.stop="emit('updateChannel', { soloed: !channel.soloed })"
+        stop-propagation
+        @click="emit('updateChannel', { soloed: !channel.soloed })"
       >
         S
       </UiMixerStateButton>

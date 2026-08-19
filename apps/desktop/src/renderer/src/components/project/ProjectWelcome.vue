@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ApplicationSettings, CreateProjectRequest } from "@heron/contracts"
-import { HeronLogo } from "@heron/ui"
+import { HeronLogo, UiButton } from "@heron/ui"
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import ProjectWelcomeRecent from "./ProjectWelcomeRecent.vue"
@@ -139,9 +139,10 @@ function createProject(): void {
         </div>
         <h2 id="new-project-heading">{{ t("welcome.newProjectTitle") }}</h2>
         <p>{{ t("welcome.newProjectBody") }}</p>
-        <button
+        <UiButton
           class="project-welcome__create"
-          type="button"
+          size="lg"
+          variant="primary"
           :disabled="props.busy"
           @click="createProject"
         >
@@ -149,7 +150,7 @@ function createProject(): void {
           <svg aria-hidden="true" viewBox="0 0 24 24">
             <path d="M5 12h14M14 7l5 5-5 5" />
           </svg>
-        </button>
+        </UiButton>
       </section>
 
       <ProjectWelcomeRecent
@@ -403,7 +404,6 @@ function createProject(): void {
   background: var(--button-primary);
   box-shadow: var(--ui-shadow-md);
   font-weight: var(--ui-type-weight-semibold);
-  cursor: pointer;
   transition:
     background var(--ui-motion-fast) var(--ui-ease-standard),
     box-shadow var(--ui-motion-fast) var(--ui-ease-standard),
@@ -425,11 +425,6 @@ function createProject(): void {
   opacity: 0.58;
 }
 
-.project-welcome__create:focus-visible {
-  outline: 2px solid var(--accent-soft);
-  outline-offset: 3px;
-}
-
 .project-welcome__error {
   position: fixed;
   z-index: var(--ui-z-local-content);
@@ -444,18 +439,6 @@ function createProject(): void {
   background: color-mix(in srgb, var(--ui-domain-color-321923) 92%, transparent);
   box-shadow: var(--ui-shadow-md);
   font-size: var(--ui-type-size-body-compact);
-}
-
-@media (hover: hover) {
-  .project-welcome__create:hover:not(:disabled) {
-    background: var(--ui-color-action-hover);
-    box-shadow: var(--ui-shadow-lg);
-    transform: translateY(-1px);
-  }
-
-  .project-welcome__create:hover:not(:disabled) svg {
-    transform: translateX(3px);
-  }
 }
 
 @media (max-width: 900px) {

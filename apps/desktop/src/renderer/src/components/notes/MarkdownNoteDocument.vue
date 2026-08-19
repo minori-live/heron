@@ -4,7 +4,7 @@ import { useI18n } from "vue-i18n"
 import DOMPurify from "dompurify"
 import { marked } from "marked"
 import { FilePenLine } from "@lucide/vue"
-import { UiButton } from "@heron/ui"
+import { UiButton, UiTextarea } from "@heron/ui"
 
 const props = defineProps<{
   content: string
@@ -24,7 +24,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const editor = useTemplateRef<HTMLTextAreaElement>("editor")
+const editor = useTemplateRef<{ focus: () => void }>("editor")
 const renderer = new marked.Renderer()
 
 renderer.html = ({ text }) =>
@@ -49,17 +49,6 @@ const renderedMarkdown = computed(() =>
   })
 )
 
-function draftFromInput(event: Event): void {
-  emit("updateDraft", (event.target as HTMLTextAreaElement).value)
-}
-
-function handleEditorKeydown(event: KeyboardEvent): void {
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
-    event.preventDefault()
-    emit("save")
-  }
-}
-
 watch(
   () => props.editing,
   async (editing) => {
@@ -83,15 +72,16 @@ watch(
       <label class="editor-label" for="notes-markdown-editor">
         {{ t("studio.notes.markdownLabel") }}
       </label>
-      <textarea
+      <UiTextarea
         id="notes-markdown-editor"
         ref="editor"
         class="markdown-editor"
-        :value="draft"
+        :model-value="draft"
         :placeholder="t('studio.notes.editorPlaceholder')"
         spellcheck="true"
-        @input="draftFromInput"
-        @keydown="handleEditorKeydown"
+        resize="none"
+        @update:model-value="emit('updateDraft', $event)"
+        @submit-shortcut="emit('save')"
       />
       <div class="editor-footer">
         <span>{{ t("studio.notes.saveShortcut") }}</span>
@@ -107,10 +97,10 @@ watch(
     </template>
 
     <template v-else>
-      <button class="edit-button" type="button" @click="emit('edit')">
+      <UiButton class="edit-button" size="sm" variant="secondary" @click="emit('edit')">
         <FilePenLine :size="14" aria-hidden="true" />
         {{ t("studio.notes.edit") }}
-      </button>
+      </UiButton>
       <!-- Markdown is escaped during parsing, then sanitized before rendering. -->
       <!-- eslint-disable vue/no-v-html -->
       <article
@@ -124,7 +114,9 @@ watch(
         <FilePenLine :size="22" aria-hidden="true" />
         <strong>{{ emptyTitle }}</strong>
         <p>{{ emptyDescription }}</p>
-        <button type="button" @click="emit('edit')">{{ t("studio.notes.startWriting") }}</button>
+        <UiButton size="sm" variant="secondary" @click="emit('edit')">{{
+          t("studio.notes.startWriting")
+        }}</UiButton>
       </div>
     </template>
   </div>
@@ -152,21 +144,7 @@ watch(
   border-radius: 5px;
   color: var(--text-muted);
   background: var(--daw-control);
-  cursor: pointer;
   font-size: var(--ui-type-size-caption);
-}
-
-.edit-button:hover,
-.edit-button:focus-visible {
-  border-color: var(--line-strong);
-  color: var(--text-primary);
-}
-
-.edit-button:focus-visible,
-.empty-state button:focus-visible,
-.markdown-editor:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
 }
 
 .markdown-preview {
@@ -282,7 +260,6 @@ watch(
   border-radius: 5px;
   color: var(--text-secondary);
   background: var(--daw-control);
-  cursor: pointer;
   font-size: var(--ui-type-size-caption);
 }
 

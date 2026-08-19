@@ -1,106 +1,16 @@
 <script setup lang="ts">
-import { nextTick, shallowRef, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
-
-const props = defineProps<{
-  name: string
-  label: string
-}>()
-
-const emit = defineEmits<{
-  rename: [name: string]
-}>()
-
+import { UiInlineTextEdit } from "@heron/ui"
+const props = defineProps<{ name: string; label: string }>()
+const emit = defineEmits<{ rename: [name: string] }>()
 const { t } = useI18n()
-const editing = shallowRef(false)
-const draft = shallowRef("")
-const input = useTemplateRef<HTMLInputElement>("input")
-
-function beginEditing(): void {
-  draft.value = props.name
-  editing.value = true
-  void nextTick(() => {
-    input.value?.focus()
-    input.value?.select()
-  })
-}
-
-function commit(): void {
-  if (!editing.value) return
-  const name = draft.value.trim()
-  editing.value = false
-  if (name && name !== props.name) emit("rename", name)
-}
-
-function cancel(): void {
-  editing.value = false
-}
 </script>
 
 <template>
-  <span class="inline-track-name">
-    <input
-      v-if="editing"
-      ref="input"
-      v-model="draft"
-      class="inline-track-name-input"
-      :aria-label="t('studio.rename.renameAria', { name })"
-      @blur="commit"
-      @click.stop
-      @dblclick.stop
-      @keydown.enter.stop.prevent="commit"
-      @keydown.esc.stop.prevent="cancel"
-      @pointerdown.stop
-    />
-    <button
-      v-else
-      class="inline-track-name-value"
-      type="button"
-      :aria-label="label"
-      :title="t('studio.rename.doubleClickTitle', { name })"
-      @dblclick.stop.prevent="beginEditing"
-      @keydown.f2.stop.prevent="beginEditing"
-    >
-      {{ name }}
-    </button>
-  </span>
+  <UiInlineTextEdit
+    :value="props.name"
+    :label="props.label"
+    :edit-label="t('studio.rename.renameAria', { name: props.name })"
+    @commit="emit('rename', $event)"
+  />
 </template>
-
-<style scoped>
-.inline-track-name {
-  display: block;
-  min-width: 0;
-}
-
-.inline-track-name-value {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
-  font: inherit;
-  text-align: inherit;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: text;
-}
-
-.inline-track-name-input {
-  box-sizing: border-box;
-  display: block;
-  width: 100%;
-  min-width: 0;
-  height: 20px;
-  padding: 1px 4px;
-  border: 1px solid var(--accent);
-  border-radius: 3px;
-  outline: none;
-  color: var(--text-primary);
-  background: var(--ui-domain-color-090e16);
-  box-shadow: var(--ui-focus-ring);
-  font: inherit;
-}
-</style>

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, shallowRef } from "vue"
 import { useI18n } from "vue-i18n"
-import { BookOpenText, Music2, X } from "@lucide/vue"
+import { X } from "@lucide/vue"
+import { UiIconButton, UiSegmentedControl } from "@heron/ui"
 import { useMixerStore } from "../../stores/mixer"
 import { useStudioWorkspaceStore } from "../../stores/studioWorkspace"
 import MarkdownNoteDocument from "./MarkdownNoteDocument.vue"
@@ -42,6 +43,10 @@ const emptyDescription = computed(() =>
     ? t("studio.notes.emptyProjectDescription")
     : t("studio.notes.emptyTrackDescription", { name: selectedTrackName.value })
 )
+const tabOptions = computed(() => [
+  { label: t("studio.notes.projectTab"), value: "project" },
+  { label: t("studio.notes.trackTab"), value: "track" }
+])
 
 function selectTab(tab: "project" | "track"): void {
   if (editing.value) return
@@ -91,38 +96,25 @@ async function save(): Promise<void> {
         <span>{{ t("studio.notes.eyebrow") }}</span>
         <strong>{{ t("studio.notes.title") }}</strong>
       </div>
-      <button
-        type="button"
+      <UiIconButton
         class="close-button"
-        :aria-label="t('studio.notes.close')"
+        :label="t('studio.notes.close')"
+        size="sm"
         @click="workspaceStore.closeNotesPanel"
       >
         <X :size="15" />
-      </button>
+      </UiIconButton>
     </header>
 
-    <div class="notes-tabs" role="tablist" :aria-label="t('studio.notes.tabsAria')">
-      <button
-        type="button"
-        role="tab"
-        :aria-selected="workspaceStore.activeNotesTab === 'project'"
-        :disabled="editing"
-        @click="selectTab('project')"
-      >
-        <BookOpenText :size="14" aria-hidden="true" />
-        {{ t("studio.notes.projectTab") }}
-      </button>
-      <button
-        type="button"
-        role="tab"
-        :aria-selected="workspaceStore.activeNotesTab === 'track'"
-        :disabled="editing"
-        @click="selectTab('track')"
-      >
-        <Music2 :size="14" aria-hidden="true" />
-        {{ t("studio.notes.trackTab") }}
-      </button>
-    </div>
+    <UiSegmentedControl
+      :model-value="workspaceStore.activeNotesTab"
+      class="notes-tabs"
+      :label="t('studio.notes.tabsAria')"
+      :options="tabOptions"
+      :disabled="editing"
+      size="compact"
+      @update:model-value="selectTab($event as 'project' | 'track')"
+    />
 
     <div v-if="workspaceStore.activeNotesTab === 'track'" class="track-context">
       <i :style="{ background: mixerStore.selectedChannel?.color ?? 'var(--text-faint)' }" />
@@ -193,20 +185,6 @@ async function save(): Promise<void> {
   border-radius: 5px;
   color: var(--text-faint);
   background: transparent;
-  cursor: pointer;
-}
-
-.close-button:hover,
-.close-button:focus-visible {
-  border-color: var(--line-soft);
-  color: var(--text-primary);
-  background: var(--daw-control);
-}
-
-.close-button:focus-visible,
-.notes-tabs button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
 }
 
 .notes-tabs {
@@ -230,12 +208,7 @@ async function save(): Promise<void> {
   border-radius: 5px;
   color: var(--text-faint);
   background: transparent;
-  cursor: pointer;
   font-size: var(--ui-type-size-caption);
-}
-
-.notes-tabs button:hover:not(:disabled) {
-  color: var(--text-secondary);
 }
 
 .notes-tabs button[aria-selected="true"] {

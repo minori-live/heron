@@ -44,7 +44,7 @@ afterEach(() => {
 describe("MidiClipCard", () => {
   it("previews a snapped edge drag and emits one trim commit on release", async () => {
     const wrapper = mountCard()
-    const handle = wrapper.get('[data-testid="midi-trim-start"]')
+    const handle = wrapper.get(".ui-timeline-clip__handle--start")
 
     await handle.trigger("pointerdown", { pointerId: 7, clientX: 100 })
     await handle.trigger("pointermove", { pointerId: 7, clientX: 220 })

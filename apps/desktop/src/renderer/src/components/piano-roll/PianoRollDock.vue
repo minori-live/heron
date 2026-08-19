@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { nextTick, onMounted, provide, shallowRef } from "vue"
+import { provide, shallowRef } from "vue"
 import { useI18n } from "vue-i18n"
+import { UiPianoRollViewport, type UiViewportState, type UiWheelIntent } from "@heron/ui"
 import { createPianoRollEditor, pianoRollEditorKey } from "./usePianoRollEditor"
 import PianoRollToolbar from "./PianoRollToolbar.vue"
 import PianoRollInspector from "./PianoRollInspector.vue"
@@ -13,55 +14,50 @@ provide(pianoRollEditorKey, editor)
 const { pianoRollStore } = editor
 const { t } = useI18n()
 
-const viewport = shallowRef<HTMLElement | null>(null)
+const scrollLeft = shallowRef(0)
+const scrollTop = shallowRef(0)
+const initialized = shallowRef(false)
 
 const RULER_HEIGHT_PX = 28
 const KEYBOARD_WIDTH_PX = 72
 
-onMounted(() => {
-  void nextTick(() => {
+function handleViewport(state: UiViewportState): void {
+  if (!initialized.value) {
     const focusKey = editor.activeClip.value?.notes[0]?.key ?? 60
-    const element = viewport.value
-    if (element) {
-      element.scrollTop = Math.max(
+    scrollTop.value = Math.max(0, (127 - focusKey) * pianoRollStore.rowHeight - state.height / 2)
+    const clip = editor.activeClip.value
+    if (clip) {
+      scrollLeft.value = Math.max(
         0,
-        (127 - focusKey) * pianoRollStore.rowHeight - element.clientHeight / 2
+        clip.startTick * editor.pixelsPerTick.value + KEYBOARD_WIDTH_PX - state.width / 2
       )
-      const clip = editor.activeClip.value
-      if (clip) {
-        element.scrollLeft = Math.max(
-          0,
-          clip.startTick * editor.pixelsPerTick.value + KEYBOARD_WIDTH_PX - element.clientWidth / 2
-        )
-      }
     }
-  })
-})
+    initialized.value = true
+  } else {
+    scrollLeft.value = state.scrollLeft
+    scrollTop.value = state.scrollTop
+  }
+}
 
-function handleWheel(event: WheelEvent): void {
-  if (!(event.ctrlKey || event.metaKey)) return
-  const element = viewport.value
-  if (!element) return
-  event.preventDefault()
-  const bounds = element.getBoundingClientRect()
-  if (event.altKey) {
-    const contentY = event.clientY - bounds.top + element.scrollTop - RULER_HEIGHT_PX
+function handleWheel(intent: UiWheelIntent): void {
+  if (intent.modifiers.alt) {
+    const contentY = intent.point.y + scrollTop.value - RULER_HEIGHT_PX
     const row = contentY / pianoRollStore.rowHeight
     const previous = pianoRollStore.rowHeight
-    pianoRollStore.setRowHeight(previous + (event.deltaY < 0 ? 2 : -2))
+    pianoRollStore.setRowHeight(previous + (intent.delta.y < 0 ? 2 : -2))
     const next = pianoRollStore.rowHeight
-    if (next !== previous) element.scrollTop += row * (next - previous)
+    if (next !== previous) scrollTop.value += row * (next - previous)
     return
   }
-  const contentX = event.clientX - bounds.left + element.scrollLeft - KEYBOARD_WIDTH_PX
+  const contentX = intent.point.x + scrollLeft.value - KEYBOARD_WIDTH_PX
   const previousPixelsPerTick = editor.pixelsPerTick.value
   const tick = contentX / previousPixelsPerTick
   pianoRollStore.setPixelsPerQuarter(
-    pianoRollStore.pixelsPerQuarter * (event.deltaY < 0 ? 1.25 : 0.8)
+    pianoRollStore.pixelsPerQuarter * (intent.delta.y < 0 ? 1.25 : 0.8)
   )
   const nextPixelsPerTick = editor.pixelsPerTick.value
   if (nextPixelsPerTick !== previousPixelsPerTick) {
-    element.scrollLeft += tick * (nextPixelsPerTick - previousPixelsPerTick)
+    scrollLeft.value += tick * (nextPixelsPerTick - previousPixelsPerTick)
   }
 }
 
@@ -72,26 +68,27 @@ function close(): void {
 </script>
 
 <template>
-  <section
-    class="piano-roll"
-    :aria-label="t('pianoRoll.dock.ariaLabel')"
-    @focusin="pianoRollStore.editorFocused = true"
-    @focusout="pianoRollStore.editorFocused = false"
-    @keydown="editor.handleKeydown"
-  >
+  <section class="piano-roll" :aria-label="t('pianoRoll.dock.ariaLabel')">
     <PianoRollToolbar class="toolbar-area" @close="close" />
     <PianoRollInspector class="inspector-area" />
     <div class="editor-main">
-      <div
-        ref="viewport"
+      <UiPianoRollViewport
         class="viewport"
-        tabindex="0"
-        :aria-label="t('pianoRoll.dock.noteGrid')"
+        :label="t('pianoRoll.dock.noteGrid')"
+        :scroll-left="scrollLeft"
+        :scroll-top="scrollTop"
+        @focus-change="pianoRollStore.editorFocused = $event"
+        @keyboard="editor.handleKeydown"
         @wheel="handleWheel"
+        @viewport="handleViewport"
       >
         <PianoRollGrid />
-      </div>
-      <PianoRollVelocityLane v-if="pianoRollStore.showVelocityLane" :viewport="viewport" />
+      </UiPianoRollViewport>
+      <PianoRollVelocityLane
+        v-if="pianoRollStore.showVelocityLane"
+        :scroll-left="scrollLeft"
+        @update-scroll-left="scrollLeft = $event"
+      />
     </div>
     <p v-if="editor.mixerError.value" class="error" role="alert">{{ editor.mixerError.value }}</p>
   </section>
@@ -140,10 +137,6 @@ function close(): void {
   flex: 1;
   overflow: auto;
   outline: none;
-}
-
-.viewport:focus-visible {
-  box-shadow: var(--ui-focus-ring);
 }
 
 .error {

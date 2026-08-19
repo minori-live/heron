@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue"
+import { UiArrangementTrackSurface, type UiGestureIntent } from "@heron/ui"
 import type { TempoMapSnapshot, WaveformDisplayMode } from "@heron/contracts"
 import type { TimelineClip } from "../../stores/transport"
 import type { AudioFadeEdge, ClipTrimEdge } from "../../utils/clipEditing"
@@ -82,16 +83,11 @@ const dragPreviewStyle = computed(() =>
     : {}
 )
 
-function seekFromPointer(event: PointerEvent): void {
-  const target = event.currentTarget as HTMLElement
-  const bounds = target.getBoundingClientRect()
+function seekFromGesture(intent: UiGestureIntent): void {
+  if (intent.phase !== "start") return
   emit(
     "seek",
-    timelineXToSeconds(
-      props.tempoMap,
-      Math.max(0, event.clientX - bounds.left),
-      props.pixelsPerQuarter
-    )
+    timelineXToSeconds(props.tempoMap, Math.max(0, intent.point.x), props.pixelsPerQuarter)
   )
 }
 function relayWaveformFrameCount(frameCount: number, sampleRate: number): void {
@@ -109,12 +105,13 @@ function relayFade(clipId: string, edge: AudioFadeEdge, frames: number): void {
 </script>
 
 <template>
-  <div
+  <UiArrangementTrackSurface
     :class="['track-lane', { 'drag-target': dragPreview }]"
     :data-track-id="trackId"
     data-track-kind="audio"
     :style="laneStyle"
-    @pointerdown="seekFromPointer"
+    label="Audio track lane"
+    @gesture="seekFromGesture"
   >
     <i
       v-for="(left, index) in beatLines"
@@ -163,7 +160,7 @@ function relayFade(clipId: string, edge: AudioFadeEdge, frames: number): void {
     >
       <span>{{ dragPreview.name }}</span>
     </div>
-  </div>
+  </UiArrangementTrackSurface>
 </template>
 
 <style scoped>
@@ -178,7 +175,6 @@ function relayFade(clipId: string, edge: AudioFadeEdge, frames: number): void {
     transparent 0 24px,
     var(--daw-lane-stripe) 25px
   );
-  cursor: crosshair;
 }
 .track-lane.drag-target {
   background-color: color-mix(in srgb, var(--clip-color, var(--accent)) 8%, var(--daw-lane));

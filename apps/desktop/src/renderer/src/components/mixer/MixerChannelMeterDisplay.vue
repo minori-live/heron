@@ -8,7 +8,7 @@ import type {
   MeterReturnRate,
   MixerChannelMeter
 } from "@heron/contracts"
-import { UiLevelMeter } from "@heron/ui"
+import { UiButton, UiLevelMeter } from "@heron/ui"
 import { usePeakMeterDisplay } from "../../composables/usePeakMeterDisplay"
 import { useApplicationSettingsStore } from "../../stores/applicationSettings"
 import { useMixerRuntimeStore } from "../../stores/mixerRuntime"
@@ -62,16 +62,16 @@ function resetMaximumPeak(): void {
 
 <template>
   <div class="meter-display">
-    <button
-      type="button"
+    <UiButton
+      size="sm"
+      variant="ghost"
       :class="['maximum-peak-value', maximumPeakState]"
       :aria-label="`${channelName} latched maximum post-fader level in decibels`"
       :title="`Maximum post-fader peak: ${maximumPeakLabel} dB · Click to reset peak and clipping`"
-      @pointerdown.stop
-      @click.stop="resetMaximumPeak"
+      @click="resetMaximumPeak"
     >
       {{ maximumPeakLabel }}
-    </button>
+    </UiButton>
     <UiLevelMeter
       class="meter-rack"
       :channels="meterDisplay.meterChannels.value"
@@ -106,7 +106,6 @@ function resetMaximumPeak(): void {
   font: var(--ui-type-size-control) var(--ui-type-family-data);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  cursor: pointer;
 }
 .maximum-peak-value.active {
   color: var(--mixer-pan);
@@ -118,9 +117,5 @@ function resetMaximumPeak(): void {
   border-color: var(--mixer-record);
   color: var(--record);
   background: color-mix(in srgb, var(--record) 14%, var(--daw-meter-well));
-}
-.maximum-peak-value:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
 }
 </style>

@@ -126,8 +126,7 @@ describe("MediaBrowserPanel", () => {
     await wrapper.vm.$nextTick()
     const audioRow = wrapper.findAll(".asset-row")[0]!
 
-    await audioRow.trigger("focus")
-    await audioRow.trigger("keydown", { key: "Enter" })
+    await audioRow.get("button.ui-action-row").trigger("click")
     await audioRow.trigger("dragstart")
     expect(media.selectedAssetId).toBe("audio-1")
     expect(audioRow.text()).toContain("0.0 s")

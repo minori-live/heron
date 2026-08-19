@@ -7,8 +7,8 @@ describe("studioBasicsSteps", () => {
 
     expect(STUDIO_BASICS_VERSION).toBe(1)
     expect(steps).toHaveLength(7)
-    expect(steps[0]?.element).toBeUndefined()
-    expect(steps.slice(1).map((step) => step.element)).toEqual([
+    expect(steps[0]?.target).toBeUndefined()
+    expect(steps.slice(1).map((step) => step.target)).toEqual([
       '[data-tutorial="studio-arrangement"]',
       '[data-tutorial="studio-transport"]',
       '[data-tutorial="studio-musical-display"]',

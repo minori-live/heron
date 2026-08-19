@@ -3,6 +3,9 @@ packages:
   - apps/*
   - packages/*
   - crates/*
+managePackageManagerVersions: false
+pmOnFail: ignore
+verifyDepsBeforeRun: false
 catalog:
   "@electric-sql/pglite": 0.5.4
   "@emnapi/runtime": 2.0.0-alpha.3
@@ -24,6 +27,8 @@ catalog:
   "@vitest/browser-playwright": 4.1.10
   "@vitest/coverage-v8": 4.1.10
   "@vue/test-utils": 2.4.11
+  "@vue/compiler-dom": 3.5.41
+  "@vue/compiler-sfc": 3.5.41
   happy-dom: 20.11.1
   pinia: 4.0.2
   playwright: 1.62.1

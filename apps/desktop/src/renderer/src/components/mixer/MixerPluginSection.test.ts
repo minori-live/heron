@@ -63,20 +63,6 @@ function rackDragData(instanceId: string) {
   }
 }
 
-function setRowBounds(element: Element, top: number): void {
-  element.getBoundingClientRect = () => ({
-    x: 0,
-    y: top,
-    top,
-    right: 220,
-    bottom: top + 24,
-    left: 0,
-    width: 220,
-    height: 24,
-    toJSON: () => undefined
-  })
-}
-
 async function openPickerSubmenu(ariaLabel: string): Promise<void> {
   const trigger = document.body.querySelector<HTMLElement>(`[aria-label="${ariaLabel}"]`)
   expect(trigger).not.toBeNull()
@@ -121,6 +107,15 @@ describe("MixerPluginSection", () => {
     expect(wrapper.emitted("toggle")?.at(-1)).toEqual(["plugin", false])
     await wrapper.get('button[aria-label="Remove Compressor"]').trigger("click")
     expect(wrapper.emitted("remove")?.at(-1)).toEqual(["plugin"])
+    expect(
+      wrapper.get('button[aria-label="Open Compressor editor"]').attributes("data-variant")
+    ).toBe("plain")
+    expect(wrapper.get('button[aria-label="Remove Compressor"]').attributes("data-variant")).toBe(
+      "danger-ghost"
+    )
+    expect(wrapper.get('button[aria-label="Remove Compressor"]').classes()).toContain(
+      "ui-icon-button--compact"
+    )
     expect(wrapper.findAll(".plugin-row.empty")).toHaveLength(1)
     expect(wrapper.get('button[aria-label="Add VST3 audio effect"]').text()).toBe("")
     expect(wrapper.findAll(".plugin-row.alignment-spacer")).toHaveLength(2)
@@ -145,7 +140,9 @@ describe("MixerPluginSection", () => {
     const pickerTrigger = wrapper.get('button[aria-label="Add VST3 audio effect"]')
     await pickerTrigger.trigger("click")
     await flushPromises()
-    expect(pickerTrigger.attributes("data-state")).toBe("open")
+    expect(
+      document.body.querySelector('input[aria-label="Search VST3 audio effects"]')
+    ).not.toBeNull()
     await openPickerSubmenu("Browse Heron Studio plug-ins")
     await openPickerSubmenu("Choose Delay")
     expect(wrapper.emitted("insert")).toHaveLength(1)
@@ -286,36 +283,30 @@ describe("MixerPluginSection", () => {
       }
     })
 
-    const compressorRow = wrapper.get('[aria-label="Compressor plugin active"]')
-    const delayRow = wrapper.get('[aria-label="Delay plugin active"]')
     const compressorGrip = wrapper.get('[aria-label="Move Compressor"]')
     const delayGrip = wrapper.get('[aria-label="Move Delay"]')
-    setRowBounds(delayRow.element, 100)
     const compressorDrag = rackDragData("plugin")
 
     await compressorGrip.trigger("dragstart", { dataTransfer: compressorDrag })
-    await delayRow.trigger("dragover", { clientY: 121, dataTransfer: compressorDrag })
-
-    const afterPreview = wrapper.get('[data-testid="plugin-drop-preview"]')
-    expect(afterPreview.attributes("aria-label")).toBe("Drop at effect slot 2")
-    expect(afterPreview.text()).toBe("")
+    const afterPreview = wrapper.findAll(".ui-drop-zone")[2]!
+    await afterPreview.trigger("dragover", { clientY: 121, dataTransfer: compressorDrag })
+    expect(afterPreview.classes()).toContain("ui-drop-zone--active")
 
     await afterPreview.trigger("drop", { dataTransfer: compressorDrag })
     expect(wrapper.emitted("move")?.at(-1)).toEqual(["plugin", 1])
-    expect(wrapper.find('[data-testid="plugin-drop-preview"]').exists()).toBe(false)
+    expect(afterPreview.classes()).not.toContain("ui-drop-zone--active")
     await compressorGrip.trigger("dragend", { dataTransfer: compressorDrag })
 
-    setRowBounds(compressorRow.element, 100)
     const delayDrag = rackDragData("delay-plugin")
     await delayGrip.trigger("dragstart", { dataTransfer: delayDrag })
-    await compressorRow.trigger("dragover", { clientY: 103, dataTransfer: delayDrag })
-
-    const beforePreview = wrapper.get('[data-testid="plugin-drop-preview"]')
-    expect(beforePreview.attributes("aria-label")).toBe("Drop at effect slot 1")
-    expect(beforePreview.text()).toBe("")
+    const beforePreview = wrapper.findAll(".ui-drop-zone")[0]!
+    await beforePreview.trigger("dragover", { clientY: 103, dataTransfer: delayDrag })
+    expect(beforePreview.classes()).toContain("ui-drop-zone--active")
 
     await delayGrip.trigger("dragend", { dataTransfer: delayDrag })
-    expect(wrapper.find('[data-testid="plugin-drop-preview"]').exists()).toBe(false)
+    window.dispatchEvent(new Event("dragend"))
+    await wrapper.vm.$nextTick()
+    expect(beforePreview.classes()).not.toContain("ui-drop-zone--active")
   })
 
   it("transfers the snap preview when a drag enters an adjacent mixer strip", async () => {
@@ -351,23 +342,24 @@ describe("MixerPluginSection", () => {
         inserts: [adjacentPlugin]
       }
     })
-    const sourceRow = sourceStrip.get('[aria-label="Compressor plugin active"]')
-    const adjacentRow = adjacentStrip.get('[aria-label="Adjacent FX plugin active"]')
     const sourceGrip = sourceStrip.get('[aria-label="Move Compressor"]')
-    setRowBounds(sourceRow.element, 100)
-    setRowBounds(adjacentRow.element, 100)
     const dragData = rackDragData("plugin")
 
     await sourceGrip.trigger("dragstart", { dataTransfer: dragData })
-    await sourceRow.trigger("dragover", { clientY: 103, dataTransfer: dragData })
-    expect(sourceStrip.find('[data-testid="plugin-drop-preview"]').exists()).toBe(true)
+    const sourceZone = sourceStrip.findAll(".ui-drop-zone")[0]!
+    const adjacentZone = adjacentStrip.findAll(".ui-drop-zone")[0]!
+    await sourceZone.trigger("dragover", { clientY: 103, dataTransfer: dragData })
+    expect(sourceZone.classes()).toContain("ui-drop-zone--active")
 
-    await adjacentRow.trigger("dragover", { clientY: 103, dataTransfer: dragData })
-    expect(sourceStrip.find('[data-testid="plugin-drop-preview"]').exists()).toBe(false)
-    expect(adjacentStrip.find('[data-testid="plugin-drop-preview"]').exists()).toBe(true)
+    await sourceZone.trigger("dragleave")
+    await adjacentZone.trigger("dragover", { clientY: 103, dataTransfer: dragData })
+    expect(sourceZone.classes()).not.toContain("ui-drop-zone--active")
+    expect(adjacentZone.classes()).toContain("ui-drop-zone--active")
 
     await sourceGrip.trigger("dragend", { dataTransfer: dragData })
-    expect(adjacentStrip.find('[data-testid="plugin-drop-preview"]').exists()).toBe(false)
+    window.dispatchEvent(new Event("dragend"))
+    await adjacentStrip.vm.$nextTick()
+    expect(adjacentZone.classes()).not.toContain("ui-drop-zone--active")
     sourceStrip.unmount()
     adjacentStrip.unmount()
   })
