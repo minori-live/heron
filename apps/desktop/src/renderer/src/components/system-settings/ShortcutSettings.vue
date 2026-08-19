@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { UiButton, UiIconButton } from "@heron/ui"
 import { useEventListener } from "@vueuse/core"
 import { computed, onBeforeUnmount, onMounted, shallowRef } from "vue"
 import { storeToRefs } from "pinia"
@@ -237,7 +238,9 @@ onBeforeUnmount(() => {
   >
     <div class="shortcut-toolbar">
       <p>{{ t("settings.shortcuts.instructions") }}</p>
-      <button type="button" @click="resetAll">{{ t("settings.shortcuts.resetAll") }}</button>
+      <UiButton size="sm" variant="ghost" @click="resetAll">{{
+        t("settings.shortcuts.resetAll")
+      }}</UiButton>
     </div>
 
     <SettingsSection
@@ -252,9 +255,9 @@ onBeforeUnmount(() => {
             <strong>{{ t(`settings.shortcuts.commands.${command}`) }}</strong>
             <small>{{ command }}</small>
           </div>
-          <button
+          <UiButton
             class="binding-button"
-            type="button"
+            size="sm"
             :class="{ capturing: capturingKeyboard === command }"
             @click="capturingKeyboard = command"
           >
@@ -265,11 +268,11 @@ onBeforeUnmount(() => {
                   ? formatKeyboardShortcut(resolvedKeyboard[command]!, windowStore.platform)
                   : t("settings.shortcuts.unassigned")
             }}
-          </button>
+          </UiButton>
           <div class="midi-binding">
-            <button
+            <UiButton
               class="binding-button"
-              type="button"
+              size="sm"
               :class="{ capturing: learningMidi === command }"
               @click="startMidiLearn(command)"
             >
@@ -278,16 +281,16 @@ onBeforeUnmount(() => {
                   ? t("settings.shortcuts.moveMidiControl")
                   : midiLabel(command)
               }}
-            </button>
-            <button
+            </UiButton>
+            <UiIconButton
               v-if="settings?.shortcuts.midi[command]"
               class="clear-button"
-              type="button"
-              :aria-label="t('settings.shortcuts.clearMidi')"
+              size="sm"
+              :label="t('settings.shortcuts.clearMidi')"
               @click="clearMidi(command)"
             >
               ×
-            </button>
+            </UiIconButton>
           </div>
         </div>
       </div>
@@ -318,7 +321,6 @@ onBeforeUnmount(() => {
   border-radius: 5px;
   color: var(--text-secondary);
   background: var(--surface-1);
-  cursor: pointer;
 }
 
 .shortcut-toolbar button {
@@ -362,12 +364,6 @@ onBeforeUnmount(() => {
   min-height: 32px;
   padding: 6px 9px;
   text-align: left;
-}
-
-.binding-button:hover,
-.shortcut-toolbar button:hover {
-  border-color: var(--line-strong);
-  background: var(--surface-2);
 }
 
 .binding-button.capturing {

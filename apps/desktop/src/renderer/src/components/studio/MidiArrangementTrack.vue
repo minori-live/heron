@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
+import { UiArrangementTrackSurface } from "@heron/ui"
 import type { MidiClipState, MidiRecordingPreviewTake, TempoMapSnapshot } from "@heron/contracts"
 import type { PianoRollSnap } from "../../utils/pianoRoll"
 import type { ClipTrimEdge } from "../../utils/clipEditing"
 import { barTicksThroughTick, beatTicksThroughTick } from "../../utils/tempoMap"
-import { timelineXToTick } from "../../utils/timelineCoordinates"
+import { timelineXToTick, tickToTimelineX } from "../../utils/timelineCoordinates"
 import MidiClipCard from "./MidiClipCard.vue"
 import MidiRecordingPreview from "./MidiRecordingPreview.vue"
 
@@ -70,6 +71,9 @@ const beatLines = computed(() =>
     (tick) => (tick / props.tempoMap.ticksPerQuarter) * props.pixelsPerQuarter
   )
 )
+const keyboardInsertionX = computed(() =>
+  tickToTimelineX(props.tempoMap, props.keyboardInsertionTick, props.pixelsPerQuarter)
+)
 const dragPreviewStyle = computed(() => {
   if (!props.dragPreview) return {}
   const pixelsPerTick = props.pixelsPerQuarter / props.tempoMap.ticksPerQuarter
@@ -92,13 +96,8 @@ function noteStyle(clip: MidiClipState, note: MidiClipState["notes"][number]) {
   }
 }
 
-function createClipAtPointer(event: MouseEvent): void {
-  const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  const tick = timelineXToTick(
-    props.tempoMap,
-    Math.max(0, event.clientX - bounds.left),
-    props.pixelsPerQuarter
-  )
+function createClipAtPosition(position: number): void {
+  const tick = timelineXToTick(props.tempoMap, Math.max(0, position), props.pixelsPerQuarter)
   emit("create", props.trackId, tick)
 }
 
@@ -120,15 +119,15 @@ function relayDragStart(clipId: string, offsetPixels: number): void {
 </script>
 
 <template>
-  <div
+  <UiArrangementTrackSurface
     :class="['midi-track', { 'drag-target': dragPreview }]"
     :style="style"
     :data-track-id="trackId"
     data-track-kind="instrument"
-    tabindex="0"
-    :aria-label="t('studio.arrangement.instrumentLaneAria')"
-    @dblclick.self="createClipAtPointer"
-    @keydown.enter.self="emit('create', trackId, keyboardInsertionTick)"
+    :label="t('studio.arrangement.instrumentLaneAria')"
+    focusable
+    :keyboard-position="keyboardInsertionX"
+    @create="createClipAtPosition"
   >
     <span v-if="clips.length === 0 && !dragPreview && !recording" class="empty-hint">
       {{ t("studio.arrangement.createMidiClipHint") }}
@@ -188,7 +187,7 @@ function relayDragStart(clipId: string, offsetPixels: number): void {
         :style="noteStyle(dragPreview, note)"
       />
     </div>
-  </div>
+  </UiArrangementTrackSurface>
 </template>
 
 <style scoped>
@@ -197,10 +196,6 @@ function relayDragStart(clipId: string, offsetPixels: number): void {
   overflow: hidden;
   border-bottom: 1px solid var(--line-strong);
   background: var(--daw-lane);
-}
-.midi-track:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: -2px;
 }
 .midi-track.drag-target {
   background: color-mix(in srgb, var(--clip-color, var(--accent)) 8%, var(--daw-lane));

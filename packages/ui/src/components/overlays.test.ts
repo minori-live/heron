@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { h } from "vue"
 
 import UiAlertDialog from "./UiAlertDialog.vue"
+import UiButton from "./UiButton.vue"
 import UiDialog from "./UiDialog.vue"
 import UiIconButton from "./UiIconButton.vue"
 import UiMenubar from "./UiMenubar.vue"
@@ -328,6 +329,24 @@ describe("UiTooltip", () => {
     const tooltip = portal('[data-ui-part="tooltip-content"]')
     expect(tooltip.text()).toContain("Play")
     expect(tooltip.get("kbd").text()).toBe("Space")
+  })
+
+  it("opens when its Storybook trigger is a UiButton", async () => {
+    mount(UiProvider, {
+      attachTo: document.body,
+      props: { tooltipDelay: 0 },
+      slots: {
+        default: () =>
+          h(UiTooltip, { text: "Record arm", delayDuration: 0 }, () =>
+            h(UiButton, { size: "sm" }, () => "Record arm")
+          )
+      }
+    })
+
+    await new DOMWrapper(document.body.querySelector<HTMLElement>("button")).trigger("focus")
+    await flushPromises()
+
+    expect(portal('[data-ui-part="tooltip-content"]').text()).toContain("Record arm")
   })
 
   it("stays hidden when disabled", async () => {

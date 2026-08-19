@@ -1,9 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/vue3-vite"
 import { shallowRef } from "vue"
+import { expect, userEvent, within } from "storybook/test"
 import type { UiMenuEntry } from "../menu"
 import UiButton from "./UiButton.vue"
+import UiCascadingMenu from "./UiCascadingMenu.vue"
 import UiContextMenu from "./UiContextMenu.vue"
 import UiDropdownMenu from "./UiDropdownMenu.vue"
+import UiMenubar from "./UiMenubar.vue"
 
 const effectEntries: readonly UiMenuEntry[] = [
   {
@@ -141,12 +144,21 @@ export const SearchableTaxonomy: Story = {
         </output>
       </div>
     `
-  })
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole("button", { name: "Add audio effect" }))
+    const page = within(document.body)
+    const search = await page.findByRole("textbox", { name: "Search effects" })
+    await userEvent.type(search, "OTT")
+    await userEvent.click(await page.findByText("OTT"))
+    await expect(canvas.getByText("effect:ott")).toBeVisible()
+  }
 }
 
 export const ClipContextMenu: Story = {
   render: () => ({
-    components: { UiContextMenu },
+    components: { UiButton, UiContextMenu },
     setup() {
       const lastAction = shallowRef("Right-click the selected clip")
       return { clipEntries, lastAction }
@@ -158,8 +170,8 @@ export const ClipContextMenu: Story = {
           menu-label="Verse clip commands"
           @select="lastAction = $event"
         >
-          <div
-            tabindex="0"
+          <UiButton
+            variant="ghost"
             style="
               width:22rem;
               min-height:5rem;
@@ -175,26 +187,33 @@ export const ClipContextMenu: Story = {
             <div style="margin-top:var(--ui-space-2);font-family:var(--ui-type-family-data);font-size:var(--ui-font-size-xs)">
               17.1.1 — 25.1.1
             </div>
-          </div>
+          </UiButton>
         </UiContextMenu>
         <output style="color:var(--ui-color-text-muted);font-size:var(--ui-font-size-xs)">
           {{ lastAction }}
         </output>
       </div>
     `
-  })
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const trigger = canvas.getByRole("button", { name: /Verse/ })
+    await userEvent.pointer({ keys: "[MouseRight]", target: trigger })
+    await userEvent.click(await within(document.body).findByText("Rename"))
+    await expect(canvas.getByText("rename")).toBeVisible()
+  }
 }
 
 export const ScrollableContextMenu: Story = {
   render: () => ({
-    components: { UiContextMenu },
+    components: { UiButton, UiContextMenu },
     setup() {
       return { scrollEntries }
     },
     template: `
       <UiContextMenu :entries="scrollEntries" menu-label="Scrollable clip commands">
-        <div
-          tabindex="0"
+        <UiButton
+          variant="ghost"
           style="
             width:22rem;
             min-height:5rem;
@@ -206,8 +225,72 @@ export const ScrollableContextMenu: Story = {
           "
         >
           Right-click for a long command menu
-        </div>
+        </UiButton>
       </UiContextMenu>
     `
   })
+}
+
+export const CascadingMenu: Story = {
+  render: () => ({
+    components: { UiButton, UiCascadingMenu },
+    data: () => ({
+      selected: "No destination selected",
+      items: [
+        {
+          label: "Bus",
+          children: [
+            { label: "Bus 1", value: "bus:1", trailing: "Vocal verb" },
+            { label: "Bus 2", value: "bus:2", trailing: "Drum crush" }
+          ]
+        },
+        { label: "Stereo out", value: "output:stereo" }
+      ]
+    }),
+    template: `
+      <div class="storybook-stack">
+        <UiCascadingMenu
+          :items="items"
+          search-label="Search destinations"
+          empty-message="No destinations match."
+          aria-label="Choose output"
+          @select="selected = $event"
+        ><UiButton>Choose output</UiButton></UiCascadingMenu>
+        <output>{{ selected }}</output>
+      </div>
+    `
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole("button", { name: "Choose output" }))
+    await userEvent.hover(await within(document.body).findByText("Bus"))
+    await userEvent.click(await within(document.body).findByText("Bus 1"))
+    await expect(canvas.getByText("bus:1")).toBeVisible()
+  }
+}
+
+export const ApplicationMenubar: Story = {
+  render: () => ({
+    components: { UiMenubar },
+    data: () => ({
+      selected: "No command selected",
+      menus: [
+        {
+          value: "file",
+          label: "File",
+          items: [
+            { value: "new", label: "New", shortcut: "Ctrl+N" },
+            { value: "close", label: "Close", shortcut: "Ctrl+W", separatorBefore: true }
+          ]
+        }
+      ]
+    }),
+    template: `<div class="storybook-stack"><UiMenubar :menus="menus" aria-label="Application menu" @select="selected = $event" /><output>{{ selected }}</output></div>`
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByText("File"))
+    await userEvent.click(await within(document.body).findByText("New"))
+    await expect(canvas.getByText("new")).toBeVisible()
+  }
 }

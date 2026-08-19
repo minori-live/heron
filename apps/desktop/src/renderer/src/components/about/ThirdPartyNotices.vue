@@ -25,7 +25,6 @@ const { t } = useI18n()
 .third-party-notices summary {
   color: var(--ui-color-text);
   font-family: var(--ui-type-family-data);
-  cursor: pointer;
 }
 
 .third-party-notices pre {

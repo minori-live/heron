@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
+import { UiButton } from "@heron/ui"
 import type {
   MixerChannelPatch,
   MixerChannelState,
@@ -56,9 +57,9 @@ const inputSummary = computed(() => {
       :application-capture="channel.applicationCapture"
       @update="emit('updateChannel', $event)"
     />
-    <button v-else class="section-control" disabled aria-disabled="true">
+    <UiButton v-else class="section-control" size="sm" disabled>
       {{ inputSummary }}
-    </button>
+    </UiButton>
   </section>
 </template>
 
@@ -87,15 +88,5 @@ const inputSummary = computed(() => {
   font: var(--ui-type-size-control) var(--ui-type-family-data);
   text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: pointer;
-}
-.section-control:disabled {
-  color: var(--ui-domain-color-b8b8b8);
-  cursor: default;
-  opacity: 0.78;
-}
-.section-control:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
 }
 </style>

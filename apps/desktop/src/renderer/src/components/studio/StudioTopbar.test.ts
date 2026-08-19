@@ -174,7 +174,7 @@ describe("StudioTopbar", () => {
     expect(wrapper.emitted("toggleCycle")).toHaveLength(1)
     expect(wrapper.emitted("toggleLowLatencyMode")).toHaveLength(1)
 
-    const placeholders = wrapper.findAll('button[aria-disabled="true"][data-placeholder]')
+    const placeholders = wrapper.findAll('button[data-placeholder="true"]')
     expect(placeholders).toHaveLength(10)
     expect(wrapper.get('button[aria-label="Metronome"]').attributes("aria-pressed")).toBe("false")
     expect(wrapper.get('button[aria-label="Count-in"]').attributes("aria-pressed")).toBe("false")

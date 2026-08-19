@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
-import { UiTooltip } from "@heron/ui"
+import { UiButton } from "@heron/ui"
 
 const { t } = useI18n()
 
@@ -36,39 +36,34 @@ const tooltipText = computed(() =>
     : (props.tooltip ?? props.label)
 )
 
-function activate(event: MouseEvent): void {
-  if (props.unavailable || props.disabled) {
-    event.preventDefault()
-    event.stopPropagation()
-    return
-  }
+function activate(): void {
+  if (props.unavailable || props.disabled) return
   emit("activate")
 }
 </script>
 
 <template>
-  <UiTooltip :text="tooltipText" side="bottom">
-    <button
-      type="button"
-      :class="[
-        'studio-control-button',
-        `tone-${tone}`,
-        {
-          unavailable,
-          'compact-hidden': compactHidden
-        }
-      ]"
-      :disabled="disabled"
-      :aria-disabled="unavailable || disabled ? 'true' : undefined"
-      :aria-pressed="pressed"
-      :aria-label="label"
-      :data-placeholder="unavailable ? '' : undefined"
-      :data-tutorial="tutorialTarget"
-      @click="activate"
-    >
-      <slot />
-    </button>
-  </UiTooltip>
+  <UiButton
+    size="sm"
+    variant="ghost"
+    :title="tooltipText"
+    :class="[
+      'studio-control-button',
+      `tone-${tone}`,
+      {
+        unavailable,
+        'compact-hidden': compactHidden
+      }
+    ]"
+    :disabled="unavailable || disabled"
+    :aria-pressed="pressed"
+    :aria-label="label"
+    :data-placeholder="unavailable ? 'true' : undefined"
+    :data-tutorial="tutorialTarget"
+    @click="activate"
+  >
+    <slot />
+  </UiButton>
 </template>
 
 <style scoped>
@@ -83,17 +78,7 @@ function activate(event: MouseEvent): void {
   border-radius: 6px;
   color: var(--text-muted);
   background: transparent;
-  cursor: pointer;
   -webkit-app-region: no-drag;
-}
-.studio-control-button:hover {
-  border-color: var(--line-strong);
-  color: var(--text-primary);
-  background: var(--daw-control-hover);
-}
-.studio-control-button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
 }
 .studio-control-button[aria-pressed="true"] {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--line-strong));
@@ -143,11 +128,6 @@ function activate(event: MouseEvent): void {
 .studio-control-button.unavailable {
   opacity: 0.48;
   cursor: help;
-}
-.studio-control-button.unavailable:hover {
-  border-color: transparent;
-  color: var(--text-muted);
-  background: transparent;
 }
 .studio-control-button:disabled {
   opacity: 0.32;

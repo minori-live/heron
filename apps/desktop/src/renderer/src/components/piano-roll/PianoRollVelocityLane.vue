@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { shallowRef, type CSSProperties } from "vue"
+import { computed, shallowRef } from "vue"
 import { useI18n } from "vue-i18n"
-import { useEventListener } from "@vueuse/core"
+import { UiVelocityLane, type UiGestureIntent, type UiVelocityBar } from "@heron/ui"
 import type { ProjectCommand } from "@heron/contracts"
 import { usePianoRollEditor } from "./usePianoRollEditor"
 import type { NoteGestureItem } from "./usePianoRollGestures"
 
-const props = defineProps<{ viewport: HTMLElement | null }>()
+const props = defineProps<{ scrollLeft: number }>()
+const emit = defineEmits<{ updateScrollLeft: [value: number] }>()
 
 const {
   pianoRollStore,
@@ -23,26 +24,9 @@ const { t } = useI18n()
 const BAR_WIDTH_PX = 5
 const BAR_HIT_TOLERANCE_PX = 3
 
-const laneScroll = shallowRef<HTMLElement | null>(null)
-
-useEventListener(
-  () => props.viewport,
-  "scroll",
-  () => {
-    const source = props.viewport
-    const target = laneScroll.value
-    if (source && target && target.scrollLeft !== source.scrollLeft) {
-      target.scrollLeft = source.scrollLeft
-    }
-  }
-)
-useEventListener(laneScroll, "scroll", () => {
-  const source = laneScroll.value
-  const target = props.viewport
-  if (source && target && target.scrollLeft !== source.scrollLeft) {
-    target.scrollLeft = source.scrollLeft
-  }
-})
+function updateScroll(value: number): void {
+  emit("updateScrollLeft", value)
+}
 
 interface VelocityDrag {
   mode: "level" | "paint"
@@ -62,19 +46,9 @@ function displayedVelocity(item: NoteGestureItem): number {
   return drag.value?.previews.get(noteKey(item)) ?? item.note.velocity
 }
 
-function barStyle(item: NoteGestureItem): CSSProperties {
-  return {
-    left: `${barLeft(item)}px`,
-    width: `${BAR_WIDTH_PX}px`,
-    height: `${(displayedVelocity(item) / 127) * 100}%`,
-    "--note-color": trackColor(item.clip)
-  }
-}
-
-function lanePoint(event: PointerEvent): { x: number; velocity: number } {
-  const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  const x = event.clientX - bounds.left
-  const ratio = bounds.height > 0 ? 1 - (event.clientY - bounds.top) / bounds.height : 1
+function lanePoint(intent: UiGestureIntent): { x: number; velocity: number } {
+  const x = intent.point.x
+  const ratio = 1 - intent.point.y / 110
   return { x, velocity: Math.max(1, Math.min(127, Math.round(ratio * 127))) }
 }
 
@@ -101,10 +75,9 @@ function applyPaint(current: VelocityDrag, x: number, velocity: number): Velocit
   return { ...current, previews }
 }
 
-function handlePointerDown(event: PointerEvent): void {
-  const point = lanePoint(event)
+function startGesture(intent: UiGestureIntent): void {
+  const point = lanePoint(intent)
   const hits = barsAt(point.x)
-  ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
   if (hits.length === 0) {
     drag.value = { mode: "paint", targets: [], previews: new Map() }
     return
@@ -117,18 +90,17 @@ function handlePointerDown(event: PointerEvent): void {
   drag.value = applyLevel({ mode: "level", targets, previews: new Map() }, point.velocity)
 }
 
-function handlePointerMove(event: PointerEvent): void {
+function updateGesture(intent: UiGestureIntent): void {
   const current = drag.value
   if (!current) return
-  event.preventDefault()
-  const point = lanePoint(event)
+  const point = lanePoint(intent)
   drag.value =
     current.mode === "level"
       ? applyLevel(current, point.velocity)
       : applyPaint(current, point.x, point.velocity)
 }
 
-function handlePointerUp(): void {
+function commitGesture(): void {
   const current = drag.value
   drag.value = null
   if (!current) return
@@ -153,6 +125,26 @@ function cancelDrag(): void {
   drag.value = null
 }
 
+function handleGesture(intent: UiGestureIntent): void {
+  if (intent.phase === "start") startGesture(intent)
+  else if (intent.phase === "update") updateGesture(intent)
+  else if (intent.phase === "commit") commitGesture()
+  else cancelDrag()
+}
+
+const bars = computed<UiVelocityBar[]>(() =>
+  visibleNotes.value.map((item) => ({
+    id: noteKey(item),
+    x: barLeft(item),
+    width: BAR_WIDTH_PX,
+    height: (displayedVelocity(item) / 127) * 100,
+    color: trackColor(item.clip),
+    label: barAriaLabel(item),
+    selected: pianoRollStore.selectedNoteKeys.has(noteKey(item)),
+    inactive: item.clip.id !== pianoRollStore.activeClipId
+  }))
+)
+
 function barAriaLabel(item: NoteGestureItem): string {
   return t("pianoRoll.velocityLane.barLabel", {
     velocity: displayedVelocity(item),
@@ -163,87 +155,13 @@ function barAriaLabel(item: NoteGestureItem): string {
 </script>
 
 <template>
-  <div class="velocity-lane">
-    <div class="lane-header">{{ t("pianoRoll.velocityLane.header") }}</div>
-    <div ref="laneScroll" class="lane-scroll">
-      <div
-        class="lane-canvas"
-        :style="{ width: `${gridWidth}px` }"
-        role="application"
-        :aria-label="t('pianoRoll.velocityLane.ariaLabel')"
-        @pointerdown="handlePointerDown"
-        @pointermove="handlePointerMove"
-        @pointerup="handlePointerUp"
-        @pointercancel="cancelDrag"
-      >
-        <div
-          v-for="item in visibleNotes"
-          :key="noteKey(item)"
-          class="velocity-bar"
-          :class="{
-            selected: pianoRollStore.selectedNoteKeys.has(noteKey(item)),
-            inactive: item.clip.id !== pianoRollStore.activeClipId
-          }"
-          :style="barStyle(item)"
-          :aria-label="barAriaLabel(item)"
-        />
-      </div>
-    </div>
-  </div>
+  <UiVelocityLane
+    :width="gridWidth"
+    :label="t('pianoRoll.velocityLane.ariaLabel')"
+    :header="t('pianoRoll.velocityLane.header')"
+    :bars="bars"
+    :scroll-left="props.scrollLeft"
+    @update-scroll-left="updateScroll"
+    @gesture="handleGesture"
+  />
 </template>
-
-<style scoped>
-.velocity-lane {
-  display: flex;
-  min-width: 0;
-  flex: none;
-  height: 110px;
-  border-top: 1px solid var(--line-strong);
-  background: var(--surface-1);
-}
-
-.lane-header {
-  flex: none;
-  width: 72px;
-  padding: var(--ui-space-2) 5px 0 0;
-  border-right: 1px solid var(--line-strong);
-  color: var(--text-muted);
-  background: var(--surface-2);
-  text-align: right;
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
-}
-
-.lane-scroll {
-  min-width: 0;
-  flex: 1;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-}
-
-.lane-canvas {
-  position: relative;
-  height: 100%;
-  background: var(--daw-lane);
-  touch-action: none;
-}
-
-.velocity-bar {
-  position: absolute;
-  bottom: 0;
-  border: 1px solid color-mix(in srgb, var(--note-color) 65%, var(--line-strong));
-  border-bottom: 0;
-  border-radius: 1px 1px 0 0;
-  background: var(--note-color);
-  pointer-events: none;
-}
-
-.velocity-bar.inactive {
-  opacity: 0.4;
-}
-
-.velocity-bar.selected {
-  outline: 1px solid var(--focus);
-  opacity: 1;
-}
-</style>

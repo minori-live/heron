@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
-import { UiCascadingSelect, UiPopover, UiSelect } from "@heron/ui"
+import { UiButton, UiCascadingSelect, UiIconButton, UiPopover, UiSelect } from "@heron/ui"
 import { Zap } from "@lucide/vue"
 import type {
   MixerBusState,
@@ -72,12 +72,13 @@ function updateHardwareOutput(index: number, value: string): void {
     <div v-else-if="channel.kind === 'output'" class="output-controls">
       <UiPopover side="top" :side-offset="7">
         <template #trigger>
-          <button
+          <UiButton
+            size="sm"
             class="output-control"
             :aria-label="t('mixer.outputSection.hardwareRouting', { name: channel.name })"
           >
             {{ hardwareSummary }}
-          </button>
+          </UiButton>
         </template>
         <div class="mixer-popover output-popover">
           <header>
@@ -103,20 +104,20 @@ function updateHardwareOutput(index: number, value: string): void {
           </label>
         </div>
       </UiPopover>
-      <button
-        type="button"
+      <UiIconButton
+        size="sm"
         :class="['monitor-target', { active: lowLatencyTarget }]"
         :disabled="lowLatencyTargetDisabled"
-        :aria-pressed="lowLatencyTarget"
-        :aria-label="t('mixer.outputSection.lowLatencyTarget', { name: channel.name })"
+        :pressed="lowLatencyTarget"
+        :label="t('mixer.outputSection.lowLatencyTarget', { name: channel.name })"
         @click="emit('selectLowLatencyOutput')"
       >
         <Zap :size="13" />
-      </button>
+      </UiIconButton>
     </div>
-    <button v-else class="output-control" disabled aria-disabled="true">
+    <UiButton v-else class="output-control" size="sm" disabled aria-disabled="true">
       {{ t("mixer.outputSection.global") }}
-    </button>
+    </UiButton>
   </section>
 </template>
 
@@ -158,7 +159,6 @@ function updateHardwareOutput(index: number, value: string): void {
   border-radius: 4px;
   color: var(--text-muted);
   background: var(--daw-control);
-  cursor: pointer;
 }
 .monitor-target.active {
   border-color: color-mix(in srgb, var(--ui-color-success) 62%, var(--ui-domain-color-747474));
@@ -173,15 +173,10 @@ function updateHardwareOutput(index: number, value: string): void {
   cursor: not-allowed;
 }
 .output-control {
-  cursor: pointer;
 }
 .output-control:disabled {
   color: var(--ui-domain-color-b8b8b8);
   cursor: default;
-}
-.output-control:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
 }
 .mixer-popover {
   display: grid;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAttrs } from "vue"
+import { useAttrs, useTemplateRef } from "vue"
 
 import type { UiControlSize } from "../types"
 
@@ -17,6 +17,12 @@ const props = withDefaults(
   }
 )
 const attrs = useAttrs()
+const input = useTemplateRef<HTMLInputElement>("input")
+
+defineExpose({
+  focus: () => input.value?.focus(),
+  select: () => input.value?.select()
+})
 
 const sizeClasses = {
   sm: "min-h-[var(--ui-control-sm)] px-ui-2 text-[var(--ui-type-size-control)]",
@@ -27,6 +33,7 @@ const sizeClasses = {
 
 <template>
   <input
+    ref="input"
     v-bind="attrs"
     v-model="model"
     class="ui-input min-w-0 w-full border border-solid border-ui-border rounded-ui-md bg-ui-control font-ui-data text-ui-text-muted leading-ui-normal transition-[border-color,background] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed disabled:opacity-[var(--ui-opacity-disabled)]"

@@ -3,7 +3,7 @@ import { computed, onMounted } from "vue"
 import { storeToRefs } from "pinia"
 import { useI18n } from "vue-i18n"
 import { Languages, Monitor, Moon, Sun } from "@lucide/vue"
-import { UiCheckbox } from "@heron/ui"
+import { UiCheckbox, UiChoiceCard } from "@heron/ui"
 import type { Component } from "vue"
 import type { AppLocale, ThemePreference } from "@heron/contracts"
 import SettingsPage from "../settings/SettingsPage.vue"
@@ -73,31 +73,28 @@ onMounted(() => {
       :title="t('settings.display.themeTitle')"
       :description="t('settings.display.themeDescription')"
     >
-      <div class="theme-options" role="radiogroup" :aria-label="t('settings.display.themeAria')">
-        <button
+      <div class="theme-options" :aria-label="t('settings.display.themeAria')">
+        <UiChoiceCard
           v-for="option in themeOptions"
           :key="option.value"
           class="theme-option"
-          :class="{ selected: settings?.theme === option.value }"
-          type="button"
-          role="radio"
-          :aria-checked="settings?.theme === option.value"
+          :label="option.label"
+          :description="option.description"
+          :selected="settings?.theme === option.value"
           :disabled="loading"
-          @click="settingsStore.setTheme(option.value)"
+          @select="settingsStore.setTheme(option.value)"
         >
-          <span class="theme-preview" :class="`theme-preview-${option.value}`" aria-hidden="true">
-            <span class="preview-sidebar" />
-            <span class="preview-content"><i /><i /><i /></span>
-          </span>
-          <span class="theme-option-copy">
-            <component :is="option.icon" :size="14" />
-            <span>
-              <b>{{ option.label }}</b>
-              <small>{{ option.description }}</small>
-            </span>
-          </span>
-          <span class="selection-dot" aria-hidden="true" />
-        </button>
+          <template #icon
+            ><span
+              class="theme-preview"
+              :class="`theme-preview-${option.value}`"
+              aria-hidden="true"
+            >
+              <span class="preview-sidebar" />
+              <span class="preview-content"><i /><i /><i /></span> </span
+          ></template>
+          <template #trailing><component :is="option.icon" :size="14" /></template>
+        </UiChoiceCard>
       </div>
     </SettingsSection>
 
@@ -110,26 +107,18 @@ onMounted(() => {
         role="radiogroup"
         :aria-label="t('settings.display.languageAria')"
       >
-        <button
+        <UiChoiceCard
           v-for="option in localeOptions"
           :key="option.value"
           class="locale-option"
-          :class="{ selected: settings?.locale === option.value }"
-          type="button"
-          role="radio"
-          :aria-checked="settings?.locale === option.value"
+          :label="option.label"
+          :description="option.description"
+          :selected="settings?.locale === option.value"
           :disabled="loading"
-          @click="settingsStore.setLocale(option.value)"
+          @select="settingsStore.setLocale(option.value)"
         >
-          <span class="locale-option-copy">
-            <Languages :size="14" aria-hidden="true" />
-            <span>
-              <b>{{ option.label }}</b>
-              <small>{{ option.description }}</small>
-            </span>
-          </span>
-          <span class="selection-dot" aria-hidden="true" />
-        </button>
+          <template #icon><Languages :size="14" aria-hidden="true" /></template>
+        </UiChoiceCard>
       </div>
     </SettingsSection>
 
@@ -173,25 +162,12 @@ onMounted(() => {
   color: var(--text-secondary);
   background: var(--surface-1);
   text-align: left;
-  cursor: pointer;
-}
-
-.theme-option:hover,
-.locale-option:hover {
-  border-color: var(--line-strong);
-  background: var(--surface-2);
 }
 
 .theme-option.selected,
 .locale-option.selected {
   border-color: var(--accent);
   box-shadow: var(--ui-shadow-selected-outline);
-}
-
-.theme-option:focus-visible,
-.locale-option:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 
 .theme-option:disabled,

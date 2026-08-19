@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
-import { UiButton, UiDialog, UiSelect, UiStatusNotice } from "@heron/ui"
+import { UiButton, UiDialog, UiRadioGroup, UiSelect, UiStatusNotice } from "@heron/ui"
 import type { MidiImportTrackTarget } from "@heron/contracts"
 import { pluginTypeKey } from "@heron/contracts"
 import { useMidiImportStore } from "../../stores/midiImport"
@@ -127,23 +127,23 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
           }}</small>
         </article>
       </div>
-      <fieldset class="tempo-choice">
-        <legend>{{ t("midiImport.tempoLegend") }}</legend>
-        <label :class="{ selected: midiImportStore.tempoMode === 'project' }">
-          <input v-model="midiImportStore.tempoMode" type="radio" value="project" />
-          <span>
-            <strong>{{ t("midiImport.keepProjectTempo") }}</strong>
-            <small>{{ t("midiImport.keepProjectTempoDetail") }}</small>
-          </span>
-        </label>
-        <label :class="{ selected: midiImportStore.tempoMode === 'midi' }">
-          <input v-model="midiImportStore.tempoMode" type="radio" value="midi" />
-          <span>
-            <strong>{{ t("midiImport.importMidiTempo") }}</strong>
-            <small>{{ t("midiImport.importMidiTempoDetail") }}</small>
-          </span>
-        </label>
-      </fieldset>
+      <UiRadioGroup
+        v-model="midiImportStore.tempoMode"
+        class="tempo-choice"
+        :label="t('midiImport.tempoLegend')"
+        :options="[
+          {
+            value: 'project',
+            label: t('midiImport.keepProjectTempo'),
+            description: t('midiImport.keepProjectTempoDetail')
+          },
+          {
+            value: 'midi',
+            label: t('midiImport.importMidiTempo'),
+            description: t('midiImport.importMidiTempoDetail')
+          }
+        ]"
+      />
       <UiStatusNotice
         v-for="warning in midiImportStore.preview?.warnings"
         :key="warning"
@@ -223,7 +223,6 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
   border-radius: 4px;
   color: var(--text-secondary);
   background: var(--daw-control);
-  cursor: pointer;
 }
 .midi-dialog > p {
   margin: 0;
@@ -286,7 +285,6 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
   border: 1px solid var(--line-soft);
   border-radius: 4px;
   background: var(--surface-sunken);
-  cursor: pointer;
 }
 .tempo-choice label.selected {
   border-color: color-mix(in srgb, var(--ui-domain-color-73d6a2) 58%, var(--line-strong));
@@ -331,7 +329,6 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
   color: var(--text-secondary);
   background: var(--daw-control);
   font-size: var(--ui-type-size-control);
-  cursor: pointer;
 }
 .midi-dialog footer .primary {
   border-color: color-mix(in srgb, var(--ui-domain-color-73d6a2) 55%, var(--line-strong));

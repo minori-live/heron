@@ -6,6 +6,7 @@ import type {
   ProjectCommand
 } from "@heron/contracts"
 import type { PianoRollNoteRef, usePianoRollStore } from "../../stores/pianoRoll"
+import type { UiKeyboardIntent } from "@heron/ui"
 import {
   MIN_NOTE_TICKS,
   planCreatedNotes,
@@ -38,7 +39,7 @@ export interface PianoRollEditing {
   applyInspector: (field: string, raw: string) => void
   commonValue: (field: string) => string
   moveSelection: (deltaTick: number, deltaKey: number, resize?: boolean) => void
-  handleKeydown: (event: KeyboardEvent) => void
+  handleKeydown: (event: UiKeyboardIntent) => void
 }
 
 export function createPianoRollEditing(
@@ -206,10 +207,6 @@ export function createPianoRollEditing(
     return values.every((value) => value === values[0]) ? String(values[0]) : ""
   }
 
-  function isEditableTarget(target: EventTarget | null): boolean {
-    return target instanceof HTMLElement && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)
-  }
-
   function moveSelection(deltaTick: number, deltaKey: number, resize = false): void {
     const edits = selectedItems.value.map((item) =>
       resize
@@ -227,9 +224,8 @@ export function createPianoRollEditing(
     void batch(commandsForEdits(edits))
   }
 
-  function handleKeydown(event: KeyboardEvent): void {
-    if (isEditableTarget(event.target)) return
-    const modifier = event.ctrlKey || event.metaKey
+  function handleKeydown(event: UiKeyboardIntent): void {
+    const modifier = event.modifiers.control || event.modifiers.meta
     if (modifier && event.code === "KeyC") copySelected()
     else if (modifier && event.code === "KeyX") cutSelected()
     else if (modifier && event.code === "KeyV") paste()
@@ -237,15 +233,14 @@ export function createPianoRollEditing(
     else if (modifier && event.code === "KeyD") duplicateSelected()
     else if (!modifier && event.code === "KeyQ") quantizeSelected()
     else if (event.code === "Delete" || event.code === "Backspace") deleteSelected()
-    else if (event.code === "ArrowUp") moveSelection(0, event.shiftKey ? 12 : 1)
-    else if (event.code === "ArrowDown") moveSelection(0, event.shiftKey ? -12 : -1)
+    else if (event.code === "ArrowUp") moveSelection(0, event.modifiers.shift ? 12 : 1)
+    else if (event.code === "ArrowDown") moveSelection(0, event.modifiers.shift ? -12 : -1)
     else if (event.code === "ArrowLeft") {
-      moveSelection(-snapStep(pianoRollStore.snap), 0, event.altKey)
+      moveSelection(-snapStep(pianoRollStore.snap), 0, event.modifiers.alt)
     } else if (event.code === "ArrowRight") {
-      moveSelection(snapStep(pianoRollStore.snap), 0, event.altKey)
+      moveSelection(snapStep(pianoRollStore.snap), 0, event.modifiers.alt)
     } else if (event.code === "Escape") pianoRollStore.clearNoteSelection()
     else return
-    event.preventDefault()
   }
 
   let unregisterEditCommands: (() => void) | null = null

@@ -93,7 +93,7 @@ function mountDock(): {
 }
 
 function mockLaneBounds(wrapper: VueWrapper): ReturnType<VueWrapper["get"]> {
-  const canvas = wrapper.get<HTMLElement>(".lane-canvas")
+  const canvas = wrapper.get<HTMLElement>(".ui-velocity-lane__canvas")
   vi.spyOn(canvas.element, "getBoundingClientRect").mockReturnValue({
     x: 0,
     y: 0,
@@ -111,7 +111,7 @@ function mockLaneBounds(wrapper: VueWrapper): ReturnType<VueWrapper["get"]> {
 describe("PianoRollVelocityLane", () => {
   it("renders one bar per note with velocity-proportional height", () => {
     const { wrapper } = mountDock()
-    const bars = wrapper.findAll<HTMLElement>(".velocity-bar")
+    const bars = wrapper.findAll<HTMLElement>(".ui-velocity-lane__bar")
 
     expect(bars).toHaveLength(2)
     expect(bars[0]!.element.style.left).toBe("120px")
@@ -125,13 +125,13 @@ describe("PianoRollVelocityLane", () => {
     const { wrapper, execute } = mountDock()
     const canvas = mockLaneBounds(wrapper)
 
-    await canvas.trigger("pointerdown", { pointerId: 1, clientX: 122, clientY: 50 })
-    expect(wrapper.findAll<HTMLElement>(".velocity-bar")[0]!.element.style.height).toBe(
+    await canvas.trigger("pointerdown", { pointerId: 1, clientX: 122, clientY: 55 })
+    expect(wrapper.findAll<HTMLElement>(".ui-velocity-lane__bar")[0]!.element.style.height).toBe(
       `${(64 / 127) * 100}%`
     )
     expect(execute).not.toHaveBeenCalled()
 
-    await canvas.trigger("pointerup", { pointerId: 1, clientX: 122, clientY: 50 })
+    await canvas.trigger("pointerup", { pointerId: 1, clientX: 122, clientY: 55 })
     await flushPromises()
 
     expect(execute).toHaveBeenCalledWith({
@@ -149,8 +149,8 @@ describe("PianoRollVelocityLane", () => {
     pianoRoll.selectNote({ clipId: "clip-1", noteId: "note-2" }, true)
     const canvas = mockLaneBounds(wrapper)
 
-    await canvas.trigger("pointerdown", { pointerId: 1, clientX: 122, clientY: 50 })
-    await canvas.trigger("pointerup", { pointerId: 1, clientX: 122, clientY: 50 })
+    await canvas.trigger("pointerdown", { pointerId: 1, clientX: 122, clientY: 55 })
+    await canvas.trigger("pointerup", { pointerId: 1, clientX: 122, clientY: 55 })
     await flushPromises()
 
     expect(execute).toHaveBeenCalledWith({
@@ -169,9 +169,9 @@ describe("PianoRollVelocityLane", () => {
     const { wrapper, execute } = mountDock()
     const canvas = mockLaneBounds(wrapper)
 
-    await canvas.trigger("pointerdown", { pointerId: 1, clientX: 400, clientY: 25 })
-    await canvas.trigger("pointermove", { pointerId: 1, clientX: 180, clientY: 25 })
-    await canvas.trigger("pointerup", { pointerId: 1, clientX: 180, clientY: 25 })
+    await canvas.trigger("pointerdown", { pointerId: 1, clientX: 400, clientY: 27.5 })
+    await canvas.trigger("pointermove", { pointerId: 1, clientX: 180, clientY: 27.5 })
+    await canvas.trigger("pointerup", { pointerId: 1, clientX: 180, clientY: 27.5 })
     await flushPromises()
 
     expect(execute).toHaveBeenCalledWith({
@@ -188,7 +188,7 @@ describe("PianoRollVelocityLane", () => {
     // The lane attaches its viewport listener once the template ref propagates.
     await flushPromises()
     const viewport = wrapper.get<HTMLElement>('[aria-label="Piano roll note grid"]')
-    const laneScroll = wrapper.get<HTMLElement>(".lane-scroll")
+    const laneScroll = wrapper.get<HTMLElement>(".ui-velocity-lane__scroll")
     // jsdom has no layout, so scrollLeft assignments are ignored by default.
     for (const element of [viewport.element, laneScroll.element]) {
       let scrollLeft = 0
@@ -213,13 +213,13 @@ describe("PianoRollVelocityLane", () => {
 
   it("toggles visibility from the inspector panel", async () => {
     const { wrapper } = mountDock()
-    expect(wrapper.find(".velocity-lane").exists()).toBe(true)
+    expect(wrapper.find(".ui-velocity-lane").exists()).toBe(true)
 
     await wrapper.get('button[aria-label="Toggle velocity lane"]').trigger("click")
-    expect(wrapper.find(".velocity-lane").exists()).toBe(false)
+    expect(wrapper.find(".ui-velocity-lane").exists()).toBe(false)
 
     await wrapper.get('button[aria-label="Toggle velocity lane"]').trigger("click")
-    expect(wrapper.find(".velocity-lane").exists()).toBe(true)
+    expect(wrapper.find(".ui-velocity-lane").exists()).toBe(true)
 
     wrapper.unmount()
   })

@@ -129,7 +129,7 @@ describe("MixerChannelStrip", () => {
       }
     })
     expect((gainEditor.element as HTMLInputElement).value).toBe("-3.5")
-    await gainEditor.trigger("change")
+    await gainEditor.trigger("blur")
     expect(wrapper.emitted("preview")?.at(-1)?.[0]).toMatchObject({
       target: "channel",
       id: "audio",

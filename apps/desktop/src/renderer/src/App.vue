@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { UiProvider } from "@heron/ui"
-import { useLocaleFonts } from "@heron/ui/locale-fonts"
+import { useLocaleFonts } from "@heron/ui"
 import { useEventListener } from "@vueuse/core"
 import { computed, onMounted, onUnmounted, watch } from "vue"
 import { storeToRefs } from "pinia"

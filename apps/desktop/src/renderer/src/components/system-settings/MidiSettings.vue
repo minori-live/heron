@@ -5,6 +5,7 @@ import { storeToRefs } from "pinia"
 import { useI18n } from "vue-i18n"
 import { Music2, Piano } from "@lucide/vue"
 import type { MidiCenterCStandard } from "@heron/contracts"
+import { UiChoiceCard } from "@heron/ui"
 import SettingsPage from "../settings/SettingsPage.vue"
 import SettingsSection from "../settings/SettingsSection.vue"
 import { useApplicationSettingsStore } from "../../stores/applicationSettings"
@@ -51,31 +52,19 @@ onMounted(() => {
       :title="t('settings.midi.centerC.title')"
       :description="t('settings.midi.centerC.description')"
     >
-      <div
-        class="center-c-options"
-        role="radiogroup"
-        :aria-label="t('settings.midi.centerC.ariaLabel')"
-      >
-        <button
+      <div class="center-c-options" :aria-label="t('settings.midi.centerC.ariaLabel')">
+        <UiChoiceCard
           v-for="option in centerCOptions"
           :key="option.value"
           class="center-c-option"
-          :class="{ selected: (settings?.midiCenterCStandard ?? 'roland-c4') === option.value }"
-          type="button"
-          role="radio"
-          :aria-checked="(settings?.midiCenterCStandard ?? 'roland-c4') === option.value"
+          :label="option.label"
+          :description="option.description"
+          :selected="(settings?.midiCenterCStandard ?? 'roland-c4') === option.value"
           :disabled="loading"
-          @click="settingsStore.setMidiCenterCStandard(option.value)"
+          @select="settingsStore.setMidiCenterCStandard(option.value)"
         >
-          <span class="center-c-option-copy">
-            <component :is="option.icon" :size="14" aria-hidden="true" />
-            <span>
-              <b>{{ option.label }}</b>
-              <small>{{ option.description }}</small>
-            </span>
-          </span>
-          <span class="selection-dot" aria-hidden="true" />
-        </button>
+          <template #icon><component :is="option.icon" :size="14" aria-hidden="true" /></template>
+        </UiChoiceCard>
       </div>
     </SettingsSection>
 
@@ -100,22 +89,11 @@ onMounted(() => {
   color: var(--text-secondary);
   background: var(--surface-1);
   text-align: left;
-  cursor: pointer;
-}
-
-.center-c-option:hover {
-  border-color: var(--line-strong);
-  background: var(--surface-2);
 }
 
 .center-c-option.selected {
   border-color: var(--accent);
   box-shadow: var(--ui-shadow-selected-outline);
-}
-
-.center-c-option:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 
 .center-c-option:disabled {

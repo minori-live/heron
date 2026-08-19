@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { computed, shallowRef, useTemplateRef } from "vue"
+import { computed, shallowRef } from "vue"
+import {
+  UiAutomationLane,
+  type UiAutomationLanePoint,
+  type UiGestureIntent,
+  type UiPoint
+} from "@heron/ui"
 
 export interface GlobalLanePoint {
   id: string
@@ -32,7 +38,6 @@ const emit = defineEmits<{
   select: [id: string | null]
 }>()
 
-const lane = useTemplateRef<HTMLElement>("lane")
 const drag = shallowRef<{
   id: string
   position: number
@@ -72,43 +77,38 @@ function valueToY(value: number): number {
   return ((props.maximum - clamp(value, props.minimum, props.maximum)) / range) * props.height
 }
 
-function pointFromPointer(event: PointerEvent | MouseEvent): {
+function laneValue(point: UiPoint): {
   position: number
   value: number
 } {
-  const bounds = lane.value?.getBoundingClientRect()
-  if (!bounds) return { position: 0, value: props.minimum }
-  const x = clamp(event.clientX - bounds.left, 0, props.contentWidth)
-  const y = clamp(event.clientY - bounds.top, 0, props.height)
+  const x = clamp(point.x, 0, props.contentWidth)
+  const y = clamp(point.y, 0, props.height)
   return {
     position: x / props.pixelsPerUnit,
     value: props.maximum - (y / props.height) * (props.maximum - props.minimum)
   }
 }
 
-function createPoint(event: MouseEvent): void {
-  const point = pointFromPointer(event)
+function createPoint(source: UiPoint): void {
+  const point = laneValue(source)
   emit("create", point.position, point.value)
 }
 
-function startDrag(event: PointerEvent, point: GlobalLanePoint): void {
-  event.preventDefault()
-  event.stopPropagation()
+function startDrag(point: GlobalLanePoint): void {
   emit("select", point.id)
   drag.value = {
     id: point.id,
     position: point.position,
     value: point.value
   }
-  ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
 }
 
-function updateDrag(event: PointerEvent): void {
+function updateDrag(intent: UiGestureIntent): void {
   const current = drag.value
   if (!current) return
   const source = props.points.find((point) => point.id === current.id)
   if (!source) return
-  const next = pointFromPointer(event)
+  const next = laneValue(intent.point)
   drag.value = {
     id: current.id,
     position: source.lockTime ? source.position : next.position,
@@ -116,176 +116,53 @@ function updateDrag(event: PointerEvent): void {
   }
 }
 
-function finishDrag(): void {
+function finishDrag(commit = true): void {
   const current = drag.value
   if (!current) return
   drag.value = null
-  emit("update", current.id, current.position, current.value)
+  if (commit) emit("update", current.id, current.position, current.value)
 }
 
-function handleKeydown(event: KeyboardEvent): void {
-  if (event.key !== "Delete" && event.key !== "Backspace") return
-  const selected = props.points.find((point) => point.id === props.selectedId)
-  if (!selected || selected.lockRemoval) return
-  event.preventDefault()
-  emit("remove", selected.id)
+function handlePointGesture(id: string, intent: UiGestureIntent): void {
+  const point = props.points.find((candidate) => candidate.id === id)
+  if (!point) return
+  if (intent.phase === "start") startDrag(point)
+  else if (intent.phase === "update") updateDrag(intent)
+  else if (intent.phase === "commit") finishDrag()
+  else finishDrag(false)
 }
+
+const uiPoints = computed<UiAutomationLanePoint[]>(() =>
+  renderedPoints.value.map((point) => ({
+    id: point.id,
+    x: positionToX(point.position),
+    y: valueToY(point.value),
+    label: `${props.valueLabel} ${point.value.toFixed(2)} at ${point.position.toFixed(2)} ${props.positionLabel}`,
+    selected: point.id === props.selectedId,
+    removable: !point.lockRemoval
+  }))
+)
+const horizontalGuides = computed(() =>
+  props.guides.map((guide) => ({ position: valueToY(guide), label: String(Math.round(guide)) }))
+)
 </script>
 
 <template>
-  <div
-    ref="lane"
-    class="value-lane"
-    :style="{
-      width: `${contentWidth}px`,
-      height: `${height}px`,
-      '--lane-color': color
-    }"
-    tabindex="0"
-    role="application"
-    :aria-label="`${valueLabel} global track editor. Double-click to add a point.`"
-    @dblclick="createPoint"
-    @pointermove="updateDrag"
-    @pointerup="finishDrag"
-    @pointercancel="finishDrag"
-    @keydown="handleKeydown"
-    @pointerdown.self="emit('select', null)"
-  >
-    <svg class="lane-graph" :width="contentWidth" :height="height" aria-hidden="true">
-      <line
-        v-for="guide in beatGuides"
-        :key="`beat-${guide}`"
-        class="beat-guide"
-        :x1="guide"
-        :x2="guide"
-        y1="0"
-        :y2="height"
-      />
-      <line
-        v-for="guide in verticalGuides"
-        :key="`x-${guide}`"
-        class="vertical-guide"
-        :x1="guide"
-        :x2="guide"
-        y1="0"
-        :y2="height"
-      />
-      <g v-for="guide in guides" :key="`y-${guide}`">
-        <line
-          class="value-guide"
-          x1="0"
-          :x2="contentWidth"
-          :y1="valueToY(guide)"
-          :y2="valueToY(guide)"
-        />
-        <text class="guide-label" x="7" :y="Math.max(9, valueToY(guide) - 4)">
-          {{ Math.round(guide) }}
-        </text>
-      </g>
-      <path class="lane-fill" :d="fillPath" />
-      <path class="lane-line-shadow" :d="linePath" />
-      <path class="lane-line" :d="linePath" />
-    </svg>
-    <button
-      v-for="point in renderedPoints"
-      :key="point.id"
-      type="button"
-      class="point-handle"
-      :class="{ selected: point.id === selectedId }"
-      :style="{
-        left: `${positionToX(point.position)}px`,
-        top: `${valueToY(point.value)}px`
-      }"
-      :aria-label="`${valueLabel} ${point.value.toFixed(2)} at ${point.position.toFixed(2)} ${positionLabel}`"
-      @pointerdown="startDrag($event, point)"
-      @click.stop="emit('select', point.id)"
-    />
-  </div>
+  <UiAutomationLane
+    mode="value"
+    :label="`${valueLabel} global track editor. Double-click to add a point.`"
+    :width="contentWidth"
+    :height="height"
+    :color="color"
+    :points="uiPoints"
+    :beat-guides="beatGuides"
+    :vertical-guides="verticalGuides"
+    :horizontal-guides="horizontalGuides"
+    :line-path="linePath"
+    :fill-path="fillPath"
+    @create="createPoint"
+    @clear-selection="emit('select', null)"
+    @point-gesture="handlePointGesture"
+    @remove="emit('remove', $event)"
+  />
 </template>
-
-<style scoped>
-.value-lane {
-  --lane-color: var(--ui-domain-color-65a8ff);
-  position: relative;
-  min-width: 100%;
-  overflow: hidden;
-  border-bottom: 1px solid var(--line-strong);
-  background: var(--daw-lane);
-  cursor: crosshair;
-  outline: none;
-  user-select: none;
-}
-.value-lane:focus-visible {
-  box-shadow: 0 0 0 1px var(--focus) inset;
-}
-.lane-graph {
-  position: absolute;
-  inset: 0;
-  overflow: visible;
-  pointer-events: none;
-}
-.vertical-guide {
-  stroke: var(--daw-grid-line);
-  stroke-width: 1;
-}
-.beat-guide {
-  stroke: color-mix(in srgb, var(--daw-grid-line) 32%, transparent);
-  stroke-width: 1;
-}
-.value-guide {
-  stroke: color-mix(in srgb, var(--line-soft) 72%, transparent);
-  stroke-width: 1;
-  stroke-dasharray: 2 4;
-}
-.guide-label {
-  fill: var(--text-faint);
-  font: var(--ui-type-size-micro) var(--ui-type-family-data);
-  paint-order: stroke;
-  stroke: var(--daw-lane);
-  stroke-width: 3px;
-}
-.lane-fill {
-  fill: color-mix(in srgb, var(--lane-color) 15%, transparent);
-}
-.lane-line-shadow {
-  fill: none;
-  stroke: color-mix(in srgb, var(--ui-domain-color-000) 62%, transparent);
-  stroke-width: 4;
-}
-.lane-line {
-  fill: none;
-  stroke: var(--lane-color);
-  stroke-width: 1.5;
-  shape-rendering: geometricPrecision;
-}
-.point-handle {
-  position: absolute;
-  z-index: var(--ui-z-local-raised);
-  width: 9px;
-  height: 9px;
-  margin: 0;
-  padding: 0;
-  border: 2px solid var(--daw-lane);
-  border-radius: 50%;
-  background: var(--lane-color);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lane-color) 66%, var(--ui-domain-color-000));
-  transform: translate(-50%, -50%);
-  cursor: grab;
-}
-.point-handle:hover,
-.point-handle.selected {
-  width: 11px;
-  height: 11px;
-  border-color: var(--ui-domain-color-f7fbff);
-  box-shadow:
-    0 0 0 2px var(--lane-color),
-    0 0 8px color-mix(in srgb, var(--lane-color) 55%, transparent);
-}
-.point-handle:active {
-  cursor: grabbing;
-}
-.point-handle:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 3px;
-}
-</style>

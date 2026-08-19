@@ -23,7 +23,7 @@ function mountLane() {
       positionLabel: "beats"
     }
   })
-  const editor = wrapper.get<HTMLElement>('[role="application"]')
+  const editor = wrapper.get<HTMLElement>(".ui-automation-lane")
   editor.element.getBoundingClientRect = () => ({
     x: 0,
     y: 0,
@@ -42,20 +42,22 @@ describe("GlobalValueLane", () => {
   it("renders a stepped value curve and creates points from the lane surface", async () => {
     const { wrapper, editor } = mountLane()
 
-    expect(wrapper.get(".lane-line").attributes("d")).toBe("M 0 50 H 200 V 25 H 800")
+    expect(wrapper.get(".ui-automation-lane__line").attributes("d")).toBe("M 0 50 H 200 V 25 H 800")
 
     await editor.trigger("dblclick", { clientX: 350, clientY: 75 })
     expect(wrapper.emitted("create")?.[0]).toEqual([3.5, 100])
   })
 
   it("deletes the selected editable point but preserves locked points", async () => {
-    const { wrapper, editor } = mountLane()
+    const { wrapper } = mountLane()
 
-    await editor.trigger("keydown", { key: "Delete" })
+    await wrapper.get(".ui-automation-lane__point--selected").trigger("keydown", { key: "Delete" })
     expect(wrapper.emitted("remove")?.[0]).toEqual(["change"])
 
     await wrapper.setProps({ selectedId: "start" })
-    await editor.trigger("keydown", { key: "Backspace" })
+    await wrapper
+      .get(".ui-automation-lane__point--selected")
+      .trigger("keydown", { key: "Backspace" })
     expect(wrapper.emitted("remove")).toHaveLength(1)
   })
 })

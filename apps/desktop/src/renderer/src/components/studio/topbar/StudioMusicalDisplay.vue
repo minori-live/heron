@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, shallowRef, useTemplateRef } from "vue"
+import { computed } from "vue"
 import { useI18n } from "vue-i18n"
+import { UiInlineTextEdit } from "@heron/ui"
 import type {
   KeySignatureEventState,
   KeySignatureMode,
@@ -39,12 +40,6 @@ const { t } = useI18n()
 const MINIMUM_TEMPO = 20
 const MAXIMUM_TEMPO = 300
 const METER_DENOMINATORS = [1, 2, 4, 8, 16, 32]
-const editingTempo = shallowRef(false)
-const tempoDraft = shallowRef("")
-const editingMeter = shallowRef(false)
-const meterDraft = shallowRef("")
-const tempoInput = useTemplateRef<HTMLInputElement>("tempoInput")
-const meterInput = useTemplateRef<HTMLInputElement>("meterInput")
 const playheadTick = computed(() => secondsToTick(props.tempoMap, props.playheadSeconds))
 const musicalPosition = computed(() => musicalPositionAtTick(props.tempoMap, playheadTick.value))
 const currentTempo = computed(() => tempoAtTick(props.tempoMap, playheadTick.value))
@@ -68,42 +63,16 @@ const { label: midiChordLabel } = useMidiChordActivity({
   keySignature: currentKey
 })
 
-function beginTempoEdit(): void {
-  if (editingTempo.value) return
-  tempoDraft.value = currentTempo.value.toFixed(2)
-  editingTempo.value = true
-  void nextTick(() => tempoInput.value?.select())
-}
-
-function cancelTempoEdit(): void {
-  editingTempo.value = false
-}
-
-function commitTempoEdit(): void {
-  if (!editingTempo.value) return
-  const parsed = Number(tempoDraft.value)
-  editingTempo.value = false
+function commitTempoEdit(value: string): void {
+  const parsed = Number(value)
   if (!Number.isFinite(parsed)) return
   const normalized =
     Math.round(Math.min(MAXIMUM_TEMPO, Math.max(MINIMUM_TEMPO, parsed)) * 100) / 100
   if (normalized !== currentTempo.value) emit("updateTempo", normalized)
 }
 
-function beginMeterEdit(): void {
-  if (editingMeter.value) return
-  meterDraft.value = `${currentSignature.value.numerator}/${currentSignature.value.denominator}`
-  editingMeter.value = true
-  void nextTick(() => meterInput.value?.select())
-}
-
-function cancelMeterEdit(): void {
-  editingMeter.value = false
-}
-
-function commitMeterEdit(): void {
-  if (!editingMeter.value) return
-  const match = /^\s*(\d+)\s*\/\s*(\d+)\s*$/.exec(meterDraft.value)
-  editingMeter.value = false
+function commitMeterEdit(value: string): void {
+  const match = /^\s*(\d+)\s*\/\s*(\d+)\s*$/.exec(value)
   if (!match) return
   const numerator = Number(match[1])
   const denominator = Number(match[2])
@@ -128,59 +97,27 @@ function commitMeterEdit(): void {
       <span>{{ t("studio.musical.beat") }}</span>
     </div>
     <div class="lcd-cell tempo-cell">
-      <input
-        v-if="editingTempo"
-        ref="tempoInput"
-        v-model="tempoDraft"
-        class="tempo-input"
-        :aria-label="t('studio.musical.editTempoAria')"
-        type="number"
-        :min="MINIMUM_TEMPO"
-        :max="MAXIMUM_TEMPO"
-        step="0.01"
-        @blur="commitTempoEdit"
-        @keydown.enter.prevent="commitTempoEdit"
-        @keydown.escape.prevent="cancelTempoEdit"
-      />
-      <button
-        v-else
-        type="button"
+      <UiInlineTextEdit
         class="tempo-value"
-        :aria-label="t('studio.musical.tempoButtonAria', { value: currentTempo.toFixed(2) })"
-        :title="t('studio.musical.tempoEditTitle')"
-        @dblclick="beginTempoEdit"
-        @keydown.enter.prevent="beginTempoEdit"
-      >
-        {{ currentTempo.toFixed(2) }}
-      </button>
+        :value="currentTempo.toFixed(2)"
+        :label="t('studio.musical.tempoButtonAria', { value: currentTempo.toFixed(2) })"
+        :edit-label="t('studio.musical.editTempoAria')"
+        @commit="commitTempoEdit"
+      />
       <span>{{ t("studio.musical.tempo") }}</span>
     </div>
     <div class="lcd-cell signature-cell">
-      <input
-        v-if="editingMeter"
-        ref="meterInput"
-        v-model="meterDraft"
-        class="meter-input"
-        :aria-label="t('studio.musical.editMeterAria')"
-        @blur="commitMeterEdit"
-        @keydown.enter.prevent="commitMeterEdit"
-        @keydown.escape.prevent="cancelMeterEdit"
-      />
-      <button
-        v-else
-        type="button"
+      <UiInlineTextEdit
         class="meter-value"
-        :aria-label="
+        :value="`${currentSignature.numerator}/${currentSignature.denominator}`"
+        :label="
           t('studio.musical.meterButtonAria', {
             value: `${currentSignature.numerator}/${currentSignature.denominator}`
           })
         "
-        :title="t('studio.musical.meterEditTitle')"
-        @dblclick="beginMeterEdit"
-        @keydown.enter.prevent="beginMeterEdit"
-      >
-        {{ currentSignature.numerator }}/{{ currentSignature.denominator }}
-      </button>
+        :edit-label="t('studio.musical.editMeterAria')"
+        @commit="commitMeterEdit"
+      />
       <span>{{ t("studio.musical.meter") }}</span>
     </div>
     <div
@@ -199,7 +136,7 @@ function commitMeterEdit(): void {
           hover-treatment="host-tint"
           :aria-label="t('studio.musical.keyButtonAria', { value: currentKeyLabel })"
         />
-        <span>{{ t("studio.musical.key") }}</span>
+        <span class="key-label">{{ t("studio.musical.key") }}</span>
       </template>
     </div>
   </section>
@@ -236,9 +173,7 @@ function commitMeterEdit(): void {
 .position-cell strong,
 .lcd-cell strong,
 .tempo-value,
-.tempo-input,
 .meter-value,
-.meter-input,
 .key-dropdown {
   height: 22px;
   color: var(--text-primary);
@@ -258,7 +193,6 @@ function commitMeterEdit(): void {
   padding: 0 4px;
   border: 0;
   background: transparent;
-  cursor: text;
   text-align: center;
 }
 .meter-value {
@@ -267,7 +201,6 @@ function commitMeterEdit(): void {
   padding: 0 2px;
   border: 0;
   background: transparent;
-  cursor: text;
   overflow: hidden;
   text-align: center;
   text-overflow: ellipsis;
@@ -284,31 +217,6 @@ function commitMeterEdit(): void {
   font-size: var(--ui-type-size-control);
   text-align: center;
 }
-.tempo-value:hover,
-.meter-value:hover,
-.key-dropdown:hover,
-.key-dropdown[data-state="open"] {
-  color: var(--signal-cyan);
-}
-.tempo-value:focus-visible,
-.meter-value:focus-visible,
-.key-dropdown:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: -2px;
-}
-.tempo-input,
-.meter-input {
-  width: 56px;
-  padding: 0 2px;
-  border: 1px solid var(--focus);
-  border-radius: 3px;
-  background: var(--surface-1);
-  outline: none;
-  text-align: center;
-}
-.meter-input {
-  width: 46px;
-}
 .harmony-cell {
   overflow: hidden;
 }
@@ -323,6 +231,11 @@ function commitMeterEdit(): void {
 @media (max-width: 1279px) {
   .musical-display {
     grid-template-columns: 68px 38px 62px 48px 76px;
+  }
+}
+@media (max-width: 1023px) {
+  .key-label {
+    display: none;
   }
 }
 </style>

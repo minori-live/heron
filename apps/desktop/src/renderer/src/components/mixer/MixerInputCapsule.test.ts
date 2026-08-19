@@ -37,6 +37,8 @@ describe("MixerInputCapsule", () => {
     const stereoButton = wrapper.get(
       'button[aria-label="Link adjacent input as stereo for Audio 1"]'
     )
+    expect(stereoButton.attributes("data-variant")).toBe("plain")
+    expect(stereoButton.classes()).toContain("ui-icon-button--compact")
     expect(stereoButton.attributes("aria-pressed")).toBe("false")
     expect(stereoButton.get('[role="img"]').attributes("aria-label")).toBe("1 channel audio")
     expect(stereoButton.findAll("path")).toHaveLength(1)

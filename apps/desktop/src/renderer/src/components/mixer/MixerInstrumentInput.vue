@@ -2,8 +2,9 @@
 import { computed, shallowRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { Trash2 } from "@lucide/vue"
+import { UiButton, UiDropZone, UiIconButton, UiMixerInsert, type UiDragData } from "@heron/ui"
 import type { PluginDescriptor, PluginInstanceState, PluginRuntimeStatus } from "@heron/contracts"
-import { PLUGIN_DRAG_TYPE, readPluginDrag } from "../plugins/plugin-drag"
+import { PLUGIN_DRAG_TYPE, parsePluginDrag } from "../plugins/plugin-drag"
 import PluginAudioModeMenu from "../plugins/PluginAudioModeMenu.vue"
 import { pluginAudioModeBadge, type PluginSelection } from "../plugins/plugin-audio-mode"
 import { pluginDisplayState } from "../plugins/plugin-display-state"
@@ -41,15 +42,10 @@ function openOrRetry(): void {
   else emit("open", props.instrument.id)
 }
 
-function allowDrop(event: DragEvent): void {
-  if (![...(event.dataTransfer?.types ?? [])].includes(PLUGIN_DRAG_TYPE)) return
-  event.preventDefault()
-  if (event.dataTransfer) event.dataTransfer.dropEffect = "copy"
-}
-
-function dropInstrument(event: DragEvent): void {
-  event.preventDefault()
-  const payload = readPluginDrag(event)
+function dropInstrument(data: UiDragData[]): void {
+  const payload = parsePluginDrag(
+    data.find((entry) => entry.mime === PLUGIN_DRAG_TYPE)?.value ?? ""
+  )
   if (payload?.source === "catalog" && payload.descriptor.kind === "instrument") {
     pendingDrop.value = payload.descriptor
   }
@@ -63,50 +59,58 @@ function confirmDrop(selection: PluginSelection): void {
 
 <template>
   <div class="instrument-input-wrapper">
-    <article
+    <UiDropZone
       v-if="instrument"
-      :class="['instrument-input', instrumentState]"
-      :title="failureMessage"
-      :aria-label="
-        t('mixer.instrumentInput.ariaLabel', {
-          name: instrument.descriptor.name,
-          state: instrumentState
-        })
-      "
-      @dragenter="allowDrop"
-      @dragover="allowDrop"
+      :label="t('mixer.instrumentInput.assign')"
+      :mime-types="[PLUGIN_DRAG_TYPE]"
       @drop="dropInstrument"
     >
-      <button
-        type="button"
-        class="instrument-name"
-        :title="instrument.descriptor.name"
-        :aria-label="
-          failure?.recoverable
-            ? t('plugins.instrumentSlot.retry')
-            : t('mixer.instrumentInput.openEditor', { name: instrument.descriptor.name })
+      <UiMixerInsert
+        :class="['instrument-input', instrumentState]"
+        :title="failureMessage"
+        :label="
+          t('mixer.instrumentInput.ariaLabel', {
+            name: instrument.descriptor.name,
+            state: instrumentState
+          })
         "
-        @pointerdown.stop
-        @click.stop="openOrRetry"
       >
-        {{ instrument.descriptor.name }}
-      </button>
-      <span class="instrument-actions">
-        <span
-          class="mode-badge"
-          :title="t('mixer.instrumentInput.audioMode', { mode: instrument.audioMode })"
-          >{{ pluginAudioModeBadge(instrument.audioMode) }}</span
+        <UiButton
+          size="sm"
+          variant="plain"
+          stop-propagation
+          class="instrument-name"
+          :title="instrument.descriptor.name"
+          :aria-label="
+            failure?.recoverable
+              ? t('plugins.instrumentSlot.retry')
+              : t('mixer.instrumentInput.openEditor', { name: instrument.descriptor.name })
+          "
+          @click="openOrRetry"
         >
-        <button
-          type="button"
-          :aria-label="t('mixer.instrumentInput.remove', { name: instrument.descriptor.name })"
-          @pointerdown.stop
-          @click.stop="emit('remove', instrument.id)"
-        >
-          <Trash2 :size="10" />
-        </button>
-      </span>
-    </article>
+          {{ instrument.descriptor.name }}
+        </UiButton>
+        <template #actions>
+          <span class="instrument-actions">
+            <span
+              class="mode-badge"
+              :title="t('mixer.instrumentInput.audioMode', { mode: instrument.audioMode })"
+              >{{ pluginAudioModeBadge(instrument.audioMode) }}</span
+            >
+            <UiIconButton
+              size="sm"
+              density="compact"
+              variant="danger-ghost"
+              stop-propagation
+              :label="t('mixer.instrumentInput.remove', { name: instrument.descriptor.name })"
+              @click="emit('remove', instrument.id)"
+            >
+              <Trash2 :size="10" />
+            </UiIconButton>
+          </span>
+        </template>
+      </UiMixerInsert>
+    </UiDropZone>
 
     <MixerPluginPicker
       v-else
@@ -116,14 +120,13 @@ function confirmDrop(selection: PluginSelection): void {
       :empty-message="t('mixer.instrumentInput.noInstruments')"
       @select="emit('assign', $event)"
     >
-      <button
-        type="button"
-        class="instrument-input empty"
-        :aria-label="t('mixer.instrumentInput.assign')"
-        @dragenter="allowDrop"
-        @dragover="allowDrop"
+      <UiDropZone
+        :label="t('mixer.instrumentInput.assign')"
+        :mime-types="[PLUGIN_DRAG_TYPE]"
         @drop="dropInstrument"
-      />
+      >
+        <UiButton class="instrument-input empty" :aria-label="t('mixer.instrumentInput.assign')" />
+      </UiDropZone>
     </MixerPluginPicker>
     <div v-if="pendingDrop" class="drop-mode-menu">
       <PluginAudioModeMenu
@@ -141,7 +144,7 @@ function confirmDrop(selection: PluginSelection): void {
 }
 .instrument-input {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 0;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   width: 100%;
   height: 28px;
@@ -154,25 +157,13 @@ function confirmDrop(selection: PluginSelection): void {
   background: linear-gradient(var(--ui-domain-color-7e9362), var(--ui-domain-color-63764d));
   box-shadow: 0 1px 0 var(--ui-domain-color-ffffff28) inset;
 }
-.instrument-input:hover,
-.instrument-input:focus-within {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
 .instrument-actions {
   display: grid;
   grid-template-columns: auto 22px;
   align-items: center;
-  width: 0;
+  width: auto;
   height: 100%;
   overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-}
-.instrument-input:hover .instrument-actions,
-.instrument-input:focus-within .instrument-actions {
-  width: auto;
-  opacity: 1;
-  pointer-events: auto;
 }
 .mode-badge {
   padding: 1px 4px;
@@ -222,7 +213,6 @@ function confirmDrop(selection: PluginSelection): void {
   border: 0;
   color: inherit;
   background: transparent;
-  cursor: pointer;
 }
 .instrument-input .instrument-name {
   display: block;
@@ -235,14 +225,6 @@ function confirmDrop(selection: PluginSelection): void {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.instrument-input button:hover {
-  background: var(--ui-domain-color-ffffff22);
-}
-.instrument-input button:focus-visible,
-.instrument-input.empty:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: -2px;
-}
 .instrument-input.empty {
   display: grid;
   grid-template-columns: 1fr;
@@ -252,10 +234,5 @@ function confirmDrop(selection: PluginSelection): void {
   background: var(--ui-domain-color-4d4d4d);
   box-shadow: 0 1px 2px var(--ui-domain-color-00000038) inset;
   font: inherit;
-  cursor: pointer;
-}
-.instrument-input.empty:hover {
-  border-color: var(--ui-domain-color-768a61);
-  color: var(--ui-domain-color-d6e4ca);
 }
 </style>

@@ -121,13 +121,13 @@ const emit = defineEmits<{
 }
 
 .ui-menubar__shortcut {
-  color: var(--text-faint);
+  color: var(--text-secondary);
   background: transparent;
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-size-control) var(--ui-type-family-data);
 }
 
 .ui-menubar__item[data-highlighted] .ui-menubar__shortcut {
-  color: color-mix(in srgb, var(--button-primary-text) 72%, transparent);
+  color: var(--button-primary-text);
 }
 
 .ui-menubar__separator {

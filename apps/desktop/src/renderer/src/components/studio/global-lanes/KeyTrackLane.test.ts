@@ -28,7 +28,7 @@ describe("KeyTrackLane", () => {
 
     expect(wrapper.text()).toContain("C Major")
     expect(wrapper.text()).toContain("A♭ minor")
-    await wrapper.get('[role="application"]').trigger("keydown", { key: "Delete" })
+    await wrapper.get(".ui-automation-lane__point--selected").trigger("keydown", { key: "Delete" })
     expect(wrapper.emitted("replace")?.[0]?.[0]).toEqual([{ tick: 0, fifths: 0, mode: "major" }])
   })
 
@@ -44,7 +44,9 @@ describe("KeyTrackLane", () => {
       }
     })
 
-    await wrapper.get('[role="application"]').trigger("keydown", { key: "Backspace" })
+    await wrapper
+      .get(".ui-automation-lane__point--selected")
+      .trigger("keydown", { key: "Backspace" })
     expect(wrapper.emitted("replace")).toBeUndefined()
   })
 })

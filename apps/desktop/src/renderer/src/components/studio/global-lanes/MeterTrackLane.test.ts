@@ -25,7 +25,7 @@ describe("MeterTrackLane", () => {
       }
     })
 
-    await wrapper.get('[role="application"]').trigger("keydown", { key: "Delete" })
+    await wrapper.get(".ui-automation-lane__point--selected").trigger("keydown", { key: "Delete" })
     const replacement = wrapper.emitted("replace")?.[0]?.[0] as TempoMapSnapshot
     expect(replacement.timeSignatureEvents).toEqual([{ tick: 0, numerator: 4, denominator: 4 }])
     expect(replacement.tempoEvents).toEqual(tempoMap.tempoEvents)
@@ -42,7 +42,7 @@ describe("MeterTrackLane", () => {
       }
     })
 
-    await wrapper.get('[role="application"]').trigger("keydown", { key: "Delete" })
+    await wrapper.get(".ui-automation-lane__point--selected").trigger("keydown", { key: "Delete" })
     expect(wrapper.emitted("replace")).toBeUndefined()
   })
 

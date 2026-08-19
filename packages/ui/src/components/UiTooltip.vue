@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { TooltipArrow, TooltipContent, TooltipPortal, TooltipRoot, TooltipTrigger } from "reka-ui"
+import { injectTooltipProviderContext, TooltipProvider } from "reka-ui"
+
+import UiTooltipContent from "./internal/UiTooltipContent.vue"
+
+const open = defineModel<boolean>("open", { default: false })
 
 const props = withDefaults(
   defineProps<{
@@ -7,35 +11,30 @@ const props = withDefaults(
     shortcut?: string
     side?: "top" | "right" | "bottom" | "left"
     disabled?: boolean
+    delayDuration?: number
+    defaultOpen?: boolean
   }>(),
   {
     shortcut: undefined,
     side: "top",
-    disabled: false
+    disabled: false,
+    delayDuration: undefined,
+    defaultOpen: false
   }
 )
+
+const needsProvider = injectTooltipProviderContext(null) === null
 </script>
 
 <template>
-  <TooltipRoot :disabled="props.disabled">
-    <TooltipTrigger as-child>
+  <TooltipProvider v-if="needsProvider">
+    <UiTooltipContent v-bind="props" v-model:open="open">
       <slot />
-    </TooltipTrigger>
-    <TooltipPortal>
-      <TooltipContent
-        class="z-[var(--ui-z-tooltip)] inline-flex max-w-[min(22rem,calc(100vw-2rem))] items-center gap-ui-2 border border-solid border-ui-border rounded-ui-sm bg-ui-surface-raised px-ui-3 py-ui-2 text-ui-xs text-ui-text leading-ui-normal shadow-ui-md"
-        data-ui-part="tooltip-content"
-        :side="props.side"
-        :side-offset="6"
-      >
-        <span>{{ props.text }}</span>
-        <kbd v-if="props.shortcut" class="font-ui-interface text-ui-text-muted">{{
-          props.shortcut
-        }}</kbd>
-        <TooltipArrow class="ui-tooltip__arrow" />
-      </TooltipContent>
-    </TooltipPortal>
-  </TooltipRoot>
+    </UiTooltipContent>
+  </TooltipProvider>
+  <UiTooltipContent v-else v-bind="props" v-model:open="open">
+    <slot />
+  </UiTooltipContent>
 </template>
 
 <style>

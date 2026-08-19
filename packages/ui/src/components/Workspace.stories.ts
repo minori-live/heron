@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/vue3-vite"
+import { expect, userEvent, within } from "storybook/test"
 
 import UiButton from "./UiButton.vue"
 import UiChoiceChip from "./UiChoiceChip.vue"
@@ -73,7 +74,18 @@ export const EditorToolbar: Story = {
         <template #end><UiButton size="sm" variant="ghost">Close editor</UiButton></template>
       </UiToolbar>
     `
-  })
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const draw = canvas.getByRole("button", { name: "Draw" })
+    await userEvent.click(draw)
+    await expect(draw).toHaveAttribute("aria-pressed", "true")
+    const clip = canvas.getByRole("button", { name: "Counter melody" })
+    await userEvent.click(clip)
+    await expect(clip).toHaveAttribute("aria-pressed", "true")
+    await userEvent.click(canvas.getByRole("button", { name: "Select" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Verse" }))
+  }
 }
 
 export const InspectorFields: Story = {
@@ -95,5 +107,11 @@ export const InspectorFields: Story = {
         </UiField>
       </aside>
     `
-  })
+  }),
+  play: async ({ canvasElement }) => {
+    const pitch = within(canvasElement).getByRole("spinbutton", { name: /Pitch/ })
+    await userEvent.click(pitch)
+    await userEvent.keyboard("{ArrowUp}")
+    await expect(pitch).toHaveValue("61")
+  }
 }

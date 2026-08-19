@@ -19,11 +19,11 @@ describe("TimelineRuler cycle lane", () => {
       props: { contentWidth: 2_000, pixelsPerQuarter: 480, tempoMap },
       attachTo: document.body
     })
-    const lane = wrapper.get(".cycle-lane")
+    const lane = wrapper.get(".ui-timeline-ruler__cycle-lane")
 
     await lane.trigger("pointerdown", { pointerId: 4, clientX: 480 })
     await lane.trigger("pointermove", { pointerId: 4, clientX: 1_440 })
-    expect(wrapper.get('[data-testid="cycle-range"]').attributes("style")).toContain("left: 480px")
+    expect(wrapper.get(".ui-timeline-ruler__cycle").attributes("style")).toContain("left: 480px")
     await lane.trigger("pointerup", { pointerId: 4, clientX: 1_440 })
 
     expect(wrapper.emitted("updateLoopRange")).toEqual([[{ startTick: 960, endTick: 2_880 }]])
@@ -42,14 +42,16 @@ describe("TimelineRuler cycle lane", () => {
       attachTo: document.body
     })
 
-    await wrapper.get(".cycle-lane").trigger("pointerdown", { pointerId: 1, clientX: 480 })
-    await wrapper.get('[data-testid="cycle-range"]').trigger("pointerdown", {
+    await wrapper
+      .get(".ui-timeline-ruler__cycle-lane")
+      .trigger("pointerdown", { pointerId: 1, clientX: 480 })
+    await wrapper.get(".ui-timeline-ruler__cycle").trigger("pointerdown", {
       pointerId: 2,
       clientX: 720
     })
 
     expect(wrapper.emitted("updateLoopRange")).toBeUndefined()
-    expect(wrapper.emitted("seek")).toEqual([[0.5], [0.75]])
+    expect(wrapper.emitted("seek")).toEqual([[0.5]])
   })
 
   it("resizes an existing cycle range from its edges", async () => {
@@ -65,13 +67,13 @@ describe("TimelineRuler cycle lane", () => {
     })
 
     await wrapper
-      .get('[data-testid="cycle-edge-end"]')
+      .get(".ui-timeline-ruler__edge--end")
       .trigger("pointerdown", { pointerId: 3, clientX: 1_440 })
     await wrapper
-      .get('[data-testid="cycle-edge-end"]')
+      .get(".ui-timeline-ruler__edge--end")
       .trigger("pointermove", { pointerId: 3, clientX: 1_920 })
     await wrapper
-      .get('[data-testid="cycle-edge-end"]')
+      .get(".ui-timeline-ruler__edge--end")
       .trigger("pointerup", { pointerId: 3, clientX: 1_920 })
 
     expect(wrapper.emitted("updateLoopRange")).toEqual([[{ startTick: 960, endTick: 3_840 }]])
@@ -88,7 +90,7 @@ describe("TimelineRuler cycle lane", () => {
       },
       attachTo: document.body
     })
-    const marker = wrapper.get('[data-testid="project-end-marker"]')
+    const marker = wrapper.get(".ui-timeline-ruler__end")
 
     await marker.trigger("pointerdown", { pointerId: 8, clientX: 3_840 })
     await marker.trigger("pointermove", { pointerId: 8, clientX: 1_920 })
@@ -109,7 +111,7 @@ describe("TimelineRuler cycle lane", () => {
       }
     })
 
-    await wrapper.get('[data-testid="project-end-marker"]').trigger("keydown", {
+    await wrapper.get(".ui-timeline-ruler__end").trigger("keydown", {
       key: "ArrowRight"
     })
 

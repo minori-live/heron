@@ -163,7 +163,8 @@ describe("SystemSettingsPage", () => {
 
     await midiCategory!.trigger("click")
     const controlsPage = wrapper
-      .findAll(".settings-page-link")
+      .get('nav[aria-label="System settings pages"]')
+      .findAll("button")
       .find((button) => button.text().includes("MIDI Controls"))
     await controlsPage!.trigger("click")
 

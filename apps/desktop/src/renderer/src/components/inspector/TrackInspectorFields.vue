@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, shallowRef, watch } from "vue"
+import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { AudioWaveform, Piano } from "@lucide/vue"
-import { UiField, UiTextInput } from "@heron/ui"
+import { UiColorInput, UiField, UiInlineTextEdit } from "@heron/ui"
 import type { MidiInputPort, MixerChannelPatch, MixerChannelState } from "@heron/contracts"
 import TrackInspectorMidiInput from "./TrackInspectorMidiInput.vue"
 
@@ -16,48 +16,19 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const nameDraft = shallowRef(props.track.name)
-let ignoreNameBlur = false
-
-watch(
-  () => [props.track.id, props.track.name] as const,
-  ([, name]) => {
-    nameDraft.value = name
-  }
-)
-
 const typeLabel = computed(() => t(`studio.trackInspector.types.${props.track.kind}`))
 const typeIcon = computed(() => (props.track.kind === "instrument" ? Piano : AudioWaveform))
-
-function commitName(): void {
-  const name = nameDraft.value.trim()
-  if (!name) {
-    nameDraft.value = props.track.name
-    return
+const colorModel = computed({
+  get: () => props.track.color,
+  set: (color: string) => {
+    const normalized = color.toUpperCase()
+    if (normalized !== props.track.color.toUpperCase()) emit("update", { color: normalized })
   }
-  nameDraft.value = name
+})
+
+function commitName(value: string): void {
+  const name = value.trim()
   if (name !== props.track.name) emit("update", { name })
-}
-
-function commitNameFromBlur(): void {
-  if (!ignoreNameBlur) commitName()
-}
-
-function commitNameFromKeyboard(event: KeyboardEvent): void {
-  ignoreNameBlur = true
-  commitName()
-  ;(event.currentTarget as HTMLInputElement).blur()
-  ignoreNameBlur = false
-}
-
-function cancelName(event: KeyboardEvent): void {
-  nameDraft.value = props.track.name
-  ;(event.currentTarget as HTMLInputElement).blur()
-}
-
-function updateColor(event: Event): void {
-  const color = (event.currentTarget as HTMLInputElement).value.toUpperCase()
-  if (color !== props.track.color.toUpperCase()) emit("update", { color })
 }
 </script>
 
@@ -72,29 +43,24 @@ function updateColor(event: Event): void {
     <section class="property-section" :aria-labelledby="`track-identity-${track.id}`">
       <h2 :id="`track-identity-${track.id}`">{{ t("studio.trackInspector.identity.title") }}</h2>
       <UiField :label="t('studio.trackInspector.identity.name')">
-        <template #default="{ controlId }">
-          <UiTextInput
-            :id="controlId"
-            v-model="nameDraft"
-            size="sm"
-            @blur="commitNameFromBlur"
-            @keydown.enter.prevent="commitNameFromKeyboard"
-            @keydown.esc.prevent="cancelName"
+        <template #default>
+          <UiInlineTextEdit
+            :value="track.name"
+            :label="t('studio.trackInspector.identity.name')"
+            @commit="commitName"
           />
         </template>
       </UiField>
       <UiField :label="t('studio.trackInspector.identity.color')" layout="inline">
         <template #default="{ controlId }">
-          <label class="color-control" :for="controlId" :title="track.color">
+          <span class="color-control" :title="track.color">
             <span class="color-value">{{ track.color.toUpperCase() }}</span>
-            <input
+            <UiColorInput
               :id="controlId"
-              class="color-input"
-              type="color"
-              :value="track.color"
-              @change="updateColor"
+              v-model="colorModel"
+              :label="t('studio.trackInspector.identity.color')"
             />
-          </label>
+          </span>
         </template>
       </UiField>
       <UiField :label="t('studio.trackInspector.identity.type')" layout="inline">
@@ -179,28 +145,12 @@ function updateColor(event: Event): void {
   display: flex;
   align-items: center;
   gap: 7px;
-  cursor: pointer;
 }
 
 .color-value,
 .track-type {
   color: var(--text-secondary);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
-}
-
-.color-input {
-  width: 28px;
-  height: 24px;
-  padding: 2px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  background: var(--daw-control);
-  cursor: pointer;
-}
-
-.color-input:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
 }
 
 .track-type {

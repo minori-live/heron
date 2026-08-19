@@ -1,7 +1,8 @@
-import { computed, shallowRef, useTemplateRef, type Ref } from "vue"
+import { computed, shallowRef, type Ref } from "vue"
+import type { UiDropIntent } from "@heron/ui"
 import type { TempoMapSnapshot } from "@heron/contracts"
 import type { TimelineClip } from "../../stores/transport"
-import { clipStartSecondsFromPointer, findNearestTrackId } from "../../utils/clipDrag"
+import { clipStartSecondsFromPointer } from "../../utils/clipDrag"
 
 interface ArrangementClipDragOptions {
   clips: Ref<TimelineClip[]>
@@ -11,7 +12,6 @@ interface ArrangementClipDragOptions {
 }
 
 export function useArrangementClipDrag(options: ArrangementClipDragOptions) {
-  const content = useTemplateRef<HTMLElement>("content")
   const clipDrag = shallowRef<{
     clipId: string
     offsetPixels: number
@@ -43,31 +43,20 @@ export function useArrangementClipDrag(options: ArrangementClipDragOptions) {
     }
   }
 
-  function updateClipDrag(event: DragEvent): void {
+  function updateClipDrag(event: UiDropIntent): void {
     const drag = clipDrag.value
-    const contentElement = content.value
-    if (!drag || !contentElement) return
-    const lanes = Array.from(
-      contentElement.querySelectorAll<HTMLElement>("[data-track-id][data-track-kind='audio']")
-    ).map((lane) => {
-      const bounds = lane.getBoundingClientRect()
-      return { trackId: lane.dataset.trackId!, top: bounds.top, bottom: bounds.bottom }
-    })
-    const trackId = findNearestTrackId(lanes, event.clientY)
-    if (!trackId) return
-    event.preventDefault()
-    if (event.dataTransfer) event.dataTransfer.dropEffect = "move"
+    if (!drag || event.targetKind !== "audio" || !event.targetId) return
     const startSeconds = clipStartSecondsFromPointer(
-      event.clientX,
-      contentElement.getBoundingClientRect().left,
+      event.point.x,
+      0,
       options.tempoMap(),
       options.pixelsPerQuarter.value,
       drag.offsetPixels
     )
-    clipDrag.value = { ...drag, trackId, startSeconds }
+    clipDrag.value = { ...drag, trackId: event.targetId, startSeconds }
   }
 
-  function handleClipDrop(event: DragEvent): void {
+  function handleClipDrop(event: UiDropIntent): void {
     if (!clipDrag.value) return
     updateClipDrag(event)
     const drag = clipDrag.value
@@ -81,7 +70,6 @@ export function useArrangementClipDrag(options: ArrangementClipDragOptions) {
   }
 
   return {
-    content,
     clipDrag,
     dragPreview,
     handleClipDragStart,

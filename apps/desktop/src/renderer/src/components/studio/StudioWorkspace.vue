@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { shallowRef } from "vue"
 import { useI18n } from "vue-i18n"
-import { useEventListener } from "@vueuse/core"
+import { UiResizeHandle, type UiGestureIntent } from "@heron/ui"
 import { useStudioWorkspaceStore } from "../../stores/studioWorkspace"
 import ArrangementWorkspace from "./ArrangementWorkspace.vue"
 import MixerConsole from "../mixer/MixerConsole.vue"
@@ -21,24 +21,19 @@ defineProps<{
 
 const workspaceStore = useStudioWorkspaceStore()
 const resizing = shallowRef(false)
+const resizeStartHeight = shallowRef(0)
 
-function startResize(event: PointerEvent): void {
-  resizing.value = true
-  ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+function resizeDock(intent: UiGestureIntent): void {
+  if (intent.phase === "start") {
+    resizing.value = true
+    resizeStartHeight.value = workspaceStore.mixerDockHeight
+  } else if (intent.phase === "update" || intent.phase === "commit") {
+    workspaceStore.setDockHeight(
+      (resizing.value ? resizeStartHeight.value : workspaceStore.mixerDockHeight) - intent.delta.y
+    )
+    if (intent.phase === "commit") resizing.value = false
+  } else resizing.value = false
 }
-
-function moveResize(event: PointerEvent): void {
-  if (!resizing.value) return
-  const shell = (event.currentTarget as Window).document.documentElement
-  workspaceStore.setDockHeight(shell.clientHeight - event.clientY - 25)
-}
-
-function stopResize(): void {
-  resizing.value = false
-}
-
-useEventListener(window, "pointermove", moveResize)
-useEventListener(window, "pointerup", stopResize)
 </script>
 
 <template>
@@ -53,13 +48,16 @@ useEventListener(window, "pointerup", stopResize)
         :recording-midi-track-ids="recordingMidiTrackIds"
         :recording-error="recordingError"
       />
-      <div
+      <UiResizeHandle
         v-if="workspaceStore.lowerDockOpen"
         class="dock-resizer relative z-[var(--ui-z-local-controls)] mt-[-2px] h-[5px] flex-none cursor-ns-resize border-b border-b-solid border-t border-t-solid bg-[var(--daw-resizer)] [border-bottom-color:var(--line-soft)] [border-top-color:var(--line-strong)]"
         :class="{ active: resizing }"
-        role="separator"
-        :aria-label="t('studio.arrangement.resizeMixerDockAria')"
-        @pointerdown="startResize"
+        axis="vertical"
+        :label="t('studio.arrangement.resizeMixerDockAria')"
+        :value="workspaceStore.mixerDockHeight"
+        :minimum="190"
+        :maximum="480"
+        @gesture="resizeDock"
       />
       <div
         v-if="workspaceStore.lowerDockOpen"

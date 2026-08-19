@@ -27,14 +27,11 @@ export function clearActivePluginDropPreview(): void {
   owner?.()
 }
 
-export function writePluginDrag(event: DragEvent, payload: PluginDragPayload): void {
-  if (!event.dataTransfer) return
-  event.dataTransfer.effectAllowed = payload.source === "catalog" ? "copy" : "move"
-  event.dataTransfer.setData(PLUGIN_DRAG_TYPE, JSON.stringify(payload))
+export function serializePluginDrag(payload: PluginDragPayload): string {
+  return JSON.stringify(payload)
 }
 
-export function readPluginDrag(event: DragEvent): PluginDragPayload | null {
-  const value = event.dataTransfer?.getData(PLUGIN_DRAG_TYPE)
+export function parsePluginDrag(value: string): PluginDragPayload | null {
   if (!value) return null
   try {
     const payload = JSON.parse(value) as Partial<PluginDragPayload>

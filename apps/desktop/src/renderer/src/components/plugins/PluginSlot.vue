@@ -2,13 +2,14 @@
 import { useI18n } from "vue-i18n"
 import { computed } from "vue"
 import { GripVertical, Power, RotateCcw, SquareArrowOutUpRight, Trash2 } from "@lucide/vue"
+import { UiDraggableItem, UiIconButton } from "@heron/ui"
 import type {
   PluginFailureCategory,
   PluginInstanceState,
   PluginRuntimeStatus
 } from "@heron/contracts"
 import { pluginAudioModeBadge } from "./plugin-audio-mode"
-import { writePluginDrag } from "./plugin-drag"
+import { PLUGIN_DRAG_TYPE, serializePluginDrag } from "./plugin-drag"
 import { pluginDisplayState } from "./plugin-display-state"
 
 const props = defineProps<{
@@ -24,6 +25,12 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const canRetry = computed(() => props.runtime?.failure?.recoverable === true)
+const dragData = computed(() => [
+  {
+    mime: PLUGIN_DRAG_TYPE,
+    value: serializePluginDrag({ source: "rack", instanceId: props.plugin.id })
+  }
+])
 
 function toggleOrRetry(): void {
   if (canRetry.value) emit("open", props.plugin.id)
@@ -36,67 +43,70 @@ function failureMessage(category: PluginFailureCategory): string {
 </script>
 
 <template>
-  <article
-    class="plugin-slot"
-    :data-plugin-id="plugin.id"
-    @dragstart="writePluginDrag($event, { source: 'rack', instanceId: plugin.id })"
-  >
-    <span
-      class="grip"
-      draggable="true"
-      :aria-label="t('plugins.pluginSlot.move', { name: plugin.descriptor.name })"
-    >
-      <GripVertical :size="11" aria-hidden="true" />
-    </span>
-    <i :class="pluginDisplayState(plugin, runtime)" />
-    <div>
-      <strong>{{ plugin.descriptor.name }}</strong
-      ><small>{{ plugin.descriptor.vendor }}</small>
-    </div>
-    <span class="badges">
+  <UiDraggableItem :data="dragData" effect-allowed="move">
+    <article class="plugin-slot" :data-plugin-id="plugin.id">
       <span
-        class="mode-badge"
-        :title="t('plugins.pluginSlot.audioMode', { mode: plugin.audioMode })"
-        >{{ pluginAudioModeBadge(plugin.audioMode) }}</span
+        class="grip"
+        :aria-label="t('plugins.pluginSlot.move', { name: plugin.descriptor.name })"
       >
-      <span v-if="plugin.descriptor.ara" class="ara-badge" :title="t('plugins.pluginSlot.araTitle')"
-        >ARA</span
+        <GripVertical :size="11" aria-hidden="true" />
+      </span>
+      <i :class="pluginDisplayState(plugin, runtime)" />
+      <div>
+        <strong>{{ plugin.descriptor.name }}</strong
+        ><small>{{ plugin.descriptor.vendor }}</small>
+      </div>
+      <span class="badges">
+        <span
+          class="mode-badge"
+          :title="t('plugins.pluginSlot.audioMode', { mode: plugin.audioMode })"
+          >{{ pluginAudioModeBadge(plugin.audioMode) }}</span
+        >
+        <span
+          v-if="plugin.descriptor.ara"
+          class="ara-badge"
+          :title="t('plugins.pluginSlot.araTitle')"
+          >ARA</span
+        >
+      </span>
+      <UiIconButton
+        size="sm"
+        :pressed="plugin.enabled"
+        :label="
+          canRetry
+            ? t('plugins.pluginSlot.retry', { name: plugin.descriptor.name })
+            : t('plugins.pluginSlot.toggle', {
+                action: plugin.enabled
+                  ? t('plugins.pluginSlot.bypass')
+                  : t('plugins.pluginSlot.enable'),
+                name: plugin.descriptor.name
+              })
+        "
+        @click="toggleOrRetry"
       >
-    </span>
-    <button
-      type="button"
-      :aria-pressed="plugin.enabled"
-      :aria-label="
-        canRetry
-          ? t('plugins.pluginSlot.retry', { name: plugin.descriptor.name })
-          : t('plugins.pluginSlot.toggle', {
-              action: plugin.enabled
-                ? t('plugins.pluginSlot.bypass')
-                : t('plugins.pluginSlot.enable'),
-              name: plugin.descriptor.name
-            })
-      "
-      @click="toggleOrRetry"
-    >
-      <RotateCcw v-if="canRetry" :size="10" />
-      <Power v-else :size="10" />
-    </button>
-    <button
-      :aria-label="t('plugins.pluginSlot.openEditor', { name: plugin.descriptor.name })"
-      @click="$emit('open', plugin.id)"
-    >
-      <SquareArrowOutUpRight :size="10" />
-    </button>
-    <button
-      :aria-label="t('plugins.pluginSlot.remove', { name: plugin.descriptor.name })"
-      @click="$emit('remove', plugin.id)"
-    >
-      <Trash2 :size="10" />
-    </button>
-    <small v-if="runtime?.failure" class="failure-message" role="status">
-      {{ failureMessage(runtime.failure.category) }}
-    </small>
-  </article>
+        <RotateCcw v-if="canRetry" :size="10" />
+        <Power v-else :size="10" />
+      </UiIconButton>
+      <UiIconButton
+        size="sm"
+        :label="t('plugins.pluginSlot.openEditor', { name: plugin.descriptor.name })"
+        @click="$emit('open', plugin.id)"
+      >
+        <SquareArrowOutUpRight :size="10" />
+      </UiIconButton>
+      <UiIconButton
+        size="sm"
+        variant="danger"
+        :label="t('plugins.pluginSlot.remove', { name: plugin.descriptor.name })"
+        @click="$emit('remove', plugin.id)"
+      >
+        <Trash2 :size="10" />
+      </UiIconButton>
+      <small v-if="runtime?.failure" class="failure-message" role="status">
+        {{ failureMessage(runtime.failure.category) }}
+      </small>
+    </article>
+  </UiDraggableItem>
 </template>
 
 <style scoped>
@@ -134,10 +144,6 @@ function failureMessage(category: PluginFailureCategory): string {
   display: grid;
   place-items: center;
   color: var(--text-faint);
-  cursor: grab;
-}
-.grip:active {
-  cursor: grabbing;
 }
 .plugin-slot i {
   width: 5px;
@@ -169,18 +175,6 @@ function failureMessage(category: PluginFailureCategory): string {
   margin-top: 2px;
   color: var(--text-faint);
   font-size: var(--ui-type-size-micro);
-}
-.plugin-slot button {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid var(--line-soft);
-  border-radius: 3px;
-  color: var(--text-muted);
-  background: var(--daw-control);
-  cursor: pointer;
 }
 .failure-message {
   grid-column: 3 / -1;

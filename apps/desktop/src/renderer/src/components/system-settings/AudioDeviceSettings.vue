@@ -110,16 +110,10 @@ const {
   border: 0;
   color: var(--signal-cyan);
   background: transparent;
-  cursor: pointer;
   font-size: var(--ui-type-size-control);
-}
-.refresh-button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 .refresh-button:disabled {
   color: var(--text-faint);
-  cursor: wait;
 }
 .spinning {
   animation: icon-spin 800ms linear infinite;

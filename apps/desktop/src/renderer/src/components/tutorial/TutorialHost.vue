@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import "driver.js/dist/driver.css"
-
-import { driver } from "driver.js"
-import type { Driver } from "driver.js"
-import { computed, nextTick, onMounted, onUnmounted, shallowRef, watch } from "vue"
+import { computed, shallowRef, watch } from "vue"
 import { storeToRefs } from "pinia"
 import { useI18n } from "vue-i18n"
 import { useRoute } from "vue-router"
+import { UiGuidedTour } from "@heron/ui"
 import { useTutorialController } from "../../composables/useTutorialController"
 import { useApplicationSettingsStore } from "../../stores/applicationSettings"
 import { useProjectStore } from "../../stores/project"
@@ -19,13 +16,8 @@ const projectStore = useProjectStore()
 const { settings } = storeToRefs(settingsStore)
 const { session } = storeToRefs(projectStore)
 const { studioBasicsRequest } = useTutorialController()
-
-const activeDriver = shallowRef<Driver | null>(null)
 const dismissedThisSession = shallowRef(false)
-let completedCurrentRun = false
-let startPending = false
-let manualRequestPending = false
-let bodyObserver: MutationObserver | null = null
+const manual = shallowRef(false)
 
 const autoStartEligible = computed(
   () =>
@@ -35,112 +27,39 @@ const autoStartEligible = computed(
     (settings.value.tutorials.completedVersions["studio-basics"] ?? 0) < STUDIO_BASICS_VERSION &&
     !dismissedThisSession.value
 )
-
-function hasBlockingSurface(): boolean {
-  return document.querySelector('[aria-modal="true"], [data-tutorial-blocking-surface]') !== null
-}
-
-function targetIsVisible(selector: string): boolean {
-  const element = document.querySelector<HTMLElement>(selector)
-  return Boolean(element && element.getClientRects().length > 0)
-}
-
-function visibleSteps() {
-  return studioBasicsSteps(t).filter((step) => {
-    if (typeof step.element !== "string") return true
-    return targetIsVisible(step.element)
-  })
-}
-
-function destroyActive(): void {
-  activeDriver.value?.destroy()
-}
-
-async function startStudioBasics(manual: boolean): Promise<void> {
-  if (startPending || activeDriver.value) return
-  if (route.name !== "studio" || session.value === null) return
-  if (!manual && !autoStartEligible.value) return
-
-  startPending = true
-  await nextTick()
-  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-  startPending = false
-
-  if (activeDriver.value || route.name !== "studio" || session.value === null) return
-  if (!manual && (!autoStartEligible.value || hasBlockingSurface())) return
-  if (!targetIsVisible('[data-tutorial="studio-arrangement"]') || hasBlockingSurface()) return
-
-  completedCurrentRun = false
-  manualRequestPending = false
-  const instance = driver({
-    animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    allowClose: true,
-    allowKeyboardControl: true,
-    disableActiveInteraction: true,
-    overlayClickBehavior: "close",
-    showProgress: true,
-    skipMissingElement: true,
-    waitForElement: 1_000,
-    stagePadding: 8,
-    stageRadius: 7,
-    popoverClass: "heron-tutorial-popover",
-    progressText: t("tutorials.progress"),
-    nextBtnText: t("tutorials.actions.next"),
-    prevBtnText: t("tutorials.actions.previous"),
-    doneBtnText: t("tutorials.actions.done"),
-    steps: visibleSteps(),
-    onDoneClick: () => {
-      completedCurrentRun = true
-      dismissedThisSession.value = true
-      void settingsStore.markTutorialCompleted("studio-basics", STUDIO_BASICS_VERSION)
-      instance.destroy()
-    },
-    onDestroyed: () => {
-      if (!completedCurrentRun) dismissedThisSession.value = true
-      if (activeDriver.value === instance) activeDriver.value = null
-    }
-  })
-  activeDriver.value = instance
-  instance.drive()
-}
-
-watch(
-  autoStartEligible,
-  (eligible) => {
-    if (eligible) void startStudioBasics(false)
-    else if (activeDriver.value && route.name !== "studio") destroyActive()
-  },
-  { immediate: true }
-)
+const active = computed(() => manual.value || autoStartEligible.value)
+const steps = computed(() => studioBasicsSteps(t))
 
 watch(studioBasicsRequest, () => {
-  manualRequestPending = true
-  void startStudioBasics(true)
+  manual.value = route.name === "studio" && session.value !== null
 })
-
 watch(
   () => route.name,
   (name) => {
-    if (name !== "studio") {
-      manualRequestPending = false
-      destroyActive()
-    }
+    if (name !== "studio") manual.value = false
   }
 )
 
-onMounted(() => {
-  bodyObserver = new MutationObserver(() => {
-    if (manualRequestPending && !hasBlockingSurface()) void startStudioBasics(true)
-    else if (autoStartEligible.value && !hasBlockingSurface()) void startStudioBasics(false)
-  })
-  bodyObserver.observe(document.body, { childList: true, subtree: true })
-})
-
-onUnmounted(() => {
-  bodyObserver?.disconnect()
-  bodyObserver = null
-  destroyActive()
-})
+function cancel(): void {
+  manual.value = false
+  dismissedThisSession.value = true
+}
+function complete(): void {
+  cancel()
+  void settingsStore.markTutorialCompleted("studio-basics", STUDIO_BASICS_VERSION)
+}
 </script>
 
-<template><div hidden aria-hidden="true" /></template>
+<template>
+  <UiGuidedTour
+    :active="active"
+    :steps="steps"
+    :progress-label="t('tutorials.progress')"
+    :next-label="t('tutorials.actions.next')"
+    :previous-label="t('tutorials.actions.previous')"
+    :done-label="t('tutorials.actions.done')"
+    @complete="complete"
+    @cancel="cancel"
+    @unavailable="cancel"
+  />
+</template>

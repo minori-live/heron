@@ -1,12 +1,11 @@
 import { describe, expect, it, vi } from "vitest"
 import type { PluginDescriptor } from "@heron/contracts"
 import {
-  PLUGIN_DRAG_TYPE,
   claimPluginDropPreview,
   clearActivePluginDropPreview,
-  readPluginDrag,
+  parsePluginDrag,
   releasePluginDropPreview,
-  writePluginDrag
+  serializePluginDrag
 } from "./plugin-drag"
 
 const descriptor = {
@@ -25,42 +24,28 @@ const descriptor = {
   compatibilityReason: null
 } satisfies PluginDescriptor
 
-function dragEvent(data?: string): DragEvent {
-  const transfer = {
-    effectAllowed: "none",
-    setData: vi.fn(),
-    getData: vi.fn((type: string) => (type === PLUGIN_DRAG_TYPE ? (data ?? "") : ""))
-  }
-  return { dataTransfer: transfer } as unknown as DragEvent
-}
-
 describe("plugin drag helpers", () => {
-  it("writes catalog and rack payloads with the correct effectAllowed", () => {
-    const catalogEvent = dragEvent()
-    writePluginDrag(catalogEvent, { source: "catalog", descriptor })
-    expect(catalogEvent.dataTransfer?.effectAllowed).toBe("copy")
-    expect(catalogEvent.dataTransfer?.setData).toHaveBeenCalledWith(
-      PLUGIN_DRAG_TYPE,
+  it("serializes catalog and rack payloads", () => {
+    expect(serializePluginDrag({ source: "catalog", descriptor })).toBe(
       JSON.stringify({ source: "catalog", descriptor })
     )
-
-    const rackEvent = dragEvent()
-    writePluginDrag(rackEvent, { source: "rack", instanceId: "plugin-1" })
-    expect(rackEvent.dataTransfer?.effectAllowed).toBe("move")
+    expect(serializePluginDrag({ source: "rack", instanceId: "plugin-1" })).toBe(
+      JSON.stringify({ source: "rack", instanceId: "plugin-1" })
+    )
   })
 
-  it("reads valid payloads and ignores malformed drag data", () => {
-    expect(readPluginDrag(dragEvent(JSON.stringify({ source: "rack", instanceId: "p1" })))).toEqual(
-      { source: "rack", instanceId: "p1" }
-    )
-    expect(readPluginDrag(dragEvent(JSON.stringify({ source: "catalog", descriptor })))).toEqual({
+  it("parses valid payloads and ignores malformed data", () => {
+    expect(parsePluginDrag(JSON.stringify({ source: "rack", instanceId: "p1" }))).toEqual({
+      source: "rack",
+      instanceId: "p1"
+    })
+    expect(parsePluginDrag(JSON.stringify({ source: "catalog", descriptor }))).toEqual({
       source: "catalog",
       descriptor
     })
-    expect(readPluginDrag(dragEvent(""))).toBeNull()
-    expect(readPluginDrag(dragEvent("{"))).toBeNull()
-    expect(readPluginDrag(dragEvent(JSON.stringify({ source: "rack" })))).toBeNull()
-    expect(readPluginDrag({ dataTransfer: null } as DragEvent)).toBeNull()
+    expect(parsePluginDrag("")).toBeNull()
+    expect(parsePluginDrag("{")).toBeNull()
+    expect(parsePluginDrag(JSON.stringify({ source: "rack" }))).toBeNull()
   })
 
   it("claims, replaces, and clears drop preview owners", () => {

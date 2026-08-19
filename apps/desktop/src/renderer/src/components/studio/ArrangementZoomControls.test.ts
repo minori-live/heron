@@ -16,7 +16,9 @@ describe("ArrangementZoomControls", () => {
     const track = wrapper.get('input[aria-label="Track height"]')
     const gain = wrapper.get('input[aria-label="Waveform gain"]')
     expect(wrapper.findAll('input[type="range"]')).toHaveLength(3)
-    expect(wrapper.findAll("button")).toHaveLength(0)
+    expect(wrapper.findAll("button")).toHaveLength(3)
+    expect(wrapper.findAll(".ui-zoom-control__visual")).toHaveLength(3)
+    expect(wrapper.findAll(".ui-zoom-control__visual svg")).toHaveLength(3)
 
     await time.setValue(100)
     await track.setValue(50)
@@ -26,7 +28,7 @@ describe("ArrangementZoomControls", () => {
     expect(wrapper.emitted("setTrack")?.[0]).toEqual([196])
     expect(wrapper.emitted("setAmplitude")?.[0]?.[0]).toBeCloseTo(0.5)
 
-    await time.trigger("dblclick")
+    await wrapper.get('button[aria-label="Double-click to reset time zoom"]').trigger("click")
     expect(wrapper.emitted("resetTime")).toHaveLength(1)
   })
 })

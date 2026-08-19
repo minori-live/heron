@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef, useId, useTemplateRef } from "vue"
 import type { UiCurveHandle, UiCurveStroke } from "../types"
+import { trySetPointerCapture } from "./internal/pointerCapture"
 
 const props = withDefaults(
   defineProps<{
@@ -59,7 +60,7 @@ function beginDrag(event: PointerEvent, handle: UiCurveHandle): void {
   activeHandleId.value = handle.id
   selectedHandleId.value = handle.id
   ;(event.currentTarget as SVGGraphicsElement).focus()
-  ;(event.currentTarget as SVGGraphicsElement).setPointerCapture?.(event.pointerId)
+  trySetPointerCapture(event.currentTarget as SVGGraphicsElement, event.pointerId)
 }
 
 function drag(event: PointerEvent): void {

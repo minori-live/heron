@@ -2,6 +2,7 @@
 import { shallowRef } from "vue"
 import { useI18n } from "vue-i18n"
 import type { CompiledAudioGraphSnapshot } from "@heron/contracts"
+import { UiButton } from "@heron/ui"
 import type { CompiledEffectGraphStatus } from "../../stores/compiledEffectGraph"
 import CompiledEffectGraphChart from "./CompiledEffectGraphChart.vue"
 
@@ -32,9 +33,9 @@ const resetToken = shallowRef(0)
         </strong>
         <strong v-else>{{ t("effectGraph.toolbar.waiting") }}</strong>
       </div>
-      <button type="button" :disabled="!snapshot" @click="resetToken += 1">
+      <UiButton size="sm" :disabled="!snapshot" @click="resetToken += 1">
         {{ t("effectGraph.toolbar.resetView") }}
-      </button>
+      </UiButton>
     </header>
 
     <CompiledEffectGraphChart
@@ -54,9 +55,9 @@ const resetToken = shallowRef(0)
       <template v-else-if="status === 'error'">
         <b>{{ t("effectGraph.state.error.title") }}</b>
         <span>{{ errorMessage }}</span>
-        <button type="button" @click="emit('retry')">
+        <UiButton size="sm" @click="emit('retry')">
           {{ t("effectGraph.state.error.retry") }}
-        </button>
+        </UiButton>
       </template>
     </div>
   </section>
@@ -104,7 +105,6 @@ const resetToken = shallowRef(0)
   border-radius: 4px;
   color: var(--text-secondary);
   background: var(--daw-control);
-  cursor: pointer;
 }
 
 .graph-toolbar button:disabled {

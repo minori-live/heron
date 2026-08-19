@@ -9,6 +9,8 @@ import {
   type ClipTrimEdge
 } from "../../utils/clipEditing"
 import { timelineXToSeconds } from "../../utils/timelineCoordinates"
+import { secondsToTimelineX } from "../../utils/timelineCoordinates"
+import type { UiGestureIntent } from "@heron/ui"
 
 interface AudioClipEditOptions {
   clip: MaybeRefOrGetter<AudioClipState>
@@ -20,56 +22,61 @@ interface AudioClipEditOptions {
 }
 
 type Gesture =
-  | { kind: "trim"; edge: ClipTrimEdge; pointerId: number; timelineLeft: number }
-  | { kind: "fade"; edge: AudioFadeEdge; pointerId: number; timelineLeft: number }
+  | { kind: "trim"; edge: ClipTrimEdge; originTimelineX: number }
+  | { kind: "fade"; edge: AudioFadeEdge; originTimelineX: number }
 
 export function useAudioClipEdit(options: AudioClipEditOptions) {
   const gesture = shallowRef<Gesture | null>(null)
   const preview = shallowRef<AudioClipState | null>(null)
   const active = computed(() => gesture.value !== null)
 
-  function frameAtPointer(event: PointerEvent, timelineLeft: number): number {
+  function frameAtTimelineX(timelineX: number): number {
     const seconds = timelineXToSeconds(
       toValue(options.tempoMap),
-      Math.max(0, event.clientX - timelineLeft),
+      Math.max(0, timelineX),
       toValue(options.pixelsPerQuarter)
     )
     return Math.round(seconds * toValue(options.projectSampleRate))
   }
 
-  function startTrim(event: PointerEvent, edge: ClipTrimEdge): void {
-    const clipElement = (event.currentTarget as HTMLElement).closest<HTMLElement>(".audio-clip")
-    const lane = clipElement?.parentElement
-    if (!clipElement || !lane) return
-    ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
+  function startTrim(edge: ClipTrimEdge): void {
+    const clip = toValue(options.clip)
+    const frame = edge === "start" ? clip.startFrame : clip.startFrame + clip.lengthFrames
     gesture.value = {
       kind: "trim",
       edge,
-      pointerId: event.pointerId,
-      timelineLeft: lane.getBoundingClientRect().left
+      originTimelineX: secondsToTimelineX(
+        toValue(options.tempoMap),
+        frame / toValue(options.projectSampleRate),
+        toValue(options.pixelsPerQuarter)
+      )
     }
     preview.value = toValue(options.clip)
   }
 
-  function startFade(event: PointerEvent, edge: AudioFadeEdge): void {
-    const clipElement = (event.currentTarget as HTMLElement).closest<HTMLElement>(".audio-clip")
-    const lane = clipElement?.parentElement
-    if (!clipElement || !lane) return
-    ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
+  function startFade(edge: AudioFadeEdge): void {
+    const clip = toValue(options.clip)
+    const frame =
+      edge === "in"
+        ? clip.startFrame + clip.fadeInFrames
+        : clip.startFrame + clip.lengthFrames - clip.fadeOutFrames
     gesture.value = {
       kind: "fade",
       edge,
-      pointerId: event.pointerId,
-      timelineLeft: lane.getBoundingClientRect().left
+      originTimelineX: secondsToTimelineX(
+        toValue(options.tempoMap),
+        frame / toValue(options.projectSampleRate),
+        toValue(options.pixelsPerQuarter)
+      )
     }
     preview.value = toValue(options.clip)
   }
 
-  function update(event: PointerEvent): void {
+  function update(deltaX: number): void {
     const current = gesture.value
-    if (!current || event.pointerId !== current.pointerId) return
+    if (!current) return
     const clip = toValue(options.clip)
-    const pointerFrame = frameAtPointer(event, current.timelineLeft)
+    const pointerFrame = frameAtTimelineX(current.originTimelineX + deltaX)
     preview.value =
       current.kind === "trim"
         ? previewAudioClipTrim(clip, current.edge, pointerFrame)
@@ -82,9 +89,10 @@ export function useAudioClipEdit(options: AudioClipEditOptions) {
           )
   }
 
-  function finish(event: PointerEvent): void {
+  function finish(deltaX: number): void {
     const current = gesture.value
-    if (!current || event.pointerId !== current.pointerId) return
+    if (!current) return
+    update(deltaX)
     const value = preview.value
     gesture.value = null
     preview.value = null
@@ -106,5 +114,18 @@ export function useAudioClipEdit(options: AudioClipEditOptions) {
     preview.value = null
   }
 
-  return { active, preview, startTrim, startFade, update, finish, cancel }
+  function handleGesture(
+    kind: "trim" | "fade",
+    edge: ClipTrimEdge | AudioFadeEdge,
+    intent: UiGestureIntent
+  ): void {
+    if (intent.phase === "start") {
+      if (kind === "trim") startTrim(edge as ClipTrimEdge)
+      else startFade(edge as AudioFadeEdge)
+    } else if (intent.phase === "update") update(intent.delta.x)
+    else if (intent.phase === "commit") finish(intent.delta.x)
+    else cancel()
+  }
+
+  return { active, preview, handleGesture, cancel }
 }
