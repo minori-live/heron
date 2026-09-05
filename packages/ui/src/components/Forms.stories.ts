@@ -10,6 +10,7 @@ import UiRadioGroup from "./UiRadioGroup.vue"
 import UiSelect from "./UiSelect.vue"
 import UiSlider from "./UiSlider.vue"
 import UiTextInput from "./UiTextInput.vue"
+import { shallowRef } from "vue"
 
 const meta = {
   title: "Components/Forms/Field",
@@ -77,6 +78,50 @@ const meta = {
 
 export default meta
 type Story = StoryObj<typeof meta>
+
+export const CompactBackend: Story = {
+  render: () => ({
+    components: { UiRadioGroup },
+    setup: () => ({
+      backend: shallowRef("wasapi"),
+      options: [
+        {
+          value: "wasapi",
+          label: "WASAPI · Windows",
+          description: "Windows shared and exclusive audio"
+        },
+        {
+          value: "asio",
+          label: "ASIO · Windows",
+          description: "Low-latency professional audio drivers"
+        },
+        { value: "unavailable", label: "Unavailable", disabled: true }
+      ]
+    }),
+    template: `<UiRadioGroup v-model="backend" size="compact" label="Audio backend" :options="options" />`
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const wasapi = canvas.getByRole("radio", { name: /WASAPI/ })
+    const asio = canvas.getByRole("radio", { name: /ASIO ·/ })
+    await expect(wasapi).toBeChecked()
+    await userEvent.tab()
+    await expect(wasapi).toHaveFocus()
+    await userEvent.keyboard("{ArrowDown}")
+    await expect(asio).toBeChecked()
+    await expect(canvas.getByRole("radio", { name: "Unavailable" })).toBeDisabled()
+    await userEvent.click(wasapi)
+    await expect(wasapi).toBeChecked()
+    const title = canvas.getByText("WASAPI · Windows")
+    const description = canvas.getByText("Windows shared and exclusive audio")
+    await expect(getComputedStyle(title).fontSize).toBe("9px")
+    await expect(getComputedStyle(description).fontSize).toBe("7px")
+    await expect(description.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      title.getBoundingClientRect().bottom
+    )
+    await expect(wasapi.getBoundingClientRect().width).toBe(12)
+  }
+}
 
 export const CompleteForm: Story = {
   play: async ({ canvasElement }) => {

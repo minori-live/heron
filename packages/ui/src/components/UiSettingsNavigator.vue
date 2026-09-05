@@ -125,6 +125,9 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
 
 <style scoped>
 .ui-settings-navigator {
+  --ui-font-size-xs: var(--ui-type-size-control);
+  --ui-font-size-sm: var(--ui-type-size-body-compact);
+  --ui-font-size-md: var(--ui-type-size-label);
   --ui-color-canvas: var(--canvas);
   --ui-color-canvas-subtle: var(--surface-panel);
   --ui-color-surface: var(--surface-1);
@@ -188,7 +191,7 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
 .ui-settings-navigator__title h1 {
   margin: 0.1875rem 0 0;
   font-family: var(--ui-type-family-display);
-  font-size: var(--ui-font-size-sm);
+  font-size: var(--ui-type-size-panel-title);
   font-weight: var(--ui-type-weight-semibold);
   letter-spacing: var(--ui-type-tracking-wide);
 }
@@ -229,7 +232,7 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
   margin-top: 0.375rem;
   color: var(--ui-color-text);
   font-family: var(--ui-type-family-display);
-  font-size: var(--ui-font-size-sm);
+  font-size: var(--ui-type-size-section-title);
 }
 .ui-settings-navigator__category,
 .ui-settings-navigator__page {
@@ -293,6 +296,7 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
   border-color: var(--ui-color-border-strong);
   color: var(--ui-color-text);
   background: var(--ui-color-selection);
+  box-shadow: inset 0 0 0 1px var(--settings-neutral-accent);
 }
 .ui-settings-navigator__page-copy b,
 .ui-settings-navigator__page-copy small {

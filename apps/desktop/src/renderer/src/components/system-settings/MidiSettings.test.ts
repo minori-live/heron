@@ -45,5 +45,13 @@ describe("MidiSettings", () => {
       midiCenterCStandard: "yamaha-c3"
     })
     expect(yamahaOption!.attributes("aria-pressed")).toBe("true")
+    const rolandOption = wrapper
+      .findAll("button")
+      .find((option) => option.text().includes("Roland (C4)"))!
+    expect(rolandOption.attributes("aria-pressed")).toBe("false")
+    await rolandOption.trigger("click")
+    await flushPromises()
+    expect(rolandOption.attributes("aria-pressed")).toBe("true")
+    expect(yamahaOption!.attributes("aria-pressed")).toBe("false")
   })
 })

@@ -73,7 +73,7 @@ function updateHardwareOutput(index: number, value: string): void {
       <UiPopover side="top" :side-offset="7">
         <template #trigger>
           <UiButton
-            size="sm"
+            size="compact"
             class="output-control"
             :aria-label="t('mixer.outputSection.hardwareRouting', { name: channel.name })"
           >
@@ -106,7 +106,8 @@ function updateHardwareOutput(index: number, value: string): void {
       </UiPopover>
       <UiIconButton
         size="sm"
-        :class="['monitor-target', { active: lowLatencyTarget }]"
+        appearance="workspace"
+        pressed-tone="success"
         :disabled="lowLatencyTargetDisabled"
         :pressed="lowLatencyTarget"
         :label="t('mixer.outputSection.lowLatencyTarget', { name: channel.name })"
@@ -115,7 +116,7 @@ function updateHardwareOutput(index: number, value: string): void {
         <Zap :size="13" />
       </UiIconButton>
     </div>
-    <UiButton v-else class="output-control" size="sm" disabled aria-disabled="true">
+    <UiButton v-else class="output-control" size="compact" disabled aria-disabled="true">
       {{ t("mixer.outputSection.global") }}
     </UiButton>
   </section>
@@ -140,7 +141,6 @@ function updateHardwareOutput(index: number, value: string): void {
   border-radius: 4px;
   color: var(--ui-domain-color-f2f2f2);
   background: linear-gradient(var(--ui-domain-color-6d6d6d), var(--ui-domain-color-5d5d5d));
-  font-size: var(--ui-type-size-control);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -148,29 +148,6 @@ function updateHardwareOutput(index: number, value: string): void {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 28px;
   gap: 4px;
-}
-.monitor-target {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 1px solid var(--ui-domain-color-747474);
-  border-radius: 4px;
-  color: var(--text-muted);
-  background: var(--daw-control);
-}
-.monitor-target.active {
-  border-color: color-mix(in srgb, var(--ui-color-success) 62%, var(--ui-domain-color-747474));
-  color: var(--ui-color-success);
-  background: color-mix(in srgb, var(--ui-color-success) 14%, var(--surface-active));
-  box-shadow:
-    0 -2px 0 var(--ui-color-success) inset,
-    0 0 9px color-mix(in srgb, var(--ui-color-success) 18%, transparent);
-}
-.monitor-target:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
 }
 .output-control {
 }

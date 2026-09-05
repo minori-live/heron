@@ -26,7 +26,7 @@ const emit = defineEmits<{ activate: [] }>()
     :class="[
       `ui-action-row--${props.density}`,
       `ui-action-row--${props.appearance}`,
-      { 'ui-action-row--selected': props.selected }
+      { 'ui-action-row--selected': props.selected, 'ui-action-row--leading': $slots.leading }
     ]"
     :aria-current="props.selected ? 'true' : undefined"
     :disabled="props.disabled"
@@ -46,7 +46,7 @@ const emit = defineEmits<{ activate: [] }>()
   display: grid;
   width: 100%;
   min-height: var(--ui-control-lg);
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--ui-space-3);
   padding: var(--ui-space-3);
@@ -56,9 +56,38 @@ const emit = defineEmits<{ activate: [] }>()
   background: transparent;
   text-align: start;
   cursor: pointer;
+  font: var(--ui-type-size-body-compact) / var(--ui-type-leading-compact)
+    var(--ui-type-family-interface);
 }
 
-.ui-action-row:hover:not(:disabled),
+.ui-action-row--leading {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.ui-action-row__trailing {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: var(--ui-space-3);
+  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  color: var(--ui-color-text-muted);
+}
+
+.ui-action-row__copy strong {
+  font-size: var(--ui-type-size-body-compact);
+}
+
+.ui-action-row__copy {
+  overflow-wrap: anywhere;
+}
+
+.ui-action-row:focus-visible {
+  outline: 2px solid var(--ui-color-focus);
+  outline-offset: 2px;
+}
+
+.ui-action-row:hover:not(:disabled):not([aria-current="true"]),
 .ui-action-row--selected {
   border-color: var(--ui-color-border-strong);
   background: var(--ui-color-surface-hover);
@@ -66,6 +95,11 @@ const emit = defineEmits<{ activate: [] }>()
 
 .ui-action-row--plain {
   border-color: transparent;
+}
+
+.ui-action-row--selected {
+  border-color: var(--ui-color-action);
+  box-shadow: inset 0 0 0 1px var(--ui-color-action);
 }
 
 .ui-action-row--compact {
@@ -111,5 +145,6 @@ const emit = defineEmits<{ activate: [] }>()
   margin-top: var(--ui-space-1);
   color: var(--ui-color-text-muted);
   font-size: var(--ui-type-size-caption);
+  font-weight: var(--ui-type-weight-regular);
 }
 </style>

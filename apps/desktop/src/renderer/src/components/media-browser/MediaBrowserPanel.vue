@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, shallowRef, watch } from "vue"
 import { storeToRefs } from "pinia"
-import { FileAudio, FileMusic, Import, Play, Search, Square, X } from "@lucide/vue"
+import { FileAudio, FileMusic, Import, Play, Square, X } from "@lucide/vue"
 import type { ProjectAssetSummary } from "@heron/contracts"
 import {
   UiActionRow,
@@ -9,7 +9,7 @@ import {
   UiDraggableItem,
   UiIconButton,
   UiSegmentedControl,
-  UiTextInput,
+  UiSearchInput,
   type UiDragData
 } from "@heron/ui"
 import { useI18n } from "vue-i18n"
@@ -104,7 +104,7 @@ onBeforeUnmount(() => {
         <h2>{{ t("studio.mediaBrowser.title") }}</h2>
       </div>
       <UiIconButton
-        class="icon-button"
+        appearance="workspace"
         :label="t('studio.mediaBrowser.close')"
         size="sm"
         @click="workspaceStore.closeRightPanel"
@@ -124,24 +124,18 @@ onBeforeUnmount(() => {
       </UiButton>
     </div>
 
-    <label class="search-field">
-      <Search :size="12" aria-hidden="true" />
-      <UiTextInput
-        v-model="query"
-        size="sm"
-        type="search"
-        :aria-label="t('studio.mediaBrowser.search')"
-        :placeholder="t('studio.mediaBrowser.search')"
-      />
-    </label>
+    <UiSearchInput v-model="query" class="search-field" :label="t('studio.mediaBrowser.search')" />
 
-    <UiSegmentedControl
-      v-model="filter"
-      class="filter-row"
-      :label="t('studio.mediaBrowser.filterAria')"
-      :options="filterOptions"
-      size="compact"
-    />
+    <div class="filter-row">
+      <UiSegmentedControl
+        v-model="filter"
+        appearance="separated"
+        required
+        :label="t('studio.mediaBrowser.filterAria')"
+        :options="filterOptions"
+        size="compact"
+      />
+    </div>
 
     <div class="asset-list" :aria-label="t('studio.mediaBrowser.assets')">
       <UiDraggableItem
@@ -151,8 +145,10 @@ onBeforeUnmount(() => {
         :data="dragData(asset)"
         effect-allowed="copy"
       >
-        <div class="asset-row" :class="{ selected: selectedAssetId === asset.id }">
+        <div class="asset-row">
           <UiActionRow
+            density="compact"
+            appearance="plain"
             :label="asset.name"
             :description="detail(asset)"
             :selected="selectedAssetId === asset.id"
@@ -167,6 +163,7 @@ onBeforeUnmount(() => {
           <UiIconButton
             v-if="asset.kind === 'audio'"
             class="audition-button"
+            density="compact"
             size="sm"
             :label="
               auditioningAssetId === asset.id
@@ -193,6 +190,11 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .media-browser {
+  --ui-color-action: var(--accent);
+  --ui-color-surface-hover: var(--surface-hover);
+  --ui-color-border-strong: var(--line-strong);
+  --ui-color-focus: var(--focus);
+
   display: flex;
   min-width: 0;
   min-height: 0;
@@ -219,21 +221,13 @@ onBeforeUnmount(() => {
   margin: 1px 0 0;
   font-size: var(--ui-type-size-body-compact);
 }
-.icon-button,
-.import-row button,
-.filter-row button {
+.import-row button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--line-strong);
   color: var(--text-secondary);
   background: var(--daw-control);
-}
-.icon-button {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border-radius: 6px;
 }
 .import-row {
   display: grid;
@@ -248,53 +242,13 @@ onBeforeUnmount(() => {
   font-size: var(--ui-type-size-caption);
 }
 .search-field {
-  display: grid;
-  grid-template-columns: 14px minmax(0, 1fr);
-  align-items: center;
-  gap: 5px;
-  height: 27px;
   margin: 0 10px 6px;
-  padding: 0 7px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  color: var(--text-faint);
-  background: var(--daw-control);
-}
-.search-field input {
-  min-width: 0;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  outline: 0;
-  appearance: none;
-  color: var(--text-primary);
-  background: transparent;
-  font: var(--ui-type-size-control) var(--ui-type-family-interface);
-  line-height: var(--ui-type-leading-normal);
-}
-.search-field input::placeholder {
-  color: var(--text-faint);
-  opacity: 1;
-}
-.search-field input::-webkit-search-cancel-button {
-  display: none;
 }
 .filter-row {
   display: flex;
   gap: 2px;
   padding: 0 10px 8px;
   border-bottom: 1px solid var(--line-soft);
-}
-.filter-row button {
-  min-height: 24px;
-  padding: 0 9px;
-  border-radius: 5px;
-  font-size: var(--ui-type-size-caption);
-}
-.filter-row button.active {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--line-strong));
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--accent) 20%, var(--daw-control));
 }
 .asset-list {
   min-height: 0;
@@ -305,30 +259,9 @@ onBeforeUnmount(() => {
 .asset-row {
   display: grid;
   width: 100%;
-  grid-template-columns: 27px minmax(0, 1fr) 25px;
+  grid-template-columns: minmax(0, 1fr) 25px;
   align-items: center;
-  gap: 7px;
-  padding: 6px;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  color: var(--text-secondary);
-  text-align: left;
-  background: transparent;
-}
-.audition-button {
-  display: grid;
-  width: 23px;
-  height: 23px;
-  padding: 0;
-  place-items: center;
-  border: 1px solid transparent;
-  border-radius: 50%;
-  color: var(--text-secondary);
-  background: transparent;
-}
-.asset-row.selected {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+  gap: 4px;
 }
 .kind-mark {
   display: grid;
@@ -342,27 +275,6 @@ onBeforeUnmount(() => {
 .kind-mark[data-kind="midi"] {
   color: var(--signal-green);
   background: color-mix(in srgb, var(--signal-green) 13%, var(--surface-3));
-}
-.asset-copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-.asset-copy strong,
-.asset-copy small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.asset-copy strong {
-  color: var(--text-primary);
-  font-size: var(--ui-type-size-caption);
-  font-weight: var(--ui-type-weight-medium);
-}
-.asset-copy small {
-  color: var(--text-faint);
-  font: var(--ui-type-weight-regular) var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 .empty-state {
   display: flex;

@@ -77,14 +77,13 @@ onMounted(() => {
         <UiChoiceCard
           v-for="option in themeOptions"
           :key="option.value"
-          class="theme-option"
           :label="option.label"
           :description="option.description"
           :selected="settings?.theme === option.value"
           :disabled="loading"
           @select="settingsStore.setTheme(option.value)"
         >
-          <template #icon
+          <template #preview
             ><span
               class="theme-preview"
               :class="`theme-preview-${option.value}`"
@@ -93,7 +92,7 @@ onMounted(() => {
               <span class="preview-sidebar" />
               <span class="preview-content"><i /><i /><i /></span> </span
           ></template>
-          <template #trailing><component :is="option.icon" :size="14" /></template>
+          <template #icon><component :is="option.icon" :size="14" aria-hidden="true" /></template>
         </UiChoiceCard>
       </div>
     </SettingsSection>
@@ -110,7 +109,6 @@ onMounted(() => {
         <UiChoiceCard
           v-for="option in localeOptions"
           :key="option.value"
-          class="locale-option"
           :label="option.label"
           :description="option.description"
           :selected="settings?.locale === option.value"
@@ -149,31 +147,6 @@ onMounted(() => {
 
 .locale-options {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.theme-option,
-.locale-option {
-  position: relative;
-  display: grid;
-  gap: 11px;
-  padding: 10px;
-  border: 1px solid var(--line-soft);
-  border-radius: 7px;
-  color: var(--text-secondary);
-  background: var(--surface-1);
-  text-align: left;
-}
-
-.theme-option.selected,
-.locale-option.selected {
-  border-color: var(--accent);
-  box-shadow: var(--ui-shadow-selected-outline);
-}
-
-.theme-option:disabled,
-.locale-option:disabled {
-  cursor: wait;
-  opacity: 0.6;
 }
 
 .theme-preview {
@@ -259,57 +232,6 @@ onMounted(() => {
   );
 }
 
-.theme-option-copy,
-.locale-option-copy {
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
-  gap: 7px;
-}
-
-.theme-option-copy > svg,
-.locale-option-copy > svg {
-  margin-top: 1px;
-  color: var(--accent);
-}
-
-.theme-option-copy b,
-.theme-option-copy small,
-.locale-option-copy b,
-.locale-option-copy small {
-  display: block;
-}
-
-.theme-option-copy b,
-.locale-option-copy b {
-  font-size: var(--ui-type-size-body-compact);
-}
-
-.theme-option-copy small,
-.locale-option-copy small {
-  min-height: 29px;
-  margin-top: 4px;
-  color: var(--text-faint);
-  font-size: var(--ui-type-size-caption);
-  line-height: var(--ui-type-leading-compact);
-}
-
-.selection-dot {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  width: 7px;
-  height: 7px;
-  border: 1px solid var(--line-strong);
-  border-radius: 50%;
-  background: var(--surface-1);
-}
-
-.selected .selection-dot {
-  border-color: var(--accent);
-  background: var(--accent);
-  box-shadow: var(--ui-focus-ring);
-}
-
 .display-error {
   color: var(--record);
   font-size: var(--ui-type-size-body-compact);
@@ -317,7 +239,7 @@ onMounted(() => {
 
 @media (max-width: 1120px) {
   .theme-options {
-    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
   }
 
   .locale-options {

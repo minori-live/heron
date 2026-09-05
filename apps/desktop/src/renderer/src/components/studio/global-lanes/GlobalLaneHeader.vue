@@ -21,7 +21,9 @@ const { t } = useI18n()
 
 const model = computed({
   get: () => props.value,
-  set: (value: number) => emit("updateValue", value)
+  set: (value: number | null) => {
+    if (value !== null && Number.isFinite(value)) emit("updateValue", value)
+  }
 })
 </script>
 
@@ -37,16 +39,18 @@ const model = computed({
     </div>
     <label class="lane-value">
       <span>{{ t("studio.lanes.selected") }}</span>
-      <span class="value-control">
-        <UiNumberInput
-          v-model="model"
-          :min="minimum"
-          :max="maximum"
-          :step="0.01"
-          :aria-label="t('studio.lanes.selectedValueAria', { label })"
-        />
-        <b>{{ unit }}</b>
-      </span>
+      <UiNumberInput
+        v-model="model"
+        size="compact"
+        appearance="workspace"
+        :suffix="unit"
+        :accent-color="color"
+        :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false }"
+        :min="minimum"
+        :max="maximum"
+        :step="0.01"
+        :aria-label="t('studio.lanes.selectedValueAria', { label })"
+      />
     </label>
   </section>
 </template>
@@ -88,6 +92,8 @@ const model = computed({
   font: var(--ui-type-size-label) var(--ui-type-family-display);
 }
 .lane-value {
+  display: grid;
+  min-width: 0;
   grid-column: 1;
   grid-row: 2;
   align-self: end;
@@ -99,22 +105,5 @@ const model = computed({
   font: var(--ui-type-size-micro) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
   text-transform: uppercase;
-}
-.value-control {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 28px;
-  height: 25px;
-  border: 1px solid var(--line-soft);
-  border-radius: 3px;
-  background: var(--surface-sunken);
-  overflow: hidden;
-}
-.value-control b {
-  display: grid;
-  place-items: center;
-  border-left: 1px solid var(--line-soft);
-  color: var(--lane-color);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-micro) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wide);
 }
 </style>

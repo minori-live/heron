@@ -509,6 +509,9 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
                 <template #controls>
                   <UiNumberInput
                     :model-value="selectedMeter.numerator"
+                    size="compact"
+                    appearance="workspace"
+                    accent-color="var(--ui-domain-color-f2a65a)"
                     :min="1"
                     :max="32"
                     :aria-label="t('studio.arrangement.meterNumeratorAria')"

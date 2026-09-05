@@ -280,6 +280,42 @@ export const MixerInsert: Story = {
   }
 }
 
+export const TrackQuickControls: Story = {
+  render: () => ({
+    components: { UiMixerStateButton, UiHorizontalFader, UiRotaryControl },
+    data: () => ({ muted: false, gain: -6, pan: 0 }),
+    template: `<div style="display:grid;grid-template-columns:74px minmax(64px,1fr) 23px;gap:2px;align-items:center;width:196px;height:23px">
+      <div style="display:grid;grid-template-columns:repeat(4,17px);gap:2px">
+        <UiMixerStateButton size="track" tone="mute" label="Mute track" :pressed="muted" @click="muted=!muted">M</UiMixerStateButton>
+        <UiMixerStateButton size="track" tone="solo" label="Solo track" :pressed="false">S</UiMixerStateButton>
+        <UiMixerStateButton size="track" tone="record" label="Arm track" :pressed="false">R</UiMixerStateButton>
+        <UiMixerStateButton size="track" tone="input" label="Monitor track" :pressed="false">I</UiMixerStateButton>
+      </div>
+      <UiHorizontalFader :value="gain" :min="-90" :max="12" :step="0.1" :default-value="0" :meter-level-percent="68" label="Quick gain" @commit="gain=$event" />
+      <UiRotaryControl :value="pan" :min="-64" :max="63" :step="1" :default-value="0" size="track" label="Quick pan" @commit="pan=$event" />
+    </div>`
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const buttons = canvas.getAllByRole("button")
+    let right = 0
+    for (const button of buttons) {
+      const box = button.getBoundingClientRect()
+      await expect(box.width).toBe(17)
+      await expect(box.height).toBe(17)
+      await expect(box.left).toBeGreaterThanOrEqual(right)
+      right = box.right + 2
+    }
+    await expect(
+      canvas.getByRole("slider", { name: "Quick gain" }).getBoundingClientRect().left
+    ).toBeGreaterThanOrEqual(right)
+    await userEvent.click(buttons[0]!)
+    await expect(buttons[0]!).toHaveAttribute("aria-pressed", "true")
+    await userEvent.keyboard(" ")
+    await expect(buttons[0]!).toHaveAttribute("aria-pressed", "false")
+  }
+}
+
 export const TrackParameters: Story = {
   render: () => ({
     components: { UiHorizontalFader, UiRotaryControl, UiInlineTextEdit, UiButton },

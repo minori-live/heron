@@ -32,7 +32,7 @@ export interface UiComponentCatalogEntry {
 export const UI_COMPONENT_CATALOG = {
   AsioCompatibleLogo: entry("AsioCompatibleLogo.stories.ts", ["Default"], false, [], "brand"),
   HeronLogo: entry("Brand.stories.ts", ["Default", "OfficialVariants"], false, [], "brand"),
-  UiActionRow: boundary(["OrdinaryControls"], ["default", "keyboard"]),
+  UiActionRow: boundary(["OrdinaryControls", "MidiPreferences"], ["default", "keyboard"]),
   UiAutomationLane: entry(
     "TimelineComponents.stories.ts",
     ["AutomationEditing"],
@@ -63,7 +63,7 @@ export const UI_COMPONENT_CATALOG = {
   ),
   UiButton: entry(
     "Actions.stories.ts",
-    ["Default", "Loading", "Disabled", "LongText"],
+    ["Default", "Loading", "Disabled", "LongText", "DenseTypography"],
     true,
     ["default", "disabled", "busy", "long-text", "keyboard"],
     "action"
@@ -89,7 +89,10 @@ export const UI_COMPONENT_CATALOG = {
     ["default", "disabled", "keyboard"],
     "form"
   ),
-  UiChoiceCard: boundary(["OrdinaryControls"], ["default", "selected", "keyboard"]),
+  UiChoiceCard: boundary(
+    ["OrdinaryControls", "MidiPreferences"],
+    ["default", "selected", "keyboard"]
+  ),
   UiChoiceChip: entry(
     "Workspace.stories.ts",
     ["EditorToolbar"],
@@ -160,9 +163,9 @@ export const UI_COMPONENT_CATALOG = {
   ),
   UiIconButton: entry(
     "Actions.stories.ts",
-    ["AllVariantsAndSizes"],
+    ["AllVariantsAndSizes", "WorkspaceSelection"],
     true,
-    ["default", "disabled", "keyboard"],
+    ["default", "disabled", "selected", "keyboard"],
     "action"
   ),
   UiInlineTextEdit: boundary(["OrdinaryControls"], ["default", "keyboard", "cancel"]),
@@ -196,7 +199,7 @@ export const UI_COMPONENT_CATALOG = {
   ),
   UiMixerStateButton: entry(
     "MixerControls.stories.ts",
-    ["ChannelStateButtons"],
+    ["ChannelStateButtons", "TrackQuickControls"],
     true,
     ["default", "disabled", "selected", "keyboard"],
     "workspace"
@@ -210,7 +213,7 @@ export const UI_COMPONENT_CATALOG = {
   ),
   UiNumberInput: entry(
     "Workspace.stories.ts",
-    ["InspectorFields"],
+    ["InspectorFields", "GlobalTrackFields"],
     true,
     ["default", "disabled", "invalid", "keyboard"],
     "form"
@@ -261,7 +264,7 @@ export const UI_COMPONENT_CATALOG = {
   UiProvider: entry("Structure.stories.ts", ["Provider"], false, ["default"], "structure"),
   UiRadioGroup: entry(
     "Forms.stories.ts",
-    ["PreferenceControls"],
+    ["PreferenceControls", "CompactBackend"],
     true,
     ["default", "disabled", "keyboard"],
     "form"
@@ -283,10 +286,17 @@ export const UI_COMPONENT_CATALOG = {
   ),
   UiSegmentedControl: entry(
     "Workspace.stories.ts",
-    ["EditorToolbar"],
+    ["EditorToolbar", "MediaFilters"],
     true,
     ["default", "disabled", "selected", "keyboard"],
     "workspace"
+  ),
+  UiSearchInput: entry(
+    "Workspace.stories.ts",
+    ["MediaFilters"],
+    true,
+    ["default", "disabled", "keyboard"],
+    "form"
   ),
   UiSettingsNavigator: boundary(
     ["SettingsNavigation"],

@@ -76,6 +76,14 @@ function activate(event: MouseEvent): void {
   font-size: var(--ui-type-size-control);
 }
 
+.ui-mixer-state-button.size-track {
+  width: 17px;
+  height: 17px;
+  border-radius: 2px;
+  box-shadow: var(--ui-shadow-highlight-inset);
+  font-size: var(--ui-type-size-caption);
+}
+
 .ui-mixer-state-button.size-wide {
   width: 2.125rem;
   height: 1.1875rem;

@@ -58,57 +58,59 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
     class="track-quick-controls"
     :aria-label="t('studio.trackControls.ariaLabel', { name: channel.name })"
   >
-    <UiMixerStateButton
-      tone="mute"
-      size="narrow"
-      stop-propagation
-      :pressed="channel.muted"
-      :label="t('studio.trackControls.muteAria', { name: channel.name })"
-      :title="t('studio.trackControls.mute')"
-      @click="emit('updateChannel', channel.id, { muted: !channel.muted })"
-    >
-      M
-    </UiMixerStateButton>
-    <UiMixerStateButton
-      tone="solo"
-      size="narrow"
-      stop-propagation
-      :pressed="channel.soloed"
-      :label="t('studio.trackControls.soloAria', { name: channel.name })"
-      :title="t('studio.trackControls.solo')"
-      @click="emit('updateChannel', channel.id, { soloed: !channel.soloed })"
-    >
-      S
-    </UiMixerStateButton>
-    <UiMixerStateButton
-      v-if="supportsRecording"
-      tone="record"
-      size="narrow"
-      stop-propagation
-      :pressed="channel.recordArmed"
-      :label="t('studio.trackControls.armAria', { name: channel.name })"
-      :title="t('studio.trackControls.recordEnable')"
-      @click="emit('updateChannel', channel.id, { recordArmed: !channel.recordArmed })"
-    >
-      R
-    </UiMixerStateButton>
-    <UiMixerStateButton
-      v-if="supportsMonitoring"
-      tone="input"
-      size="narrow"
-      stop-propagation
-      :label="t('studio.trackControls.monitorAria', { name: channel.name })"
-      :pressed="monitoringActive"
-      :title="
-        monitoringAvailable
-          ? t('studio.trackControls.inputMonitoring')
-          : t('studio.trackControls.inputMonitoringDisabled')
-      "
-      :disabled="!monitoringAvailable"
-      @click="emit('updateChannel', channel.id, { inputMonitoring: !channel.inputMonitoring })"
-    >
-      I
-    </UiMixerStateButton>
+    <div class="track-state-controls">
+      <UiMixerStateButton
+        tone="mute"
+        size="track"
+        stop-propagation
+        :pressed="channel.muted"
+        :label="t('studio.trackControls.muteAria', { name: channel.name })"
+        :title="t('studio.trackControls.mute')"
+        @click="emit('updateChannel', channel.id, { muted: !channel.muted })"
+      >
+        M
+      </UiMixerStateButton>
+      <UiMixerStateButton
+        tone="solo"
+        size="track"
+        stop-propagation
+        :pressed="channel.soloed"
+        :label="t('studio.trackControls.soloAria', { name: channel.name })"
+        :title="t('studio.trackControls.solo')"
+        @click="emit('updateChannel', channel.id, { soloed: !channel.soloed })"
+      >
+        S
+      </UiMixerStateButton>
+      <UiMixerStateButton
+        v-if="supportsRecording"
+        tone="record"
+        size="track"
+        stop-propagation
+        :pressed="channel.recordArmed"
+        :label="t('studio.trackControls.armAria', { name: channel.name })"
+        :title="t('studio.trackControls.recordEnable')"
+        @click="emit('updateChannel', channel.id, { recordArmed: !channel.recordArmed })"
+      >
+        R
+      </UiMixerStateButton>
+      <UiMixerStateButton
+        v-if="supportsMonitoring"
+        tone="input"
+        size="track"
+        stop-propagation
+        :label="t('studio.trackControls.monitorAria', { name: channel.name })"
+        :pressed="monitoringActive"
+        :title="
+          monitoringAvailable
+            ? t('studio.trackControls.inputMonitoring')
+            : t('studio.trackControls.inputMonitoringDisabled')
+        "
+        :disabled="!monitoringAvailable"
+        @click="emit('updateChannel', channel.id, { inputMonitoring: !channel.inputMonitoring })"
+      >
+        I
+      </UiMixerStateButton>
+    </div>
 
     <TrackGainControl
       :channel-name="channel.name"
@@ -130,10 +132,15 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
 <style scoped>
 .track-quick-controls {
   display: grid;
-  grid-template-columns: repeat(4, 17px) minmax(64px, 1fr) 23px;
+  grid-template-columns: 74px minmax(64px, 1fr) 23px;
   align-items: center;
   gap: 2px;
   min-width: 0;
   height: 23px;
+}
+.track-state-controls {
+  display: grid;
+  grid-template-columns: repeat(4, 17px);
+  gap: 2px;
 }
 </style>

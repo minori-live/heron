@@ -9,7 +9,7 @@ defineOptions({ inheritAttrs: false })
 const props = withDefaults(
   defineProps<{
     variant?: UiActionVariant
-    size?: UiControlSize
+    size?: UiControlSize | "compact" | "status"
     loading?: boolean
     disabled?: boolean
     type?: "button" | "submit" | "reset"
@@ -42,6 +42,8 @@ function stopPointer(event: PointerEvent): void {
 }
 
 const sizeClasses = {
+  compact: "ui-button--compact",
+  status: "ui-button--status",
   sm: "min-h-[var(--ui-control-sm)] px-ui-3 text-ui-xs",
   md: "min-h-[var(--ui-control-md)] px-ui-4 text-ui-sm",
   lg: "min-h-[var(--ui-control-lg)] px-ui-5 text-ui-md"
@@ -68,6 +70,23 @@ const sizeClasses = {
 </template>
 
 <style scoped>
+.ui-button--compact,
+.ui-button--status {
+  padding: 0 var(--ui-space-2);
+  border-radius: var(--ui-radius-sm);
+  font: var(--ui-type-weight-regular) var(--ui-type-size-control) / var(--ui-type-leading-tight)
+    var(--ui-type-family-data);
+}
+
+.ui-button--compact {
+  min-height: var(--ui-control-compact);
+}
+
+.ui-button--status {
+  min-height: 20px;
+  font-size: var(--ui-type-size-caption);
+}
+
 .ui-button--primary {
   color: var(--ui-color-action-text);
   background: var(--ui-color-action);

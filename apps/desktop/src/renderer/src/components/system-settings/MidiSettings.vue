@@ -56,7 +56,6 @@ onMounted(() => {
         <UiChoiceCard
           v-for="option in centerCOptions"
           :key="option.value"
-          class="center-c-option"
           :label="option.label"
           :description="option.description"
           :selected="(settings?.midiCenterCStandard ?? 'roland-c4') === option.value"
@@ -77,73 +76,6 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 9px;
-}
-
-.center-c-option {
-  position: relative;
-  display: grid;
-  gap: 11px;
-  padding: 10px;
-  border: 1px solid var(--line-soft);
-  border-radius: 7px;
-  color: var(--text-secondary);
-  background: var(--surface-1);
-  text-align: left;
-}
-
-.center-c-option.selected {
-  border-color: var(--accent);
-  box-shadow: var(--ui-shadow-selected-outline);
-}
-
-.center-c-option:disabled {
-  cursor: wait;
-  opacity: 0.6;
-}
-
-.center-c-option-copy {
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
-  gap: 7px;
-}
-
-.center-c-option-copy > svg {
-  margin-top: 1px;
-  color: var(--accent);
-}
-
-.center-c-option-copy b,
-.center-c-option-copy small {
-  display: block;
-}
-
-.center-c-option-copy b {
-  font-size: var(--ui-type-size-body-compact);
-}
-
-.center-c-option-copy small {
-  min-height: 29px;
-  margin-top: 4px;
-  color: var(--text-faint);
-  font-size: var(--ui-type-size-caption);
-  line-height: var(--ui-type-leading-compact);
-}
-
-.selection-dot {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  width: 7px;
-  height: 7px;
-  border: 1px solid var(--line-strong);
-  border-radius: 50%;
-  background: var(--surface-1);
-}
-
-.selected .selection-dot {
-  border-color: var(--accent);
-  background: var(--accent);
-  box-shadow: var(--ui-focus-ring);
 }
 
 .midi-error {

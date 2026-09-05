@@ -96,6 +96,8 @@ function formatLatency(value: number | null): string {
   <UiPopover align="end" side="top" :side-offset="9" content-class="performance-popover-shell">
     <template #trigger>
       <UiButton
+        size="status"
+        variant="ghost"
         :class="['performance-trigger', severity]"
         :aria-label="
           t('performance.trigger.ariaLabel', {
@@ -167,7 +169,6 @@ function formatLatency(value: number | null): string {
   gap: 8px;
   color: var(--text-muted);
   background: transparent;
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
 }
 .performance-trigger.warning {

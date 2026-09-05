@@ -123,6 +123,7 @@ export type {
   UiTourStep,
   UiClipViewModel
 } from "./types"
+export { default as UiSearchInput } from "./components/UiSearchInput.vue"
 export { useLocaleFonts } from "./composables/useLocaleFonts"
 
 export type {

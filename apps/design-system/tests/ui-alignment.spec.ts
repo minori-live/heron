@@ -3,6 +3,44 @@ import { expect, test } from "@playwright/test"
 const story = (id: string) =>
   `/iframe.html?id=${id}&viewMode=story&globals=theme:dark;motion:disabled`
 
+test("global track inputs retain compact heights, tempo precision and space for the denominator", async ({
+  page
+}) => {
+  await page.goto(story("components-workspace-command-surfaces--global-track-fields"))
+  const tempo = page.getByRole("spinbutton", { name: "Tempo" })
+  const numerator = page.getByRole("spinbutton", { name: "Numerator" })
+  const denominator = page.getByRole("combobox", { name: "Denominator" })
+  await expect(denominator).toHaveValue("8") // The story's keyboard path has completed.
+  await expect(tempo).toHaveValue("120.00")
+  const tempoShell = tempo.locator("..")
+  expect((await tempoShell.boundingBox())!.height).toBe(25)
+  expect((await numerator.locator("..").boundingBox())!.height).toBe(23)
+  const tempoBox = (await tempo.boundingBox())!
+  const suffix = (await page.getByText("BPM", { exact: true }).boundingBox())!
+  expect(tempoBox.height).toBe(23)
+  expect(tempoBox.x + tempoBox.width).toBeLessThanOrEqual(suffix.x)
+  expect(suffix.width).toBe(28)
+  const top = (await numerator.boundingBox())!
+  const bottom = (await denominator.boundingBox())!
+  expect(top.width).toBeGreaterThan(60)
+  expect(bottom.width).toBeGreaterThan(60)
+  expect(top.x + top.width).toBeLessThan(bottom.x)
+  expect(Math.abs(top.y + top.height / 2 - bottom.y - bottom.height / 2)).toBeLessThanOrEqual(1)
+  const group = (await page.getByRole("group", { name: "Time signature" }).boundingBox())!
+  expect(bottom.x + bottom.width).toBeLessThanOrEqual(group.x + group.width)
+  await tempo.hover()
+  await expect(tempo).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
+  await tempo.focus()
+  await expect(tempoShell).toHaveCSS("border-color", "rgb(101, 168, 255)")
+  await tempo.fill("137.25")
+  await tempo.press("Enter")
+  await expect(tempo).toHaveValue("137.25")
+  expect((await tempo.boundingBox())!.height).toBe(tempoBox.height)
+  await page.setViewportSize({ width: 320, height: 800 })
+  await expect(denominator).toBeInViewport()
+  await expect(tempo).toBeInViewport()
+})
+
 test("track volume keeps the full meter well independent of gain, including silence", async ({
   page
 }) => {

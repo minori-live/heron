@@ -15,7 +15,7 @@ const { t } = useI18n()
 
 <template>
   <UiButton
-    size="sm"
+    size="compact"
     variant="ghost"
     class="global-tracks-toggle"
     :aria-label="
@@ -46,7 +46,6 @@ const { t } = useI18n()
   border-radius: 4px;
   color: var(--text-muted);
   background: var(--daw-control);
-  font: var(--ui-type-weight-semibold) var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 .global-tracks-toggle[aria-pressed="true"] {
   border-color: color-mix(in srgb, var(--accent) 58%, var(--line-soft));
