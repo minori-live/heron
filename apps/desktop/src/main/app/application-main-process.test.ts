@@ -7,6 +7,7 @@ function harness({ testUserData }: { testUserData?: string } = {}) {
   let beforeQuit: ((event: { preventDefault(): void }) => void) | undefined
   let captureServices: ((services: StartedApplicationServices) => void) | undefined
   let isShuttingDown: (() => boolean) | undefined
+  let prepareInstall: (() => Promise<boolean>) | undefined
   const application = {
     commandLine: { appendSwitch: vi.fn() },
     disableHardwareAcceleration: vi.fn(),
@@ -23,9 +24,14 @@ function harness({ testUserData }: { testUserData?: string } = {}) {
     quitWhenAllWindowsAreClosed: vi.fn(),
     registerRendererScheme: vi.fn(),
     startApplication: vi.fn(
-      (shutdownState: () => boolean, capture: (services: StartedApplicationServices) => void) => {
+      (
+        shutdownState: () => boolean,
+        capture: (services: StartedApplicationServices) => void,
+        prepare?: () => Promise<boolean>
+      ) => {
         isShuttingDown = shutdownState
         captureServices = capture
+        prepareInstall = prepare
       }
     )
   }
@@ -40,11 +46,90 @@ function harness({ testUserData }: { testUserData?: string } = {}) {
     beforeQuit: (event: { preventDefault(): void }) => beforeQuit?.(event),
     captureServices: (services: StartedApplicationServices) => captureServices?.(services),
     dependencies,
-    isShuttingDown: () => isShuttingDown?.()
+    isShuttingDown: () => isShuttingDown?.(),
+    prepareInstall: () => prepareInstall!()
   }
 }
 
 describe("main process", () => {
+  it("prepares updates only after project closure and waits for service shutdown", async () => {
+    const { captureServices, prepareInstall, isShuttingDown, application } = harness()
+    let stop!: () => void
+    const services = {
+      dispose: vi.fn(),
+      audioHostService: {
+        stopAudioEngine: vi.fn(async () => {}),
+        stop: vi.fn(
+          () =>
+            new Promise<void>((resolve) => {
+              stop = resolve
+            })
+        )
+      },
+      projectService: {
+        current: { id: "open" } as { id: string } | null,
+        shutdown: vi.fn(async () => {})
+      }
+    }
+    captureServices(services as unknown as StartedApplicationServices)
+    expect(await prepareInstall()).toBe(false)
+    services.projectService.current = null
+    const pending = prepareInstall()
+    await vi.waitFor(() => expect(services.audioHostService.stop).toHaveBeenCalledOnce())
+    expect(isShuttingDown()).toBe(true)
+    expect(services.projectService.shutdown).not.toHaveBeenCalled()
+    stop()
+    expect(await pending).toBe(true)
+    expect(services.projectService.shutdown).toHaveBeenCalledOnce()
+    expect(application.quit).not.toHaveBeenCalled()
+  })
+
+  it.each(["stopAudioEngine", "stop", "shutdown"])(
+    "quarantines failed %s cleanup while allowing ordinary quit",
+    async (failure) => {
+      const { captureServices, prepareInstall, isShuttingDown, beforeQuit, application } = harness()
+      const services = {
+        dispose: vi.fn(),
+        audioHostService: {
+          stopAudioEngine: vi.fn().mockResolvedValue(undefined),
+          stop: vi.fn().mockResolvedValue(undefined)
+        },
+        projectService: { current: null, shutdown: vi.fn().mockResolvedValue(undefined) }
+      }
+      const failingMethod =
+        failure === "shutdown"
+          ? services.projectService.shutdown
+          : services.audioHostService[failure as "stop" | "stopAudioEngine"]
+      failingMethod.mockRejectedValue(new Error("stop failed"))
+      captureServices(services as unknown as StartedApplicationServices)
+      expect(await prepareInstall()).toBe(false)
+      expect(isShuttingDown()).toBe(true)
+      expect(await prepareInstall()).toBe(false)
+      expect(failingMethod).toHaveBeenCalledOnce()
+      expect(application.quit).not.toHaveBeenCalled()
+      const event = { preventDefault: vi.fn() }
+      beforeQuit(event)
+      await vi.waitFor(() => expect(application.quit).toHaveBeenCalledOnce())
+      expect(services.dispose).toHaveBeenCalledOnce()
+      beforeQuit(event)
+      expect(event.preventDefault).toHaveBeenCalledOnce()
+    }
+  )
+
+  it("reopens the mutation gate when a project opens before native teardown", async () => {
+    const { captureServices, prepareInstall, isShuttingDown } = harness()
+    const services = {
+      audioHostService: { stopAudioEngine: vi.fn(), stop: vi.fn() },
+      projectService: { current: null as { id: string } | null, shutdown: vi.fn() }
+    }
+    captureServices(services as unknown as StartedApplicationServices)
+    const pending = prepareInstall()
+    services.projectService.current = { id: "admitted-open" }
+    expect(await pending).toBe(false)
+    expect(isShuttingDown()).toBe(false)
+    expect(services.audioHostService.stopAudioEngine).not.toHaveBeenCalled()
+    expect(services.projectService.shutdown).not.toHaveBeenCalled()
+  })
   it("configures the shell and isolated user data for test launches", () => {
     const { application, dependencies } = harness({ testUserData: "/tmp/heron-test" })
 

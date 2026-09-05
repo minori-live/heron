@@ -97,3 +97,20 @@ compatibility details.
 
 Changing session sample rate changes the project clock. Heron converts audio at
 the device boundary when the hardware runs at a different rate.
+
+## Application updates
+
+Open **System settings → System → Application updates** to check for a newer
+version. Installed tagged releases check automatically and start downloading
+when playback, recording and export are idle. Development and ordinary CI
+builds do not update automatically.
+
+When a download is ready, choose **Restart and update**. Heron asks you to save
+or discard unsaved project changes before closing. Cancelling leaves the update
+ready for later. Heron waits for its audio and project services to close before
+starting installation; simply quitting does not authorize an update.
+
+If a check or download fails, use **Check for updates** to retry. If Heron cannot
+confirm a safe shutdown, quit and reopen the application before retrying.
+Linux updates require running the AppImage. Users upgrading from a version
+without automatic updates need to install an update-enabled release manually once.

@@ -5,6 +5,8 @@ import { resolve } from "node:path"
 import { buildProjectTemplateArchive } from "@heron/project-db/template"
 import { defineConfig } from "vite"
 import type { Plugin } from "vite"
+import { appVersionDefine } from "./build/app-version.ts"
+import { releaseBuild } from "./src/shared/release-build.ts"
 
 const nodeBuiltins = [...builtinModules, ...builtinModules.map((name) => `node:${name}`)]
 const migrationsDirectory = resolve(import.meta.dirname, "../../packages/project-db/drizzle")
@@ -66,6 +68,11 @@ const projectMigrations: Plugin = {
 }
 
 export default defineConfig({
+  define: {
+    __HERON_RELEASE__: JSON.stringify(
+      releaseBuild(JSON.parse(appVersionDefine) as string, process.env)
+    )
+  },
   plugins: [projectMigrations],
   build: {
     emptyOutDir: true,
@@ -81,7 +88,13 @@ export default defineConfig({
     minify: false,
     outDir: resolve(import.meta.dirname, "out/main"),
     rolldownOptions: {
-      external: ["electron", "@electric-sql/pglite", "@heron/dsp-node", ...nodeBuiltins]
+      external: [
+        "electron",
+        "electron-updater",
+        "@electric-sql/pglite",
+        "@heron/dsp-node",
+        ...nodeBuiltins
+      ]
     },
     sourcemap: true,
     target: "node22"

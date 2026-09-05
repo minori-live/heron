@@ -11,6 +11,8 @@ import { PluginCatalogService } from "../plugins"
 import { ProjectService } from "../project"
 import { StartupProgress } from "./startup-progress"
 import { registerIpcHandlers } from "../ipc"
+import { setRpcMutationGuard } from "../ipc"
+import { registerUpdates } from "./application-updates"
 import { applicationIconPath } from "./runtime-paths"
 import { PluginStartupScanCoordinator } from "./plugin-startup-scan-coordinator"
 import { denyChromiumPermissions, installRendererProtocol } from "./renderer-security"
@@ -31,7 +33,8 @@ export type { StartedApplicationServices } from "./started-application-services"
 
 export function startApplication(
   isShuttingDown: () => boolean,
-  onServices: (services: StartedApplicationServices) => void
+  onServices: (services: StartedApplicationServices) => void,
+  prepareUpdateInstall: () => Promise<boolean> = async () => false
 ): void {
   void app.whenReady().then(async () => {
     installRendererProtocol()
@@ -178,7 +181,8 @@ export function startApplication(
         eventTargets: () => BrowserWindow.getAllWindows(),
         allowRecordingWithoutAudio: process.env.HERON_TEST_CAPTURE_SOURCE === "1"
       })
-      const ipcRegistration = registerIpcHandlers({
+      setRpcMutationGuard(isShuttingDown)
+      const ipcContext = {
         settings,
         projects: projectService,
         recordings: services.recordings,
@@ -196,7 +200,9 @@ export function startApplication(
         audioDeviceRecovery: services.audioDeviceRecovery,
         audioHost: audioHostService,
         isShuttingDown
-      })
+      }
+      const ipcRegistration = registerIpcHandlers(ipcContext)
+      const updates = await registerUpdates(ipcContext, prepareUpdateInstall)
       startup.update({
         phase: "opening-workspace",
         progress: 0.94,
@@ -252,6 +258,7 @@ export function startApplication(
             }
           },
           ipcRegistration,
+          updates,
           services
         ])
       )

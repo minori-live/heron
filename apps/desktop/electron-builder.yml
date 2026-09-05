@@ -27,6 +27,14 @@ directories:
 
 artifactName: "${productName}-${version}-${os}-${arch}.${ext}"
 
+# Upload only after every platform and test has passed (publish.yml).
+publish:
+  provider: github
+  owner: minori-live
+  repo: heron
+  releaseType: draft
+generateUpdatesFilesForAllChannels: false
+
 files:
   - out/**/*
   - build/icon.png
@@ -85,6 +93,7 @@ mac:
         - Heron Sine.vst3/**/*
   target:
     - dmg
+    - zip
 
 linux:
   icon: build/icons

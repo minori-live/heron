@@ -12,7 +12,8 @@ const domains = [
   "plugins",
   "project",
   "recording",
-  "settings"
+  "settings",
+  "updates"
 ] as const
 type MainDomain = (typeof domains)[number]
 
@@ -20,6 +21,7 @@ const allowedDependencies: Readonly<Record<MainDomain, readonly MainDomain[]>> =
   app: domains,
   ipc: domains,
   kernel: [],
+  updates: [],
   settings: ["kernel"],
   "audio-host": ["kernel", "plugins", "settings"],
   plugins: ["audio-host", "kernel", "settings"],

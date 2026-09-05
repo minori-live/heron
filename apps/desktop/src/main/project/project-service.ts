@@ -589,8 +589,11 @@ export class ProjectService {
     await this.abortCandidate()
   }
 
-  async shutdown(): Promise<void> {
+  async shutdown(strict = false): Promise<void> {
     const contexts = this.workspaces.drain()
-    await Promise.allSettled(contexts.map((context) => context.worker.terminate()))
+    const results = await Promise.allSettled(contexts.map((context) => context.worker.terminate()))
+    if (strict && results.some((result) => result.status === "rejected")) {
+      throw new Error("Project workers did not all terminate")
+    }
   }
 }

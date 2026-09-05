@@ -4,6 +4,7 @@ import { deferProjectClose } from "./dirty-project-close"
 import { registerRendererScheme } from "./renderer-security"
 import { startApplication, type StartedApplicationServices } from "./startup"
 import { mainWindow } from "./windows"
+import { settleRpcMutations } from "../ipc"
 
 interface MainProcessDependencies {
   configureApplicationIdentity: typeof configureApplicationIdentity
@@ -42,6 +43,40 @@ export function startMainProcess(
   let startedApplicationServices: StartedApplicationServices | null = null
   let shutdownComplete = false
   let shutdownPromise: Promise<void> | null = null
+  let updateShutdown = false
+
+  async function prepareUpdateInstall(): Promise<boolean> {
+    if (
+      shutdownPromise ||
+      !startedApplicationServices ||
+      startedApplicationServices.projectService.current
+    )
+      return false
+    updateShutdown = true
+    const services = startedApplicationServices
+    let succeeded = false
+    shutdownPromise = (async () => {
+      await settleRpcMutations()
+      // An already admitted project-open request may have completed while draining.
+      if (services.projectService.current) {
+        updateShutdown = false
+        return
+      }
+      await services.audioHostService.stopAudioEngine()
+      await services.audioHostService.stop()
+      await services.projectService.shutdown(true)
+      succeeded = true
+      shutdownComplete = true
+    })().catch((error: unknown) => {
+      console.error("Update shutdown failed", error)
+    })
+    await shutdownPromise
+    // Only aborts before native teardown may reopen the mutation gate. A stop
+    // failure can leave services partially stopped; ADR-0015 requires quarantine
+    // until relaunch, with ordinary quit still available through before-quit.
+    if (!updateShutdown) shutdownPromise = null
+    return succeeded
+  }
 
   async function shutdownServices(): Promise<void> {
     startedApplicationServices?.dispose()
@@ -64,11 +99,25 @@ export function startMainProcess(
     () => shutdownPromise !== null,
     (services) => {
       startedApplicationServices = services
-    }
+    },
+    prepareUpdateInstall
   )
 
   application.on("before-quit", (event) => {
-    if (shutdownComplete) return
+    if (shutdownComplete) {
+      if (updateShutdown) startedApplicationServices?.dispose()
+      return
+    }
+    if (updateShutdown) {
+      // A failed update shutdown is quarantined. Ordinary quit remains available.
+      event.preventDefault()
+      void shutdownPromise?.then(() => {
+        startedApplicationServices?.dispose()
+        shutdownComplete = true
+        application.quit()
+      })
+      return
+    }
     if (
       dependencies.deferProjectClose({
         command: "application.quit",

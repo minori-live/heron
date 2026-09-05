@@ -1,4 +1,37 @@
 {
+  "updates": {
+    "title": "Application updates",
+    "description": "Check for and install new versions of Heron.",
+    "version": "Heron {version}",
+    "policy": "Release builds check automatically and download when playback, recording and export are idle. Installation requires your confirmation.",
+    "check": "Check for updates",
+    "download": "Download when idle",
+    "install": "Restart and update",
+    "phases": {
+      "disabled": "Automatic updates are unavailable in this build. Install a tagged release to enable them.",
+      "idle": "No update is currently pending.",
+      "checking": "Checking for updates…",
+      "available": "Heron {version} is available. Waiting for audio work to finish before downloading.",
+      "downloading": "Downloading update: {progress}%",
+      "ready": "Heron {version} is ready to install.",
+      "installing": "Closing services before installing…",
+      "error": "The update could not be completed. You can retry.",
+      "quarantined": "Installation was stopped because shutdown could not be confirmed. Quit and reopen Heron before retrying."
+    },
+    "errors": {
+      "check-failed": "Could not check for updates. Check your connection and retry.",
+      "download-failed": "The download or its verification failed. Check for updates to retry.",
+      "shutdown-failed": "Could not safely close application services. The installer was not started.",
+      "install-failed": "The installer could not start. Quit and reopen Heron before retrying."
+    },
+    "rejected": {
+      "disabled": "Updates are disabled in this build.",
+      "busy": "Finish playback, recording or export before updating.",
+      "project-open": "Save and close the current project before installing.",
+      "not-ready": "The update state changed. Try again.",
+      "request-limit": "Restart Heron before making more update requests."
+    }
+  },
   "common": {
     "soon": "Soon",
     "done": "Done",

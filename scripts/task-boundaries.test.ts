@@ -174,8 +174,5 @@ await test("universal macOS packaging includes only the universal DSP binding", 
   assert.match(universalConfig, /\*\.darwin-x64\.node/u)
   assert.match(releaseConfig, /extends: \.\/electron-builder\.universal\.yml/u)
   assert.match(tasks, /cargo xtask native universal-macos --profile release/u)
-  assert.match(
-    tasks,
-    /electron-builder --config electron-builder\.universal\.yml --publish never --universal/u
-  )
+  assert.match(tasks, /dist --config electron-builder\.universal\.yml --universal/u)
 })

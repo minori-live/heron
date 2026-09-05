@@ -25,6 +25,7 @@ import { UiButton } from "@heron/ui"
 import SettingsContainer from "../settings/SettingsContainer.vue"
 import type { SettingsCategory } from "../settings/settings"
 import AudioDeviceSettings from "./AudioDeviceSettings.vue"
+import ApplicationUpdateSettings from "./ApplicationUpdateSettings.vue"
 import AudioRuntimeSettings from "./AudioRuntimeSettings.vue"
 import DisplaySettings from "./DisplaySettings.vue"
 import MidiSettings from "./MidiSettings.vue"
@@ -36,6 +37,7 @@ import RecordingSettings from "./RecordingSettings.vue"
 import ShortcutSettings from "./ShortcutSettings.vue"
 
 type SystemSettingsPageId =
+  | "updates"
   | "engine"
   | "devices"
   | "recording"
@@ -88,6 +90,12 @@ const categories = computed<readonly SettingsCategory[]>(() => [
         id: "engine",
         label: t("settings.system.pages.engine.label"),
         description: t("settings.system.pages.engine.description"),
+        icon: Gauge
+      },
+      {
+        id: "updates",
+        label: t("updates.title"),
+        description: t("updates.description"),
         icon: Gauge
       }
     ]
@@ -263,6 +271,7 @@ function applyAudio(): void {
       :error="audioHostRuntimeError"
       @apply="emit('configureRuntime', $event)"
     />
+    <ApplicationUpdateSettings v-else-if="activePage === 'updates'" />
     <RecordingSettings v-else-if="activePage === 'recording'" />
     <MidiSettings v-else-if="activePage === 'midi-general'" />
     <MidiInputSettings

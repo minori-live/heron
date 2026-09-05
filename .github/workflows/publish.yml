@@ -62,6 +62,7 @@ jobs:
     with:
       # Ship installers with Cargo.toml thin-LTO release settings.
       full_release_profile: true
+      release_updates: true
       sign_macos: true
     permissions:
       contents: read

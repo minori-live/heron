@@ -21,6 +21,14 @@ import { invokeRpc } from "./rpc"
 import { classifyRendererEntrypoint } from "../shared/renderer-security"
 
 const api: HeronDesktopApi = {
+  updateSnapshot: (meta) => invokeRpc(IPC_CHANNELS.updateSnapshot, meta),
+  updateCommand: (meta, command) => invokeRpc(IPC_CHANNELS.updateCommand, meta, command),
+  subscribeUpdates: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, event: Parameters<typeof listener>[0]) =>
+      listener(event)
+    ipcRenderer.on(IPC_CHANNELS.updateEvent, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.updateEvent, handler)
+  },
   platform: process.platform as HeronDesktopApi["platform"],
   resolveDroppedFilePath: (file) => webUtils.getPathForFile(file as File),
   bootstrap: (meta) => invokeRpc(IPC_CHANNELS.bootstrap, meta),

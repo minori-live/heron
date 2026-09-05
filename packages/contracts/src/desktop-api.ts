@@ -1,4 +1,9 @@
 import type { ApplicationBootstrapSnapshot, ProjectCloseResult } from "./bootstrap"
+import type {
+  ApplicationUpdateCommand,
+  ApplicationUpdateResult,
+  ApplicationUpdateSnapshot
+} from "./updates"
 import type { BounceOutputRequest, BounceStartResult } from "./bounce"
 import type {
   ApplicationCommandId,
@@ -93,6 +98,9 @@ export interface ExternalProjectCommandNotification {
 }
 
 export const IPC_CHANNELS = {
+  updateSnapshot: "application-update:snapshot",
+  updateCommand: "application-update:command",
+  updateEvent: "application-update:event",
   bootstrap: "application:bootstrap",
   engineInfo: "engine:info",
   processGain: "engine:process-gain",
@@ -182,6 +190,12 @@ export interface HeronSplashApi {
 }
 
 export interface HeronDesktopApi {
+  updateSnapshot(meta: RpcRequestMeta): Promise<RpcResult<ApplicationUpdateSnapshot>>
+  updateCommand(
+    meta: RpcRequestMeta,
+    command: ApplicationUpdateCommand
+  ): Promise<RpcResult<ApplicationUpdateResult>>
+  subscribeUpdates(listener: (event: RpcEvent<ApplicationUpdateSnapshot>) => void): () => void
   readonly platform: DesktopPlatform
   resolveDroppedFilePath(file: unknown): string
   bootstrap(meta: RpcRequestMeta): Promise<RpcResult<ApplicationBootstrapSnapshot>>

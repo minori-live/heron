@@ -8,6 +8,7 @@ import type { UiMenubarMenu } from "@heron/ui"
 import { computed } from "vue"
 import { storeToRefs } from "pinia"
 import AppTitleBar from "./AppTitleBar.vue"
+import ApplicationUpdateNotice from "./ApplicationUpdateNotice.vue"
 import { useApplicationWindowStore } from "../../stores/applicationWindow"
 import { useProjectStore } from "../../stores/project"
 
@@ -44,8 +45,9 @@ function executeWindowCommand(command: ApplicationWindowCommandId): void {
       @command="emit('command', $event)"
       @window-command="executeWindowCommand"
     />
-    <div class="ui-fill-available overflow-hidden">
-      <slot />
+    <div class="ui-fill-available flex flex-col overflow-hidden">
+      <ApplicationUpdateNotice />
+      <div class="ui-fill-available flex-1 overflow-hidden"><slot /></div>
     </div>
   </div>
 </template>

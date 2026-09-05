@@ -1,9 +1,29 @@
 import { ipcMain } from "electron"
 import type { IpcMainInvokeEvent } from "electron"
 import { randomUUID } from "node:crypto"
-import { IPC_PROTOCOL_VERSION, isRpcRequestMeta, rpcFailure, rpcSuccess } from "@heron/contracts"
+import {
+  IPC_CHANNELS,
+  IPC_PROTOCOL_VERSION,
+  isRpcRequestMeta,
+  rpcFailure,
+  rpcSuccess
+} from "@heron/contracts"
 import type { RpcError, RpcRequestMeta, RpcResult } from "@heron/contracts"
 import { assertTrustedSender } from "./support"
+import { validationFailure } from "./resource-validation"
+
+let mutationsBlocked = (): boolean => false
+const pendingMutations = new Set<Promise<void>>()
+
+export function setRpcMutationGuard(guard: () => boolean): void {
+  mutationsBlocked = guard
+}
+
+export async function settleRpcMutations(): Promise<void> {
+  while (pendingMutations.size > 0) {
+    await Promise.all([...pendingMutations])
+  }
+}
 
 export interface RpcHandlerContext {
   event: IpcMainInvokeEvent
@@ -143,6 +163,21 @@ export function registerRpcHandler<Args extends readonly unknown[], Value>(
         })
         return rejectedSenderFailure(meta, correlationId)
       }
+      if (
+        meta.mutation &&
+        mutationsBlocked() &&
+        channel !== IPC_CHANNELS.applicationWindowCommand
+      ) {
+        return validationFailure(meta, "application-shutdown")
+      }
+      let settled: (() => void) | undefined
+      // Admission and registration must stay synchronous, before invoking the handler.
+      const pending = meta.mutation
+        ? new Promise<void>((resolve) => {
+            settled = resolve
+          })
+        : null
+      if (pending) pendingMutations.add(pending)
       try {
         const result = await handler({ event, meta }, ...args)
         return isRpcResult(result) ? result : rpcSuccess(meta, result)
@@ -156,6 +191,9 @@ export function registerRpcHandler<Args extends readonly unknown[], Value>(
           error
         })
         return unexpectedFailure(meta, correlationId)
+      } finally {
+        settled?.()
+        if (pending) pendingMutations.delete(pending)
       }
     }
   )
