@@ -4,9 +4,9 @@ node = "26"
 pnpm = "latest"
 rust = { channel = "stable", version = "latest", components = "rustfmt,clippy,llvm-tools" }
 "cargo:cargo-llvm-cov" = "0.8.7"
-"cargo:cargo-shear" = "1.13.3"
+"cargo:cargo-shear" = "1.13.4"
 cmake = "4.3.2"
-"cargo:cargo-truce" = "6.1.3"
+"cargo:cargo-truce" = "6.3.0"
 
 [tools."http:llvm"]
 version = "22.1.8"

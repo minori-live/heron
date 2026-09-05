@@ -11,7 +11,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "gray-matter": "^4.0.3",
-    "mermaid": "^11.16.1",
+    "mermaid": "^11.17.2",
     "unplugin-fonts": "catalog:",
     "vitepress": "2.0.0-alpha.18",
     "vue": "catalog:"
@@ -24,6 +24,6 @@
     "@heron/contracts": "workspace:*",
     "@heron/ui": "workspace:*",
     "pinia": "catalog:",
-    "vue-i18n": "^11.4.8"
+    "vue-i18n": "^11.4.10"
   }
 }

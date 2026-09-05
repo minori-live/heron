@@ -25,9 +25,9 @@ resolver = "3"
 ignored = ["truce-vst3"]
 
 [workspace.package]
-version = "0.4.7"
+version = "0.5.0"
 edition = "2024"
-rust-version = "1.97"
+rust-version = "1.98"
 license = "GPL-3.0-only"
 
 [workspace.dependencies]
@@ -39,8 +39,8 @@ ebur128 = { version = "0.1.10", features = ["precision-true-peak"] }
 flac-bound = { version = "0.5.0", default-features = false, features = ["libflac-noogg"] }
 bindgen = "0.72.1"
 cc = "1"
-clap = { version = "4.5.61", features = ["derive"] }
-cpal = "0.18"
+clap = { version = "4.6.6", features = ["derive"] }
+cpal = "0.18.2"
 clap-sys = "=0.5.0"
 criterion = { version = "0.8.2", features = ["csv_output", "html_reports"] }
 iced_core = "0.14.0"
@@ -64,7 +64,7 @@ sha2 = "0.11"
 symphonia = { version = "0.6.0", default-features = false, features = ["flac", "mp3", "pcm", "wav"] }
 midly = "=0.5.3"
 midir = "0.11"
-mp3lame-encoder = { version = "0.2.4", features = ["std"] }
+mp3lame-encoder = { version = "0.2.5", features = ["std"] }
 libloading = "0.9"
 rmp-serde = "1.3"
 serde = { version = "1", features = ["derive"] }

@@ -17,6 +17,6 @@ dependencies:
     - leonardomso/rust-skills
     - mattpocock/skills/skills/productivity/grill-me
     - microsoft/apm/packages/apm-guide/.apm/skills/apm-usage
-    - vueuse/skills
+    - vueuse/skills/skills/vueuse-functions
 includes: auto
 scripts: {}
