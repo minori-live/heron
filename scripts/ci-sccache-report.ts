@@ -29,7 +29,7 @@ export function summarizeSccache(statistics: SccacheStatistics, log: string, rea
   const summary = [
     "### Shared sccache (GHA)",
     "",
-    `Mode: ${readOnly ? "READ_ONLY (main/release cache consumer)" : "READ_WRITE (shared cache producer)"}`,
+    `Mode: ${readOnly ? "READ_ONLY (PR/branch cache consumer)" : "READ_WRITE (main/tag cache producer)"}`,
     "",
     "| Metric | Count |",
     "| --- | ---: |",
