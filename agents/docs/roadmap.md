@@ -12,18 +12,20 @@ for the affected boundary.
 
 ## Product sequence
 
-1. **Current — Live performance readiness.** Make Heron dependable and
+1. **Closed in v0.5.0 — Live performance readiness.** Make Heron dependable and
    understandable for a singer-songwriter or livestream performer during a
    two-hour session.
-2. **Next — Live project delivery.** Create, author, and perform from a
+2. **Current — Live project delivery.** Create, author, and perform from a
    standalone `.hrl` document with hierarchical Set/Patch configuration while
    sharing one Mixer domain model with Studio.
 3. **Later — Studio creation completion.** Close the composition-to-export path
    without relying on another DAW.
 
 Large feature blocks do not enter Current merely because work has already
-started. [The Live performance contract](product-live.md) is the authority for
-Current scope and release evidence.
+started. [The Live performance contract](product-live.md) defines the accepted
+performance baseline. Current scope is Live project delivery below, including
+the work carried forward from v0.5.0, with its architecture defined by
+[ADR-0012](adr/0012-separate-layered-live-documents.md).
 
 ## Definition of done
 
@@ -66,7 +68,13 @@ claim that the Live or Studio journey is complete.
   policy.
 - Cross-platform development builds for Windows, macOS, and Linux.
 
-## Current — Live performance readiness
+## Closed in v0.5.0 — Live performance readiness
+
+Closed by maintainer decision on 2026-09-06, effective with v0.5.0, based on the
+manual acceptance recorded below. Unfinished governance, documentation,
+automated validation, and evidence-record work moves to Live project delivery.
+Those tasks remain unchecked in the successor milestone; closure does not
+claim that the outstanding checks or evidence collection were completed.
 
 ### Outcome
 
@@ -78,29 +86,47 @@ for at least two hours without reading source or developer documentation.
 
 ### Workflow and interaction
 
-- [ ] A DAW-experienced user completes the canonical Live task within 30
+- [x] A DAW-experienced user completes the canonical Live task within 30
       minutes using existing DAW knowledge and in-product copy only.
-- [ ] Mixer behavior follows Logic Pro unless a documented decision explicitly
+      Manual acceptance confirmed by the maintainer on 2026-09-06 for all
+      steps presented in the usability review. The tested build/platform,
+      exact elapsed time, and observations were not supplied; the detailed
+      release evidence and two-hour hardware sessions remain separate checks.
+- [x] Mixer behavior follows Logic Pro unless a documented decision explicitly
       defines an exception.
-- [ ] Send level is directly adjustable on the channel strip; routing, tap,
+      Manual comparison confirmed by the maintainer on 2026-09-06, covering
+      channel strips, routing, Sends, plug-in operations, and drag, keyboard,
+      reset, and cancellation gestures. Automated tests were inspected but
+      could not run in the review checkout because dependencies were missing
+      and the local pnpm store could not be opened.
+- [x] Send level is directly adjustable on the channel strip; routing, tap,
       enablement, and deletion remain available as secondary configuration.
-- [ ] Frequently read or adjusted state is not hidden behind a menu or popover.
+      Manual interaction check confirmed by the maintainer on 2026-09-06.
+      Source review confirms the direct knob and secondary configuration;
+      the user manual now describes both. Automated execution remains pending
+      the review checkout's dependency setup described above.
+- [x] Frequently read or adjusted state is not hidden behind a menu or popover.
+      Manual Live-workflow visibility check confirmed by the maintainer on
+      2026-09-06, covering readability and access to frequent controls and state.
 - [x] The project asset library browses audio and MIDI already in the project
       and imports both formats.
 - [x] MIDI can be dropped on an empty arrangement area, dropped on an existing
       Instrument track, or passed through the import-mapping dialog.
 - [x] Audio becomes available for audition after import; pre-import audition,
       disk-wide browsing, and library indexing do not block this milestone.
-- [ ] User-facing health information follows the status, detail, notification,
+- [x] User-facing health information follows the status, detail, notification,
       blocking-decision, and diagnostic layers in
       [Interaction design](interaction-design.md).
+      Manual health-information check confirmed by the maintainer on
+      2026-09-06, covering presentation layers, warning impact and safety copy,
+      and user-controlled remedies.
 
 ### External MIDI control
 
 - [x] Existing note routing, controller routing to instruments, and application
       command bindings remain available.
 - [x] System preferences map a device ID and MIDI message to Mixer Gain, Pan,
-      Mute, or Solo. Sends are not MIDI targets in Current.
+      Mute, or Solo. Sends are not MIDI targets in this milestone.
 - [x] Mixer targets resolve against the current shared ordering of Audio,
       Instrument, BUS, Output, and Master channels. Reordering intentionally
       changes which channel an ordered target controls.
@@ -117,57 +143,133 @@ for at least two hours without reading source or developer documentation.
 
 ### Runtime resilience
 
-- [ ] A lost audio device immediately opens a recovery decision while Heron
+- [x] A lost audio device immediately opens a recovery decision while Heron
       continues trying the previous device in the background.
-- [ ] A user's subsequent device choice wins over every earlier reconnect
+      Manual device-loss check confirmed by the maintainer on 2026-09-06:
+      disconnecting the active interface opens the recovery decision with
+      usable replacements; reconnecting the original restores audio while
+      keeping the decision available.
+- [x] A user's subsequent device choice wins over every earlier reconnect
       attempt, even if the old device has already returned.
-- [ ] A recoverable plug-in initialize, restore, processing, editor, or state
+      Both manual precedence cases confirmed by the maintainer on 2026-09-06:
+      selecting replacement B before original A reconnects keeps B active;
+      selecting B after A has resumed audio switches to B and keeps it active.
+- [x] A recoverable plug-in initialize, restore, processing, editor, or state
       failure bypasses or disables only the affected instance without
       invalidating the rest of the graph. The supported boundary and required
       recovery guarantees are defined in
       [ADR-0011](adr/0011-in-process-plugin-failure-containment.md).
-- [ ] CPU pressure, XRUNs, and overload are visible to the user, but Heron does
+      Manual containment check confirmed by the maintainer on 2026-09-06 for
+      initialization, state restore/save, processing, and editor failures:
+      the affected slot exposes failure and recovery, unrelated paths continue,
+      failed effects provide dry audio, failed instruments remain silent, and
+      routing and last committed state remain intact. Fatal native failures
+      remain a separate check.
+- [x] CPU pressure, XRUNs, and overload are visible to the user, but Heron does
       not change buffer size, bypass effects, or otherwise alter the performance
       without an explicit user action.
-- [ ] A fatal in-process plug-in or native failure may restart Heron. Plug-in
+      Manual load-response check confirmed by the maintainer on 2026-09-06:
+      warnings and counters appear under load without automatically changing
+      buffer size, effect bypass, or routing.
+- [x] A fatal in-process plug-in or native failure may restart Heron. Plug-in
       process isolation is not part of Current because it would break the
       existing ARA ownership model.
-- [ ] The UI distinguishes a contained instance failure from a fatal native
+      Controlled fatal-failure test and successful subsequent launch confirmed
+      by the maintainer on 2026-09-06. Saved-project versus working-copy
+      recovery remains a separate check.
+- [x] The UI distinguishes a contained instance failure from a fatal native
       failure and never claims that access violations, aborts, deadlocks, or
       other non-returning third-party calls can be isolated in process.
-- [ ] Relaunch preserves the existing user choice between the saved project and
+      Manual messaging check confirmed by the maintainer on 2026-09-06:
+      contained failures identify the plug-in and recovery action, fatal
+      failures are treated as application failures, and the UI makes no
+      unsupported native-crash or non-returning-call containment claims.
+- [x] Relaunch preserves the existing user choice between the saved project and
       the recoverable working copy.
-- [ ] Existing recording and playback of prepared accompaniment do not regress,
+      Manual recovery-choice check confirmed by the maintainer on 2026-09-06:
+      recovering the working copy restores newer changes, opening the saved
+      archive restores the saved version, and cancellation leaves both copies
+      unchanged.
+- [x] Existing recording and playback of prepared accompaniment do not regress,
       although new recording workflows are not part of the Live exit criteria.
+      Manual regression check confirmed by the maintainer on 2026-09-06 for
+      audio and MIDI recording, take finalization/recovery, recorded and
+      imported accompaniment playback, and save/reopen.
 
 ### Release evidence
 
-- [ ] Windows passes the Live matrix with a 64-bit vendor ASIO driver.
-- [ ] macOS passes the Live matrix with CoreAudio.
-- [ ] Linux passes the Live matrix with ALSA.
-- [ ] VST3 is release-blocking on all three platforms; ARA must not regress.
+The maintainer confirmed on 2026-09-06 that the full Live matrix and two-hour
+real-hardware sessions passed on Windows with a 64-bit vendor ASIO driver,
+macOS with CoreAudio, and Linux with ALSA, with no unexplained XRUN growth or
+unbounded resource growth. Build identifiers, device/driver versions, buffer
+sizes, sample rates, plug-in versions, and measured resource/XRUN totals were
+not supplied; detailed release-candidate evidence collection is carried into
+Live project delivery.
+
+- [x] Windows passes the Live matrix with a 64-bit vendor ASIO driver.
+- [x] macOS passes the Live matrix with CoreAudio.
+- [x] Linux passes the Live matrix with ALSA.
+- [x] VST3 is release-blocking on all three platforms; ARA must not regress.
       CLAP does not block this milestone, and AU remains deferred.
-- [ ] A manually triggered automated two-hour soak runs through the mock-device
+      VST3 is covered by the confirmed platform matrix; the maintainer also
+      confirmed existing ARA workflows pass without regression on Windows,
+      macOS, and Linux on 2026-09-06.
+- [x] A manually triggered automated two-hour soak runs through the mock-device
       Live scenario without an unbounded resource trend, graph corruption, or
       unexplained XRUN growth.
-- [ ] A two-hour real-hardware session passes on every release platform. These
+      Source review on 2026-09-06 found that `soak:device-recovery` exercises
+      reconnect cycles and generation progression, but does not exercise a
+      representative Live graph or measure resource/XRUN trends. Its result
+      alone does not establish this exit criterion.
+      The maintainer subsequently confirmed that the broader two-hour
+      mock-device Live run passed, including graph integrity and resource/XRUN
+      monitoring. The runner and result artifact were not supplied.
+- [x] A two-hour real-hardware session passes on every release platform. These
       hardware runs belong to the release process, not ordinary CI.
-- [ ] Real target users complete the canonical task within 30 minutes. This is
+- [x] Real target users complete the canonical task within 30 minutes. This is
       a documented product metric, not an automated test substitute.
+      Covered by the maintainer's 2026-09-06 manual acceptance of the canonical
+      target-user task recorded under Workflow and interaction above.
 
-### Governance work before feature expansion
+### Completed governance work
 
 - [x] Adopt the engineering, architecture, interaction, and ADR rules linked
       from `agents/docs/README.md`.
 - [x] Resolve the source-size violations recorded in
       [Engineering standards](engineering-standards.md) and enable the hard
       size gate in the default lint pipeline.
+
+## Current — Live project delivery
+
+This successor milestone owns all unfinished work from the v0.5.0 closure as
+well as the standalone Live-document outcome below.
+
+### Work carried forward from v0.5.0
+
 - [ ] Add enforceable architecture checks wherever a rule can be checked
       mechanically; issue-linked exceptions must not expand silently.
+      Review on 2026-09-06 found existing gates for native imports, IPC wrappers,
+      main-domain dependencies, database access, UI ownership, source size, and
+      real-time allocations. The task-boundary and source-size policy tests
+      passed locally; the source-size gate reports zero hard violations.
+      Remaining enforcement gaps include shared-package dependency direction
+      and validation of issue-linked, bounded policy exceptions.
+- [ ] Complete automated validation deferred during the closure review,
+      including Mixer, shared-control, architecture, and UI checks. Restore the
+      project-managed dependency setup and record the results; inspection and
+      manual acceptance do not substitute for the pending automated runs.
 - [ ] Reconcile user-facing documentation with the behavior in the development
-      build before the next release.
-
-## Next — Live project delivery
+      build before the next release. The Send instructions were corrected
+      during closure review; the remaining manual still needs reconciliation.
+- [ ] Attach the detailed release evidence behind the confirmed platform,
+      hardware, and usability passes: build identifiers, operating-system and
+      device/driver versions, buffer sizes, sample rates, plug-ins, resource
+      and XRUN measurements, setup times, and user-test observations, as
+      specified in [the Live contract](product-live.md#evidence-record).
+- [ ] Make the confirmed broader mock-device Live soak reproducible from the
+      repository and attach its runner and result artifact. Close the coverage
+      gap in `soak:device-recovery` or link the broader runner, including a
+      representative Live graph and resource/XRUN trend checks.
 
 ### Outcome
 
@@ -200,8 +302,9 @@ The architecture and ownership contract is defined by
 - a minimum useful declarative performance UI whose concrete persisted schema
   is refined before implementation and cannot contain executable content.
 
-Next exits only after the complete journey works on every supported release
-platform, archive and activation failures preserve the documented recoverable
+This milestone exits only after the carried-forward work is complete and the
+complete journey works on every supported release platform, archive and
+activation failures preserve the documented recoverable
 state, and a real target user can prepare and complete a representative
 performance without editing a Studio timeline.
 

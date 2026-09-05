@@ -25,9 +25,9 @@ Ordinary DAW operations must be discoverable to a user familiar with another
 DAW without source code, developer documentation, or a Heron tutorial. In-product
 labels, descriptions, status, and recovery guidance are allowed.
 
-The Current usability metric is completion of the canonical Live task within
-30 minutes by a real singer-songwriter or livestream performer. Record elapsed
-time, failed attempts, terminology confusion, hidden-control discoveries, and
+The Live performance readiness usability metric is completion of the canonical
+Live task within 30 minutes by a real singer-songwriter or livestream performer.
+Record elapsed time, failed attempts, terminology confusion, hidden-control discoveries, and
 places where the evaluator expected a direct manipulation but found a menu.
 Until a real session passes, do not claim that the flow is usability-validated.
 
@@ -118,7 +118,7 @@ control-routing identity, not a replacement for the user-facing plug-in name.
 
 ## Project asset library
 
-Current is a project asset library, not a disk-wide media manager.
+The accepted baseline is a project asset library, not a disk-wide media manager.
 
 - The Media Browser occupies the right panel and is mutually exclusive with
   Notes. Its top-bar button opens it and closes it when already active.
@@ -151,7 +151,7 @@ Current is a project asset library, not a disk-wide media manager.
   not Media Browser actions in this version.
 
 Indexed user folders, tags, favorites, global metadata search, and background
-disk scanning are backlog work. Do not add architecture for them to the Current
+disk scanning are backlog work. Do not add architecture for them to the baseline
 project-only flow.
 
 ## Status, warnings, and interruption

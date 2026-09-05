@@ -32,7 +32,8 @@ installed copies under `.agents/skills/`.
 
 `AGENTS.md` is the concise repository entry point. These documents are the
 normative detail behind it. The roadmap orders user outcomes; the Live product
-contract defines Current acceptance; engineering standards govern code and
+contract defines the v0.5.0 performance baseline, and ADR-0012 defines Current
+Live project delivery architecture; engineering standards govern code and
 tests; architecture and ADRs govern ownership and durable technical decisions;
 interaction design governs workflow behavior; and the design system governs
 visual primitives and accessibility.

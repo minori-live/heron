@@ -59,15 +59,15 @@ an explicit Studio-to-Live path instead of becoming unrelated products.
 
 The foundation is in place: a native real-time audio engine with ASIO® support
 on Windows, project persistence, arrangement and mixer workflows, audio
-recording, MIDI clips, and VST® 3 hosting. The current product focus is a
-complete Live performance path for singer-songwriters and livestream performers:
-familiar Mixer interaction, external control, visible system health, device
-recovery, and verified two-hour stability on Windows, macOS, and Linux. Studio
-to Stage follows with standalone `.hrl` Live documents, hierarchical Set/Patch
-authoring, project-owned controls, and a declarative performance UI. Studio
-creation completion follows that Live project milestone. Large plug-in-format
-and built-in-rack expansions remain backlog work unless they block that user
-path.
+recording, MIDI clips, and VST® 3 hosting. Live performance readiness is closed
+in v0.5.0, with maintainer-confirmed workflow and two-hour hardware validation
+on Windows, macOS, and Linux. The current product focus is Live project
+delivery: standalone `.hrl` Live documents, hierarchical Set/Patch authoring,
+project-owned controls, and a declarative performance UI. It also owns the
+unfinished governance, documentation, automated validation, and evidence-record
+work carried forward from v0.5.0. Studio creation completion follows that Live
+project milestone. Large plug-in-format and built-in-rack expansions remain
+backlog work unless they block that user path.
 
 <img src="packages/ui/src/assets/VST_Compatible_Logo_Steinberg.svg" alt="VST Compatible" width="128">
 
