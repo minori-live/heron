@@ -21,6 +21,7 @@ installed copies under `.agents/skills/`.
 - [Continuous integration and releases](ci.md)
 - [Design system](design-system.md)
 - [Design system audit](design-system-audit.md)
+- [Desktop localization](localization.md)
 - [Development environment](environment.md)
 - [Native call boundary](native-call-boundary.md)
 - [Renderer/main resource and error contract](cross-process-error-contract.md)

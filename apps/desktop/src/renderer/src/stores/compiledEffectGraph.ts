@@ -1,3 +1,4 @@
+import { i18n } from "../i18n"
 import { useIntervalFn } from "@vueuse/core"
 import { acceptHMRUpdate, defineStore } from "pinia"
 import { shallowRef } from "vue"
@@ -59,7 +60,7 @@ export const useCompiledEffectGraphStore = defineStore("compiled-effect-graph", 
       } catch (reason) {
         if (!isOpen.value || generation !== requestGeneration) return
         errorMessage.value =
-          reason instanceof Error ? reason.message : "The audio runtime did not return a graph."
+          reason instanceof Error ? reason.message : i18n.global.t("rendererErrors.effectGraph")
         status.value = "error"
       } finally {
         refreshPromise = null

@@ -4,6 +4,8 @@ import enUS from "../../../locales/en-US.json"
 import zhCmnHansCN from "../../../locales/zh-cmn-Hans-CN.json"
 import { DEFAULT_LOCALE } from "../../../shared/i18n"
 
+export { intlLocale } from "../../../shared/i18n"
+
 export const i18n = createI18n({
   legacy: false,
   locale: DEFAULT_LOCALE,

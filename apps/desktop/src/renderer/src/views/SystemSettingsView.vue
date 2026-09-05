@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { computed, onMounted } from "vue"
 import { storeToRefs } from "pinia"
 import { useRouter } from "vue-router"
@@ -14,6 +15,8 @@ import { useAudioRuntimeStore } from "../stores/audioRuntime"
 import { useMidiInputStore } from "../stores/midiInput"
 import { usePluginStore } from "../stores/plugins"
 import { useProjectStore } from "../stores/project"
+
+const { t } = useI18n()
 
 const router = useRouter()
 const audioPreferencesStore = useAudioPreferencesStore()
@@ -42,7 +45,9 @@ const {
   error: pluginError
 } = storeToRefs(pluginStore)
 
-const backLabel = computed(() => (projectStore.session ? "Back to studio" : "Back to welcome"))
+const backLabel = computed(() =>
+  projectStore.session ? t("common.backToStudio") : t("common.backToWelcome")
+)
 
 function close(): void {
   void router.push({ name: projectStore.session ? "studio" : "welcome" })

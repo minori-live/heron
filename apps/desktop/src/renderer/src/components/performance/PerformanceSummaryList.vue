@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
+import { intlLocale } from "../../i18n"
 import type { AudioRuntimeSnapshot, SystemPerformanceSnapshot } from "@heron/contracts"
 import type { AudioTelemetryStatistics } from "../../stores/audioRuntime"
 import { classifyUpperBound, PERFORMANCE_THRESHOLDS } from "../../stores/systemPerformance"
@@ -12,7 +13,7 @@ const props = defineProps<{
   statistics: AudioTelemetryStatistics
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 interface SummaryItem {
   id: string
@@ -70,7 +71,7 @@ const items = computed<SummaryItem[]>(() => {
     {
       id: "xruns",
       label: t("performance.summary.xruns"),
-      value: xruns.toLocaleString(),
+      value: xruns.toLocaleString(intlLocale(locale.value)),
       severity: xruns >= 5 ? "critical" : xruns > 0 ? "warning" : "normal"
     }
   ]

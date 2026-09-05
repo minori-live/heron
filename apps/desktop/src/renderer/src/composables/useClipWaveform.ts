@@ -1,3 +1,4 @@
+import { i18n } from "../i18n"
 import { useIntervalFn, useTimeoutFn } from "@vueuse/core"
 import { onScopeDispose, readonly, shallowRef, toValue, watch } from "vue"
 import type { MaybeRefOrGetter } from "vue"
@@ -44,7 +45,10 @@ export function useClipWaveform(options: UseClipWaveformOptions) {
       error.value = ""
     } catch (reason) {
       if (generation !== current || toValue(options.recording)) return
-      error.value = reason instanceof Error ? reason.message : "Waveform unavailable"
+      error.value =
+        reason instanceof Error
+          ? reason.message
+          : i18n.global.t("rendererErrors.waveformUnavailable")
     } finally {
       if (recording) recordingLoadPending = false
       if (generation === current) loading.value = false

@@ -48,7 +48,7 @@ describe("MidiControlMappingList", () => {
 
     const removeButton = wrapper
       .findAll("button")
-      .find((button) => button.attributes("aria-label")?.includes("project.save"))!
+      .find((button) => button.attributes("aria-label") === "Remove Save project")!
     await removeButton.trigger("click")
     expect(wrapper.emitted("remove")?.[0]).toEqual(["save"])
   })

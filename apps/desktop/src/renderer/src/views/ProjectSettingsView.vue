@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { onMounted, shallowRef } from "vue"
 import { storeToRefs } from "pinia"
 import { useRouter } from "vue-router"
 import type { ProjectConfiguration } from "@heron/contracts"
 import ProjectSettingsPage from "../components/project-settings/ProjectSettingsPage.vue"
 import { useProjectStore } from "../stores/project"
+
+const { t } = useI18n()
 
 const router = useRouter()
 const projectStore = useProjectStore()
@@ -29,7 +32,7 @@ async function save(configuration: ProjectConfiguration): Promise<void> {
     await projectStore.updateConfiguration(configuration)
     saved.value = true
   } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : "Unable to save project settings."
+    error.value = reason instanceof Error ? reason.message : t("rendererErrors.projectSettings")
   } finally {
     saving.value = false
   }

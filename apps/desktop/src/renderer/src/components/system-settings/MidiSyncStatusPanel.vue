@@ -1,23 +1,17 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { computed } from "vue"
 import { Clock3, Radio, TriangleAlert } from "@lucide/vue"
-import type { MidiSyncRuntimeSnapshot, MidiSyncState } from "@heron/contracts"
+import type { MidiSyncRuntimeSnapshot } from "@heron/contracts"
+
+const { t } = useI18n()
 
 const props = defineProps<{
   sync: MidiSyncRuntimeSnapshot
 }>()
 
-const stateLabels: Record<MidiSyncState, string> = {
-  internal: "Internal clock",
-  waiting: "Waiting for clock",
-  locking: "Locking",
-  locked: "Locked",
-  freewheel: "Freewheel",
-  lost: "Clock lost"
-}
-
-const stateLabel = computed(() => stateLabels[props.sync.state])
-const sourceLabel = computed(() => props.sync.sourcePortName ?? "Heron transport")
+const stateLabel = computed(() => t(`midiSettings.sync.${props.sync.state}`))
+const sourceLabel = computed(() => props.sync.sourcePortName ?? t("midiSettings.sync.transport"))
 const stateTone = computed(() => {
   if (props.sync.state === "locked") return "healthy"
   if (props.sync.state === "freewheel" || props.sync.state === "lost") return "warning"
@@ -35,7 +29,7 @@ const stateTone = computed(() => {
         <Clock3 v-else :size="17" />
       </span>
       <span class="sync-copy">
-        <small>MIDI clock</small>
+        <small>{{ t("midiSettings.sync.title") }}</small>
         <strong>{{ stateLabel }}</strong>
         <span>{{ sourceLabel }}</span>
       </span>
@@ -43,24 +37,24 @@ const stateTone = computed(() => {
 
     <div class="sync-metrics">
       <span class="sync-metric">
-        <small>Tempo</small>
+        <small>{{ t("midiSettings.sync.tempo") }}</small>
         <strong>{{ props.sync.effectiveBpm?.toFixed(2) ?? "—" }}</strong>
         <em>BPM</em>
       </span>
       <span class="sync-metric">
-        <small>Jitter</small>
+        <small>{{ t("midiSettings.sync.jitter") }}</small>
         <strong>{{ props.sync.jitterMicroseconds?.toFixed(0) ?? "—" }}</strong>
         <em>µs</em>
       </span>
       <span class="sync-metric">
-        <small>Last clock</small>
+        <small>{{ t("midiSettings.sync.lastClock") }}</small>
         <strong>{{ props.sync.lastClockAgeMs?.toFixed(0) ?? "—" }}</strong>
         <em>ms</em>
       </span>
       <span class="sync-metric">
-        <small>Dropped</small>
+        <small>{{ t("midiSettings.sync.dropped") }}</small>
         <strong>{{ props.sync.droppedEvents }}</strong>
-        <em>events</em>
+        <em>{{ t("midiSettings.sync.events") }}</em>
       </span>
     </div>
   </div>

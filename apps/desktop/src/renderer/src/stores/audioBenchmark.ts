@@ -1,3 +1,4 @@
+import { i18n } from "../i18n"
 import { acceptHMRUpdate, defineStore } from "pinia"
 import { shallowRef } from "vue"
 import type { AudioBenchmarkReport } from "@heron/contracts"
@@ -39,7 +40,7 @@ export const useAudioBenchmarkStore = defineStore("audio-benchmark", () => {
       status.value = "complete"
     } catch (error) {
       errorMessage.value =
-        error instanceof Error ? error.message : "The audio benchmark could not be completed."
+        error instanceof Error ? error.message : i18n.global.t("rendererErrors.benchmark")
       status.value = "error"
     }
   }

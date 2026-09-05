@@ -3,7 +3,8 @@ import { useI18n } from "vue-i18n"
 import type { AudioNativeBenchmarkReport, AudioNativeBenchmarkScenario } from "@heron/contracts"
 
 defineProps<{ report: AudioNativeBenchmarkReport }>()
-const { t } = useI18n()
+const composer = useI18n()
+const { t } = composer
 function format(value: number, digits = 1): string {
   return value.toFixed(digits)
 }
@@ -48,8 +49,22 @@ function ipcRate(scenario: AudioNativeBenchmarkScenario): string {
     </div>
     <div v-for="scenario in report.scenarios" :key="scenario.id" class="ipc-row">
       <span class="ipc-name"
-        ><strong>{{ scenario.label }}</strong
-        ><small>{{ scenario.description }}</small></span
+        ><strong>{{
+          composer.te(`benchmark.nativeBridge.items.${scenario.id}.label`)
+            ? t(`benchmark.nativeBridge.items.${scenario.id}.label`, {
+                bytes: scenario.payloadBytes,
+                count: scenario.concurrency
+              })
+            : scenario.label
+        }}</strong
+        ><small>{{
+          composer.te(`benchmark.nativeBridge.items.${scenario.id}.description`)
+            ? t(`benchmark.nativeBridge.items.${scenario.id}.description`, {
+                bytes: scenario.payloadBytes,
+                count: scenario.concurrency
+              })
+            : scenario.description
+        }}</small></span
       >
       <span>{{ formatPayload(scenario.payloadBytes) }}</span>
       <span>{{ formatLatency(scenario.latencyP50Us) }}</span>

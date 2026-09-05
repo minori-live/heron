@@ -5,6 +5,12 @@ import type { StorageSpaceSnapshot, SystemPerformanceSnapshot } from "@heron/con
 import { readMeta, rpcErrorMessage } from "../rpc"
 import { useProjectStore } from "./project"
 
+import { i18n } from "../i18n"
+
+function t(key: string, params?: Record<string, string | number>): string {
+  return i18n.global.t(key, params ?? {})
+}
+
 const POLLING_INTERVAL_MS = 1_000
 const GIBIBYTE = 1024 ** 3
 
@@ -110,8 +116,7 @@ export const useSystemPerformanceStore = defineStore("system-performance", () =>
       snapshot.value = result.value
       lastError.value = ""
     } catch (error) {
-      lastError.value =
-        error instanceof Error ? error.message : "Unable to read system performance."
+      lastError.value = error instanceof Error ? error.message : t("performance.warnings.readError")
     } finally {
       isRefreshing.value = false
     }
@@ -144,7 +149,7 @@ export const useSystemPerformanceStore = defineStore("system-performance", () =>
       result.push({
         id: "system-monitor-unavailable",
         severity: "warning",
-        title: "System monitor unavailable",
+        title: t("performance.warnings.unavailable"),
         message: lastError.value
       })
     }
@@ -166,8 +171,13 @@ export const useSystemPerformanceStore = defineStore("system-performance", () =>
       result.push({
         id: "cpu-pressure",
         severity: cpuSeverity,
-        title: cpuSeverity === "critical" ? "CPU headroom exhausted" : "CPU headroom is narrowing",
-        message: `The busiest core is at ${Math.round(maximumCoreUsagePercent.value ?? 0)}%. Real-time audio may need a larger buffer.`
+        title:
+          cpuSeverity === "critical"
+            ? t("performance.warnings.cpuCritical")
+            : t("performance.warnings.cpuWarning"),
+        message: t("performance.warnings.cpuMessage", {
+          percent: Math.round(maximumCoreUsagePercent.value ?? 0)
+        })
       })
     }
 
@@ -180,26 +190,34 @@ export const useSystemPerformanceStore = defineStore("system-performance", () =>
       result.push({
         id: "memory-pressure",
         severity: memorySeverity,
-        title: memorySeverity === "critical" ? "Memory pressure is critical" : "Memory use is high",
-        message: `${Math.round(current.memory.usagePercent)}% of physical memory is currently in use.`
+        title:
+          memorySeverity === "critical"
+            ? t("performance.warnings.memoryCritical")
+            : t("performance.warnings.memoryWarning"),
+        message: t("performance.warnings.memoryMessage", {
+          percent: Math.round(current.memory.usagePercent)
+        })
       })
     }
 
     for (const space of current.storage) {
       const severity = storageSeverity(space)
       if (severity === "normal") continue
-      const label = space.id === "workspace" ? "Workspace" : "Swap"
+      const label =
+        space.id === "workspace"
+          ? t("performance.warnings.workspace")
+          : t("performance.warnings.swap")
       result.push({
         id: `${space.id}-storage`,
         severity,
         title:
           space.state === "unavailable"
-            ? `${label} storage unavailable`
-            : `${label} storage is low`,
+            ? t("performance.warnings.storageUnavailable", { label })
+            : t("performance.warnings.storageLow", { label }),
         message:
           space.state === "unavailable"
-            ? "The configured path could not be measured. Check that the location is mounted and accessible."
-            : "Free space has crossed the configured recording safety threshold."
+            ? t("performance.warnings.storageUnavailableMessage")
+            : t("performance.warnings.storageLowMessage")
       })
     }
 
@@ -216,9 +234,11 @@ export const useSystemPerformanceStore = defineStore("system-performance", () =>
           severity: heartbeatSeverity,
           title:
             heartbeatSeverity === "critical"
-              ? "Audio runtime heartbeat is stalled"
-              : "Audio runtime heartbeat is late",
-          message: `The embedded runtime heartbeat is ${Math.round(audioRuntime.heartbeat.ageMs ?? 0)} ms old.`
+              ? t("performance.warnings.heartbeatCritical")
+              : t("performance.warnings.heartbeatWarning"),
+          message: t("performance.warnings.heartbeatMessage", {
+            age: Math.round(audioRuntime.heartbeat.ageMs ?? 0)
+          })
         })
       }
 
@@ -237,9 +257,11 @@ export const useSystemPerformanceStore = defineStore("system-performance", () =>
           severity: requestSeverity,
           title:
             requestSeverity === "critical"
-              ? "Audio runtime queue is saturated"
-              : "Audio runtime queue pressure is high",
-          message: `${Math.round(requestUtilization)}% of a native request or event queue is occupied.`
+              ? t("performance.warnings.queueCritical")
+              : t("performance.warnings.queueWarning"),
+          message: t("performance.warnings.queueMessage", {
+            percent: Math.round(requestUtilization)
+          })
         })
       }
 
@@ -258,9 +280,11 @@ export const useSystemPerformanceStore = defineStore("system-performance", () =>
           severity: parameterRingSeverity,
           title:
             parameterRingSeverity === "critical"
-              ? "Parameter command ring is saturated"
-              : "Parameter command ring pressure is high",
-          message: `${Math.round(parameterRingUtilization)}% of the real-time command ring is occupied.`
+              ? t("performance.warnings.parameterCritical")
+              : t("performance.warnings.parameterWarning"),
+          message: t("performance.warnings.parameterMessage", {
+            percent: Math.round(parameterRingUtilization)
+          })
         })
       }
     }

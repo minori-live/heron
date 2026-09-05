@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { Plug, Save } from "@lucide/vue"
 import { UiButton, UiEmptyState, UiSelect, UiTextInput } from "@heron/ui"
 import type { PluginParameterInfo, ProjectGraphSnapshot } from "@heron/contracts"
+
+const { t } = useI18n()
 
 const props = defineProps<{
   plugins: ProjectGraphSnapshot["plugins"]
@@ -32,18 +35,19 @@ function availableParameters(instanceId: string): readonly PluginParameterInfo[]
       </span>
       <UiTextInput
         size="sm"
-        :aria-label="`${plugin.descriptor.name} control alias`"
+        :aria-label="t('midiSettings.alias.aria', { name: plugin.descriptor.name })"
         :model-value="props.aliasDrafts[plugin.id] ?? plugin.controlAlias ?? ''"
         placeholder="lowercase-slug"
         @update:model-value="emit('updateAlias', plugin.id, $event)"
       />
       <UiButton size="sm" variant="secondary" @click="emit('saveAlias', plugin.id)">
-        <Save :size="14" /> Save
+        <Save :size="14" /> {{ t("midiSettings.alias.save") }}
       </UiButton>
       <div v-if="plugin.controlAlias" class="parameter-picker">
-        <span>Parameter browser</span>
+        <span>{{ t("midiSettings.alias.browser") }}</span>
         <UiSelect
           size="sm"
+          :aria-label="t('midiSettings.alias.browser')"
           model-value=""
           :disabled="availableParameters(plugin.id).length === 0"
           @update:model-value="emit('chooseParameter', plugin.controlAlias!, $event)"
@@ -51,8 +55,8 @@ function availableParameters(instanceId: string): readonly PluginParameterInfo[]
           <option value="">
             {{
               availableParameters(plugin.id).length
-                ? "Choose automatable parameter…"
-                : "Open plug-in parameters to browse"
+                ? t("midiSettings.alias.choose")
+                : t("midiSettings.alias.open")
             }}
           </option>
           <option
@@ -69,8 +73,8 @@ function availableParameters(instanceId: string): readonly PluginParameterInfo[]
 
   <UiEmptyState
     v-else
-    title="No project plug-ins available"
-    description="Open a project to assign stable aliases and browse automatable parameters. Existing alias-based mappings remain editable without a project."
+    :title="t('midiSettings.alias.empty')"
+    :description="t('midiSettings.alias.emptyDescription')"
   >
     <template #icon><Plug :size="20" /></template>
   </UiEmptyState>

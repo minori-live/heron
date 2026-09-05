@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { midiTransformProfileLabel } from "../../utils/midiControlLabels"
+import { useI18n } from "vue-i18n"
 import { computed, onMounted, onUnmounted, ref, shallowRef } from "vue"
 import {
   APPLICATION_COMMAND_IDS,
@@ -18,6 +20,8 @@ import MidiControlMappingEditor from "./MidiControlMappingEditor.vue"
 import MidiControlMappingList from "./MidiControlMappingList.vue"
 import MidiControlProfileSettings from "./MidiControlProfileSettings.vue"
 import MidiPluginAliasSettings from "./MidiPluginAliasSettings.vue"
+
+const { t } = useI18n()
 
 const settings = useApplicationSettingsStore()
 const midi = useMidiInputStore()
@@ -61,13 +65,13 @@ const compatibleProfiles = computed(() =>
 )
 const draftError = computed(() => {
   if (!address.value.portId || !address.value.portName) {
-    return "Device ID and display name are required."
+    return t("midiSettings.controls.deviceRequired")
   }
   if (address.value.channel < 0 || address.value.channel > 15) {
-    return "Channel must be from 1 through 16."
+    return t("midiSettings.controls.channelRange")
   }
   if (address.value.number < 0 || address.value.number > 127) {
-    return "Message number must be from 0 through 127."
+    return t("midiSettings.controls.numberRange")
   }
   const booleanTarget =
     targetType.value === "mixer" &&
@@ -77,23 +81,23 @@ const draftError = computed(() => {
     targetType.value !== "application-command" &&
     !booleanTarget
   ) {
-    return "Note On supports commands and Mute/Solo toggle only."
+    return t("midiSettings.controls.noteTargets")
   }
   if (address.value.type === "note" && booleanTarget && booleanBehavior.value !== "toggle") {
-    return "Note On cannot set an absolute Mute/Solo state."
+    return t("midiSettings.controls.noteAbsolute")
   }
   if (
     address.value.type === "control-change" &&
     inputMode.value === "relative" &&
     (targetType.value === "application-command" || booleanTarget)
   ) {
-    return "Relative input supports only continuous targets."
+    return t("midiSettings.controls.relativeTargets")
   }
   if (
     targetType.value === "plugin-parameter" &&
     (!/^[a-z0-9][a-z0-9._-]*$/u.test(pluginAlias.value) || !parameterKey.value)
   ) {
-    return "A lowercase control alias and stable parameter key are required."
+    return t("midiSettings.controls.aliasRequired")
   }
   return ""
 })
@@ -207,7 +211,7 @@ function editProfile(profile: MidiTransformProfile): void {
     ? {
         ...structuredClone(profile),
         id: crypto.randomUUID(),
-        name: `${profile.name} copy`,
+        name: t("midiSettings.controls.copyName", { name: midiTransformProfileLabel(profile, t) }),
         builtin: false
       }
     : structuredClone(profile)
@@ -258,14 +262,14 @@ onUnmounted(() => {
 <template>
   <SettingsPage
     category="MIDI"
-    page="Controls"
-    title="Hardware control mappings"
-    description="Connect physical controls to Heron commands, the ordered Mixer, and stable plug-in parameters."
+    :page="t('midiSettings.controls.page')"
+    :title="t('midiSettings.controls.title')"
+    :description="t('midiSettings.controls.description')"
   >
     <SettingsSection
-      eyebrow="Mapping"
-      title="Control assignments"
-      description="Mappings are grouped by hardware address. One address may intentionally control multiple operations."
+      :eyebrow="t('midiSettings.controls.mapping')"
+      :title="t('midiSettings.controls.assignments')"
+      :description="t('midiSettings.controls.assignmentsDescription')"
     >
       <MidiControlMappingEditor
         v-if="editing"
@@ -299,9 +303,9 @@ onUnmounted(() => {
     </SettingsSection>
 
     <SettingsSection
-      eyebrow="Response"
-      title="Transform profiles"
-      description="Shape absolute controls and tune relative encoder speed without running formulas or scripts."
+      :eyebrow="t('midiSettings.controls.response')"
+      :title="t('midiSettings.controls.profiles')"
+      :description="t('midiSettings.controls.profilesDescription')"
     >
       <MidiControlProfileSettings
         v-model:draft="profileDraft"
@@ -313,9 +317,9 @@ onUnmounted(() => {
     </SettingsSection>
 
     <SettingsSection
-      eyebrow="Plug-ins"
-      title="Control aliases"
-      description="Give project plug-ins stable lowercase names so mappings survive slot moves."
+      :eyebrow="t('midiSettings.controls.plugins')"
+      :title="t('midiSettings.controls.aliases')"
+      :description="t('midiSettings.controls.aliasesDescription')"
     >
       <MidiPluginAliasSettings
         :plugins="mixer.graph.plugins"

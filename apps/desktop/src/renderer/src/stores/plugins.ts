@@ -1,3 +1,4 @@
+import { i18n } from "../i18n"
 import { acceptHMRUpdate, defineStore } from "pinia"
 import { computed, onScopeDispose, shallowRef, watch } from "vue"
 import type {
@@ -100,7 +101,7 @@ export const usePluginStore = defineStore("plugins", () => {
           editorOpen: false,
           latencySamples: 0,
           tailSamples: 0,
-          error: "The saved VST3 module is missing."
+          error: i18n.global.t("rendererErrors.missingVst3")
         }
         nextCatalogFailureIds.add(instance.id)
       } else if (descriptor.compatibility === "quarantined") {
@@ -274,7 +275,7 @@ export const usePluginStore = defineStore("plugins", () => {
 
   function requireSelectedEffectInputWidth(): PluginSignalWidth | null {
     const width = effectInputWidth()
-    if (!width) error.value = "Select an Audio, Instrument, Bus, or Output channel first."
+    if (!width) error.value = i18n.global.t("rendererErrors.selectChannel")
     return width
   }
 
@@ -288,7 +289,7 @@ export const usePluginStore = defineStore("plugins", () => {
       ? (mixerStore.graph.channels.find((candidate) => candidate.id === channelId) ?? null)
       : mixerStore.selectedChannel
     if (!channel || channel.kind === "master") {
-      error.value = "Select an Audio, Instrument, Bus, or Output channel first."
+      error.value = i18n.global.t("rendererErrors.selectChannel")
       return Promise.resolve(false)
     }
     const inserts = mixerStore.graph.plugins.filter(
@@ -301,7 +302,9 @@ export const usePluginStore = defineStore("plugins", () => {
       !inputWidth ||
       pluginAudioModeInputWidth(audioMode) !== inputWidth
     ) {
-      error.value = `Choose a ${inputWidth ?? "valid"}-input effect mode for this insert position.`
+      error.value = inputWidth
+        ? i18n.global.t("rendererErrors.effectMode", { width: inputWidth })
+        : i18n.global.t("rendererErrors.validEffectMode")
       return Promise.resolve(false)
     }
     const plugin = {
@@ -346,7 +349,7 @@ export const usePluginStore = defineStore("plugins", () => {
   function moveInsert(instanceId: string, channelId: string, slotOrder: number): Promise<boolean> {
     const plugin = mixerStore.graph.plugins.find((candidate) => candidate.id === instanceId)
     if (!plugin || plugin.role !== "insert" || plugin.descriptor.kind !== "effect") {
-      error.value = "Only effect insert slots can be reordered."
+      error.value = i18n.global.t("rendererErrors.reorderEffects")
       return Promise.resolve(false)
     }
     return mixerStore.execute({
@@ -362,7 +365,7 @@ export const usePluginStore = defineStore("plugins", () => {
     const { descriptor, audioMode } = selection
     const channel = mixerStore.graph.channels.find((candidate) => candidate.id === channelId)
     if (!channel || channel.kind !== "instrument" || descriptor.kind !== "instrument") {
-      error.value = "Instruments can only be assigned to Instrument tracks."
+      error.value = i18n.global.t("rendererErrors.instrumentTrack")
       return Promise.resolve(false)
     }
     const current = mixerStore.graph.plugins.find(
@@ -460,7 +463,7 @@ export const usePluginStore = defineStore("plugins", () => {
     const list = parameters.value[change.instanceId]
     const parameter = list?.find((candidate) => candidate.parameterKey === change.parameterKey)
     if (!parameter) {
-      error.value = "Plugin parameter key is stale."
+      error.value = i18n.global.t("rendererErrors.staleParameter")
       return
     }
     const range = parameter.maxValue - parameter.minValue
@@ -507,8 +510,8 @@ export const usePluginStore = defineStore("plugins", () => {
     if (result.value.outcome === "full" || result.value.outcome === "stale") {
       error.value =
         result.value.outcome === "full"
-          ? "Plugin parameter queue is full."
-          : "Plugin handle is stale."
+          ? i18n.global.t("rendererErrors.parameterQueueFull")
+          : i18n.global.t("rendererErrors.stalePlugin")
     }
   }
 

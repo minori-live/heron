@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { midiTransformProfileLabel } from "../../utils/midiControlLabels"
+import { computed } from "vue"
+import { useI18n } from "vue-i18n"
 import { Activity, Radio } from "@lucide/vue"
 import {
   UiButton,
@@ -15,6 +18,8 @@ import type {
   MidiControlAddress,
   MidiTransformProfile
 } from "@heron/contracts"
+
+const { t } = useI18n()
 
 const props = defineProps<{
   learning: boolean
@@ -49,19 +54,19 @@ const profileId = defineModel<string>("profileId", { required: true })
 const pluginAlias = defineModel<string>("pluginAlias", { required: true })
 const parameterKey = defineModel<string>("parameterKey", { required: true })
 
-const messageOptions = [
-  { value: "control-change", label: "Control change" },
-  { value: "note", label: "Note On" }
-]
-const inputOptions = [
-  { value: "absolute", label: "Absolute" },
-  { value: "relative", label: "Relative" }
-]
-const targetOptions = [
-  { value: "application-command", label: "Command" },
-  { value: "mixer", label: "Mixer" },
-  { value: "plugin-parameter", label: "Plug-in" }
-]
+const messageOptions = computed(() => [
+  { value: "control-change", label: t("midiSettings.mapping.controlChange") },
+  { value: "note", label: t("midiSettings.mapping.noteOn") }
+])
+const inputOptions = computed(() => [
+  { value: "absolute", label: t("midiSettings.mapping.absolute") },
+  { value: "relative", label: t("midiSettings.mapping.relative") }
+])
+const targetOptions = computed(() => [
+  { value: "application-command", label: t("midiSettings.mapping.command") },
+  { value: "mixer", label: t("midiSettings.mapping.mixer") },
+  { value: "plugin-parameter", label: t("midiSettings.mapping.plugin") }
+])
 
 function updateAddress(patch: Partial<MidiControlAddress>): void {
   address.value = { ...address.value, ...patch }
@@ -74,42 +79,55 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
       <span class="learn-indicator"><Radio :size="17" /></span>
       <span class="learn-copy">
         <strong>{{
-          props.learning ? "Listening for MIDI…" : address.portName || "Manual address"
+          props.learning
+            ? t("midiSettings.mapping.listening")
+            : address.portName || t("midiSettings.mapping.manualAddress")
         }}</strong>
         <small>
           {{
             props.learning
-              ? "Move a knob, fader, button, or key"
-              : `Channel ${address.channel + 1} · ${address.type === "note" ? "Note" : "CC"} ${address.number}`
+              ? t("midiSettings.mapping.learnHint")
+              : t("midiSettings.mapping.address", {
+                  channel: address.channel + 1,
+                  message: t(
+                    address.type === "note"
+                      ? "midiSettings.mapping.note"
+                      : "midiSettings.mapping.cc"
+                  ),
+                  number: address.number
+                })
           }}
         </small>
       </span>
       <UiButton v-if="!props.learning" size="sm" variant="secondary" @click="emit('learn')">
-        <Activity :size="14" /> Listen again
+        <Activity :size="14" /> {{ t("midiSettings.mapping.listenAgain") }}
       </UiButton>
-      <span v-else class="listening-label">Live</span>
+      <span v-else class="listening-label">{{ t("midiSettings.mapping.live") }}</span>
     </div>
 
-    <div class="monitor-grid" aria-label="MIDI input monitor">
+    <div class="monitor-grid" :aria-label="t('midiSettings.mapping.monitor')">
       <span
-        ><small>Raw value</small><strong>{{ props.monitor.raw }}</strong></span
+        ><small>{{ t("midiSettings.mapping.raw") }}</small
+        ><strong>{{ props.monitor.raw }}</strong></span
       >
       <span
-        ><small>Signed delta</small><strong>{{ props.monitor.delta }}</strong></span
+        ><small>{{ t("midiSettings.mapping.delta") }}</small
+        ><strong>{{ props.monitor.delta }}</strong></span
       >
       <span
-        ><small>Event rate</small><strong>{{ props.monitor.rate.toFixed(1) }} Hz</strong></span
+        ><small>{{ t("midiSettings.mapping.rate") }}</small
+        ><strong>{{ props.monitor.rate.toFixed(1) }} Hz</strong></span
       >
       <span
-        ><small>Applied delta</small
+        ><small>{{ t("midiSettings.mapping.appliedDelta") }}</small
         ><strong>{{ props.monitor.normalizedDelta.toFixed(4) }}</strong></span
       >
     </div>
 
     <fieldset class="editor-group">
-      <legend>Hardware message</legend>
+      <legend>{{ t("midiSettings.mapping.hardware") }}</legend>
       <div class="field-grid">
-        <UiField label="Device name">
+        <UiField :label="t('midiSettings.mapping.deviceName')">
           <template #default="slotProps">
             <UiTextInput
               :id="slotProps.controlId"
@@ -119,7 +137,10 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
             />
           </template>
         </UiField>
-        <UiField label="Device ID" description="Stable identifier used when the device reconnects.">
+        <UiField
+          :label="t('midiSettings.mapping.deviceId')"
+          :description="t('midiSettings.mapping.deviceIdDescription')"
+        >
           <template #default="slotProps">
             <UiTextInput
               :id="slotProps.controlId"
@@ -129,7 +150,7 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
             />
           </template>
         </UiField>
-        <UiField label="Channel">
+        <UiField :label="t('midiSettings.mapping.channel')">
           <template #default="slotProps">
             <UiNumberInput
               :id="slotProps.controlId"
@@ -141,7 +162,7 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
             />
           </template>
         </UiField>
-        <UiField label="Message">
+        <UiField :label="t('midiSettings.mapping.message')">
           <template #default="slotProps">
             <UiSelect
               :id="slotProps.controlId"
@@ -152,7 +173,7 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
             />
           </template>
         </UiField>
-        <UiField label="Number">
+        <UiField :label="t('midiSettings.mapping.number')">
           <template #default="slotProps">
             <UiNumberInput
               :id="slotProps.controlId"
@@ -164,12 +185,12 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
             />
           </template>
         </UiField>
-        <UiField label="Input mode">
+        <UiField :label="t('midiSettings.mapping.inputMode')">
           <template #default="slotProps">
             <UiSegmentedControl
               :id="slotProps.controlId"
               v-model="inputMode"
-              label="Input mode"
+              :label="t('midiSettings.mapping.inputMode')"
               size="sm"
               :disabled="address.type === 'note'"
               :options="inputOptions"
@@ -178,13 +199,15 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
         </UiField>
         <UiField
           v-if="inputMode === 'relative' && address.type === 'control-change'"
-          label="Decoder"
+          :label="t('midiSettings.mapping.decoder')"
         >
           <template #default="slotProps">
             <UiSelect :id="slotProps.controlId" v-model="relativeEncoding" size="sm">
               <option value="one-127">1 / 127</option>
-              <option value="twos-complement">Two’s complement</option>
-              <option value="binary-offset">Binary offset</option>
+              <option value="twos-complement">
+                {{ t("midiSettings.mapping.twosComplement") }}
+              </option>
+              <option value="binary-offset">{{ t("midiSettings.mapping.binaryOffset") }}</option>
             </UiSelect>
           </template>
         </UiField>
@@ -192,26 +215,34 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
     </fieldset>
 
     <fieldset class="editor-group">
-      <legend>Target</legend>
+      <legend>{{ t("midiSettings.mapping.target") }}</legend>
       <div class="target-kind">
         <UiSegmentedControl
           v-model="targetType"
-          label="Target type"
+          :label="t('midiSettings.mapping.targetType')"
           size="sm"
           :options="targetOptions"
         />
       </div>
       <div class="field-grid target-fields">
-        <UiField v-if="targetType === 'application-command'" label="Application command">
+        <UiField
+          v-if="targetType === 'application-command'"
+          :label="t('midiSettings.mapping.applicationCommand')"
+        >
           <template #default="slotProps">
             <UiSelect :id="slotProps.controlId" v-model="command" size="sm">
-              <option v-for="id in APPLICATION_COMMAND_IDS" :key="id" :value="id">{{ id }}</option>
+              <option v-for="id in APPLICATION_COMMAND_IDS" :key="id" :value="id">
+                {{ t(`settings.shortcuts.commands.${id}`) }}
+              </option>
             </UiSelect>
           </template>
         </UiField>
 
         <template v-else-if="targetType === 'mixer'">
-          <UiField label="Mixer position" description="Uses the current canonical control order.">
+          <UiField
+            :label="t('midiSettings.mapping.mixerPosition')"
+            :description="t('midiSettings.mapping.mixerPositionDescription')"
+          >
             <template #default="slotProps">
               <UiNumberInput
                 :id="slotProps.controlId"
@@ -222,26 +253,29 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
               />
             </template>
           </UiField>
-          <UiField label="Parameter">
+          <UiField :label="t('midiSettings.mapping.parameter')">
             <template #default="slotProps">
               <UiSelect :id="slotProps.controlId" v-model="mixerParameter" size="sm">
-                <option value="gain">Gain</option>
-                <option value="pan">Pan</option>
-                <option value="mute">Mute</option>
-                <option value="solo">Solo</option>
+                <option value="gain">{{ t("midiSettings.mapping.gain") }}</option>
+                <option value="pan">{{ t("midiSettings.mapping.pan") }}</option>
+                <option value="mute">{{ t("midiSettings.mapping.mute") }}</option>
+                <option value="solo">{{ t("midiSettings.mapping.solo") }}</option>
               </UiSelect>
             </template>
           </UiField>
-          <UiField v-if="mixerParameter === 'mute' || mixerParameter === 'solo'" label="Behavior">
+          <UiField
+            v-if="mixerParameter === 'mute' || mixerParameter === 'solo'"
+            :label="t('midiSettings.mapping.behavior')"
+          >
             <template #default="slotProps">
               <UiSegmentedControl
                 :id="slotProps.controlId"
                 v-model="booleanBehavior"
-                label="Mute or Solo behavior"
+                :label="t('midiSettings.mapping.booleanBehavior')"
                 size="sm"
                 :options="[
-                  { value: 'toggle', label: 'Toggle' },
-                  { value: 'absolute', label: 'Absolute' }
+                  { value: 'toggle', label: t('midiSettings.mapping.toggle') },
+                  { value: 'absolute', label: t('midiSettings.mapping.absolute') }
                 ]"
               />
             </template>
@@ -249,7 +283,10 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
         </template>
 
         <template v-else>
-          <UiField label="Control alias" description="The lowercase alias assigned to the plug-in.">
+          <UiField
+            :label="t('midiSettings.mapping.alias')"
+            :description="t('midiSettings.mapping.aliasDescription')"
+          >
             <template #default="slotProps">
               <UiTextInput
                 :id="slotProps.controlId"
@@ -259,7 +296,7 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
               />
             </template>
           </UiField>
-          <UiField label="Parameter key">
+          <UiField :label="t('midiSettings.mapping.parameterKey')">
             <template #default="slotProps">
               <UiTextInput
                 :id="slotProps.controlId"
@@ -276,13 +313,13 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
             targetType === 'plugin-parameter' ||
             (targetType === 'mixer' && (mixerParameter === 'gain' || mixerParameter === 'pan'))
           "
-          label="Transform profile"
+          :label="t('midiSettings.mapping.profile')"
         >
           <template #default="slotProps">
             <UiSelect :id="slotProps.controlId" v-model="profileId" size="sm">
-              <option value="">Target default</option>
+              <option value="">{{ t("midiSettings.mapping.defaultProfile") }}</option>
               <option v-for="profile in props.profiles" :key="profile.id" :value="profile.id">
-                {{ profile.name }}
+                {{ midiTransformProfileLabel(profile, t) }}
               </option>
             </UiSelect>
           </template>
@@ -295,9 +332,11 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
     </UiStatusNotice>
 
     <div class="editor-actions">
-      <UiButton size="sm" variant="secondary" @click="emit('cancel')">Cancel</UiButton>
+      <UiButton size="sm" variant="secondary" @click="emit('cancel')">{{
+        t("midiSettings.mapping.cancel")
+      }}</UiButton>
       <UiButton size="sm" variant="primary" :disabled="Boolean(props.error)" @click="emit('save')">
-        Save mapping
+        {{ t("midiSettings.mapping.save") }}
       </UiButton>
     </div>
   </div>

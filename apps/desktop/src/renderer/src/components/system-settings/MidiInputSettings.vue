@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { computed, reactive, watch } from "vue"
 import { UiButton, UiCheckbox, UiSelect, UiStatusNotice } from "@heron/ui"
 import {
@@ -10,6 +11,8 @@ import SettingsPage from "../settings/SettingsPage.vue"
 import SettingsSection from "../settings/SettingsSection.vue"
 import MidiInputTimingOffsets from "./MidiInputTimingOffsets.vue"
 import MidiSyncStatusPanel from "./MidiSyncStatusPanel.vue"
+
+const { t } = useI18n()
 
 const props = defineProps<{
   preferences: MidiSyncPreferences
@@ -63,45 +66,49 @@ function apply(): void {
 <template>
   <SettingsPage
     category="MIDI"
-    page="Input & sync"
-    title="MIDI input and external clock"
-    description="Connect controllers to Instrument tracks, correct input timing, and optionally follow one external MIDI Clock source."
+    :page="t('midiSettings.input.page')"
+    :title="t('midiSettings.input.title')"
+    :description="t('midiSettings.input.description')"
   >
     <SettingsSection
-      eyebrow="Monitor"
-      title="Clock status"
-      description="Live synchronization health from the selected source. Internal clock remains active when external sync is disabled."
+      :eyebrow="t('midiSettings.input.monitor')"
+      :title="t('midiSettings.input.clockStatus')"
+      :description="t('midiSettings.input.clockStatusDescription')"
     >
       <MidiSyncStatusPanel :sync="props.snapshot.sync" />
     </SettingsSection>
 
     <SettingsSection
-      eyebrow="Transport"
-      title="External clock"
-      description="Play and Record wait for Start or Continue. Clock loss freewheels for 500 ms, then pauses."
+      :eyebrow="t('midiSettings.input.transport')"
+      :title="t('midiSettings.input.externalClock')"
+      :description="t('midiSettings.input.externalClockDescription')"
     >
       <div class="clock-control">
         <UiCheckbox
           v-model="draft.enabled"
-          label="Follow external MIDI Clock"
-          description="Use timing and transport messages from the selected input."
+          :label="t('midiSettings.input.followClock')"
+          :description="t('midiSettings.input.followClockDescription')"
         />
 
         <div class="source-row" :data-disabled="!draft.enabled || undefined">
           <span class="source-copy">
-            <strong>Clock source</strong>
-            <small>Only this port can drive tempo and transport synchronization.</small>
+            <strong>{{ t("midiSettings.input.clockSource") }}</strong>
+            <small>{{ t("midiSettings.input.clockSourceDescription") }}</small>
           </span>
           <UiSelect
-            aria-label="MIDI clock source"
+            :aria-label="t('midiSettings.input.clockSourceAria')"
             :model-value="draft.sourcePortId ?? ''"
             size="sm"
             :disabled="!draft.enabled"
             @update:model-value="selectClockSource($event)"
           >
-            <option value="">No clock source</option>
+            <option value="">{{ t("midiSettings.input.noClockSource") }}</option>
             <option v-for="port in props.snapshot.ports" :key="port.id" :value="port.id">
-              {{ port.name }}{{ port.connected ? "" : " — Missing" }}
+              {{
+                port.connected
+                  ? port.name
+                  : t("midiSettings.input.missingPort", { name: port.name })
+              }}
             </option>
           </UiSelect>
         </div>
@@ -109,9 +116,9 @@ function apply(): void {
     </SettingsSection>
 
     <SettingsSection
-      eyebrow="Timing"
-      title="Input offsets"
-      description="Apply a signed per-port correction before MIDI events are mapped to project frames and ticks."
+      :eyebrow="t('midiSettings.input.timing')"
+      :title="t('midiSettings.input.offsets')"
+      :description="t('midiSettings.input.offsetsDescription')"
     >
       <MidiInputTimingOffsets
         :ports="props.snapshot.ports"
@@ -125,22 +132,22 @@ function apply(): void {
       class="midi-error"
       tone="danger"
       live="assertive"
-      title="MIDI settings could not be applied"
+      :title="t('midiSettings.input.applyError')"
     >
       {{ props.error || props.snapshot.sync.error }}
     </UiStatusNotice>
 
     <div class="page-actions">
-      <span>{{ dirty ? "Unsaved MIDI input changes" : "MIDI input settings are up to date" }}</span>
+      <span>{{ dirty ? t("midiSettings.input.unsaved") : t("midiSettings.input.upToDate") }}</span>
       <UiButton
         size="sm"
         variant="primary"
         :loading="props.applying"
         :disabled="!dirty"
-        loading-label="Applying MIDI settings"
+        :loading-label="t('midiSettings.input.applying')"
         @click="apply"
       >
-        Apply MIDI settings
+        {{ t("midiSettings.input.apply") }}
       </UiButton>
     </div>
   </SettingsPage>
