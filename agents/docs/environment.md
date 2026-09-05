@@ -45,6 +45,27 @@ GitHub API release discovery. Set `LIBCLANG_PATH` to the installed toolchain's
 ASIO SDK automatically; set `CPAL_ASIO_DIR` only when using a preinstalled SDK.
 Runtime ASIO validation also requires a 64-bit vendor ASIO driver or a fallback
 such as ASIO4ALL.
+
+For a local SDK installation, set `CPAL_ASIO_DIR` in the repository-root
+`.mise.local.toml` (ignored by Git):
+
+```toml
+[env]
+CPAL_ASIO_DIR = 'C:/SDKs/ASIOSDK'
+```
+
+Use the SDK root containing `common/asio.h` and `host/asiodrivers.h`. Run
+`mise trust .mise.local.toml` and confirm it appears in `mise config ls`.
+Keep machine-specific paths in this local file rather than `mise.toml`.
+
+The Cargo dev profile builds `libflac-sys` with optimization and debug symbols,
+which selects CMake `RelWithDebInfo`. CMake `Debug` selects the debug MSVC CRT
+(`/MDd`, `MSVCRTD`) for FLAC, conflicting with Rust's release CRT (`/MD`) and
+causing LNK4098 in audio-host tests and the native addon. Keep this package
+override for dev and test builds; do not suppress the conflict with
+`/NODEFAULTLIB:MSVCRTD`. After changing the profile, Cargo rebuilds the affected
+dependency automatically.
+
 The production VST3 probe and host are Rust binaries. CMake and the C++ workload
 are only required when building Steinberg SDK fixtures such as AGain and
 NoteExpressionSynth from the recursive `third_party/vst3sdk` submodule.
