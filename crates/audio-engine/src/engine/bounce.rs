@@ -228,8 +228,11 @@ fn read_scratch_block(
     buffer.clear();
     buffer.extend(
         bytes[..read]
-            .chunks_exact(4)
-            .map(|sample| f32::from_le_bytes([sample[0], sample[1], sample[2], sample[3]])),
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .copied()
+            .map(f32::from_le_bytes),
     );
     Ok(read / (channels * 4))
 }
@@ -921,6 +924,13 @@ mod tests {
         )
         .expect("write stereo scratch");
         writer.flush().expect("flush scratch fixture");
+        let mut reader = BufReader::new(File::open(&scratch_path).expect("open stereo scratch"));
+        let mut block = vec![99.0];
+        assert_eq!(read_scratch_block(&mut reader, 2, &mut block).unwrap(), 2);
+        assert_eq!(block, [0.25, -0.5, 1.25, -1.5]);
+        assert_eq!(read_scratch_block(&mut reader, 2, &mut block).unwrap(), 0);
+        assert!(block.is_empty());
+        drop(reader);
         let request = encoder_request(
             scratch_path.clone(),
             encoded_path,
