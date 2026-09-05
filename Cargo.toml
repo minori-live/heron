@@ -128,6 +128,13 @@ opt-level = 3
 [profile.dev.package.rubato]
 opt-level = 3
 
+# libflac-sys maps opt-level > 0 plus debug info to CMake RelWithDebInfo.
+# CMake Debug selects /MDd (MSVCRTD), conflicting with Rust's /MD runtime on
+# Windows. Keep symbols while using the matching release CRT in dev and tests.
+[profile.dev.package.libflac-sys]
+opt-level = 3
+debug = true
+
 [profile.release]
 codegen-units = 1
 lto = "thin"
