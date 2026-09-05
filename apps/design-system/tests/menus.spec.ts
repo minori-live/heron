@@ -4,6 +4,8 @@ test("search flattens nested menu results and keeps their category path", async 
   await page.goto(
     "/iframe.html?id=components-menus--searchable-taxonomy&viewMode=story&globals=theme:dark;motion:disabled"
   )
+  // Let the story's play finish selecting OTT before Playwright takes over the menu.
+  await expect(page.getByText("effect:ott", { exact: true })).toBeVisible()
 
   await page.getByRole("button", { name: "Add audio effect" }).click()
   const menu = page.getByRole("menu", { name: "Add audio effect" })
@@ -34,6 +36,8 @@ test("context menu opens at the pointer and exposes nested and destructive comma
   await page.goto(
     "/iframe.html?id=components-menus--clip-context-menu&viewMode=story&globals=theme:light;motion:disabled"
   )
+  // The story's play opens this menu and selects Rename before our interaction.
+  await expect(page.getByText("rename", { exact: true })).toBeVisible()
 
   const clip = page.getByText("Verse · guitar")
   await clip.click({ button: "right" })
@@ -55,6 +59,7 @@ test("checkbox commands stay open after toggle and submenu typing focuses search
   await page.goto(
     "/iframe.html?id=components-menus--clip-context-menu&viewMode=story&globals=theme:dark;motion:disabled"
   )
+  await expect(page.getByText("rename", { exact: true })).toBeVisible()
 
   await page.getByText("Verse · guitar").click({ button: "right" })
   const loop = page.getByRole("menuitemcheckbox", { name: "Loop clip" })
@@ -68,6 +73,7 @@ test("searchable dropdown accepts typed characters from an open submenu", async 
   await page.goto(
     "/iframe.html?id=components-menus--searchable-taxonomy&viewMode=story&globals=theme:dark;motion:disabled"
   )
+  await expect(page.getByText("effect:ott", { exact: true })).toBeVisible()
 
   await page.getByRole("button", { name: "Add audio effect" }).click()
   const search = page.getByRole("textbox", { name: "Search effects" })
