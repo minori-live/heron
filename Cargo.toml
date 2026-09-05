@@ -27,7 +27,7 @@ ignored = ["truce-vst3"]
 [workspace.package]
 version = "0.5.0"
 edition = "2024"
-rust-version = "1.97"
+rust-version = "1.98"
 license = "GPL-3.0-only"
 
 [workspace.dependencies]
