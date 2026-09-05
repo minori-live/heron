@@ -1,6 +1,6 @@
 {
   "name": "@heron/design-system",
-  "version": "0.4.7",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -41,7 +41,7 @@
     "unplugin-fonts": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",
-    "vue-component-meta": "3.3.9",
+    "vue-component-meta": "3.3.11",
     "vue-tsc": "catalog:"
   }
 }
