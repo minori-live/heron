@@ -2,7 +2,9 @@ import { enableAutoUnmount, mount } from "@vue/test-utils"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { UI_DOMAIN_COLORS } from "../domainColors"
 
+import UiActionRow from "./UiActionRow.vue"
 import UiButton from "./UiButton.vue"
+import UiChoiceCard from "./UiChoiceCard.vue"
 import UiColorInput from "./UiColorInput.vue"
 import UiForm from "./UiForm.vue"
 import UiIconButton from "./UiIconButton.vue"
@@ -17,6 +19,51 @@ import UiZoomControl from "./UiZoomControl.vue"
 enableAutoUnmount(afterEach)
 
 describe("workspace controls", () => {
+  it("preserves action-row descriptions and adornments with selected and disabled feedback", async () => {
+    const plain = mount(UiActionRow, { props: { label: "Audio" } })
+    expect(plain.text()).toBe("Audio")
+    expect(plain.attributes("aria-current")).toBeUndefined()
+    const row = mount(UiActionRow, {
+      props: { label: "Audio", description: "Backend settings", selected: true },
+      slots: { leading: "Audio icon", trailing: "ASIO" }
+    })
+    expect(row.text()).toContain("Backend settings")
+    expect(row.text()).toContain("Audio icon")
+    expect(row.text()).toContain("ASIO")
+    expect(row.attributes("aria-current")).toBe("true")
+    await row.trigger("click")
+    expect(row.emitted("activate")).toEqual([[]])
+    await row.setProps({ description: undefined, selected: false, disabled: true })
+    expect(row.text()).not.toContain("Backend settings")
+    expect(row.attributes("aria-current")).toBeUndefined()
+    expect(row.element.disabled).toBe(true)
+    await row.trigger("click")
+    expect(row.emitted("activate")).toHaveLength(1)
+  })
+
+  it("renders choice previews and icons without losing selection or disabled semantics", async () => {
+    const plain = mount(UiChoiceCard, { props: { label: "C3" } })
+    expect(plain.text()).toBe("C3")
+    expect(plain.attributes("aria-pressed")).toBe("false")
+    const choice = mount(UiChoiceCard, {
+      props: { label: "C4", description: "Middle C", selected: true },
+      slots: { preview: "Keyboard preview", icon: "Keyboard icon", trailing: "Selected" }
+    })
+    expect(choice.text()).toContain("Middle C")
+    expect(choice.text()).toContain("Keyboard preview")
+    expect(choice.text()).toContain("Keyboard icon")
+    expect(choice.text()).toContain("Selected")
+    expect(choice.attributes("aria-pressed")).toBe("true")
+    await choice.trigger("click")
+    expect(choice.emitted("select")).toEqual([[]])
+    await choice.setProps({ selected: false, disabled: true, description: undefined })
+    expect(choice.attributes("aria-pressed")).toBe("false")
+    expect(choice.text()).not.toContain("Middle C")
+    expect(choice.element.disabled).toBe(true)
+    await choice.trigger("click")
+    expect(choice.emitted("select")).toHaveLength(1)
+  })
+
   it("edits multiline text, forwards ARIA and emits only explicit save shortcuts", async () => {
     const text = mount(UiTextarea, {
       attachTo: document.body,
