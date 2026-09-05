@@ -60,6 +60,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up build environment
+        id: setup_build
         uses: ./.github/actions/setup-build
         with:
           github-token: >-
@@ -163,6 +164,10 @@ jobs:
           name: ${{ matrix.codecov-rust-flag }}
           fail_ci_if_error: true
           disable_search: true
+
+      - name: Report shared compiler cache health
+        if: ${{ always() && steps.setup_build.outcome == 'success' }}
+        run: mise run ci:report:sccache
 
   codecov-finalize:
     name: Finalize Codecov coverage

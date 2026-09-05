@@ -49,7 +49,7 @@ The Test and Build workflows install the versions in `mise.lock`, use frozen
 pnpm dependencies, and pin the VST3 SDK commit where a native setup is
 required. The mise installation, pnpm store, Cargo downloads, and Electron
 downloads have separate platform-and-architecture cache keys. Rust compilation
-uses sccache's GitHub Actions backend. Check jobs may restore a Cargo `target`
+uses sccache's shared GitHub Actions backend. Check jobs may restore a Cargo `target`
 cache; packaging jobs leave it disabled because the directory is large and can
 retain stale platform-specific build state. Coverage is collected in each
 Checks test pass. Every platform uses cargo-llvm-cov's external-test environment
@@ -60,6 +60,49 @@ test suite runs once. Instrumented artifacts stay in `target-coverage/`, outside
 the shared Checks `target` cache. cargo-llvm-cov chains the sccache
 `RUSTC_WRAPPER` and instruments only workspace crates, so sccache caches those
 builds and repeat runs reuse them.
+
+### Compiler cache writes
+
+All Test and Build jobs use the same pinned sccache version and default GHA
+namespace, allowing compatible compiler outputs to be reused across jobs and
+artifacts. Do not partition this namespace by job or replace it with per-job
+disk-cache archives. GitHub's branch visibility rules still apply: PR merge-ref
+caches cannot warm main or another PR.
+
+Main and tag runs use `SCCACHE_GHA_RW_MODE=READ_WRITE`; PRs and other branch
+runs use `READ_ONLY`. This concentrates uploads on the shared producers and
+avoids many concurrent PR jobs writing private copies of the same dependencies.
+A PR cache miss still compiles normally, but that new output is not published
+until a producer builds it. The tool version is pinned because changing sccache
+also changes its GHA cache version and forces a cold cache.
+
+The September 2026 audit found explicit cache rate-limit warnings in main's
+mise/pnpm cache saves alongside hundreds of sccache write errors. GitHub limits
+uploads to [200 cache entries per minute per repository](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching).
+Concentrating writes reduces this pressure; a cold main matrix can still hit
+the limit. This is not proof that every earlier sccache error was a rate limit.
+Each job now reports hits, misses, writes, read/write errors, and recognized
+service-error signatures through `mise run ci:report:sccache`. Raw service logs
+are kept on the runner because they can contain authenticated URLs. Cache I/O
+errors emit a warning without changing test or packaging results.
+
+Validate on the next main run and subsequent PR: main should populate the
+shared cache with fewer write errors, and PRs should reuse those entries with
+zero writes. Compare total job time as well as cache statistics. If main still
+reports errors, use the diagnostic category to distinguish rate limiting,
+authorization, entry conflicts, and storage limits before making further changes.
+
+### Universal macOS build ownership
+
+`ci:build:macos-universal` owns the two N-API builds, universalization, native
+probe/plug-in builds, and the single desktop bundle build. Both unsigned and
+signed packaging tasks depend on it and only package and verify the result.
+`ci:verify:macos-universal` checks the agent plist, embedded probe plist, and
+universal architectures without rebuilding. The packaging task must not also
+exist as a file task: mise merges its dependencies with the TOML definition,
+which previously caused the whole native/frontend build sequence to run twice.
+The task-boundary regression checks both packaging graphs using mise's dry run;
+the actual Mach-O and installer checks execute on the macOS runner.
 
 ## Coverage
 
