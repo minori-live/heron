@@ -1,3 +1,4 @@
+import { i18n } from "../i18n"
 import { acceptHMRUpdate, defineStore } from "pinia"
 import { shallowRef } from "vue"
 import type { DesktopLifecycleEvent, DesktopLifecycleSnapshot, RpcEvent } from "@heron/contracts"
@@ -108,7 +109,9 @@ export const useLifecycleStore = defineStore("lifecycle", () => {
         unsubscribe?.()
         unsubscribe = null
         error.value =
-          reason instanceof Error ? reason.message : "Unable to restore native lifecycle state."
+          reason instanceof Error
+            ? reason.message
+            : i18n.global.t("rendererErrors.restoreLifecycle")
         ready.value = true
       } finally {
         initializePromise = null

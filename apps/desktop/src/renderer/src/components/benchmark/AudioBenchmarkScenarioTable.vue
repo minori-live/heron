@@ -3,7 +3,8 @@ import { useI18n } from "vue-i18n"
 import type { AudioBenchmarkScenario } from "@heron/contracts"
 
 defineProps<{ scenarios: readonly AudioBenchmarkScenario[] }>()
-const { t } = useI18n()
+const composer = useI18n()
+const { t } = composer
 function budgetUsePercent(scenario: AudioBenchmarkScenario): number {
   return Math.min(100, scenario.p99DeadlineUtilizationPercent)
 }
@@ -24,8 +25,26 @@ function format(value: number, digits = 1): string {
     <article v-for="scenario in scenarios" :key="scenario.id" class="scenario-card">
       <header>
         <div>
-          <h3>{{ scenario.label }}</h3>
-          <p>{{ scenario.description }}</p>
+          <h3>
+            {{
+              composer.te(`benchmark.scenarios.items.${scenario.id}.label`)
+                ? t(`benchmark.scenarios.items.${scenario.id}.label`, {
+                    tracks: scenario.tracks,
+                    samples: scenario.blockSize
+                  })
+                : scenario.label
+            }}
+          </h3>
+          <p>
+            {{
+              composer.te(`benchmark.scenarios.items.${scenario.id}.description`)
+                ? t(`benchmark.scenarios.items.${scenario.id}.description`, {
+                    tracks: scenario.tracks,
+                    samples: scenario.blockSize
+                  })
+                : scenario.description
+            }}
+          </p>
         </div>
         <strong
           >{{ format(scenario.p99BlockMs, 3)

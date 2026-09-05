@@ -31,3 +31,7 @@ export function translate(
 export function rekaLocale(locale: AppLocale): string {
   return locale === "zh-cmn-Hans-CN" ? "zh" : "en"
 }
+
+export function intlLocale(locale: string): string {
+  return locale === "zh-cmn-Hans-CN" ? "zh-Hans-CN" : locale
+}

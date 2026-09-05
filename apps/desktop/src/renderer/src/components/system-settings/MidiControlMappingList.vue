@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { Activity, Plus, Trash2 } from "@lucide/vue"
 import { UiButton, UiEmptyState, UiStatusNotice } from "@heron/ui"
 import type { MidiControlBinding, MidiInputPort } from "@heron/contracts"
+
+const { t } = useI18n()
 
 const props = defineProps<{
   groups: readonly (readonly [string, readonly MidiControlBinding[]])[]
@@ -14,17 +17,27 @@ const emit = defineEmits<{
 }>()
 
 function targetLabel(binding: MidiControlBinding): string {
-  if (binding.target.type === "application-command") return binding.target.command
+  if (binding.target.type === "application-command")
+    return t(`settings.shortcuts.commands.${binding.target.command}`)
   if (binding.target.type === "plugin-parameter") {
     return `${binding.target.controlAlias} · ${binding.target.parameterKey}`
   }
-  return `Mixer ${binding.target.channelIndex + 1} · ${binding.target.parameter}`
+  return t("midiSettings.mapping.mixerTarget", {
+    index: binding.target.channelIndex + 1,
+    parameter: t(`midiSettings.mapping.${binding.target.parameter}`)
+  })
 }
 
 function addressLabel(binding: MidiControlBinding): string {
   const address = binding.address
-  const message = address.type === "note" ? `Note ${address.number}` : `CC ${address.number}`
-  return `Channel ${address.channel + 1} · ${message}`
+  const message = t(
+    address.type === "note" ? "midiSettings.mapping.note" : "midiSettings.mapping.cc"
+  )
+  return t("midiSettings.mapping.address", {
+    channel: address.channel + 1,
+    message,
+    number: address.number
+  })
 }
 
 function connected(binding: MidiControlBinding): boolean {
@@ -35,9 +48,9 @@ function connected(binding: MidiControlBinding): boolean {
 <template>
   <div class="mapping-control">
     <div class="mapping-toolbar">
-      <p>{{ groups.length }} hardware {{ groups.length === 1 ? "address" : "addresses" }}</p>
+      <p>{{ t("midiSettings.mapping.addressCount", groups.length) }}</p>
       <UiButton size="sm" variant="primary" @click="emit('add')">
-        <Plus :size="14" /> Learn or add mapping
+        <Plus :size="14" /> {{ t("midiSettings.mapping.learn") }}
       </UiButton>
     </div>
 
@@ -52,7 +65,11 @@ function connected(binding: MidiControlBinding): boolean {
             <small>{{ addressLabel(bindings[0]!) }}</small>
           </span>
           <span class="connection-state" :data-connected="connected(bindings[0]!)">
-            {{ connected(bindings[0]!) ? "Connected" : "Disconnected" }}
+            {{
+              connected(bindings[0]!)
+                ? t("midiSettings.mapping.connected")
+                : t("midiSettings.mapping.disconnected")
+            }}
           </span>
         </header>
 
@@ -60,9 +77,9 @@ function connected(binding: MidiControlBinding): boolean {
           v-if="bindings.length > 1"
           class="fanout-notice"
           tone="info"
-          :title="`${bindings.length} operations share this control`"
+          :title="t('midiSettings.mapping.shared', { count: bindings.length })"
         >
-          One MIDI message will run every mapping below.
+          {{ t("midiSettings.mapping.fanout") }}
         </UiStatusNotice>
 
         <ul class="target-list">
@@ -70,17 +87,19 @@ function connected(binding: MidiControlBinding): boolean {
             <span class="target-copy">
               <strong>{{ targetLabel(binding) }}</strong>
               <small>
-                {{ binding.input.type }}
-                <template v-if="binding.transformProfileId"> · transformed</template>
+                {{ t(`midiSettings.mapping.${binding.input.type}`) }}
+                <template v-if="binding.transformProfileId">
+                  {{ t("midiSettings.mapping.transformed") }}</template
+                >
               </small>
             </span>
             <UiButton
               size="sm"
               variant="ghost"
-              :aria-label="`Remove ${targetLabel(binding)}`"
+              :aria-label="t('midiSettings.mapping.removeTarget', { target: targetLabel(binding) })"
               @click="emit('remove', binding.id)"
             >
-              <Trash2 :size="14" /> Remove
+              <Trash2 :size="14" /> {{ t("midiSettings.mapping.remove") }}
             </UiButton>
           </li>
         </ul>
@@ -89,13 +108,13 @@ function connected(binding: MidiControlBinding): boolean {
 
     <UiEmptyState
       v-else
-      title="No control mappings"
-      description="Move a hardware control to learn its address, then choose what it should control."
+      :title="t('midiSettings.mapping.empty')"
+      :description="t('midiSettings.mapping.emptyDescription')"
     >
       <template #icon><Activity :size="20" /></template>
       <template #actions>
         <UiButton size="sm" variant="primary" @click="emit('add')">
-          <Plus :size="14" /> Learn first mapping
+          <Plus :size="14" /> {{ t("midiSettings.mapping.learnFirst") }}
         </UiButton>
       </template>
     </UiEmptyState>

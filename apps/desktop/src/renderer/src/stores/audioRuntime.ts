@@ -16,7 +16,7 @@ import type {
   RoundTripLatencyMeasurementRequest,
   TransportRef
 } from "@heron/contracts"
-import { i18n } from "../i18n"
+import { i18n, intlLocale } from "../i18n"
 import { mutationMeta, readMeta, rpcErrorMessage } from "../rpc"
 
 function t(key: string, params?: Record<string, string | number>): string {
@@ -74,7 +74,7 @@ function compact(values: Array<number | null>): number[] {
 }
 
 function formatRate(sampleRate: number): string {
-  return `${(sampleRate / 1_000).toLocaleString(undefined, { maximumFractionDigits: 1 })} kHz`
+  return `${(sampleRate / 1_000).toLocaleString(intlLocale(i18n.global.locale.value), { maximumFractionDigits: 1 })} kHz`
 }
 
 export const useAudioRuntimeStore = defineStore("audio-runtime", () => {

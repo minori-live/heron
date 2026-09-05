@@ -1,5 +1,6 @@
 import { mount } from "@vue/test-utils"
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
+import { i18n } from "../../i18n"
 import type { PluginDescriptor } from "@heron/contracts"
 import PluginSettings from "./PluginSettings.vue"
 
@@ -26,6 +27,30 @@ function plugin(
 }
 
 describe("PluginSettings", () => {
+  afterEach(() => {
+    i18n.global.locale.value = "en-US"
+  })
+
+  it("formats a completed scan in Chinese without rejecting the stored locale", () => {
+    i18n.global.locale.value = "zh-cmn-Hans-CN"
+    const scannedAt = new Date(2026, 8, 6, 12, 30).getTime()
+    const wrapper = mount(PluginSettings, {
+      props: {
+        catalog: { scannerVersion: 7, scanning: false, scannedAt, plugins: [] },
+        scanProgress: null,
+        loading: false,
+        error: ""
+      }
+    })
+    expect(wrapper.text()).toContain(
+      new Intl.DateTimeFormat("zh-Hans-CN", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(scannedAt)
+    )
+    wrapper.unmount()
+  })
+
   it("summarizes the catalog and emits a manual rescan", async () => {
     const wrapper = mount(PluginSettings, {
       props: {

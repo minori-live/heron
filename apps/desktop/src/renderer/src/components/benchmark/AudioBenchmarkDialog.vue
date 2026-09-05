@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
+import { intlLocale } from "../../i18n"
 import { UiButton, UiProgress, UiStatusNotice } from "@heron/ui"
 import type { AudioBenchmarkRating, AudioBenchmarkReport } from "@heron/contracts"
 import type { AudioBenchmarkStatus } from "../../stores/audioBenchmark"
@@ -19,7 +20,7 @@ const emit = defineEmits<{
   run: []
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const ratingCopy = computed<Record<AudioBenchmarkRating, { label: string; summary: string }>>(
   () => ({
@@ -44,7 +45,7 @@ const ratingCopy = computed<Record<AudioBenchmarkRating, { label: string; summar
 
 const rating = computed(() => (props.report ? ratingCopy.value[props.report.rating] : null))
 const measuredAt = computed(() =>
-  props.report ? new Date(props.report.measuredAt).toLocaleString() : ""
+  props.report ? new Date(props.report.measuredAt).toLocaleString(intlLocale(locale.value)) : ""
 )
 
 function format(value: number, digits = 1): string {

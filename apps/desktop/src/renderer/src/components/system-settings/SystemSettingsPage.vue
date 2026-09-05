@@ -126,14 +126,14 @@ const categories = computed<readonly SettingsCategory[]>(() => [
       },
       {
         id: "midi-input",
-        label: "Input & sync",
-        description: "Ports, timing and MIDI Clock",
+        label: t("midiSettings.input.page"),
+        description: t("midiSettings.navigation.inputDescription"),
         icon: Music2
       },
       {
         id: "midi-controls",
-        label: "MIDI Controls",
-        description: "Hardware mappings and transform curves",
+        label: t("midiSettings.navigation.controls"),
+        description: t("midiSettings.navigation.controlsDescription"),
         icon: SlidersHorizontal
       }
     ]

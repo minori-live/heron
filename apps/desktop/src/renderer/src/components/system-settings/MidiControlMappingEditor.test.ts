@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils"
 import { nextTick } from "vue"
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
+import { i18n } from "../../i18n"
 import type { MidiControlAddress } from "@heron/contracts"
 import { BUILTIN_MIDI_TRANSFORM_PROFILES } from "@heron/contracts"
 import { UiNumberInput } from "@heron/ui"
@@ -45,6 +46,25 @@ function fieldControl(wrapper: ReturnType<typeof mountEditor>, label: string) {
 }
 
 describe("MidiControlMappingEditor", () => {
+  afterEach(() => {
+    i18n.global.locale.value = "en-US"
+  })
+
+  it("updates choices and accessible labels without changing MIDI values", async () => {
+    const wrapper = mountEditor({ targetType: "mixer" })
+    expect(wrapper.text()).toContain("Control change")
+    i18n.global.locale.value = "zh-cmn-Hans-CN"
+    await nextTick()
+    expect(wrapper.text()).toContain("控制器变化")
+    expect(wrapper.text()).toContain("绝对值")
+    expect(wrapper.text()).toContain("DAW 推子")
+    expect(wrapper.text()).toContain("Controller")
+    expect(wrapper.find('[aria-label="MIDI 输入监控"]').exists()).toBe(true)
+    expect(wrapper.get('option[value="control-change"]').text()).toBe("控制器变化")
+    expect(wrapper.emitted("update:address")).toBeUndefined()
+    wrapper.unmount()
+  })
+
   it("edits every hardware address field and emits the public form actions", async () => {
     const wrapper = mountEditor()
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { computed } from "vue"
 import { UiArrangementTrackSurface, type UiGestureIntent } from "@heron/ui"
 import type { TempoMapSnapshot, WaveformDisplayMode } from "@heron/contracts"
@@ -11,6 +12,8 @@ import {
   timelineXToTick
 } from "../../utils/timelineCoordinates"
 import AudioClipCard from "./AudioClipCard.vue"
+
+const { t } = useI18n()
 
 const props = defineProps<{
   clips: TimelineClip[]
@@ -110,7 +113,7 @@ function relayFade(clipId: string, edge: AudioFadeEdge, frames: number): void {
     :data-track-id="trackId"
     data-track-kind="audio"
     :style="laneStyle"
-    label="Audio track lane"
+    :label="t('studio.arrangement.audioLaneAria')"
     @gesture="seekFromGesture"
   >
     <i

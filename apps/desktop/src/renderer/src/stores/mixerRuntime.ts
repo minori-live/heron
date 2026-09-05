@@ -1,3 +1,4 @@
+import { i18n } from "../i18n"
 import { acceptHMRUpdate, defineStore } from "pinia"
 import { computed, shallowRef } from "vue"
 import type { MixerChannelMeter, MixerRuntimeSnapshot } from "@heron/contracts"
@@ -64,7 +65,7 @@ export const useMixerRuntimeStore = defineStore("mixer-runtime", () => {
       else error.value = rpcErrorMessage(result.error)
     } catch (reason) {
       error.value =
-        reason instanceof Error ? reason.message : "Unable to reset mixer clipping indicators."
+        reason instanceof Error ? reason.message : i18n.global.t("rendererErrors.resetClipping")
     }
   }
 

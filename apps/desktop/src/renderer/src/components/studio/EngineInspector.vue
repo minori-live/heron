@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
+import { intlLocale } from "../../i18n"
 import { Activity, Cpu, Zap } from "@lucide/vue"
 import { UiButton, UiSlider } from "@heron/ui"
 import type { AudioRuntimeSnapshot } from "@heron/contracts"
@@ -8,7 +9,8 @@ import type { AudioRuntimeSnapshot } from "@heron/contracts"
 const props = defineProps<{ runtime: AudioRuntimeSnapshot; peak?: number; error?: string }>()
 const emit = defineEmits<{ runPreview: [] }>()
 const gainValues = defineModel<number[]>({ required: true })
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const formattingLocale = computed(() => intlLocale(locale.value))
 const gain = computed(() => gainValues.value[0] ?? 0.5)
 const gainValue = computed({
   get: () => gain.value,
@@ -79,7 +81,11 @@ const meterSegments = Array.from({ length: 12 }, (_, index) => index)
       </div>
       <div>
         <dt>{{ t("studio.inspector.sampleRate") }}</dt>
-        <dd>{{ runtime.sampleRate ? `${runtime.sampleRate.toLocaleString()} Hz` : "—" }}</dd>
+        <dd>
+          {{
+            runtime.sampleRate ? `${runtime.sampleRate.toLocaleString(formattingLocale)} Hz` : "—"
+          }}
+        </dd>
       </div>
       <div>
         <dt>{{ t("studio.inspector.clockSync") }}</dt>

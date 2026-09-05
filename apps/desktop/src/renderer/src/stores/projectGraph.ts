@@ -1,3 +1,4 @@
+import { i18n } from "../i18n"
 import { acceptHMRUpdate, defineStore } from "pinia"
 import { shallowRef } from "vue"
 import type {
@@ -156,7 +157,7 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
       } catch (reason) {
         graph.value = previous
         error.value =
-          reason instanceof Error ? reason.message : "Project change could not be applied."
+          reason instanceof Error ? reason.message : i18n.global.t("rendererErrors.projectChange")
         await loadNow(false)
         return null
       } finally {
@@ -196,7 +197,8 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
         const failure = results.find((result) => !result.ok)
         if (failure && !failure.ok) error.value = rpcErrorMessage(failure.error)
       } catch (reason) {
-        error.value = reason instanceof Error ? reason.message : "Mixer preview failed."
+        error.value =
+          reason instanceof Error ? reason.message : i18n.global.t("rendererErrors.mixerPreview")
       }
     }
     previewFlush = null

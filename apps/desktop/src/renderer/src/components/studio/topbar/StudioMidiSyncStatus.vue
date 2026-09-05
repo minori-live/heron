@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { computed, onMounted } from "vue"
 import { storeToRefs } from "pinia"
 import { useMidiInputStore } from "../../../stores/midiInput"
+
+const { t } = useI18n()
 
 const midiInputStore = useMidiInputStore()
 const { snapshot } = storeToRefs(midiInputStore)
@@ -9,7 +12,7 @@ onMounted(() => void midiInputStore.load())
 
 const label = computed(() => {
   const sync = snapshot.value.sync
-  const state = sync.state[0]?.toUpperCase() + sync.state.slice(1)
+  const state = t(`midiSettings.sync.${sync.state}`)
   const bpm = sync.effectiveBpm === null ? "" : ` · ${sync.effectiveBpm.toFixed(2)} BPM`
   return `${state}${bpm}`
 })
@@ -20,7 +23,7 @@ const label = computed(() => {
     v-if="snapshot.sync.state !== 'internal'"
     class="midi-sync-status"
     :data-state="snapshot.sync.state"
-    :title="snapshot.sync.sourcePortName ?? 'External MIDI Clock'"
+    :title="snapshot.sync.sourcePortName ?? t('midiSettings.sync.external')"
     aria-live="polite"
   >
     <i />

@@ -1,5 +1,6 @@
 import { createPinia, setActivePinia } from "pinia"
-import { beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { i18n } from "../i18n"
 import type { AudioRuntimePerformanceSnapshot, SystemPerformanceSnapshot } from "@heron/contracts"
 import { useSystemPerformanceStore } from "./systemPerformance"
 
@@ -56,6 +57,21 @@ function snapshot(runtime: AudioRuntimePerformanceSnapshot): SystemPerformanceSn
 
 describe("system performance store embedded audio runtime health", () => {
   beforeEach(() => setActivePinia(createPinia()))
+  afterEach(() => {
+    i18n.global.locale.value = "en-US"
+  })
+
+  it("retranslates active warnings without changing their severity", () => {
+    const store = useSystemPerformanceStore()
+    store.snapshot = snapshot(
+      audioRuntime({ requests: { normalPending: 240, capacity: 256, slowRequests: 0 } })
+    )
+    expect(store.warnings[0]?.title).toBe("Audio runtime queue is saturated")
+    i18n.global.locale.value = "zh-cmn-Hans-CN"
+    expect(store.warnings[0]?.title).toBe("音频运行时队列已满")
+    expect(store.warnings[0]?.message).toBe("原生请求或事件队列的占用率为 94%。")
+    expect(store.severity).toBe("critical")
+  })
 
   it("reports queue, parameter, and heartbeat pressure", () => {
     const store = useSystemPerformanceStore()

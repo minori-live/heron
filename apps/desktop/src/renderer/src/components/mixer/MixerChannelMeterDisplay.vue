@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { computed, shallowRef } from "vue"
 import { storeToRefs } from "pinia"
 import { DEFAULT_METER_RETURN_RATE } from "@heron/contracts"
@@ -14,6 +15,8 @@ import { useApplicationSettingsStore } from "../../stores/applicationSettings"
 import { useMixerRuntimeStore } from "../../stores/mixerRuntime"
 import { METER_SCALE_MARKS } from "../../utils/mixerDbScale"
 import type { MixerStripDisplayOptions } from "./mixer-strip-display-options"
+
+const { t } = useI18n()
 
 const props = defineProps<{
   channelId: string
@@ -66,8 +69,8 @@ function resetMaximumPeak(): void {
       size="sm"
       variant="ghost"
       :class="['maximum-peak-value', maximumPeakState]"
-      :aria-label="`${channelName} latched maximum post-fader level in decibels`"
-      :title="`Maximum post-fader peak: ${maximumPeakLabel} dB · Click to reset peak and clipping`"
+      :aria-label="t('mixer.meter.maximumAria', { name: channelName })"
+      :title="t('mixer.meter.maximumTitle', { peak: maximumPeakLabel })"
       @click="resetMaximumPeak"
     >
       {{ maximumPeakLabel }}
@@ -77,7 +80,7 @@ function resetMaximumPeak(): void {
       :channels="meterDisplay.meterChannels.value"
       :clipped="meterDisplay.clipped.value"
       :marks="METER_SCALE_MARKS"
-      :label="`${channelName} post-fader level`"
+      :label="t('mixer.meter.levelAria', { name: channelName })"
     />
   </div>
 </template>

@@ -2,6 +2,7 @@
 import { UiButton } from "@heron/ui"
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
+import { intlLocale } from "../../i18n"
 import type { PluginCatalogSnapshot } from "@heron/contracts"
 import SettingsPage from "../settings/SettingsPage.vue"
 import SettingsSection from "../settings/SettingsSection.vue"
@@ -37,7 +38,7 @@ const scanBusy = computed(() => props.loading || props.catalog.scanning)
 const lastScan = computed(() =>
   props.catalog.scannedAt === null
     ? t("settings.system.plugins.catalog.neverScanned")
-    : new Intl.DateTimeFormat(locale.value, {
+    : new Intl.DateTimeFormat(intlLocale(locale.value), {
         dateStyle: "medium",
         timeStyle: "short"
       }).format(props.catalog.scannedAt)

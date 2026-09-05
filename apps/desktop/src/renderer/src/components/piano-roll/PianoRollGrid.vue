@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { usePianoRollEditor } from "./usePianoRollEditor"
 import PianoRollKeyboard from "./PianoRollKeyboard.vue"
 import PianoRollNote from "./PianoRollNote.vue"
 import { UiButton, UiPianoRollGrid } from "@heron/ui"
+
+const { t } = useI18n()
 
 const {
   pianoRollStore,
@@ -58,7 +61,7 @@ const {
         '--row-height': `${pianoRollStore.rowHeight}px`,
         '--beat-width': `${graph.tempoMap.ticksPerQuarter * pixelsPerTick}px`
       }"
-      label="Piano roll note grid"
+      :label="t('pianoRoll.gridAria')"
       @gesture="handleGridGesture"
     >
       <i

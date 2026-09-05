@@ -21,7 +21,8 @@
     "saving": "正在保存…",
     "saveChanges": "保存更改",
     "changesSaved": "更改已保存",
-    "backToStudio": "返回编排界面"
+    "backToStudio": "返回编排界面",
+    "backToWelcome": "返回欢迎页"
   },
   "chrome": {
     "unsavedChanges": "未保存的更改",
@@ -505,7 +506,8 @@
           "cut": "剪切",
           "copy": "复制",
           "paste": "粘贴",
-          "select-all": "全选"
+          "select-all": "全选",
+          "split-at-playhead": "在播放头处拆分"
         },
         "application": {
           "preferences": "系统设置",
@@ -933,7 +935,21 @@
       "samples": "{count} 采样",
       "budget": "{ms} ms 预算",
       "late": "{misses} / {blocks} 超时",
-      "realtimeFactor": "{factor}× 实时"
+      "realtimeFactor": "{factor}× 实时",
+      "items": {
+        "low-latency-tracking": {
+          "label": "低延迟录音",
+          "description": "{tracks} 条轨道，{samples} 采样缓冲区"
+        },
+        "production-mix": {
+          "label": "制作混音",
+          "description": "{tracks} 条轨道，包含总线和发送"
+        },
+        "dense-session": {
+          "label": "密集工程",
+          "description": "{tracks} 条轨道，采用分层路由图"
+        }
+      }
     },
     "nativeBridge": {
       "kicker": "原生边界",
@@ -954,6 +970,20 @@
         "workers": "{workers} 工作线程 / {blocking} 阻塞线程",
         "messagePackBody": "{size} MessagePack 正文",
         "debugOnly": "仅供诊断；正式原生边界评级需使用 release 构建。"
+      },
+      "items": {
+        "inline-control": {
+          "label": "嵌入式控制负载",
+          "description": "通过进程内原生边界传递 {bytes} 字节的 MessagePack 请求／响应"
+        },
+        "concurrent-router": {
+          "label": "并发响应路由",
+          "description": "按请求 ID 匹配 {count} 个并发进程内请求"
+        },
+        "direct-telemetry": {
+          "label": "直接读取遥测",
+          "description": "通过原生扩展同步读取引擎快照"
+        }
       }
     },
     "footer": {
@@ -993,6 +1023,31 @@
       "roundTrip": "往返延迟",
       "xruns": "音频中断",
       "unavailable": "—"
+    },
+    "warnings": {
+      "readError": "无法读取系统性能。",
+      "unavailable": "系统监控不可用",
+      "cpuCritical": "CPU 余量已耗尽",
+      "cpuWarning": "CPU 余量正在减少",
+      "cpuMessage": "最繁忙的核心使用率为 {percent}%。实时音频可能需要更大的缓冲区。",
+      "memoryCritical": "内存压力严重",
+      "memoryWarning": "内存使用率偏高",
+      "memoryMessage": "当前已使用 {percent}% 的物理内存。",
+      "workspace": "工作区",
+      "swap": "交换区",
+      "storageUnavailable": "{label}存储不可用",
+      "storageLow": "{label}存储空间不足",
+      "storageUnavailableMessage": "无法测量所配置路径的空间。请检查该位置是否已挂载且可访问。",
+      "storageLowMessage": "可用空间已低于所配置的录音安全阈值。",
+      "heartbeatCritical": "音频运行时心跳已停滞",
+      "heartbeatWarning": "音频运行时心跳延迟",
+      "heartbeatMessage": "距嵌入式运行时上次心跳已有 {age} 毫秒。",
+      "queueCritical": "音频运行时队列已满",
+      "queueWarning": "音频运行时队列压力偏高",
+      "queueMessage": "原生请求或事件队列的占用率为 {percent}%。",
+      "parameterCritical": "参数命令环形缓冲区已满",
+      "parameterWarning": "参数命令环形缓冲区压力偏高",
+      "parameterMessage": "实时命令环形缓冲区的占用率为 {percent}%。"
     }
   },
   "tutorials": {
@@ -1195,7 +1250,8 @@
       "instrumentLaneAria": "乐器轨；双击空白处或按 Enter 创建 MIDI 片段",
       "createMidiClipHint": "双击以创建 MIDI 片段",
       "recordingAria": "正在录音",
-      "resizeMixerDockAria": "调整混音台停靠区大小"
+      "resizeMixerDockAria": "调整混音台停靠区大小",
+      "audioLaneAria": "音频轨道区域"
     },
     "trackControls": {
       "ariaLabel": "{name} 混音台快捷控制",
@@ -1307,7 +1363,12 @@
     "eyebrow": "离线导出",
     "title": "导出 {output}",
     "description": "以快于实时的速度渲染此输出。独占导出期间会停止播放。",
-    "sections": { "format": "格式", "channels": "声道", "normalization": "电平", "range": "范围" },
+    "sections": {
+      "format": "格式",
+      "channels": "声道",
+      "normalization": "电平",
+      "range": "范围"
+    },
     "fields": {
       "format": "文件格式",
       "sampleRate": "采样率",
@@ -1324,10 +1385,21 @@
       "endBar": "结束小节",
       "includeTail": "包含插件尾音"
     },
-    "sampleRate": { "project": "工程（{rate} kHz）" },
-    "options": { "off": "关闭" },
-    "channels": { "stereo": "立体声", "mono": "单声道" },
-    "normalization": { "off": "关闭", "overload": "仅过载保护", "truePeak": "真峰值目标" },
+    "sampleRate": {
+      "project": "工程（{rate} kHz）"
+    },
+    "options": {
+      "off": "关闭"
+    },
+    "channels": {
+      "stereo": "立体声",
+      "mono": "单声道"
+    },
+    "normalization": {
+      "off": "关闭",
+      "overload": "仅过载保护",
+      "truePeak": "真峰值目标"
+    },
     "monoHelp": "单声道将左右声道各以 −6 dB 安全合并。",
     "rangeHelp": "小节从 1 开始且首尾均包含；结束点是所选结束小节之后的小节线，最多第 {maximum} 小节。",
     "tailHelp": "在结束小节后继续渲染混响、延迟及其他效果器的衰减尾音。",
@@ -1527,6 +1599,11 @@
       "buses": "总线",
       "outputs": "输出",
       "missingOutput": "缺少输出"
+    },
+    "meter": {
+      "maximumAria": "{name} 锁存的推子后最大电平（分贝）",
+      "maximumTitle": "推子后最大峰值：{peak} dB · 点击重置峰值和削波指示",
+      "levelAria": "{name} 推子后电平"
     }
   },
   "plugins": {
@@ -1651,7 +1728,9 @@
       "1/16T": "1/16 三连音",
       "1/32T": "1/32 三连音",
       "1/64T": "1/64 三连音"
-    }
+    },
+    "gridAria": "钢琴卷帘音符网格",
+    "keyboardAria": "钢琴键盘"
   },
   "midiImport": {
     "eyebrow": "MIDI 导入",
@@ -1674,5 +1753,232 @@
     "importMidiTempoDetail": "从 tick 0 开始，并用 MIDI 速度映射替换工程速度轨。",
     "import": "导入 MIDI",
     "importing": "正在导入 MIDI"
+  },
+  "midiSettings": {
+    "input": {
+      "page": "输入与同步",
+      "title": "MIDI 输入与外部时钟",
+      "description": "将控制器连接到乐器轨道，校正输入时序，并可选择跟随一个外部 MIDI 时钟源。",
+      "monitor": "监控",
+      "clockStatus": "时钟状态",
+      "clockStatusDescription": "实时显示所选时钟源的同步状态。关闭外部同步时使用内部时钟。",
+      "transport": "走带控制",
+      "externalClock": "外部时钟",
+      "externalClockDescription": "播放和录音将等待开始或继续消息。时钟丢失后将按原速度继续运行 500 毫秒，然后暂停。",
+      "followClock": "跟随外部 MIDI 时钟",
+      "followClockDescription": "使用所选输入的时序和走带控制消息。",
+      "clockSource": "时钟源",
+      "clockSourceDescription": "仅此端口可控制速度和走带同步。",
+      "clockSourceAria": "MIDI 时钟源",
+      "noClockSource": "无时钟源",
+      "timing": "时序",
+      "offsets": "输入偏移",
+      "offsetsDescription": "在将 MIDI 事件映射到工程帧和时钟刻度之前，为各端口应用正负时序校正。",
+      "applyError": "无法应用 MIDI 设置",
+      "applying": "正在应用 MIDI 设置",
+      "apply": "应用 MIDI 设置",
+      "unsaved": "有未保存的 MIDI 输入更改",
+      "upToDate": "MIDI 输入设置已保存",
+      "noPorts": "无 MIDI 输入端口",
+      "noPortsDescription": "连接 MIDI 设备以配置录音和控制的时序校正。",
+      "offsetAria": "{name} 时序偏移（毫秒）",
+      "missingPort": "{name} — 缺失"
+    },
+    "sync": {
+      "title": "MIDI 时钟",
+      "tempo": "速度",
+      "jitter": "抖动",
+      "lastClock": "距上次时钟",
+      "dropped": "已丢弃",
+      "events": "个事件",
+      "internal": "内部时钟",
+      "waiting": "等待时钟",
+      "locking": "正在锁定",
+      "locked": "已锁定",
+      "freewheel": "自由运行",
+      "lost": "时钟丢失",
+      "transport": "Heron 走带控制",
+      "external": "外部 MIDI 时钟"
+    },
+    "controls": {
+      "page": "控制",
+      "title": "硬件控制映射",
+      "description": "将硬件控件映射到 Heron 命令、按顺序排列的混音器通道和稳定的插件参数。",
+      "mapping": "映射",
+      "assignments": "控制分配",
+      "assignmentsDescription": "映射按硬件地址分组。一个地址可有意控制多个操作。",
+      "response": "响应",
+      "profiles": "变换配置",
+      "profilesDescription": "调整绝对值控件的响应曲线和相对值编码器的速度，无需运行公式或脚本。",
+      "plugins": "插件",
+      "aliases": "控制别名",
+      "aliasesDescription": "为工程插件指定稳定的小写名称，使映射在插槽移动后仍然有效。",
+      "deviceRequired": "必须填写设备 ID 和显示名称。",
+      "channelRange": "通道必须在 1 到 16 之间。",
+      "numberRange": "消息编号必须在 0 到 127 之间。",
+      "noteTargets": "音符开启消息仅支持命令和静音／独奏切换。",
+      "noteAbsolute": "音符开启消息不能设置静音／独奏的绝对状态。",
+      "relativeTargets": "相对值输入仅支持连续参数目标。",
+      "aliasRequired": "必须填写小写控制别名和稳定的参数键。",
+      "copyName": "{name} 副本"
+    },
+    "mapping": {
+      "listenAgain": "重新监听",
+      "live": "实时",
+      "monitor": "MIDI 输入监控",
+      "raw": "原始值",
+      "delta": "有符号增量",
+      "rate": "事件频率",
+      "appliedDelta": "应用增量",
+      "hardware": "硬件消息",
+      "deviceName": "设备名称",
+      "deviceId": "设备 ID",
+      "deviceIdDescription": "设备重新连接时使用的稳定标识符。",
+      "channel": "通道",
+      "message": "消息",
+      "number": "编号",
+      "inputMode": "输入模式",
+      "decoder": "解码方式",
+      "twosComplement": "二进制补码",
+      "binaryOffset": "二进制偏移",
+      "target": "目标",
+      "targetType": "目标类型",
+      "applicationCommand": "应用命令",
+      "mixerPosition": "混音器位置",
+      "mixerPositionDescription": "使用当前标准控制顺序。",
+      "parameter": "参数",
+      "gain": "增益",
+      "pan": "声像",
+      "mute": "静音",
+      "solo": "独奏",
+      "behavior": "行为",
+      "booleanBehavior": "静音或独奏行为",
+      "alias": "控制别名",
+      "aliasDescription": "分配给插件的小写别名。",
+      "parameterKey": "参数键",
+      "profile": "变换配置",
+      "defaultProfile": "目标默认配置",
+      "cancel": "取消",
+      "save": "保存映射",
+      "controlChange": "控制器变化",
+      "noteOn": "音符开启",
+      "absolute": "绝对值",
+      "relative": "相对值",
+      "command": "命令",
+      "mixer": "混音器",
+      "plugin": "插件",
+      "toggle": "切换",
+      "listening": "正在监听 MIDI…",
+      "manualAddress": "手动地址",
+      "learnHint": "操作旋钮、推子、按钮或琴键",
+      "address": "通道 {channel} · {message} {number}",
+      "note": "音符",
+      "cc": "CC",
+      "mixerTarget": "混音器 {index} · {parameter}",
+      "addressCount": "{count} 个硬件地址",
+      "learn": "学习或添加映射",
+      "fanout": "一条 MIDI 消息将执行下方的所有映射。",
+      "transformed": "· 已变换",
+      "remove": "移除",
+      "empty": "无控制映射",
+      "emptyDescription": "操作硬件控件以学习其地址，然后选择它要控制的目标。",
+      "learnFirst": "学习首个映射",
+      "connected": "已连接",
+      "disconnected": "已断开",
+      "missing": "缺失",
+      "shared": "{count} 个操作共用此控件",
+      "removeTarget": "移除 {target}"
+    },
+    "profiles": {
+      "duplicate": "复制配置",
+      "edit": "编辑",
+      "draft": "草稿",
+      "name": "配置名称",
+      "baseStep": "基础归一化步长",
+      "baseStepDescription": "应用加速前，编码器每增加一步对应的变化量。",
+      "eventRate": "事件数／秒",
+      "multiplier": "倍数",
+      "addPoint": "添加加速点",
+      "save": "保存配置",
+      "absoluteCurve": "绝对值曲线",
+      "relativeAcceleration": "相对值加速",
+      "builtin": "内置",
+      "custom": "自定义",
+      "absoluteTransform": "绝对值变换",
+      "relativeTransform": "相对值变换",
+      "untitled": "未命名配置",
+      "rateAria": "加速点 {index} 事件频率",
+      "multiplierAria": "加速点 {index} 倍数",
+      "linear": "线性",
+      "dawFader": "DAW 推子",
+      "reverseLinear": "反向线性",
+      "relativeNormal": "相对值标准",
+      "relativeFine": "相对值精细"
+    },
+    "alias": {
+      "save": "保存",
+      "browser": "参数浏览器",
+      "empty": "无可用的工程插件",
+      "emptyDescription": "打开工程以分配稳定别名并浏览可自动化的参数。未打开工程时仍可编辑已有的别名映射。",
+      "choose": "选择可自动化的参数…",
+      "open": "打开插件参数以浏览",
+      "aria": "{name} 控制别名"
+    },
+    "curve": {
+      "xLabel": "MIDI 输入 0–127",
+      "yLabel": "归一化输出",
+      "input": "输入",
+      "output": "输出",
+      "shape": "形状",
+      "amount": "强度",
+      "exponential": "指数",
+      "logarithmic": "对数",
+      "sCurve": "S 形曲线",
+      "step": "阶跃",
+      "split": "拆分末段",
+      "remove": "移除末段",
+      "start": "曲线起点",
+      "end": "曲线终点",
+      "boundary": "第 {index} 段与第 {next} 段的边界",
+      "segmentEnd": "第 {index} 段终点",
+      "segmentStart": "第 {index} 段起点",
+      "inputStart": "第 {index} 段输入起点",
+      "inputEnd": "第 {index} 段输入终点",
+      "outputStart": "第 {index} 段输出起点",
+      "outputEnd": "第 {index} 段输出终点",
+      "segmentShape": "第 {index} 段形状",
+      "segmentAmount": "第 {index} 段强度"
+    },
+    "navigation": {
+      "inputDescription": "端口、时序和 MIDI 时钟",
+      "controls": "MIDI 控制",
+      "controlsDescription": "硬件映射和变换曲线"
+    }
+  },
+  "rendererErrors": {
+    "projectSettings": "无法保存工程设置。",
+    "waveformUnavailable": "波形不可用",
+    "waveformLoading": "正在加载波形",
+    "effectGraph": "音频运行时未返回处理图。",
+    "queryBackends": "无法查询 CPAL 后端。",
+    "enumerateDevices": "CPAL 设备枚举失败。",
+    "benchmark": "无法完成音频性能测试。",
+    "resetClipping": "无法重置混音器削波指示。",
+    "restoreLifecycle": "无法恢复原生生命周期状态。",
+    "engineUnavailable": "原生引擎不可用",
+    "previewFailed": "原生预览失败",
+    "projectChange": "无法应用工程更改。",
+    "mixerPreview": "混音器预览失败。",
+    "recordingDependencies": "录音所需依赖不可用。",
+    "missingVst3": "保存的 VST3 模块缺失。",
+    "selectChannel": "请先选择音频、乐器、总线或输出通道。",
+    "reorderEffects": "仅效果器插入插槽可以重新排序。",
+    "instrumentTrack": "乐器只能分配给乐器轨道。",
+    "staleParameter": "插件参数键已失效。",
+    "parameterQueueFull": "插件参数队列已满。",
+    "stalePlugin": "插件句柄已失效。",
+    "effectMode": "请为此插入位置选择 {width} 输入的效果器模式。",
+    "validEffectMode": "请为此插入位置选择有效的输入效果器模式。",
+    "waveformDescription": "波形，{channels} 个声道，{frames} 帧"
   }
 }

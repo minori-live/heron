@@ -1,3 +1,4 @@
+import { i18n } from "../i18n"
 import { useStorage } from "@vueuse/core"
 import { acceptHMRUpdate, defineStore } from "pinia"
 import { ref } from "vue"
@@ -98,7 +99,7 @@ export const useAudioPreferencesStore = defineStore("audio-preferences", () => {
       return true
     } catch (error) {
       applyError.value =
-        error instanceof Error ? error.message : "Unable to start the native audio engine."
+        error instanceof Error ? error.message : i18n.global.t("errors.unableToStartAudioEngine")
       return false
     } finally {
       applying.value = false
@@ -153,7 +154,7 @@ export const useAudioPreferencesStore = defineStore("audio-preferences", () => {
       backends.value = []
       discoveryState.value = "unavailable"
       discoveryError.value =
-        error instanceof Error ? error.message : "Unable to query cpal backends."
+        error instanceof Error ? error.message : i18n.global.t("rendererErrors.queryBackends")
       return []
     }
   }
@@ -185,7 +186,7 @@ export const useAudioPreferencesStore = defineStore("audio-preferences", () => {
       outputDevices.value = []
       discoveryState.value = "unavailable"
       discoveryError.value =
-        error instanceof Error ? error.message : "cpal device enumeration failed."
+        error instanceof Error ? error.message : i18n.global.t("rendererErrors.enumerateDevices")
     }
   }
 

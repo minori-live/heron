@@ -1,3 +1,4 @@
+import { i18n } from "../i18n"
 import { acceptHMRUpdate, defineStore } from "pinia"
 import { ref } from "vue"
 import type { NativeEngineInfo } from "@heron/contracts"
@@ -30,7 +31,8 @@ export const useEngineStore = defineStore("engine", () => {
       nativeInfo.value = result.value
       error.value = undefined
     } catch (reason) {
-      error.value = reason instanceof Error ? reason.message : "Native engine unavailable"
+      error.value =
+        reason instanceof Error ? reason.message : i18n.global.t("rendererErrors.engineUnavailable")
     }
   }
 
@@ -49,7 +51,8 @@ export const useEngineStore = defineStore("engine", () => {
       peak.value = result.value.peak
       error.value = undefined
     } catch (reason) {
-      error.value = reason instanceof Error ? reason.message : "Native preview failed"
+      error.value =
+        reason instanceof Error ? reason.message : i18n.global.t("rendererErrors.previewFailed")
     }
   }
 

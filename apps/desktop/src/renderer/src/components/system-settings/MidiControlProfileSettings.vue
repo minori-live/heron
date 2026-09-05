@@ -1,8 +1,12 @@
 <script setup lang="ts">
+import { midiTransformProfileLabel } from "../../utils/midiControlLabels"
+import { useI18n } from "vue-i18n"
 import { Copy, Plus, SlidersHorizontal } from "@lucide/vue"
 import { UiActionRow, UiButton, UiField, UiNumberInput, UiTextInput } from "@heron/ui"
 import type { MidiRelativeTransformProfile, MidiTransformProfile } from "@heron/contracts"
 import MidiTransformCurveEditor from "./MidiTransformCurveEditor.vue"
+
+const { t } = useI18n()
 
 const props = defineProps<{
   profiles: readonly MidiTransformProfile[]
@@ -53,17 +57,29 @@ function removeAccelerationPoint(index: number): void {
     <ul class="profile-list">
       <li v-for="profile in props.profiles" :key="profile.id">
         <UiActionRow
-          :label="profile.name"
-          :description="profile.type === 'absolute' ? 'Absolute curve' : 'Relative acceleration'"
+          :label="midiTransformProfileLabel(profile, t)"
+          :description="
+            profile.type === 'absolute'
+              ? t('midiSettings.profiles.absoluteCurve')
+              : t('midiSettings.profiles.relativeAcceleration')
+          "
           @activate="emit('edit', profile)"
         >
           <template #leading>
             <span class="profile-icon"><SlidersHorizontal :size="15" aria-hidden="true" /></span>
           </template>
           <template #trailing>
-            <span class="profile-origin">{{ profile.builtin ? "Built in" : "Custom" }}</span>
-            <Copy v-if="profile.builtin" :size="14" aria-label="Duplicate profile" />
-            <span v-else class="edit-label">Edit</span>
+            <span class="profile-origin">{{
+              profile.builtin
+                ? t("midiSettings.profiles.builtin")
+                : t("midiSettings.profiles.custom")
+            }}</span>
+            <Copy
+              v-if="profile.builtin"
+              :size="14"
+              :aria-label="t('midiSettings.profiles.duplicate')"
+            />
+            <span v-else class="edit-label">{{ t("midiSettings.profiles.edit") }}</span>
           </template>
         </UiActionRow>
       </li>
@@ -73,14 +89,16 @@ function removeAccelerationPoint(index: number): void {
       <header class="profile-editor-header">
         <span>
           <small>{{
-            draft.type === "absolute" ? "Absolute transform" : "Relative transform"
+            draft.type === "absolute"
+              ? t("midiSettings.profiles.absoluteTransform")
+              : t("midiSettings.profiles.relativeTransform")
           }}</small>
-          <strong>{{ draft.name || "Untitled profile" }}</strong>
+          <strong>{{ draft.name || t("midiSettings.profiles.untitled") }}</strong>
         </span>
-        <span class="draft-label">Draft</span>
+        <span class="draft-label">{{ t("midiSettings.profiles.draft") }}</span>
       </header>
 
-      <UiField label="Profile name">
+      <UiField :label="t('midiSettings.profiles.name')">
         <template #default="slotProps">
           <UiTextInput :id="slotProps.controlId" v-model="draft.name" size="sm" />
         </template>
@@ -90,8 +108,8 @@ function removeAccelerationPoint(index: number): void {
 
       <div v-else class="relative-editor">
         <UiField
-          label="Base normalized step"
-          description="Distance moved for one encoder increment before acceleration."
+          :label="t('midiSettings.profiles.baseStep')"
+          :description="t('midiSettings.profiles.baseStepDescription')"
         >
           <template #default="slotProps">
             <UiNumberInput
@@ -108,37 +126,43 @@ function removeAccelerationPoint(index: number): void {
 
         <div class="acceleration-table">
           <div class="acceleration-heading">
-            <span>Events / second</span><span>Multiplier</span><span aria-hidden="true" />
+            <span>{{ t("midiSettings.profiles.eventRate") }}</span
+            ><span>{{ t("midiSettings.profiles.multiplier") }}</span
+            ><span aria-hidden="true" />
           </div>
           <div v-for="(point, index) in draft.acceleration" :key="index" class="acceleration-row">
             <UiNumberInput
               size="sm"
-              :aria-label="`Acceleration ${index + 1} event rate`"
+              :aria-label="t('midiSettings.profiles.rateAria', { index: index + 1 })"
               :model-value="point.eventsPerSecond"
               :min="0"
               @update:model-value="updateAcceleration(index, 'eventsPerSecond', $event ?? 0)"
             />
             <UiNumberInput
               size="sm"
-              :aria-label="`Acceleration ${index + 1} multiplier`"
+              :aria-label="t('midiSettings.profiles.multiplierAria', { index: index + 1 })"
               :model-value="point.multiplier"
               :min="0.000001"
               :step="0.1"
               @update:model-value="updateAcceleration(index, 'multiplier', $event ?? 1)"
             />
-            <UiButton size="sm" variant="ghost" @click="removeAccelerationPoint(index)"
-              >Remove</UiButton
-            >
+            <UiButton size="sm" variant="ghost" @click="removeAccelerationPoint(index)">{{
+              t("midiSettings.mapping.remove")
+            }}</UiButton>
           </div>
           <UiButton class="add-point" size="sm" variant="secondary" @click="addAccelerationPoint">
-            <Plus :size="14" /> Add acceleration point
+            <Plus :size="14" /> {{ t("midiSettings.profiles.addPoint") }}
           </UiButton>
         </div>
       </div>
 
       <footer class="profile-actions">
-        <UiButton size="sm" variant="secondary" @click="emit('cancel')">Cancel</UiButton>
-        <UiButton size="sm" variant="primary" @click="emit('save')">Save profile</UiButton>
+        <UiButton size="sm" variant="secondary" @click="emit('cancel')">{{
+          t("midiSettings.mapping.cancel")
+        }}</UiButton>
+        <UiButton size="sm" variant="primary" @click="emit('save')">{{
+          t("midiSettings.profiles.save")
+        }}</UiButton>
       </footer>
     </div>
   </div>

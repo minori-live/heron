@@ -1,3 +1,4 @@
+import { i18n } from "../i18n"
 import { acceptHMRUpdate, defineStore } from "pinia"
 import { computed, ref, shallowRef } from "vue"
 import type {
@@ -37,7 +38,10 @@ export const useRecordingStore = defineStore("recording", () => {
     const projectGraph = projectStore.projectGraphRef
     const audioEngine = audioRuntimeStore.audioEngineRef
     if (!project || !projectGraph || !audioEngine) {
-      lifecycle.value = { status: "idle", error: "Recording dependencies are unavailable." }
+      lifecycle.value = {
+        status: "idle",
+        error: i18n.global.t("rendererErrors.recordingDependencies")
+      }
       return null
     }
     lifecycle.value = { status: "starting", error: null }

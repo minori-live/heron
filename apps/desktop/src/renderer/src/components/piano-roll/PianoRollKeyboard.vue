@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { computed } from "vue"
 import { UiPianoKeyboard } from "@heron/ui"
 import { usePianoRollEditor } from "./usePianoRollEditor"
+
+const { t } = useI18n()
 const { pianoRollStore, isBlackKey, formatMidiNoteName } = usePianoRollEditor()
 const keys = computed(() =>
   Array.from({ length: 128 }, (_, key) => ({
@@ -15,7 +18,7 @@ const keys = computed(() =>
   <UiPianoKeyboard
     :keys="keys"
     :row-height="pianoRollStore.rowHeight"
-    label="Piano keyboard"
+    :label="t('pianoRoll.keyboardAria')"
     @select="pianoRollStore.editCursorKey = $event"
   />
 </template>

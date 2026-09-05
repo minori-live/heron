@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { Cable, Unplug } from "@lucide/vue"
 import { UiEmptyState, UiNumberInput } from "@heron/ui"
 import type { MidiInputPort } from "@heron/contracts"
+
+const { t } = useI18n()
 
 const props = defineProps<{
   ports: readonly MidiInputPort[]
@@ -22,12 +25,14 @@ const emit = defineEmits<{
       </span>
       <span class="port-copy">
         <strong>{{ port.name }}</strong>
-        <small>{{ port.connected ? "Connected" : "Missing" }}</small>
+        <small>{{
+          port.connected ? t("midiSettings.mapping.connected") : t("midiSettings.mapping.missing")
+        }}</small>
       </span>
       <span class="offset-control">
         <UiNumberInput
           size="sm"
-          :aria-label="`${port.name} timing offset in milliseconds`"
+          :aria-label="t('midiSettings.input.offsetAria', { name: port.name })"
           :model-value="props.offsets[port.id] ?? 0"
           :min="-500"
           :max="500"
@@ -41,8 +46,8 @@ const emit = defineEmits<{
 
   <UiEmptyState
     v-else
-    title="No MIDI input ports"
-    description="Connect a MIDI device to configure its recording and control timing correction."
+    :title="t('midiSettings.input.noPorts')"
+    :description="t('midiSettings.input.noPortsDescription')"
   >
     <template #icon><Cable :size="20" /></template>
   </UiEmptyState>

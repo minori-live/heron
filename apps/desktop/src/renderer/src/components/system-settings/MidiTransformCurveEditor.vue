@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { computed } from "vue"
 import { SplitSquareHorizontal, Trash2 } from "@lucide/vue"
 import { UiButton, UiCurveEditor, UiNumberInput, UiSelect } from "@heron/ui"
 import type { UiCurveHandle, UiCurveStroke } from "@heron/ui"
 import { evaluateAbsoluteMidiTransform } from "@heron/contracts"
 import type { MidiAbsoluteTransformProfile } from "@heron/contracts"
+
+const { t } = useI18n()
 
 const props = defineProps<{ modelValue: MidiAbsoluteTransformProfile }>()
 const emit = defineEmits<{ "update:modelValue": [value: MidiAbsoluteTransformProfile] }>()
@@ -38,7 +41,7 @@ const handles = computed<UiCurveHandle[]>(() => {
   if (!first) return result
   result.push({
     id: "outer-start",
-    label: "Curve start",
+    label: t("midiSettings.curve.start"),
     x: first.inputStart,
     y: first.outputStart,
     minX: first.inputStart,
@@ -55,7 +58,7 @@ const handles = computed<UiCurveHandle[]>(() => {
     if (Math.abs(before.outputEnd - after.outputStart) < 0.000_001) {
       result.push({
         id: `boundary-${index}`,
-        label: `Segment ${index} to ${index + 1} boundary`,
+        label: t("midiSettings.curve.boundary", { index, next: index + 1 }),
         ...constraints,
         y: before.outputEnd
       })
@@ -63,13 +66,13 @@ const handles = computed<UiCurveHandle[]>(() => {
       result.push(
         {
           id: `boundary-${index}-before`,
-          label: `Segment ${index} end`,
+          label: t("midiSettings.curve.segmentEnd", { index }),
           ...constraints,
           y: before.outputEnd
         },
         {
           id: `boundary-${index}-after`,
-          label: `Segment ${index + 1} start`,
+          label: t("midiSettings.curve.segmentStart", { index: index + 1 }),
           ...constraints,
           y: after.outputStart,
           tone: "secondary"
@@ -80,7 +83,7 @@ const handles = computed<UiCurveHandle[]>(() => {
   const last = segments.at(-1)!
   result.push({
     id: "outer-end",
-    label: "Curve end",
+    label: t("midiSettings.curve.end"),
     x: last.inputEnd,
     y: last.outputEnd,
     minX: last.inputEnd,
@@ -150,24 +153,24 @@ function removeLastSegment(): void {
     <UiCurveEditor
       :curves="curves"
       :handles="handles"
-      x-label="MIDI input 0–127"
-      y-label="Normalized output"
+      :x-label="t('midiSettings.curve.xLabel')"
+      :y-label="t('midiSettings.curve.yLabel')"
       @move-handle="moveCurveHandle"
     />
     <table class="segment-table">
       <thead>
         <tr>
-          <th>Input</th>
-          <th>Output</th>
-          <th>Shape</th>
-          <th>Amount</th>
+          <th>{{ t("midiSettings.curve.input") }}</th>
+          <th>{{ t("midiSettings.curve.output") }}</th>
+          <th>{{ t("midiSettings.curve.shape") }}</th>
+          <th>{{ t("midiSettings.curve.amount") }}</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="(segment, index) in modelValue.segments" :key="index">
           <td>
             <UiNumberInput
-              :aria-label="`Segment ${index + 1} input start`"
+              :aria-label="t('midiSettings.curve.inputStart', { index: index + 1 })"
               size="compact"
               :min="0"
               :max="1"
@@ -176,7 +179,7 @@ function removeLastSegment(): void {
               @update:model-value="updateSegment(index, 'inputStart', String($event ?? 0))"
             />
             <UiNumberInput
-              :aria-label="`Segment ${index + 1} input end`"
+              :aria-label="t('midiSettings.curve.inputEnd', { index: index + 1 })"
               size="compact"
               :min="0"
               :max="1"
@@ -187,7 +190,7 @@ function removeLastSegment(): void {
           </td>
           <td>
             <UiNumberInput
-              :aria-label="`Segment ${index + 1} output start`"
+              :aria-label="t('midiSettings.curve.outputStart', { index: index + 1 })"
               size="compact"
               :min="0"
               :max="1"
@@ -196,7 +199,7 @@ function removeLastSegment(): void {
               @update:model-value="updateSegment(index, 'outputStart', String($event ?? 0))"
             />
             <UiNumberInput
-              :aria-label="`Segment ${index + 1} output end`"
+              :aria-label="t('midiSettings.curve.outputEnd', { index: index + 1 })"
               size="compact"
               :min="0"
               :max="1"
@@ -207,7 +210,7 @@ function removeLastSegment(): void {
           </td>
           <td>
             <UiSelect
-              :aria-label="`Segment ${index + 1} shape`"
+              :aria-label="t('midiSettings.curve.segmentShape', { index: index + 1 })"
               size="compact"
               :model-value="segment.kind"
               @update:model-value="
@@ -224,16 +227,16 @@ function removeLastSegment(): void {
                 })
               "
             >
-              <option value="linear">Linear</option>
-              <option value="exponential">Exponential</option>
-              <option value="logarithmic">Logarithmic</option>
-              <option value="s-curve">S-curve</option>
-              <option value="step">Step</option>
+              <option value="linear">{{ t("midiSettings.profiles.linear") }}</option>
+              <option value="exponential">{{ t("midiSettings.curve.exponential") }}</option>
+              <option value="logarithmic">{{ t("midiSettings.curve.logarithmic") }}</option>
+              <option value="s-curve">{{ t("midiSettings.curve.sCurve") }}</option>
+              <option value="step">{{ t("midiSettings.curve.step") }}</option>
             </UiSelect>
           </td>
           <td>
             <UiNumberInput
-              :aria-label="`Segment ${index + 1} amount`"
+              :aria-label="t('midiSettings.curve.segmentAmount', { index: index + 1 })"
               size="compact"
               :step="0.1"
               :model-value="segment.amount ?? 4"
@@ -245,7 +248,7 @@ function removeLastSegment(): void {
     </table>
     <div class="segment-actions">
       <UiButton size="sm" variant="secondary" @click="splitLastSegment">
-        <SplitSquareHorizontal :size="14" /> Split last segment
+        <SplitSquareHorizontal :size="14" /> {{ t("midiSettings.curve.split") }}
       </UiButton>
       <UiButton
         size="sm"
@@ -253,7 +256,7 @@ function removeLastSegment(): void {
         :disabled="modelValue.segments.length < 2"
         @click="removeLastSegment"
       >
-        <Trash2 :size="14" /> Remove last segment
+        <Trash2 :size="14" /> {{ t("midiSettings.curve.remove") }}
       </UiButton>
     </div>
   </div>

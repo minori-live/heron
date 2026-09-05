@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
 import { computed, nextTick, useTemplateRef, watch } from "vue"
 import { useResizeObserver } from "@vueuse/core"
 import type { TempoMapSnapshot, WaveformDisplayMode, WaveformPeakWindow } from "@heron/contracts"
 import { buildWarpedWaveformGeometry, buildWaveformGeometry } from "../../utils/waveform"
 import { timelineXToSeconds } from "../../utils/timelineCoordinates"
+
+const { t } = useI18n()
 
 const props = defineProps<{
   window: WaveformPeakWindow | null
@@ -20,9 +23,12 @@ const props = defineProps<{
 const canvas = useTemplateRef<HTMLCanvasElement>("canvas")
 const size = { width: 0, height: 0 }
 const accessibleLabel = computed(() => {
-  if (props.loading && !props.window) return "Waveform loading"
-  if (!props.window) return "Waveform unavailable"
-  return `Waveform, ${props.window.channels} channels, ${props.window.frameCount} frames`
+  if (props.loading && !props.window) return t("rendererErrors.waveformLoading")
+  if (!props.window) return t("rendererErrors.waveformUnavailable")
+  return t("rendererErrors.waveformDescription", {
+    channels: props.window.channels,
+    frames: props.window.frameCount
+  })
 })
 
 function canvasColor(element: HTMLCanvasElement, property: string): string {
