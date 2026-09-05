@@ -13,6 +13,49 @@ afterEach(async () => {
 
 describe("release update assets", () => {
   it.each([
+    null,
+    [],
+    "metadata",
+    {},
+    { version: "1.0.0", files: "files" },
+    { version: "1.0.0", files: [] }
+  ])("rejects malformed metadata: %j", async (metadata) => {
+    const directory = await mkdtemp(join(tmpdir(), "heron-updates-"))
+    directories.push(directory)
+    await writeFile(join(directory, "latest.yml"), JSON.stringify(metadata))
+    await expect(verifyUpdateAssets(directory, "1.0.0", "latest", "windows-x64")).rejects.toThrow(
+      "Invalid update version/files"
+    )
+  })
+
+  it.each([
+    null,
+    [],
+    "file",
+    {},
+    { url: 42 },
+    { url: "Heron.exe", sha512: 42, size: 1 },
+    { url: "Heron.exe", sha512: "", size: 1 },
+    { url: "Heron.exe", sha512: "hash", size: "1" },
+    { url: "Heron.exe", sha512: "hash", size: -1 },
+    { url: "Heron.exe", sha512: "hash", size: 1.5 },
+    { url: "Heron.exe", sha512: "hash", size: Number.MAX_SAFE_INTEGER + 1 }
+  ])("rejects malformed file entries before accessing artifacts: %j", async (file) => {
+    const directory = await mkdtemp(join(tmpdir(), "heron-updates-"))
+    directories.push(directory)
+    await writeFile(
+      join(directory, "latest.yml"),
+      JSON.stringify({
+        version: "1.0.0",
+        files: [{ url: "Heron.exe", sha512: "hash", size: 1 }, file]
+      })
+    )
+    await expect(verifyUpdateAssets(directory, "1.0.0", "latest", "windows-x64")).rejects.toThrow(
+      "Invalid update files[1]"
+    )
+  })
+
+  it.each([
     ["windows-x64", "latest.yml", "Heron.exe"],
     ["macos-universal", "latest-mac.yml", "Heron.zip"],
     ["linux-x64", "latest-linux.yml", "Heron-x64.AppImage"],

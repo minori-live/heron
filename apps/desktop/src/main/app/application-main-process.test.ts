@@ -84,17 +84,51 @@ describe("main process", () => {
     expect(application.quit).not.toHaveBeenCalled()
   })
 
-  it("does not authorize installation after cleanup fails", async () => {
-    const { captureServices, prepareInstall } = harness()
-    captureServices({
-      dispose: vi.fn(),
-      audioHostService: {
-        stopAudioEngine: vi.fn().mockRejectedValue(new Error("stop failed")),
-        stop: vi.fn()
-      },
-      projectService: { current: null, shutdown: vi.fn() }
-    } as unknown as StartedApplicationServices)
-    expect(await prepareInstall()).toBe(false)
+  it.each(["stopAudioEngine", "stop", "shutdown"])(
+    "quarantines failed %s cleanup while allowing ordinary quit",
+    async (failure) => {
+      const { captureServices, prepareInstall, isShuttingDown, beforeQuit, application } = harness()
+      const services = {
+        dispose: vi.fn(),
+        audioHostService: {
+          stopAudioEngine: vi.fn().mockResolvedValue(undefined),
+          stop: vi.fn().mockResolvedValue(undefined)
+        },
+        projectService: { current: null, shutdown: vi.fn().mockResolvedValue(undefined) }
+      }
+      const failingMethod =
+        failure === "shutdown"
+          ? services.projectService.shutdown
+          : services.audioHostService[failure as "stop" | "stopAudioEngine"]
+      failingMethod.mockRejectedValue(new Error("stop failed"))
+      captureServices(services as unknown as StartedApplicationServices)
+      expect(await prepareInstall()).toBe(false)
+      expect(isShuttingDown()).toBe(true)
+      expect(await prepareInstall()).toBe(false)
+      expect(failingMethod).toHaveBeenCalledOnce()
+      expect(application.quit).not.toHaveBeenCalled()
+      const event = { preventDefault: vi.fn() }
+      beforeQuit(event)
+      await vi.waitFor(() => expect(application.quit).toHaveBeenCalledOnce())
+      expect(services.dispose).toHaveBeenCalledOnce()
+      beforeQuit(event)
+      expect(event.preventDefault).toHaveBeenCalledOnce()
+    }
+  )
+
+  it("reopens the mutation gate when a project opens before native teardown", async () => {
+    const { captureServices, prepareInstall, isShuttingDown } = harness()
+    const services = {
+      audioHostService: { stopAudioEngine: vi.fn(), stop: vi.fn() },
+      projectService: { current: null as { id: string } | null, shutdown: vi.fn() }
+    }
+    captureServices(services as unknown as StartedApplicationServices)
+    const pending = prepareInstall()
+    services.projectService.current = { id: "admitted-open" }
+    expect(await pending).toBe(false)
+    expect(isShuttingDown()).toBe(false)
+    expect(services.audioHostService.stopAudioEngine).not.toHaveBeenCalled()
+    expect(services.projectService.shutdown).not.toHaveBeenCalled()
   })
   it("configures the shell and isolated user data for test launches", () => {
     const { application, dependencies } = harness({ testUserData: "/tmp/heron-test" })

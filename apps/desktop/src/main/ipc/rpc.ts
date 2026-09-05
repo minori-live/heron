@@ -20,7 +20,9 @@ export function setRpcMutationGuard(guard: () => boolean): void {
 }
 
 export async function settleRpcMutations(): Promise<void> {
-  await Promise.all([...pendingMutations])
+  while (pendingMutations.size > 0) {
+    await Promise.all([...pendingMutations])
+  }
 }
 
 export interface RpcHandlerContext {
@@ -169,6 +171,7 @@ export function registerRpcHandler<Args extends readonly unknown[], Value>(
         return validationFailure(meta, "application-shutdown")
       }
       let settled: (() => void) | undefined
+      // Admission and registration must stay synchronous, before invoking the handler.
       const pending = meta.mutation
         ? new Promise<void>((resolve) => {
             settled = resolve

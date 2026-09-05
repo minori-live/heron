@@ -5,6 +5,10 @@ import { basename, resolve } from "node:path"
 import { parse } from "yaml"
 import { releaseBuild } from "../src/shared/release-build.ts"
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
 export async function verifyUpdateAssets(
   directory: string,
   version: string,
@@ -20,15 +24,34 @@ export async function verifyUpdateAssets(
   const platform = platforms[platformId]
   if (!platform) throw new Error("Expected a release platform/architecture")
   const metadataName = `${channel}${platform.suffix}.yml`
-  const metadata = parse(await readFile(resolve(directory, metadataName), "utf8")) as {
-    version?: string
-    files?: { url: string; sha512: string; size: number }[]
-  }
-  if (metadata.version !== version || !metadata.files?.length)
+  const metadata: unknown = parse(await readFile(resolve(directory, metadataName), "utf8"))
+  if (
+    !isRecord(metadata) ||
+    metadata.version !== version ||
+    !Array.isArray(metadata.files) ||
+    metadata.files.length === 0
+  )
     throw new Error("Invalid update version/files")
-  if (!metadata.files.some((file) => file.url.endsWith(platform.extension)))
+  const files = metadata.files.map((file: unknown, index: number) => {
+    if (
+      !isRecord(file) ||
+      typeof file.url !== "string" ||
+      file.url.length === 0 ||
+      typeof file.sha512 !== "string" ||
+      file.sha512.length === 0 ||
+      typeof file.size !== "number" ||
+      !Number.isSafeInteger(file.size) ||
+      file.size < 0
+    ) {
+      throw new Error(
+        `Invalid update files[${index}]: expected url, sha512 and non-negative integer size`
+      )
+    }
+    return { url: file.url, sha512: file.sha512, size: file.size }
+  })
+  if (!files.some((file) => file.url.endsWith(platform.extension)))
     throw new Error("Missing update target")
-  for (const file of metadata.files) {
+  for (const file of files) {
     if (
       typeof file.url !== "string" ||
       basename(file.url) !== file.url ||

@@ -1,6 +1,6 @@
 import type { IpcMainInvokeEvent } from "electron"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { IPC_PROTOCOL_VERSION, rpcFailure } from "@heron/contracts"
+import { IPC_CHANNELS, IPC_PROTOCOL_VERSION, rpcFailure } from "@heron/contracts"
 import type { RpcRequestMeta } from "@heron/contracts"
 import { registerRpcHandler, setRpcMutationGuard, settleRpcMutations } from "./rpc"
 
@@ -86,6 +86,34 @@ describe("registerRpcHandler", () => {
         details: { expectedVersion: 2, receivedVersion: 1 }
       }
     })
+  })
+
+  it("also drains permitted window commands admitted while the initial batch settles", async () => {
+    let finishFirst!: () => void
+    let finishSecond!: () => void
+    const first = new Promise<void>((resolve) => {
+      finishFirst = resolve
+    })
+    const second = new Promise<void>((resolve) => {
+      finishSecond = resolve
+    })
+    registerRpcHandler("test:mutation", () => first, { authenticate: () => {} })
+    const request = { ...meta, mutation: { operationId: "op", idempotencyKey: "key" } }
+    const initial = registeredHandler()({} as IpcMainInvokeEvent, request)
+    setRpcMutationGuard(() => true)
+    const drained = vi.fn()
+    const draining = settleRpcMutations().then(drained)
+    registerRpcHandler(IPC_CHANNELS.applicationWindowCommand, () => second, {
+      authenticate: () => {}
+    })
+    const windowCommand = registeredHandler()({} as IpcMainInvokeEvent, request)
+    finishFirst()
+    await initial
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+    expect(drained).not.toHaveBeenCalled()
+    finishSecond()
+    await Promise.all([windowCommand, draining])
+    expect(drained).toHaveBeenCalledOnce()
   })
 
   it("maps sender rejection to validation without dispatching", async () => {
