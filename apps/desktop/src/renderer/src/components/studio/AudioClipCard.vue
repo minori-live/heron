@@ -313,83 +313,8 @@ function editGesture(action: string, intent: UiGestureIntent): void {
 </template>
 
 <style scoped>
-.audio-clip {
-  --clip-color: var(--accent);
-  position: absolute;
-  z-index: var(--ui-z-local-raised);
-  top: 9px;
-  bottom: 9px;
-  display: block;
-  min-width: 12px;
-  overflow: hidden;
-  padding: 0;
-  border: 1px solid color-mix(in srgb, var(--clip-color) 72%, white);
-  border-radius: 4px;
-  color: var(--ui-domain-color-f7f8f8);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--clip-color) 65%, var(--ui-domain-color-303436)),
-    color-mix(in srgb, var(--clip-color) 38%, var(--ui-domain-color-17191a))
-  );
-  box-shadow:
-    0 1px 0 var(--ui-domain-color-ffffff24) inset,
-    0 7px 18px var(--shadow);
-  text-align: left;
-}
-.audio-clip.selected {
-  z-index: var(--ui-z-local-selection);
-  border-color: var(--ui-domain-color-fff);
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--clip-color) 60%, transparent) inset,
-    0 0 20px color-mix(in srgb, var(--clip-color) 45%, transparent);
-}
-.audio-clip.editing {
-  z-index: var(--ui-z-local-selection);
-}
-.audio-clip.recording {
-  border-color: color-mix(in srgb, var(--record) 72%, white);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--record) 72%, var(--ui-domain-color-303436)),
-    color-mix(in srgb, var(--record) 42%, var(--ui-domain-color-17191a))
-  );
-  box-shadow: 0 0 18px color-mix(in srgb, var(--record) 35%, transparent);
-}
-.transparent-drag-image {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
 .clip-heading {
-  position: absolute;
-  z-index: var(--ui-z-local-selection);
-  top: 0;
-  right: 0;
-  left: 0;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  height: 23px;
-  padding: 4px 6px 5px;
-  color: var(--ui-domain-color-f7f8f8);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--clip-color) 34%, var(--ui-domain-color-111111e8)) 0%,
-    color-mix(in srgb, var(--clip-color) 24%, var(--ui-domain-color-111111b8)) 72%,
-    transparent 100%
-  );
-  pointer-events: none;
-  white-space: nowrap;
-}
-.recording .clip-heading {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--record) 34%, var(--ui-domain-color-111111e8)) 0%,
-    color-mix(in srgb, var(--record) 24%, var(--ui-domain-color-111111b8)) 72%,
-    transparent 100%
-  );
+  display: contents;
 }
 .clip-name {
   min-width: 0;
@@ -425,51 +350,6 @@ function editGesture(action: string, intent: UiGestureIntent): void {
   bottom: 3px;
   overflow: hidden;
   opacity: 0.94;
-}
-.trim-handle {
-  position: absolute;
-  z-index: calc(var(--ui-z-local-selection) + 2);
-  top: 0;
-  bottom: 0;
-  width: 7px;
-  touch-action: none;
-}
-.trim-handle-start {
-  left: 0;
-}
-.trim-handle-end {
-  right: 0;
-}
-.fade-handle {
-  position: absolute;
-  z-index: calc(var(--ui-z-local-selection) + 3);
-  top: 0;
-  min-width: 8px;
-  max-width: 100%;
-  height: 10px;
-  touch-action: none;
-}
-.fade-handle::after {
-  position: absolute;
-  top: 2px;
-  width: 6px;
-  height: 6px;
-  border: 1px solid var(--ui-domain-color-fff);
-  border-radius: 50%;
-  background: var(--clip-color);
-  content: "";
-}
-.fade-handle-in {
-  left: 0;
-}
-.fade-handle-in::after {
-  right: -3px;
-}
-.fade-handle-out {
-  right: 0;
-}
-.fade-handle-out::after {
-  left: -3px;
 }
 .fade-region {
   position: absolute;

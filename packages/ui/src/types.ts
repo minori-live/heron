@@ -7,7 +7,7 @@ export type UiActionVariant =
   | "danger-ghost"
 export type UiControlSize = "sm" | "md" | "lg"
 export type UiSelectSize = "compact" | UiControlSize
-export type UiRotaryControlSize = "compact" | "standard"
+export type UiRotaryControlSize = "compact" | "standard" | "track"
 export type UiRotaryControlRingWeight = "standard" | "emphasized"
 export type UiMixerStateButtonTone = "neutral" | "mute" | "solo" | "record" | "input" | "bounce"
 export type UiMixerStateButtonSize = "narrow" | "wide" | "standard"

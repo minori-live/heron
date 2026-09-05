@@ -37,12 +37,8 @@ const displayedValue = computed(() =>
 const displayText = computed(
   () => props.valueText?.(displayedValue.value) ?? displayedValue.value.toFixed(precision.value)
 )
-const valuePercent = computed(() =>
-  props.max === props.min ? 0 : ((displayedValue.value - props.min) / (props.max - props.min)) * 100
-)
 const faderStyle = computed(() => ({
-  "--horizontal-fader-meter-level": `${Math.max(0, Math.min(100, props.meterLevelPercent))}%`,
-  "--horizontal-fader-value-position": `${Math.max(0, Math.min(100, valuePercent.value))}%`
+  "--horizontal-fader-meter-level": `${Math.max(0, Math.min(100, props.meterLevelPercent))}%`
 }))
 
 watch(
@@ -67,6 +63,8 @@ function beginGesture(): void {
 }
 
 function previewGesture(event: Event): void {
+  if (props.disabled) return
+  cancelled.value = false
   gestureStartValue.value ??= props.value
   gestureValue.value = snap(Number((event.currentTarget as HTMLInputElement).value))
   tooltipVisible.value = true
@@ -116,11 +114,12 @@ function reset(): void {
     :class="['ui-horizontal-fader', { 'is-disabled': props.disabled }]"
     :style="faderStyle"
     :title="`${props.label}: ${displayText}`"
+    @pointerdown.stop
+    @click.stop
   >
     <span class="ui-horizontal-fader__rail" aria-hidden="true">
       <i class="ui-horizontal-fader__meter" />
     </span>
-    <span class="ui-horizontal-fader__thumb" aria-hidden="true" />
     <input
       type="range"
       :min="props.min"
@@ -136,7 +135,7 @@ function reset(): void {
       @change="commitGesture"
       @blur="tooltipVisible = false"
       @keydown="handleKeydown"
-      @dblclick.prevent="reset"
+      @dblclick.stop.prevent="reset"
     />
     <output v-if="tooltipVisible" class="ui-horizontal-fader__tooltip" aria-hidden="true">
       {{ displayText }}
@@ -146,10 +145,18 @@ function reset(): void {
 
 <style scoped>
 .ui-horizontal-fader {
+  --ui-color-border-strong: var(--line-strong);
+  --ui-color-text-muted: var(--text-muted);
+  --ui-color-control-hover: var(--daw-control-hover);
+  --ui-color-text: var(--text-primary);
+  --ui-color-surface-raised: var(--surface-3);
+  --ui-signal-meter-safe: var(--meter-green);
+  --ui-signal-meter-warning: var(--meter-yellow);
+  --ui-signal-meter-clip: var(--meter-red);
   position: relative;
   display: block;
   width: 100%;
-  min-width: 4rem;
+  min-width: 0;
   height: 15px;
 }
 
@@ -161,7 +168,7 @@ function reset(): void {
   height: 11px;
   overflow: hidden;
   border: 1px solid var(--ui-color-border-strong);
-  border-radius: var(--ui-radius-sm);
+  border-radius: 2px;
   background: linear-gradient(
     to right,
     var(--ui-signal-meter-safe) 0 74%,
@@ -179,15 +186,12 @@ function reset(): void {
   transition: left 55ms linear;
 }
 
-.ui-horizontal-fader__thumb {
-  position: absolute;
-  z-index: var(--ui-z-local-content);
-  top: 0;
-  left: var(--horizontal-fader-value-position);
+.ui-horizontal-fader input::-webkit-slider-thumb {
   width: 7px;
   height: 15px;
   border: 1px solid var(--ui-color-text-muted);
   border-radius: 1px;
+  appearance: none;
   background: linear-gradient(
     to right,
     var(--ui-color-control-hover) 0 calc(50% - 1px),
@@ -195,7 +199,6 @@ function reset(): void {
     var(--ui-color-control-hover) calc(50% + 1px) 100%
   );
   box-shadow: var(--ui-shadow-sm);
-  transform: translateX(-50%);
 }
 
 .ui-horizontal-fader input {
@@ -206,19 +209,43 @@ function reset(): void {
   height: 15px;
   margin: 0;
   appearance: none;
-  opacity: 0;
   background: transparent;
   cursor: ew-resize;
 }
 
-.ui-horizontal-fader:focus-within {
+.ui-horizontal-fader input::-webkit-slider-runnable-track {
+  height: 15px;
+  border: 0;
+  background: transparent;
+}
+
+.ui-horizontal-fader input::-moz-range-track {
+  height: 15px;
+  border: 0;
+  background: transparent;
+}
+
+.ui-horizontal-fader input::-moz-range-progress {
+  background: transparent;
+}
+
+.ui-horizontal-fader input::-moz-range-thumb {
+  width: 7px;
+  height: 15px;
+  border: 1px solid var(--ui-color-text-muted);
+  border-radius: 1px;
+  background: var(--ui-color-control-hover);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.ui-horizontal-fader input:focus-visible {
   outline: 2px solid var(--ui-color-focus);
   outline-offset: 1px;
 }
 
 .ui-horizontal-fader__tooltip {
   position: absolute;
-  z-index: var(--ui-z-local-controls);
+  z-index: var(--ui-z-floating-control);
   top: calc(100% + var(--ui-space-1));
   left: 50%;
   min-width: 2.25rem;
@@ -235,7 +262,7 @@ function reset(): void {
 }
 
 .ui-horizontal-fader.is-disabled {
-  opacity: var(--ui-opacity-disabled);
+  opacity: 0.45;
 }
 
 .ui-horizontal-fader.is-disabled input {

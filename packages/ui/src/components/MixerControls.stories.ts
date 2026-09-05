@@ -5,6 +5,7 @@ import UiLevelMeter from "./UiLevelMeter.vue"
 import UiButton from "./UiButton.vue"
 import UiIconButton from "./UiIconButton.vue"
 import UiMixerInsert from "./UiMixerInsert.vue"
+import UiInlineTextEdit from "./UiInlineTextEdit.vue"
 import UiCurveEditor from "./UiCurveEditor.vue"
 import UiDbScale from "./UiDbScale.vue"
 import UiHorizontalFader from "./UiHorizontalFader.vue"
@@ -129,14 +130,13 @@ export const HorizontalFader: Story = {
     const fader = canvas.getByRole("slider", { name: "Vocal quick volume" })
     const rail = canvasElement.querySelector<HTMLElement>(".ui-horizontal-fader__rail")!
     const meter = canvasElement.querySelector<HTMLElement>(".ui-horizontal-fader__meter")!
-    const thumb = canvasElement.querySelector<HTMLElement>(".ui-horizontal-fader__thumb")!
     const faderBounds = fader.getBoundingClientRect()
     await expect(faderBounds.width).toBeGreaterThan(faderBounds.height * 4)
     await expect(rail.getBoundingClientRect().height).toBeGreaterThanOrEqual(11)
     await expect(meter.getBoundingClientRect().left).toBeGreaterThan(
       rail.getBoundingClientRect().left + rail.getBoundingClientRect().width * 0.6
     )
-    await expect(thumb.getBoundingClientRect().width).toBeGreaterThanOrEqual(7)
+    await expect(getComputedStyle(fader).opacity).toBe("1")
     await fireEvent.input(fader, { target: { value: "-12" } })
     await fireEvent.change(fader, { target: { value: "-12" } })
     await expect(fader).toHaveAttribute("aria-valuetext", "-12.0 dB")
@@ -261,6 +261,7 @@ export const MixerInsert: Story = {
         <template #leading><span aria-hidden="true">⋮</span></template>
         <template #actions><UiIconButton label="Bypass Compressor" density="compact">B</UiIconButton><UiIconButton label="Remove Compressor" density="compact">×</UiIconButton></template>
       </UiMixerInsert>
+      <UiButton style="margin-top:16px">After insert</UiButton>
     `
   }),
   play: async ({ canvasElement }) => {
@@ -274,6 +275,36 @@ export const MixerInsert: Story = {
     await fireEvent.pointerLeave(row)
     await userEvent.tab()
     await waitFor(() => expect(getComputedStyle(actions).opacity).toBe("1"))
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "After insert" }))
+    await waitFor(() => expect(getComputedStyle(actions).opacity).toBe("0"))
+  }
+}
+
+export const TrackParameters: Story = {
+  render: () => ({
+    components: { UiHorizontalFader, UiRotaryControl, UiInlineTextEdit, UiButton },
+    data: () => ({ gain: -6, pan: 0, meter: 68, raw: "-90" }),
+    template: `
+      <section style="display:grid;gap:12px;width:200px">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 23px;gap:4px;align-items:center">
+          <UiHorizontalFader :value="gain" :min="-90" :max="12" :step="0.1" :default-value="0" :meter-level-percent="meter" label="Track volume" @preview="gain=$event" @commit="gain=$event" />
+          <UiRotaryControl :value="pan" :min="-64" :max="63" :step="1" :default-value="0" :drag-range-pixels="254" size="track" double-click-action="edit" label="Track pan" value-label="Track pan value" @preview="pan=$event" @commit="pan=$event" />
+        </div>
+        <UiInlineTextEdit :value="raw" label="Mixer gain" input-type="number" density="compact" style="width:34px;height:20px;border:1px solid var(--ui-color-border);text-align:center" @commit="raw=$event">{{raw==='-90'?'−∞':raw}}</UiInlineTextEdit>
+        <UiButton @click="meter=meter===0?68:0">Toggle signal</UiButton>
+      </section>
+    `
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.dblClick(canvas.getByRole("slider", { name: "Track pan" }))
+    const editor = canvas.getByRole("spinbutton", { name: "Track pan value" })
+    await userEvent.clear(editor)
+    await userEvent.type(editor, "32{Enter}")
+    await expect(canvas.getByRole("slider", { name: "Track pan" })).toHaveAttribute(
+      "aria-valuetext",
+      "32"
+    )
   }
 }
 

@@ -68,11 +68,14 @@ function commitGainInputValue(raw: string): void {
     <div class="strip-core">
       <UiInlineTextEdit
         class="parameter-value parameter-value-button"
-        :value="gainReadoutLabel"
+        :value="String(channel.gainDb)"
+        density="compact"
+        input-type="number"
         :label="`${channel.name} volume value in decibels`"
         :title="`Fader: ${gainLabel} · Double-click to edit`"
         @commit="commitGainInputValue"
-      />
+        >{{ gainReadoutLabel }}</UiInlineTextEdit
+      >
       <UiVerticalFader
         class="fader"
         :value="channel.gainDb"

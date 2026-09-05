@@ -128,6 +128,35 @@ CSS, and any mismatch between public Vue exports and the Storybook catalog.
 
 ## Automated gates
 
+### Refactor equivalence
+
+Moving an interaction into the catalog is not permission to redesign it. Compare
+against the pre-boundary-refactor implementation (`14f0156`) as well as the
+interaction-design contract. A passing export/catalog audit alone does not prove
+visual or behavioral equivalence.
+
+The alignment regression suite checks these observable contracts:
+
+| Surface            | Contract                                                                                                                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Track volume       | A 15px horizontal fader over an 11px meter well; live meter data is independent of gain and the well remains visible at silence. Native thumb geometry and its hit area must agree.        |
+| Track pan          | A 23px control, two pixels per pan unit, and double-click numeric editing. Do not substitute the standard mixer's reset gesture.                                                           |
+| Mixer inserts      | Resting names occupy the full row; hover or keyboard focus reveals compact actions without overlapping the title. Test composition layout, not just emitted clicks.                        |
+| Mixer gain readout | Editing fits the 34×20px readout, starts from the raw numeric gain even when the label is −∞, and restores keyboard focus on commit/cancel.                                                |
+| Settings           | Navigation icons and neutral surfaces must survive composition. Input backgrounds and derived focus-ring tokens also need the neutral scope; changing only sidebar colors is insufficient. |
+| Clip editing       | Audio headings remain visible, fade handles sit above trim handles, MIDI trim affordances remain visible on selection, and Escape cannot be followed by a pointer-up commit.               |
+| Resize             | Every keyboard step starts from the current controlled value. Cancellation restores the pre-drag size; unrelated pointers cannot finish a gesture.                                         |
+| Piano roll erase   | Sweeping uses grid-coordinate note hit testing while pointer capture is active, then commits the collected deletion once.                                                                  |
+| File import        | Accept the `Files` drag type during protected dragover, before the browser exposes the actual files on drop.                                                                               |
+
+`apps/design-system/tests/ui-alignment.spec.ts` verifies rendered bounds, hit
+testing, input paths, focus and reflow in Chromium. UI/renderer tests cover the
+normalized intent and domain mappings. The Electron lifecycle test also checks
+the composed settings icons/palette and audio clip/fader display. Keep these
+checks complementary; stubbed components cannot validate composed layout.
+
+### Static boundaries
+
 - No renderer import from `reka-ui`.
 - No manual renderer `Teleport` overlay.
 - No Histoire dependency or script.

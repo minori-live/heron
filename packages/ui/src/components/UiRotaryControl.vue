@@ -21,6 +21,7 @@ const props = withDefaults(
     ringWeight?: UiRotaryControlRingWeight
     disabled?: boolean
     meterLevelPercent?: number
+    doubleClickAction?: "reset" | "edit"
   }>(),
   {
     valueLabel: undefined,
@@ -31,7 +32,8 @@ const props = withDefaults(
     size: "standard",
     ringWeight: "standard",
     disabled: false,
-    meterLevelPercent: undefined
+    meterLevelPercent: undefined,
+    doubleClickAction: "reset"
   }
 )
 
@@ -234,6 +236,8 @@ function cancelEditing(): void {
       { 'is-disabled': props.disabled }
     ]"
     :style="controlStyle"
+    @pointerdown.stop
+    @click.stop
   >
     <span class="ui-rotary-control__shell" aria-hidden="true">
       <span class="ui-rotary-control__track" />
@@ -258,7 +262,9 @@ function cancelEditing(): void {
       @change="commitKeyboardGesture"
       @blur="tooltipVisible = false"
       @keydown="handleKeydown"
-      @dblclick.prevent.stop="resetToDefault"
+      @dblclick.prevent.stop="
+        props.doubleClickAction === 'edit' ? beginEditing() : resetToDefault()
+      "
     />
     <input
       v-if="editing"
@@ -324,6 +330,30 @@ function cancelEditing(): void {
   --rotary-control-ring-inset: -0.1875rem;
   --rotary-control-marker-width: 0.0625rem;
   --rotary-control-marker-height: 0.25rem;
+}
+
+.ui-rotary-control--track {
+  --rotary-control-target-size: 23px;
+  --rotary-control-knob-size: 21px;
+  --rotary-control-marker-width: 1px;
+  --rotary-control-marker-height: 5px;
+}
+
+.ui-rotary-control--track .ui-rotary-control__track,
+.ui-rotary-control--track .ui-rotary-control__progress {
+  display: none;
+}
+
+.ui-rotary-control--track .ui-rotary-control__marker::after {
+  top: 2px;
+  background: var(--rotary-control-accent);
+}
+
+.ui-rotary-control--track .ui-rotary-control__editor {
+  top: -1px;
+  right: -1px;
+  width: 31px;
+  height: 23px;
 }
 
 .ui-rotary-control__shell {

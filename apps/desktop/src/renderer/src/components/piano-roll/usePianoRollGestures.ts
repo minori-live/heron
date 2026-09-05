@@ -310,6 +310,10 @@ export function createPianoRollGestures(
 
   function updateNoteGesture(intent: UiGestureIntent): void {
     const current = gesture.value
+    if (current?.kind === "erase") {
+      eraseAtPoint(intent.point)
+      return
+    }
     if (current?.kind !== "note") return
     gesture.value = { ...current, currentX: intent.point.x, currentY: intent.point.y }
   }
@@ -352,6 +356,21 @@ export function createPianoRollGestures(
 
   function handleNotePointerOver(clip: MidiClipState, note: MidiNoteState): void {
     eraseNote(clip, note)
+  }
+
+  // Pointer capture keeps the gesture on its origin surface. Resolve swept notes from
+  // ordinary grid coordinates, not DOM hover events that no longer reach other notes.
+  function eraseAtPoint(point: UiPoint): void {
+    const tick = point.x / pixelsPerTick.value
+    const key = 127 - Math.floor(point.y / pianoRollStore.rowHeight)
+    for (const item of visibleNotes.value) {
+      if (
+        item.note.key === key &&
+        tick >= item.globalStartTick &&
+        tick < item.globalStartTick + item.note.durationTicks
+      )
+        eraseNote(item.clip, item.note)
+    }
   }
 
   function gridPoint(position: UiPoint): { tick: number; key: number } {
@@ -416,6 +435,10 @@ export function createPianoRollGestures(
 
   function handleGridPointerMove(intent: UiGestureIntent): void {
     const current = gesture.value
+    if (current?.kind === "erase") {
+      eraseAtPoint(intent.point)
+      return
+    }
     if (current?.kind === "marquee") {
       const position = intent.point
       const moved =

@@ -153,7 +153,7 @@ export const UI_COMPONENT_CATALOG = {
   ),
   UiHorizontalFader: entry(
     "MixerControls.stories.ts",
-    ["HorizontalFader"],
+    ["HorizontalFader", "TrackParameters"],
     true,
     ["default", "disabled", "keyboard", "pointer", "cancel"],
     "workspace"
@@ -269,7 +269,7 @@ export const UI_COMPONENT_CATALOG = {
   UiResizeHandle: boundary(["InteractionSurfaces"], ["default", "keyboard", "pointer", "cancel"]),
   UiRotaryControl: entry(
     "MixerControls.stories.ts",
-    ["Pan", "LogicSendPositions"],
+    ["Pan", "LogicSendPositions", "TrackParameters"],
     true,
     ["default", "disabled", "keyboard", "pointer", "cancel"],
     "workspace"

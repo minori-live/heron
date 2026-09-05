@@ -132,6 +132,9 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
   --ui-color-surface-raised: var(--surface-2);
   --ui-color-surface-hover: var(--surface-3);
   --ui-color-surface-active: var(--daw-control-hover);
+  --ui-color-control: var(--daw-control);
+  --ui-color-control-hover: var(--daw-control-hover);
+  --ui-color-control-pressed: var(--surface-sunken);
   --ui-color-text: var(--text-primary);
   --ui-color-text-muted: var(--text-secondary);
   --ui-color-text-subtle: var(--text-muted);
@@ -144,6 +147,11 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
   --ui-color-action-pressed: var(--ui-color-text-muted);
   --ui-color-action-text: var(--ui-color-canvas);
   --ui-color-focus: var(--settings-neutral-accent);
+  --ui-focus-ring: 0 0 0 3px color-mix(in srgb, var(--settings-neutral-accent) 38%, transparent);
+  --focus-ring: var(--ui-focus-ring);
+  --ui-shadow-selected-edge: 2px 0 0 var(--settings-neutral-accent) inset;
+  --ui-shadow-selected-outline: 0 0 0 1px
+    color-mix(in srgb, var(--settings-neutral-accent) 30%, transparent) inset;
   --ui-color-selection: var(--settings-neutral-selection);
   --ui-color-selection-hover: var(--ui-color-surface-hover);
   --ui-color-selection-border: var(--ui-color-border-strong);
@@ -197,6 +205,8 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
 .ui-settings-navigator__secondary {
   position: relative;
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
   padding: 1.5rem 0.6875rem;
   border-right: 1px solid var(--ui-color-border);
 }
@@ -212,8 +222,7 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
   margin-top: 0.625rem;
 }
 .ui-settings-navigator__build {
-  position: absolute;
-  inset: auto var(--ui-space-5) var(--ui-space-5);
+  margin: var(--ui-space-5) var(--ui-space-2) 0;
 }
 .ui-settings-navigator__heading strong {
   display: block;
@@ -252,6 +261,11 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
   display: grid;
   place-items: center;
   color: var(--ui-color-text-muted);
+}
+.ui-settings-navigator__category-icon :deep(svg),
+.ui-settings-navigator__page-icon :deep(svg) {
+  width: 16px;
+  height: 16px;
 }
 .ui-settings-navigator__category small,
 .ui-settings-navigator__page em {
@@ -312,6 +326,36 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
 @media (max-width: 1120px) {
   .ui-settings-navigator {
     grid-template-columns: 150px 174px minmax(0, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .ui-settings-navigator {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+  }
+  .ui-settings-navigator__topbar {
+    min-height: 60px;
+    padding: var(--ui-space-2);
+  }
+  .ui-settings-navigator__primary,
+  .ui-settings-navigator__secondary {
+    padding: var(--ui-space-2);
+    border-right: 0;
+  }
+  .ui-settings-navigator__primary-navigation,
+  .ui-settings-navigator__page-navigation {
+    display: flex;
+    overflow-x: auto;
+  }
+  .ui-settings-navigator__category,
+  .ui-settings-navigator__page {
+    width: auto;
+    flex: 0 0 auto;
+  }
+  .ui-settings-navigator__build,
+  .ui-settings-navigator__label,
+  .ui-settings-navigator__heading {
+    display: none;
   }
 }
 </style>

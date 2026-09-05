@@ -273,7 +273,6 @@ function confirmDrop(selection: PluginSelection): void {
 }
 .plugin-row {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr) auto;
   align-items: center;
   min-width: 0;
   height: 23px;
@@ -285,6 +284,7 @@ function confirmDrop(selection: PluginSelection): void {
   box-shadow: 0 1px 0 var(--ui-domain-color-ffffff28) inset;
 }
 .plugin-grip {
+  width: 14px;
   display: grid;
   place-items: center;
   height: 100%;

@@ -14,6 +14,7 @@ import {
   UiSettingsNavigator,
   UiTabs,
   UiTextarea,
+  UiTextInput,
   UiWindowControls,
   UiZoomControl
 } from "../index"
@@ -150,8 +151,8 @@ export const InteractionSurfaces: Story = {
 
 export const SettingsNavigation: Story = {
   render: () => ({
-    components: { UiButton, UiSettingsNavigator },
-    data: () => ({ active: "audio", backed: false }),
+    components: { UiButton, UiSettingsNavigator, UiTextInput },
+    data: () => ({ active: "audio", backed: false, device: "Studio interface" }),
     template: `
       <div style="height:32rem">
         <UiSettingsNavigator
@@ -172,7 +173,7 @@ export const SettingsNavigation: Story = {
           <template #category-icon><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" /></svg></template>
           <template #item-icon><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10M8 3v10" /></svg></template>
           <template #actions><UiButton size="sm">Apply</UiButton></template>
-          <section style="padding:var(--ui-space-6)"><h2>{{ active }}</h2><output>{{ backed ? 'Back requested' : 'Ready' }}</output></section>
+          <section style="min-width:0;overflow:auto;padding:var(--ui-space-6)"><h2>{{ active }}</h2><UiTextInput v-model="device" aria-label="Device name" /><output>{{ backed ? 'Back requested' : 'Ready' }}</output></section>
         </UiSettingsNavigator>
       </div>
     `

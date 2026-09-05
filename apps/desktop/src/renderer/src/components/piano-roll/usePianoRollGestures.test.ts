@@ -156,6 +156,34 @@ describe("createPianoRollGestures", () => {
     return { pianoRollStore, gestures, batch, commandsForEdits }
   }
 
+  it("sweeps erasures using captured pointer coordinates without relying on DOM hover", () => {
+    const { pianoRollStore, gestures, batch } = setup()
+    pianoRollStore.tool = "erase"
+    gestures.handleNoteGesture(
+      "move",
+      pointerEvent("pointerdown", { clientX: 980, clientY: 67 * 18 + 5 }),
+      clip,
+      clip.notes[0]!
+    )
+    gestures.handleNoteGesture(
+      "move",
+      pointerEvent("pointermove", { clientX: 1460, clientY: 63 * 18 + 5 }),
+      clip,
+      clip.notes[0]!
+    )
+    expect(gestures.eraseTargetKeys.value).toEqual(new Set(["clip-1:note-1", "clip-1:note-2"]))
+    expect(batch).not.toHaveBeenCalled()
+    gestures.handleNoteGesture(
+      "move",
+      pointerEvent("pointerup", { clientX: 1460, clientY: 63 * 18 + 5 }),
+      clip,
+      clip.notes[0]!
+    )
+    expect(batch).toHaveBeenCalledExactlyOnceWith([
+      { type: "delete-midi-notes", clipId: "clip-1", noteIds: ["note-1", "note-2"] }
+    ])
+  })
+
   it("previews and commits a move gesture with snapped tick and key deltas", async () => {
     const item = noteItem(clip.notes[0]!)
     const { pianoRollStore, gestures, batch, commandsForEdits } = setup({ selected: [item] })

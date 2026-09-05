@@ -11,6 +11,7 @@ function resize(intent: UiGestureIntent): void {
   if (intent.phase === "start") startScale.value = props.scale
   if (intent.phase === "update" || intent.phase === "commit")
     emit("setScale", startScale.value + intent.delta.y / props.baseHeight)
+  if (intent.phase === "cancel") emit("setScale", startScale.value)
 }
 </script>
 

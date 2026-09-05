@@ -30,6 +30,8 @@ const emit = defineEmits<{
 }>()
 
 const origin = shallowRef<UiPoint | null>(null)
+let activePointer: number | null = null
+let lastIntent: UiGestureIntent | null = null
 
 function modifiers(event: MouseEvent | KeyboardEvent): UiModifiers {
   return {
@@ -56,32 +58,57 @@ function intent(event: PointerEvent, phase: UiGestureIntent["phase"]): UiGesture
 }
 
 function start(event: PointerEvent): void {
-  if (props.disabled || event.button !== 0) return
+  if (props.disabled || event.button !== 0 || activePointer !== null) return
+  event.preventDefault()
+  event.stopPropagation()
+  activePointer = event.pointerId
   origin.value = point(event)
+  ;(event.currentTarget as HTMLElement).focus()
   if (event.currentTarget instanceof HTMLElement)
     trySetPointerCapture(event.currentTarget, event.pointerId)
-  emit("gesture", intent(event, "start"))
+  lastIntent = intent(event, "start")
+  emit("gesture", lastIntent)
 }
 
 function update(event: PointerEvent): void {
-  if (!origin.value) return
-  emit("gesture", intent(event, "update"))
+  if (event.pointerId !== activePointer) return
+  event.preventDefault()
+  event.stopPropagation()
+  lastIntent = intent(event, "update")
+  emit("gesture", lastIntent)
 }
 
 function finish(event: PointerEvent): void {
-  if (!origin.value) return
-  emit("gesture", intent(event, "commit"))
-  origin.value = null
+  if (event.pointerId !== activePointer) return
+  event.preventDefault()
+  event.stopPropagation()
+  const committed = intent(event, "commit")
+  release(event.currentTarget as HTMLElement)
+  emit("gesture", committed)
 }
 
-function cancel(event: PointerEvent): void {
-  if (!origin.value) return
-  emit("gesture", intent(event, "cancel"))
+function release(target: HTMLElement): void {
+  const id = activePointer
+  activePointer = null
   origin.value = null
+  if (id !== null && target.hasPointerCapture?.(id)) target.releasePointerCapture(id)
+}
+
+function cancel(event: PointerEvent | KeyboardEvent): void {
+  if (activePointer === null || !lastIntent) return
+  if (event instanceof PointerEvent && event.pointerId !== activePointer) return
+  event.stopPropagation()
+  release(event.currentTarget as HTMLElement)
+  emit("gesture", { ...lastIntent, phase: "cancel" })
 }
 
 function keydown(event: KeyboardEvent): void {
   if (props.disabled) return
+  if (event.key === "Escape" && activePointer !== null) {
+    event.preventDefault()
+    cancel(event)
+    return
+  }
   if (event.key === "Home") {
     event.preventDefault()
     emit("reset")
@@ -91,8 +118,16 @@ function keydown(event: KeyboardEvent): void {
   const positive =
     props.axis === "horizontal" ? event.key === "ArrowRight" : event.key === "ArrowDown"
   if (!negative && !positive) return
+  if (activePointer !== null) return
   event.preventDefault()
+  event.stopPropagation()
   const amount = (negative ? -1 : 1) * props.keyboardStep
+  emit("gesture", {
+    phase: "start",
+    point: { x: 0, y: 0 },
+    delta: { x: 0, y: 0 },
+    modifiers: modifiers(event)
+  })
   emit("gesture", {
     phase: "commit",
     point: { x: 0, y: 0 },
@@ -107,19 +142,20 @@ function keydown(event: KeyboardEvent): void {
     class="ui-resize-handle"
     :class="[`ui-resize-handle--${props.axis}`, { 'ui-resize-handle--active': origin }]"
     role="separator"
-    tabindex="0"
+    :tabindex="props.disabled ? -1 : 0"
     :aria-label="props.label"
-    :aria-orientation="props.axis"
+    :aria-orientation="props.axis === 'horizontal' ? 'vertical' : 'horizontal'"
     :aria-disabled="props.disabled || undefined"
     :aria-valuenow="props.value"
     :aria-valuemin="props.minimum"
     :aria-valuemax="props.maximum"
-    @dblclick="props.resetOnDoubleClick && emit('reset')"
+    @dblclick.stop="!props.disabled && props.resetOnDoubleClick && emit('reset')"
     @keydown="keydown"
     @pointerdown="start"
     @pointermove="update"
     @pointerup="finish"
     @pointercancel="cancel"
+    @lostpointercapture="cancel"
   >
     <slot />
   </div>

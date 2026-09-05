@@ -9,7 +9,7 @@ const emit = defineEmits<{
   select: [modifiers: UiModifiers]
   hover: []
 }>()
-const active = shallowRef<{ mode: Mode; origin: UiPoint }>()
+const active = shallowRef<{ mode: Mode; origin: UiPoint; pointerId: number }>()
 const modifiers = (event: MouseEvent | KeyboardEvent): UiModifiers => ({
   alt: event.altKey,
   control: event.ctrlKey,
@@ -27,26 +27,44 @@ function intent(event: PointerEvent, phase: UiGestureIntent["phase"]): UiGesture
   return { phase, point: p, delta: { x: p.x - o.x, y: p.y - o.y }, modifiers: modifiers(event) }
 }
 function start(mode: Mode, event: PointerEvent): void {
-  if (event.button !== 0) return
+  if (event.button !== 0 || active.value) return
+  event.preventDefault()
+  event.stopPropagation()
+  ;(event.currentTarget as HTMLElement)
+    .closest<HTMLElement>(".ui-piano-roll-note")
+    ?.focus({ preventScroll: true })
   const p = point(event)
-  active.value = { mode, origin: p }
+  active.value = { mode, origin: p, pointerId: event.pointerId }
   trySetPointerCapture(event.currentTarget as HTMLElement, event.pointerId)
   emit("gesture", mode, intent(event, "start"))
 }
 function update(event: PointerEvent): void {
-  if (active.value) emit("gesture", active.value.mode, intent(event, "update"))
+  if (active.value?.pointerId === event.pointerId)
+    emit("gesture", active.value.mode, intent(event, "update"))
 }
 function finish(event: PointerEvent): void {
-  if (active.value) {
+  if (active.value?.pointerId === event.pointerId) {
     emit("gesture", active.value.mode, intent(event, "commit"))
     active.value = undefined
   }
 }
 function cancel(event: PointerEvent): void {
-  if (active.value) {
+  if (active.value?.pointerId === event.pointerId) {
     emit("gesture", active.value.mode, intent(event, "cancel"))
     active.value = undefined
   }
+}
+function escape(event: KeyboardEvent): void {
+  if (!active.value) return
+  event.preventDefault()
+  event.stopPropagation()
+  emit("gesture", active.value.mode, {
+    phase: "cancel",
+    point: active.value.origin,
+    delta: { x: 0, y: 0 },
+    modifiers: modifiers(event)
+  })
+  active.value = undefined
 }
 </script>
 <template>
@@ -67,6 +85,8 @@ function cancel(event: PointerEvent): void {
     @pointermove="update"
     @pointerup="finish"
     @pointercancel="cancel"
+    @lostpointercapture="cancel"
+    @keydown.esc="escape"
     @pointerover="emit('hover')"
   >
     <span
@@ -75,6 +95,7 @@ function cancel(event: PointerEvent): void {
       @pointermove.stop="update"
       @pointerup.stop="finish"
       @pointercancel.stop="cancel"
+      @lostpointercapture.stop="cancel"
     />
     <span class="ui-piano-roll-note__label"
       ><slot>{{ props.model.label }}</slot></span
@@ -85,6 +106,7 @@ function cancel(event: PointerEvent): void {
       @pointermove.stop="update"
       @pointerup.stop="finish"
       @pointercancel.stop="cancel"
+      @lostpointercapture.stop="cancel"
     />
   </div>
 </template>
@@ -112,6 +134,7 @@ function cancel(event: PointerEvent): void {
 .ui-piano-roll-note:focus-visible {
   z-index: var(--ui-z-local-selection);
   outline: 2px solid var(--ui-color-focus);
+  opacity: 1;
 }
 .ui-piano-roll-note--previewing {
   cursor: grabbing;

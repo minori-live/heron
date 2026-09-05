@@ -4,7 +4,8 @@ import type { UiGestureIntent, UiModifiers, UiPoint } from "../types"
 import { trySetPointerCapture } from "./internal/pointerCapture"
 const props = defineProps<{ label: string }>()
 const emit = defineEmits<{ gesture: [intent: UiGestureIntent] }>()
-const active = shallowRef(false)
+const active = shallowRef<number | null>(null)
+let lastIntent: UiGestureIntent | undefined
 function modifiers(event: PointerEvent): UiModifiers {
   return { alt: event.altKey, control: event.ctrlKey, meta: event.metaKey, shift: event.shiftKey }
 }
@@ -14,28 +15,38 @@ function point(event: PointerEvent): UiPoint {
 }
 function send(event: PointerEvent, phase: UiGestureIntent["phase"]): void {
   const current = point(event)
-  emit("gesture", { phase, point: current, delta: { x: 0, y: 0 }, modifiers: modifiers(event) })
+  lastIntent = { phase, point: current, delta: { x: 0, y: 0 }, modifiers: modifiers(event) }
+  emit("gesture", lastIntent)
 }
 function start(event: PointerEvent): void {
-  if (event.target !== event.currentTarget) return
-  active.value = true
+  if (event.target !== event.currentTarget || event.button !== 0 || active.value !== null) return
+  event.preventDefault()
+  ;(event.currentTarget as HTMLElement).focus({ preventScroll: true })
+  active.value = event.pointerId
   trySetPointerCapture(event.currentTarget as HTMLElement, event.pointerId)
   send(event, "start")
 }
 function update(event: PointerEvent): void {
-  if (active.value) send(event, "update")
+  if (active.value === event.pointerId) send(event, "update")
 }
 function finish(event: PointerEvent): void {
-  if (active.value) {
+  if (active.value === event.pointerId) {
     send(event, "commit")
-    active.value = false
+    active.value = null
   }
 }
 function cancel(event: PointerEvent): void {
-  if (active.value) {
+  if (active.value === event.pointerId) {
     send(event, "cancel")
-    active.value = false
+    active.value = null
   }
+}
+function escape(event: KeyboardEvent): void {
+  if (active.value === null || !lastIntent) return
+  event.preventDefault()
+  event.stopPropagation()
+  active.value = null
+  emit("gesture", { ...lastIntent, phase: "cancel" })
 }
 </script>
 <template>
@@ -48,6 +59,8 @@ function cancel(event: PointerEvent): void {
     @pointermove="update"
     @pointerup="finish"
     @pointercancel="cancel"
+    @lostpointercapture="cancel"
+    @keydown.esc="escape"
   >
     <slot />
   </div>

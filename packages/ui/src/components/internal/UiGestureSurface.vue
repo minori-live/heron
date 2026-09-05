@@ -79,11 +79,18 @@ function comesFromInteractiveDescendant(event: Event): boolean {
 }
 
 function start(event: PointerEvent): void {
-  if (props.disabled || comesFromInteractiveDescendant(event)) return
+  if (
+    props.disabled ||
+    event.button !== 0 ||
+    activePointer.value !== null ||
+    comesFromInteractiveDescendant(event)
+  )
+    return
   event.stopPropagation()
   event.preventDefault()
   activePointer.value = event.pointerId
   origin.value = localPoint(event)
+  ;(event.currentTarget as HTMLElement).focus({ preventScroll: true })
   trySetPointerCapture(event.currentTarget as HTMLElement, event.pointerId)
   emit("gesture", intent(event, "start"))
 }
@@ -105,6 +112,7 @@ function finish(event: PointerEvent): void {
 
 function cancel(event?: PointerEvent): void {
   if (activePointer.value === null) return
+  if (event && event.pointerId !== activePointer.value) return
   event?.stopPropagation()
   activePointer.value = null
   emit("gesture", {
@@ -116,6 +124,7 @@ function cancel(event?: PointerEvent): void {
 }
 
 function keydown(event: KeyboardEvent): void {
+  if (props.disabled || comesFromInteractiveDescendant(event)) return
   if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
     event.preventDefault()
     emit("reorder", event.key === "ArrowUp" ? -1 : 1)
@@ -163,6 +172,7 @@ function doubleActivate(event: MouseEvent): void {
     @pointermove="update"
     @pointerup="finish"
     @pointercancel="cancel"
+    @lostpointercapture="cancel"
   >
     <slot />
   </component>

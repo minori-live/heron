@@ -5,7 +5,7 @@ import type { UiControlSize } from "../types"
 
 defineOptions({ inheritAttrs: false })
 
-const model = defineModel<string>({ default: "" })
+const model = defineModel<string>({ default: "", set: (value) => String(value) })
 const props = withDefaults(
   defineProps<{
     size?: UiControlSize

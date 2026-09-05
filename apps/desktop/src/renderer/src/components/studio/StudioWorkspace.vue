@@ -32,7 +32,10 @@ function resizeDock(intent: UiGestureIntent): void {
       (resizing.value ? resizeStartHeight.value : workspaceStore.mixerDockHeight) - intent.delta.y
     )
     if (intent.phase === "commit") resizing.value = false
-  } else resizing.value = false
+  } else {
+    workspaceStore.setDockHeight(resizeStartHeight.value)
+    resizing.value = false
+  }
 }
 </script>
 

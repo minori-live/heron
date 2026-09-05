@@ -25,6 +25,7 @@ function resize(intent: UiGestureIntent): void {
     )
     resizing.value = false
   } else {
+    workspaceStore.setRightPanelWidth(startWidth.value)
     resizing.value = false
   }
 }

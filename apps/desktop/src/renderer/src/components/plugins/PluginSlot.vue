@@ -71,6 +71,7 @@ function failureMessage(category: PluginFailureCategory): string {
       </span>
       <UiIconButton
         size="sm"
+        density="compact"
         :pressed="plugin.enabled"
         :label="
           canRetry
@@ -89,6 +90,7 @@ function failureMessage(category: PluginFailureCategory): string {
       </UiIconButton>
       <UiIconButton
         size="sm"
+        density="compact"
         :label="t('plugins.pluginSlot.openEditor', { name: plugin.descriptor.name })"
         @click="$emit('open', plugin.id)"
       >
@@ -96,7 +98,8 @@ function failureMessage(category: PluginFailureCategory): string {
       </UiIconButton>
       <UiIconButton
         size="sm"
-        variant="danger"
+        density="compact"
+        variant="danger-ghost"
         :label="t('plugins.pluginSlot.remove', { name: plugin.descriptor.name })"
         @click="$emit('remove', plugin.id)"
       >

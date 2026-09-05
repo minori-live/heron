@@ -64,6 +64,20 @@ test("records into a Large Object and reopens the PGlite project archive", async
       const settings = page.getByRole("main").filter({
         has: page.getByRole("heading", { name: title })
       })
+      const colors = await settings.evaluate((element) =>
+        getComputedStyle(element)
+          .backgroundColor.match(/[\d.]+/g)!
+          .slice(0, 3)
+          .map(Number)
+      )
+      // Preserve the existing DAW palettes (light canvas is subtly tinted #d8d9db),
+      // rather than accepting the generic design-system blue-gray surface.
+      const theme = await page.locator("html").getAttribute("data-theme")
+      expect(colors).toEqual(theme === "light" ? [216, 217, 219] : [21, 21, 21])
+      await expect(
+        settings.locator(".ui-settings-navigator__category-icon svg").first()
+      ).toBeVisible()
+      await expect(settings.locator(".ui-settings-navigator__page-icon svg").first()).toBeVisible()
       for (const viewport of [
         { width: 1440, height: 900 },
         { width: 1120, height: 700 },
@@ -385,6 +399,13 @@ test("records into a Large Object and reopens the PGlite project archive", async
     await expect(page.getByRole("button", { name: /Audio clip Recording/ })).toHaveCount(1)
     await timelineClip.click()
     await expect(timelineClip).toHaveAttribute("aria-pressed", "true")
+    const clipTitle = timelineClip.locator(".clip-name")
+    await expect(clipTitle).toBeVisible()
+    expect((await clipTitle.boundingBox())!.height).toBeGreaterThan(8)
+    const quickVolume = page.getByRole("slider", { name: "Audio 1 quick volume", exact: true })
+    await expect(quickVolume).toHaveCSS("opacity", "1")
+    const meterWell = quickVolume.locator("..").locator(".ui-horizontal-fader__rail")
+    expect((await meterWell.boundingBox())!.height).toBe(11)
 
     const playButton = page.getByRole("button", { name: "Play" })
     await expect(playButton).toBeEnabled()

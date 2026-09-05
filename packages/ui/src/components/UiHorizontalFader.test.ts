@@ -21,11 +21,9 @@ describe("UiHorizontalFader", () => {
 
     expect(wrapper.classes()).toContain("ui-horizontal-fader")
     expect(wrapper.attributes("style")).toContain("--horizontal-fader-meter-level: 62%")
-    expect(wrapper.attributes("style")).toContain("--horizontal-fader-value-position")
     expect(wrapper.find(".ui-horizontal-fader__rail").exists()).toBe(true)
     expect(wrapper.find(".ui-horizontal-fader__meter").exists()).toBe(true)
     expect(wrapper.find(".ui-horizontal-fader__value").exists()).toBe(false)
-    expect(wrapper.find(".ui-horizontal-fader__thumb").exists()).toBe(true)
     expect(input.attributes("aria-valuetext")).toBe("0.0 dB")
   })
 

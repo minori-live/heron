@@ -153,14 +153,14 @@ describe("TrackQuickControls", () => {
       target: "channel",
       id: "audio",
       parameter: "pan",
-      value: 11 / 63
+      value: 10 / 63
     })
     await pan.trigger("pointerup", { pointerId: 7, clientY: 80 })
     expect(wrapper.emitted("updateChannel")?.at(-1)?.[1]).toMatchObject({
-      pan: 11 / 63
+      pan: 10 / 63
     })
 
-    await pan.trigger("keydown", { key: "F2" })
+    await pan.trigger("dblclick")
     const panEditor = wrapper.get('input[aria-label="Vocal quick pan value"]')
     await panEditor.setValue("32")
     await panEditor.trigger("blur")

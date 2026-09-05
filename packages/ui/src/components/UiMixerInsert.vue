@@ -31,6 +31,7 @@ defineSlots<{
 .ui-mixer-insert {
   position: relative;
   display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   min-width: 0;
   isolation: isolate;
 }
@@ -39,16 +40,35 @@ defineSlots<{
   z-index: var(--ui-z-local-content);
   display: grid;
   min-width: 0;
-  grid-area: 1 / 1;
+  grid-area: 1 / 2;
+  height: 100%;
+  overflow: hidden;
+}
+
+.ui-mixer-insert__content :deep(.ui-button) {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  font-weight: var(--ui-type-weight-regular);
+}
+
+.ui-mixer-insert__content :deep(.ui-button__content) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ui-mixer-insert__leading,
 .ui-mixer-insert__actions {
   z-index: var(--ui-z-local-raised);
   display: flex;
-  grid-area: 1 / 1;
   align-items: center;
   height: 100%;
+  max-width: 0;
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
@@ -56,10 +76,12 @@ defineSlots<{
 }
 
 .ui-mixer-insert__leading {
+  grid-area: 1 / 1;
   justify-self: start;
 }
 
 .ui-mixer-insert__actions {
+  grid-area: 1 / 3;
   justify-self: end;
 }
 
@@ -68,6 +90,7 @@ defineSlots<{
 .ui-mixer-insert:focus-within .ui-mixer-insert__leading,
 .ui-mixer-insert:focus-within .ui-mixer-insert__actions {
   opacity: 1;
+  max-width: none;
   pointer-events: auto;
 }
 </style>

@@ -69,7 +69,7 @@ export function useArrangementViewport(options: ArrangementViewportOptions) {
       timeZoomAnchor = {
         seconds: timelineXToSeconds(
           options.tempoMap(),
-          event.point.x,
+          scrollLeft.value + viewportX,
           options.pixelsPerQuarter.value
         ),
         viewportX

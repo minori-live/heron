@@ -144,7 +144,6 @@ function confirmDrop(selection: PluginSelection): void {
 }
 .instrument-input {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   width: 100%;
   height: 28px;

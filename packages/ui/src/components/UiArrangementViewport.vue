@@ -70,7 +70,9 @@ function wheel(event: WheelEvent): void {
 }
 function accepts(event: DragEvent): boolean {
   return (
-    (props.acceptFiles && (event.dataTransfer?.files.length ?? 0) > 0) ||
+    (props.acceptFiles &&
+      (event.dataTransfer?.types.includes("Files") ||
+        (event.dataTransfer?.files.length ?? 0) > 0)) ||
     props.mimeTypes.some((mime) => event.dataTransfer?.types.includes(mime))
   )
 }
@@ -100,7 +102,8 @@ function dropIntent(event: DragEvent, includeValues: boolean): UiDropIntent {
 function over(event: DragEvent): void {
   if (!accepts(event)) return
   event.preventDefault()
-  if (event.dataTransfer) event.dataTransfer.dropEffect = "move"
+  if (event.dataTransfer)
+    event.dataTransfer.dropEffect = event.dataTransfer.effectAllowed === "move" ? "move" : "copy"
   emit("dragMove", dropIntent(event, false))
 }
 function finish(event: DragEvent): void {
@@ -117,6 +120,7 @@ watch(
 )
 onMounted(() => {
   if (!viewport.value) return
+  viewport.value.scrollLeft = props.scrollLeft
   if (typeof ResizeObserver !== "undefined") {
     observer = new ResizeObserver(state)
     observer.observe(viewport.value)
