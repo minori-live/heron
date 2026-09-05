@@ -202,6 +202,7 @@ jobs:
           echo "apple_api_key_path=$api_key_path" >> "$GITHUB_OUTPUT"
 
       - name: Set up build environment
+        id: setup_build
         uses: ./.github/actions/setup-build
         with:
           github-token: >-
@@ -250,3 +251,7 @@ jobs:
           path: ${{ matrix.package-glob }}
           if-no-files-found: error
           retention-days: 14
+
+      - name: Report shared compiler cache health
+        if: ${{ always() && steps.setup_build.outcome == 'success' }}
+        run: mise run ci:report:sccache

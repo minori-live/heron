@@ -89,14 +89,31 @@ runs:
         # baseline without competing for the repository cache quota.
         save-if: ${{ github.ref == 'refs/heads/main' }}
 
-    - name: Install and start sccache
+    - name: Configure shared sccache backend
+      shell: bash
+      env:
+        # PR caches are scoped to the merge ref and cannot warm main or other
+        # PRs. Keep reads shared while concentrating writes on main/releases
+        # to reduce the repository-wide GHA cache upload rate.
+        CACHE_RW_MODE: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) && 'READ_WRITE' || 'READ_ONLY' }}
+        CACHE_ERROR_LOG: ${{ runner.temp }}/heron-sccache-errors.log
+      run: |
+        echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+        printf 'SCCACHE_GHA_RW_MODE=%s\n' "$CACHE_RW_MODE" >> "$GITHUB_ENV"
+        printf 'SCCACHE_ERROR_LOG=%s\n' "$CACHE_ERROR_LOG" >> "$GITHUB_ENV"
+        echo "SCCACHE_LOG=warn" >> "$GITHUB_ENV"
+
+    - name: Install sccache
       uses: mozilla-actions/sccache-action@v0.0.10
+      with:
+        # The sccache version participates in the GHA cache version. Avoid an
+        # unplanned cold cache across every job when upstream publishes a release.
+        version: v0.17.0
 
     - name: Enable sccache for subsequent build steps
       shell: bash
       run: |
         printf 'RUSTC_WRAPPER=%s\n' "${SCCACHE_PATH:-sccache}" >> "$GITHUB_ENV"
-        echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
 
     - name: Locate Cargo and pnpm caches
       id: cache-paths

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+#MISE hide=true
+set -euo pipefail
+
+test "$(plutil -extract LSUIElement raw build/macos-agent-info.plist)" = "true"
+for target in aarch64-apple-darwin x86_64-apple-darwin; do
+  otool -l "target/$target/release/heron-vst3-probe" | \
+    grep -q "sectname __info_plist"
+done
+
+lipo crates/dsp-node/heron-dsp-node.darwin-universal.node \
+  -verify_arch arm64 x86_64
+for probe in heron-vst3-probe heron-clap-probe; do
+  lipo "target/release/$probe" -verify_arch arm64 x86_64
+done
+
+for bundle in target/bundles/*.vst3; do
+  # Keep failure on missing bundles/binaries instead of accepting an empty glob.
+  bundle_name="$(basename "$bundle" .vst3)"
+  lipo "$bundle/Contents/MacOS/$bundle_name" -verify_arch arm64 x86_64
+done
