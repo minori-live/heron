@@ -46,15 +46,18 @@ audio graph legal and rejects invalid topology.
 
 ## Add a send
 
-Select an empty send slot, then choose:
+Select an empty send slot and choose a destination bus or output. Adjust the
+Send level directly with the knob beside its destination on the channel strip.
 
-- the destination bus or output;
-- **Pre**, **Post**, or **Pan** tap position;
-- send level;
-- enabled or disabled state.
+Click the destination name to open the Send configuration. From there you can
+change the destination, choose **Pre**, **Post**, or **Pan**, enable or disable
+the Send, or delete it.
 
 Use pre-fader sends for an independent monitor or effect level. Use post-fader
-sends when the send should follow channel volume.
+sends when the send should follow channel volume, and post-pan sends when it
+should also follow pan. **Pre** places the blue knob before the destination;
+**Post** places it after the destination; **Pan** uses the same position with a
+green ring. A disabled Send appears dimmed and its level knob is disabled.
 
 ## Buses and aux channels
 

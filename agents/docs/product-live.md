@@ -1,9 +1,15 @@
 # Live performance product contract
 
 This document defines the user, supported task, failure behavior, and release
-evidence for the Current roadmap milestone. It is a product contract: an
-implementation is incomplete when it exposes the necessary controls but does
-not let the user finish this task safely.
+evidence for Live performance readiness, closed in v0.5.0 by maintainer decision
+on 2026-09-06. It remains the accepted performance baseline. Unfinished
+governance, documentation, automated validation, and evidence-record work is
+tracked in the [Current Live project delivery milestone](roadmap.md).
+Standalone Live-document ownership is defined by
+[ADR-0012](adr/0012-separate-layered-live-documents.md).
+
+It is a product contract: an implementation is incomplete when it exposes the
+necessary controls but does not let the user finish this task safely.
 
 ## Target user and task
 
@@ -20,8 +26,8 @@ understands a conventional DAW. The reference setup has:
 
 Direct integration with streaming applications is not required. A hardware
 interface may provide the loopback route. New recording workflows are not part
-of Current, but existing recording, recovery, and prepared-track playback must
-not regress.
+of the readiness milestone, but existing recording, recovery, and prepared-track
+playback must not regress.
 
 ## Canonical journey
 
@@ -71,15 +77,16 @@ Reordering Mixer channels intentionally retargets index-based mappings. A
 missing index or alias consumes no mutation and produces no modal interruption.
 The implementation must never fall through to an arbitrary target.
 
-### Current targets
+### Readiness baseline targets
 
-Current includes Gain, Pan, Mute, and Solo for ordered Mixer channels and an
-arbitrary automatable parameter for an aliased plug-in instance. Mute and Solo
-bindings choose between toggle behavior and absolute `0 = off, nonzero = on`
-behavior.
+The readiness baseline includes Gain, Pan, Mute, and Solo for ordered Mixer
+channels and an arbitrary automatable parameter for an aliased plug-in instance.
+Mute and Solo bindings choose between toggle behavior and absolute
+`0 = off, nonzero = on` behavior.
 
-Current excludes Send targets, control-surface protocols, bank switching,
-soft takeover, motorized-fader feedback, LED rings, and controller displays.
+The readiness baseline excludes Send targets, control-surface protocols, bank
+switching, soft takeover, motorized-fader feedback, LED rings, and controller
+displays.
 
 ## Failure contract
 
@@ -92,8 +99,8 @@ soft takeover, motorized-fader feedback, LED rings, and controller displays.
 | Fatal plug-in/native crash      | The application may terminate; relaunch offers the existing saved-versus-recoverable choice.   | Preserve every committed project mutation and recovery artifact already guaranteed by the project services. | Pretending a mutation succeeded, reconstructing ambient resources, or introducing plug-in isolation that breaks ARA. |
 | Mapping target missing          | No blocking interruption. The mapping remains configured.                                      | Ignore the event without a target mutation.                                                                 | Falling through to a channel or plug-in that happens to occupy another address.                                      |
 
-No fixed relaunch-time service level is promised in Current. Recovery correctness
-and an unambiguous user choice are release requirements.
+No fixed relaunch-time service level is promised by this baseline. Recovery
+correctness and an unambiguous user choice are release requirements.
 
 Plug-in failure containment is deliberately in process. It covers failures that
 return, report, or can be safely validated at a host-owned boundary. It cannot
@@ -132,7 +139,9 @@ behalf.
 
 ## Platform and plug-in matrix
 
-All three release platforms must pass before Current exits:
+The readiness milestone required all three release platforms to pass. The
+maintainer confirmed those passes at closure; detailed evidence collection is
+carried into Live project delivery:
 
 | Platform | Live reference backend           | Required hardware evidence                                                         |
 | -------- | -------------------------------- | ---------------------------------------------------------------------------------- |
