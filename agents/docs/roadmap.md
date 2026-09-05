@@ -246,6 +246,8 @@ well as the standalone Live-document outcome below.
 
 ### Work carried forward from v0.5.0
 
+Tracked in [issue #135](https://github.com/minori-live/heron/issues/135).
+
 - [ ] Add enforceable architecture checks wherever a rule can be checked
       mechanically; issue-linked exceptions must not expand silently.
       Review on 2026-09-06 found existing gates for native imports, IPC wrappers,
