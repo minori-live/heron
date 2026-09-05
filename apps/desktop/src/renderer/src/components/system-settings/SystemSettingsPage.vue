@@ -21,6 +21,7 @@ import type {
   PluginCatalogSnapshot,
   ResolvedAudioHostRuntimePreferences
 } from "@heron/contracts"
+import { UiButton } from "@heron/ui"
 import SettingsContainer from "../settings/SettingsContainer.vue"
 import type { SettingsCategory } from "../settings/settings"
 import AudioDeviceSettings from "./AudioDeviceSettings.vue"
@@ -219,12 +220,13 @@ function applyAudio(): void {
   >
     <template #actions>
       <template v-if="activePage === 'devices'">
-        <button class="settings-action" type="button" @click="emit('close')">
+        <UiButton size="sm" @click="emit('close')">
           {{ t("dialog.actions.cancel") }}
-        </button>
-        <button
+        </UiButton>
+        <UiButton
           class="settings-action settings-action-primary"
-          type="button"
+          size="sm"
+          variant="primary"
           :disabled="applying || !audioCanApply"
           @click="applyAudio"
         >
@@ -233,16 +235,17 @@ function applyAudio(): void {
               ? t("settings.system.actions.startingEngine")
               : t("settings.system.actions.applyAudio")
           }}
-        </button>
+        </UiButton>
       </template>
-      <button
+      <UiButton
         v-else
         class="settings-action settings-action-primary"
-        type="button"
+        size="sm"
+        variant="primary"
         @click="emit('close')"
       >
         {{ t("common.done") }}
-      </button>
+      </UiButton>
     </template>
 
     <AudioDeviceSettings

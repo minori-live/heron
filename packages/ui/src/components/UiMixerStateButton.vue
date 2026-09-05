@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { UiJoinedPosition, UiMixerStateButtonSize, UiMixerStateButtonTone } from "../types"
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     label: string
     title?: string
@@ -11,6 +11,7 @@ withDefaults(
     active?: boolean
     joined?: UiJoinedPosition
     disabled?: boolean
+    stopPropagation?: boolean
   }>(),
   {
     title: undefined,
@@ -19,11 +20,17 @@ withDefaults(
     pressed: undefined,
     active: undefined,
     joined: undefined,
-    disabled: false
+    disabled: false,
+    stopPropagation: false
   }
 )
 
-defineEmits<{ click: [event: MouseEvent] }>()
+const emit = defineEmits<{ click: [] }>()
+
+function activate(event: MouseEvent): void {
+  if (props.stopPropagation) event.stopPropagation()
+  emit("click")
+}
 </script>
 
 <template>
@@ -40,7 +47,7 @@ defineEmits<{ click: [event: MouseEvent] }>()
     :aria-pressed="pressed"
     :title
     :disabled
-    @click="$emit('click', $event)"
+    @click="activate"
   >
     <slot />
   </button>
@@ -67,6 +74,14 @@ defineEmits<{ click: [event: MouseEvent] }>()
   width: 1.3125rem;
   height: 1.1875rem;
   font-size: var(--ui-type-size-control);
+}
+
+.ui-mixer-state-button.size-track {
+  width: 17px;
+  height: 17px;
+  border-radius: 2px;
+  box-shadow: var(--ui-shadow-highlight-inset);
+  font-size: var(--ui-type-size-caption);
 }
 
 .ui-mixer-state-button.size-wide {

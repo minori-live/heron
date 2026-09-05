@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
 import { RefreshCw } from "@lucide/vue"
-import { UiSelect, type UiSelectOption } from "@heron/ui"
+import { UiButton, UiSelect, type UiSelectOption } from "@heron/ui"
 import SettingsSection from "../settings/SettingsSection.vue"
 
 defineProps<{
@@ -26,7 +26,7 @@ const { t } = useI18n()
     :title="t('settings.audio.deviceSections.output.title')"
     :description="t('settings.audio.deviceSections.output.description')"
   >
-    <button
+    <UiButton
       class="refresh-button"
       type="button"
       :disabled="discoveryState === 'loading'"
@@ -38,7 +38,7 @@ const { t } = useI18n()
           ? t("settings.audio.deviceSections.refresh.scanning")
           : t("settings.audio.deviceSections.refresh.refresh")
       }}
-    </button>
+    </UiButton>
     <p v-if="discoveryError" class="discovery-error">{{ discoveryError }}</p>
     <label class="device-field">
       <span>{{ t("common.device") }}</span>

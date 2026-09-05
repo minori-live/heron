@@ -34,7 +34,7 @@
     "settings": "设置",
     "buildLabel": "Heron / 构建 {version}",
     "categoriesAria": "{title} 分类",
-    "pagesAria": "{category} 设置页面"
+    "pagesAria": "{category}页面"
   },
   "app": {
     "name": "Heron",

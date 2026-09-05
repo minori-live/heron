@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { MidiClipState, MidiNoteState } from "@heron/contracts"
+import { UiPianoRollNote } from "@heron/ui"
 import { usePianoRollEditor } from "./usePianoRollEditor"
 
 const props = defineProps<{ clip: MidiClipState; note: MidiNoteState }>()
@@ -12,55 +13,30 @@ const {
   noteAriaLabel,
   displayedNoteValues,
   formatMidiNoteName,
-  beginNoteGesture,
-  updateNoteGesture,
-  finishNoteGesture,
-  cancelNoteGesture,
+  handleNoteGesture,
   handleNoteClick,
   handleNotePointerOver
 } = usePianoRollEditor()
 </script>
 
 <template>
-  <button
-    type="button"
+  <UiPianoRollNote
     class="note"
-    :class="{
+    :model="{
+      id: `${props.clip.id}:${props.note.id}`,
+      label: noteAriaLabel(props.clip, props.note),
       selected: pianoRollStore.selectedNoteKeys.has(`${props.clip.id}:${props.note.id}`),
       inactive: props.clip.id !== pianoRollStore.activeClipId,
       previewing: gestureNotePreviews.has(`${props.clip.id}:${props.note.id}`),
       erasing: eraseTargetKeys.has(`${props.clip.id}:${props.note.id}`)
     }"
     :style="noteStyle(props.clip, props.note)"
-    :aria-label="noteAriaLabel(props.clip, props.note)"
-    :aria-pressed="pianoRollStore.selectedNoteKeys.has(`${props.clip.id}:${props.note.id}`)"
-    @click.stop="handleNoteClick($event, props.clip, props.note)"
-    @pointerdown="beginNoteGesture($event, props.clip, props.note, 'move')"
-    @pointermove="updateNoteGesture"
-    @pointerup="finishNoteGesture"
-    @pointercancel="cancelNoteGesture"
-    @pointerover="handleNotePointerOver(props.clip, props.note)"
+    @select="handleNoteClick($event, props.clip, props.note)"
+    @gesture="(mode, intent) => handleNoteGesture(mode, intent, props.clip, props.note)"
+    @hover="handleNotePointerOver(props.clip, props.note)"
   >
-    <span
-      class="resize-handle left"
-      data-edge="left"
-      @pointerdown.stop="beginNoteGesture($event, props.clip, props.note, 'resize-left')"
-      @pointermove.stop="updateNoteGesture"
-      @pointerup.stop="finishNoteGesture"
-      @pointercancel.stop="cancelNoteGesture"
-    />
-    <span class="note-label">
-      {{ formatMidiNoteName(displayedNoteValues(props.clip, props.note).key) }}
-    </span>
-    <span
-      class="resize-handle right"
-      data-edge="right"
-      @pointerdown.stop="beginNoteGesture($event, props.clip, props.note, 'resize-right')"
-      @pointermove.stop="updateNoteGesture"
-      @pointerup.stop="finishNoteGesture"
-      @pointercancel.stop="cancelNoteGesture"
-    />
-  </button>
+    {{ formatMidiNoteName(displayedNoteValues(props.clip, props.note).key) }}
+  </UiPianoRollNote>
 </template>
 
 <style scoped>
@@ -80,7 +56,6 @@ const {
     var(--note-color) calc(38% + 62% * var(--note-velocity, 1)),
     var(--surface-sunken)
   );
-  cursor: grab;
 }
 
 .note.inactive {
@@ -95,17 +70,11 @@ const {
 }
 
 .note.previewing {
-  cursor: grabbing;
 }
 
 .note.erasing {
   opacity: 0.25;
   pointer-events: none;
-}
-
-.note:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
 }
 
 .note-label {
@@ -121,7 +90,6 @@ const {
   top: 0;
   bottom: 0;
   width: 5px;
-  cursor: ew-resize;
 }
 
 .resize-handle.left {

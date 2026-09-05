@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from "vue"
 import { useI18n } from "vue-i18n"
-import { UiCascadingSelect, type UiCascadingSelectGroup } from "@heron/ui"
+import { UiCascadingSelect, UiIconButton, type UiCascadingSelectGroup } from "@heron/ui"
 import type {
   ApplicationCaptureTarget,
   MixerChannelPatch,
@@ -199,22 +199,24 @@ function toggleStereo(): void {
         />
       </div>
 
-      <button
+      <UiIconButton
         class="input-capsule__stereo"
-        type="button"
-        :aria-label="
+        size="sm"
+        density="compact"
+        variant="plain"
+        :label="
           isStereo
             ? t('mixer.inputCapsule.useMono', { name: channelName })
             : t('mixer.inputCapsule.linkStereo', { name: channelName })
         "
-        :aria-pressed="isStereo"
+        :pressed="isStereo"
         :title="
           isStereo ? t('mixer.inputCapsule.stereoLinked') : t('mixer.inputCapsule.linkStereoTitle')
         "
         @click="toggleStereo"
       >
         <ChannelFormatIcon :channels="isStereo ? 2 : 1" />
-      </button>
+      </UiIconButton>
     </div>
     <p v-if="captureStatusMessage" class="input-capsule__status" role="status">
       {{ captureStatusMessage }}
@@ -265,16 +267,5 @@ function toggleStereo(): void {
   border: 0;
   color: color-mix(in srgb, currentColor 58%, transparent);
   background: transparent;
-  cursor: pointer;
-}
-
-.input-capsule__stereo:hover {
-  color: inherit;
-  background: var(--ui-domain-color-ffffff22);
-}
-
-.input-capsule__stereo:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: -2px;
 }
 </style>

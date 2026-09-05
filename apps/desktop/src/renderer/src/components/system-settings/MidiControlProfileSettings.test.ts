@@ -27,7 +27,10 @@ describe("MidiControlProfileSettings", () => {
 
     expect(wrapper.text()).toContain("Absolute transform")
     expect(wrapper.text()).toContain("Built in")
-    await wrapper.get("button.profile-row").trigger("click")
+    const row = wrapper.findAll("li button").find((button) => button.text().includes(profile.name))!
+    expect(row.text()).toContain("Absolute curve")
+    expect(row.text()).toContain("Built in")
+    await row.trigger("click")
     await wrapper
       .findAll("button")
       .find((button) => button.text() === "Cancel")!

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Copy, Plus, SlidersHorizontal } from "@lucide/vue"
-import { UiButton, UiField, UiNumberInput, UiTextInput } from "@heron/ui"
+import { UiActionRow, UiButton, UiField, UiNumberInput, UiTextInput } from "@heron/ui"
 import type { MidiRelativeTransformProfile, MidiTransformProfile } from "@heron/contracts"
 import MidiTransformCurveEditor from "./MidiTransformCurveEditor.vue"
 
@@ -50,26 +50,24 @@ function removeAccelerationPoint(index: number): void {
 
 <template>
   <div class="profile-settings">
-    <div class="profile-list" role="list">
-      <button
-        v-for="profile in props.profiles"
-        :key="profile.id"
-        class="profile-row"
-        type="button"
-        @click="emit('edit', profile)"
-      >
-        <span class="profile-icon"><SlidersHorizontal :size="15" /></span>
-        <span class="profile-copy">
-          <strong>{{ profile.name }}</strong>
-          <small>{{
-            profile.type === "absolute" ? "Absolute curve" : "Relative acceleration"
-          }}</small>
-        </span>
-        <span class="profile-origin">{{ profile.builtin ? "Built in" : "Custom" }}</span>
-        <Copy v-if="profile.builtin" :size="14" aria-label="Duplicate profile" />
-        <span v-else class="edit-label">Edit</span>
-      </button>
-    </div>
+    <ul class="profile-list">
+      <li v-for="profile in props.profiles" :key="profile.id">
+        <UiActionRow
+          :label="profile.name"
+          :description="profile.type === 'absolute' ? 'Absolute curve' : 'Relative acceleration'"
+          @activate="emit('edit', profile)"
+        >
+          <template #leading>
+            <span class="profile-icon"><SlidersHorizontal :size="15" aria-hidden="true" /></span>
+          </template>
+          <template #trailing>
+            <span class="profile-origin">{{ profile.builtin ? "Built in" : "Custom" }}</span>
+            <Copy v-if="profile.builtin" :size="14" aria-label="Duplicate profile" />
+            <span v-else class="edit-label">Edit</span>
+          </template>
+        </UiActionRow>
+      </li>
+    </ul>
 
     <div v-if="draft" class="profile-editor">
       <header class="profile-editor-header">
@@ -160,29 +158,10 @@ function removeAccelerationPoint(index: number): void {
   gap: 8px;
 }
 
-.profile-row {
-  display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) auto 48px;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 9px 10px;
-  border: 1px solid var(--line-soft);
-  border-radius: 6px;
-  color: var(--text-secondary);
-  background: var(--surface-1);
-  text-align: left;
-  cursor: pointer;
-}
-
-.profile-row:hover {
-  border-color: var(--line-strong);
-  background: var(--surface-2);
-}
-
-.profile-row:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+.profile-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .profile-icon {
@@ -195,20 +174,17 @@ function removeAccelerationPoint(index: number): void {
   background: var(--surface-sunken);
 }
 
-.profile-copy,
 .profile-editor-header span:first-child {
   display: grid;
   min-width: 0;
   gap: 3px;
 }
 
-.profile-copy strong,
 .profile-editor-header strong {
   color: var(--text-primary);
   font-size: var(--ui-type-size-body-compact);
 }
 
-.profile-copy small,
 .profile-editor-header small,
 .profile-origin,
 .edit-label,
@@ -277,10 +253,6 @@ function removeAccelerationPoint(index: number): void {
 }
 
 @media (max-width: 760px) {
-  .profile-row {
-    grid-template-columns: 30px minmax(0, 1fr) auto;
-  }
-
   .profile-origin {
     display: none;
   }

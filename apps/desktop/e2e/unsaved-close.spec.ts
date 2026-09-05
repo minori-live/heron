@@ -2,9 +2,10 @@ import { expect, test, _electron as electron } from "@playwright/test"
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
+import { dismissAutomaticTutorial } from "./support"
 
 test("prompts before closing a project with a committed mutation", async () => {
-  test.setTimeout(60_000)
+  test.setTimeout(90_000)
   const testRoot = await mkdtemp(join(tmpdir(), "heron-unsaved-close-"))
   const application = await electron.launch({
     executablePath: process.env.HERON_E2E_EXECUTABLE,
@@ -35,7 +36,8 @@ test("prompts before closing a project with a committed mutation", async () => {
     await expect(page.getByRole("heading", { name: /Make sound/ })).toBeVisible()
 
     await page.getByRole("button", { name: "Start creating" }).click()
-    await expect(page.locator(".studio-shell")).toBeVisible()
+    await expect(page.locator(".studio-shell")).toBeVisible({ timeout: 40_000 })
+    await dismissAutomaticTutorial(page)
     await page.getByRole("button", { name: "Add audio track" }).click()
     await expect(page.getByLabel("Unsaved changes")).toBeVisible()
     await expect

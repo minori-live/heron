@@ -9,11 +9,13 @@ const props = withDefaults(
     label: string
     options: readonly UiRadioOption[]
     disabled?: boolean
+    size?: "default" | "compact"
     orientation?: "horizontal" | "vertical"
     name?: string
   }>(),
   {
     disabled: false,
+    size: "default",
     orientation: "vertical",
     name: undefined
   }
@@ -26,7 +28,7 @@ const groupName = props.name ?? `ui-radio-${generatedId}`
 <template>
   <fieldset
     class="ui-radio-group"
-    :class="`ui-radio-group--${props.orientation}`"
+    :class="[`ui-radio-group--${props.orientation}`, `ui-radio-group--${props.size}`]"
     :disabled="props.disabled"
   >
     <legend class="ui-radio-group__legend">{{ props.label }}</legend>
@@ -114,5 +116,28 @@ const groupName = props.name ?? `ui-radio-${generatedId}`
 .ui-radio-group__description {
   color: var(--ui-color-text-muted);
   font-size: var(--ui-font-size-xs);
+}
+
+.ui-radio-group--compact {
+  font-family: var(--ui-type-family-interface);
+}
+
+.ui-radio-group--compact .ui-radio-group__legend,
+.ui-radio-group--compact .ui-radio-group__label {
+  font-size: var(--ui-type-size-body-compact);
+}
+
+.ui-radio-group--compact .ui-radio-group__description {
+  font-size: var(--ui-type-size-caption);
+}
+
+.ui-radio-group--compact .ui-radio-group__option {
+  min-height: var(--ui-control-compact);
+}
+
+.ui-radio-group--compact input {
+  width: 12px;
+  height: 12px;
+  margin-top: 1px;
 }
 </style>

@@ -96,7 +96,7 @@ describe("PianoRollDock", () => {
       wrapper.get<HTMLElement>(".clip-range").element.style.getPropertyValue("--clip-color")
     ).toBe("#73D6A2")
     expect(
-      wrapper.get<HTMLElement>("button.note").element.style.getPropertyValue("--note-color")
+      wrapper.get<HTMLElement>(".ui-piano-roll-note").element.style.getPropertyValue("--note-color")
     ).toBe("#73D6A2")
     expect(wrapper.text()).toContain("Resolution 1/3840 note")
     expect(wrapper.find('[aria-label="Lower dock"]').exists()).toBe(false)
@@ -289,14 +289,14 @@ describe("PianoRollDock", () => {
     const wrapper = mount(PianoRollDock, { global: { plugins: [pinia] } })
     const grid = wrapper.get<HTMLElement>('[data-testid="piano-roll-note-grid"]')
     mockGridBounds(grid.element)
-    const note = wrapper.get<HTMLElement>("button.note")
+    const note = wrapper.get<HTMLElement>(".ui-piano-roll-note")
 
     await grid.trigger("pointerdown", { pointerId: 1, clientX: 400, clientY: 400 })
     await note.trigger("pointerover")
-    expect(note.classes()).toContain("erasing")
+    expect(note.classes()).toContain("ui-piano-roll-note--erasing")
     expect(execute).not.toHaveBeenCalled()
 
-    window.dispatchEvent(new Event("pointerup"))
+    await grid.trigger("pointerup", { pointerId: 1, clientX: 400, clientY: 400 })
     await flushPromises()
 
     expect(execute).toHaveBeenCalledWith({
@@ -329,9 +329,11 @@ describe("PianoRollDock", () => {
     vi.spyOn(crypto, "randomUUID").mockReturnValue("00000000-0000-4000-8000-000000000002")
 
     const wrapper = mount(PianoRollDock, { global: { plugins: [pinia] } })
-    await wrapper.get("button.note").trigger("click")
+    await wrapper.get(".ui-piano-roll-note").trigger("click")
 
-    await wrapper.trigger("keydown", { code: "KeyD", ctrlKey: true })
+    await wrapper
+      .get('[aria-label="Piano roll note grid"]')
+      .trigger("keydown", { code: "KeyD", ctrlKey: true })
     await flushPromises()
     const duplicate = execute.mock.calls[0]?.[0]
     expect(duplicate?.type).toBe("create-midi-notes")
@@ -346,8 +348,10 @@ describe("PianoRollDock", () => {
 
     execute.mockClear()
     // Selection moved to the (mocked) duplicated notes; re-select the real note.
-    await wrapper.get("button.note").trigger("click")
-    await wrapper.trigger("keydown", { code: "ArrowUp", shiftKey: true })
+    await wrapper.get(".ui-piano-roll-note").trigger("click")
+    await wrapper
+      .get('[aria-label="Piano roll note grid"]')
+      .trigger("keydown", { code: "ArrowUp", shiftKey: true })
     await flushPromises()
     expect(execute).toHaveBeenCalledWith({
       type: "update-midi-notes",
@@ -356,7 +360,7 @@ describe("PianoRollDock", () => {
     } satisfies ProjectCommand)
 
     execute.mockClear()
-    await wrapper.trigger("keydown", { code: "KeyQ" })
+    await wrapper.get('[aria-label="Piano roll note grid"]').trigger("keydown", { code: "KeyQ" })
     await flushPromises()
     expect(execute).toHaveBeenCalledWith({
       type: "update-midi-notes",
@@ -411,11 +415,14 @@ describe("PianoRollDock", () => {
       }
     })
 
+    await flushPromises()
     await viewport.trigger("wheel", { ctrlKey: true, deltaY: -1, clientX: 272, clientY: 100 })
     expect(pianoRoll.pixelsPerQuarter).toBe(150)
     // The tick under the pointer (1600) stays put: 1600 * (0.15625 - 0.125) = 50.
-    expect(scrollLeft).toBe(50)
+    expect(scrollLeft).toBe(290)
 
+    const verticalBeforeZoom = scrollTop
+    const expectedVerticalDelta = ((100 + verticalBeforeZoom - 28) / 18) * 2
     await viewport.trigger("wheel", {
       ctrlKey: true,
       altKey: true,
@@ -425,7 +432,7 @@ describe("PianoRollDock", () => {
     })
     expect(pianoRoll.rowHeight).toBe(20)
     // The row under the pointer ((100 - 28) / 18 = 4) stays put: 4 * 2 = 8.
-    expect(scrollTop).toBe(8)
+    expect(scrollTop - verticalBeforeZoom).toBeCloseTo(expectedVerticalDelta)
 
     wrapper.unmount()
   })
@@ -455,7 +462,7 @@ describe("PianoRollDock", () => {
     )
     expect(quantize.element.disabled).toBe(true)
 
-    await wrapper.get("button.note").trigger("click")
+    await wrapper.get(".ui-piano-roll-note").trigger("click")
     expect(quantize.element.disabled).toBe(false)
     await quantize.trigger("click")
     await flushPromises()
@@ -479,14 +486,14 @@ describe("PianoRollDock", () => {
     pianoRoll.openSelection("clip-1")
     const execute = vi.spyOn(mixer, "execute").mockResolvedValue(true)
     const wrapper = mount(PianoRollDock, { global: { plugins: [pinia] } })
-    const note = wrapper.get<HTMLElement>("button.note")
+    const note = wrapper.get<HTMLElement>(".ui-piano-roll-note")
 
     await note.trigger("pointerdown", { pointerId: 1, clientX: 100, clientY: 100 })
     await note.trigger("pointermove", { pointerId: 1, clientX: 130, clientY: 82 })
 
     expect(note.element.style.left).toBe("150px")
     expect(note.element.style.top).toBe("1189px")
-    expect(note.classes()).toContain("previewing")
+    expect(note.classes()).toContain("ui-piano-roll-note--previewing")
     expect(execute).not.toHaveBeenCalled()
 
     await note.trigger("pointerup", { pointerId: 1, clientX: 130, clientY: 82 })
@@ -503,7 +510,7 @@ describe("PianoRollDock", () => {
     } satisfies ProjectCommand)
 
     execute.mockClear()
-    const rightHandle = wrapper.get<HTMLElement>(".resize-handle.right")
+    const rightHandle = wrapper.get<HTMLElement>(".ui-piano-roll-note__handle--right")
     await rightHandle.trigger("pointerdown", { pointerId: 2, clientX: 100, clientY: 100 })
     await rightHandle.trigger("pointermove", { pointerId: 2, clientX: 130, clientY: 100 })
 
@@ -519,7 +526,7 @@ describe("PianoRollDock", () => {
     } satisfies ProjectCommand)
 
     execute.mockClear()
-    const leftHandle = wrapper.get<HTMLElement>(".resize-handle.left")
+    const leftHandle = wrapper.get<HTMLElement>(".ui-piano-roll-note__handle--left")
     const clipRange = wrapper.get<HTMLElement>(".clip-range")
     await leftHandle.trigger("pointerdown", { pointerId: 3, clientX: 100, clientY: 100 })
     await leftHandle.trigger("pointermove", { pointerId: 3, clientX: 70, clientY: 100 })

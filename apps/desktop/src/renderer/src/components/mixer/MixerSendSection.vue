@@ -2,7 +2,14 @@
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { Trash2 } from "@lucide/vue"
-import { UiCascadingSelect, UiPopover, UiRotaryControl } from "@heron/ui"
+import {
+  UiButton,
+  UiCascadingSelect,
+  UiIconButton,
+  UiPopover,
+  UiRotaryControl,
+  UiSegmentedControl
+} from "@heron/ui"
 import type {
   MixerBusState,
   MixerChannelState,
@@ -31,6 +38,9 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const tapOptions = computed(() =>
+  (["pre", "post", "post-pan"] as const).map((value) => ({ value, label: tapLabel(value) }))
+)
 
 const supportsSends = computed(() => ["audio", "instrument", "aux"].includes(props.channel.kind))
 const emptyRows = computed(() => Math.max(0, props.slotRows - props.sends.length))
@@ -163,14 +173,15 @@ function createSend(value: string): void {
         />
         <UiPopover side="top" :side-offset="7">
           <template #trigger>
-            <button
+            <UiButton
               class="send-config"
-              type="button"
+              size="sm"
+              variant="ghost"
               :title="`${targetName(send)} · ${tapLabel(send.tap)} · ${formatSendLevel(send.levelDb)} dB`"
               :aria-label="t('mixer.sendSection.editSend', { target: targetName(send) })"
             >
               <span>{{ targetName(send) }}</span>
-            </button>
+            </UiButton>
           </template>
           <div class="send-popover">
             <header>
@@ -178,18 +189,21 @@ function createSend(value: string): void {
                 <span>{{ t("mixer.sendSection.header") }}</span
                 ><strong>{{ targetName(send) }}</strong>
               </div>
-              <button
+              <UiIconButton
                 class="delete-send"
-                :aria-label="t('mixer.sendSection.deleteSend', { target: targetName(send) })"
+                size="sm"
+                variant="danger"
+                :label="t('mixer.sendSection.deleteSend', { target: targetName(send) })"
                 @click="emit('deleteSend', send.id)"
               >
                 <Trash2 :size="12" />
-              </button>
+              </UiIconButton>
             </header>
             <label class="toggle-row">
               <span>{{ t("mixer.sendSection.enabled") }}</span>
-              <button
-                :class="{ active: send.enabled }"
+              <UiButton
+                size="sm"
+                :variant="send.enabled ? 'primary' : 'secondary'"
                 :aria-label="
                   send.enabled
                     ? t('mixer.sendSection.disableSend')
@@ -199,7 +213,7 @@ function createSend(value: string): void {
                 @click="updateSend(send, { enabled: !send.enabled })"
               >
                 {{ send.enabled ? t("mixer.sendSection.on") : t("mixer.sendSection.off") }}
-              </button>
+              </UiButton>
             </label>
             <label>
               <span>{{ t("mixer.sendSection.destination") }}</span>
@@ -211,17 +225,14 @@ function createSend(value: string): void {
                 @update:model-value="updateSend(send, targetPatch($event))"
               />
             </label>
-            <div class="tap-options" :aria-label="t('mixer.sendSection.sendPosition')">
-              <button
-                v-for="option in ['pre', 'post', 'post-pan'] as MixerSendTap[]"
-                :key="option"
-                :class="{ active: send.tap === option }"
-                :aria-pressed="send.tap === option"
-                @click="updateSend(send, { tap: option })"
-              >
-                {{ tapLabel(option) }}
-              </button>
-            </div>
+            <UiSegmentedControl
+              class="tap-options"
+              :model-value="send.tap"
+              :label="t('mixer.sendSection.sendPosition')"
+              :options="tapOptions"
+              size="compact"
+              @update:model-value="updateSend(send, { tap: $event as MixerSendTap })"
+            />
           </div>
         </UiPopover>
       </div>
@@ -302,7 +313,6 @@ function createSend(value: string): void {
   color: inherit;
   background: transparent;
   font: inherit;
-  cursor: pointer;
 }
 .send-config span {
   min-width: 0;
@@ -329,7 +339,6 @@ function createSend(value: string): void {
 .send-row.empty-slot {
   overflow: hidden;
   padding: 0;
-  cursor: pointer;
 }
 /* The 1px row border leaves a 23px content box; override embedded's 26px default. */
 .send-row.empty-slot .send-target-picker {
@@ -337,19 +346,11 @@ function createSend(value: string): void {
   height: 100%;
   min-height: 0;
 }
-.send-row.empty-slot:hover {
-  border-color: var(--ui-domain-color-4e8dbf);
-  color: var(--ui-domain-color-b7d9f3);
-}
 .send-row.alignment-spacer {
   border-color: transparent;
   background: transparent;
   box-shadow: none;
   pointer-events: none;
-}
-.send-config:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
 }
 .send-popover {
   display: grid;
@@ -389,7 +390,6 @@ function createSend(value: string): void {
   border-radius: 3px;
   color: var(--record);
   background: var(--daw-control);
-  cursor: pointer;
 }
 .send-popover label {
   display: grid;
@@ -405,33 +405,9 @@ function createSend(value: string): void {
   grid-template-columns: 1fr auto;
   align-items: center;
 }
-.toggle-row button {
-  width: 48px;
-  height: 24px;
-  border: 1px solid var(--line-strong);
-  border-radius: 3px;
-  color: var(--text-faint);
-  background: var(--daw-control);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-}
-.toggle-row button.active,
-.tap-options button.active {
-  border-color: var(--ui-domain-color-4d8fc0);
-  color: var(--ui-domain-color-fff);
-  background: var(--ui-domain-color-377aa8);
-}
 .tap-options {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
-}
-.tap-options button {
-  height: 25px;
-  border: 1px solid var(--line-strong);
-  border-radius: 3px;
-  color: var(--text-muted);
-  background: var(--daw-control);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  cursor: pointer;
 }
 </style>

@@ -180,9 +180,9 @@ describe("ArrangementWorkspace rendering", () => {
       "true"
     )
     expect(wrapper.findAll('[data-testid="timeline-playhead"]')).toHaveLength(1)
-    expect(wrapper.findAll(".beat-mark").length).toBeGreaterThan(0)
-    expect(wrapper.findAll(".beat-line").length).toBeGreaterThan(0)
-    expect(wrapper.findAll(".beat-guide").length).toBeGreaterThan(0)
+    expect(wrapper.findAll(".ui-timeline-ruler__beat").length).toBeGreaterThan(0)
+    expect(wrapper.findAll(".ui-timeline-ruler__mark").length).toBeGreaterThan(0)
+    expect(wrapper.findAll(".ui-automation-lane__guide--beat").length).toBeGreaterThan(0)
     expect(wrapper.get('[aria-label="Tempo global track"]').text()).toContain("Tempo")
     expect(wrapper.get('[aria-label="Meter global track"]').text()).toContain("Meter")
     expect(wrapper.get('[aria-label="Key global track"]').text()).toContain("Key")
@@ -226,8 +226,10 @@ describe("ArrangementWorkspace rendering", () => {
       type: "replace-key-signature-map",
       events: [{ tick: 0, fifths: -7, mode: "major" }]
     })
-    expect(wrapper.findAll(".point-handle")).toHaveLength(1)
-    expect(wrapper.findAll(".event-handle")).toHaveLength(2)
+    expect(wrapper.findAll(".ui-automation-lane--value .ui-automation-lane__point")).toHaveLength(1)
+    expect(wrapper.findAll(".ui-automation-lane--marker .ui-automation-lane__point")).toHaveLength(
+      2
+    )
     const clip = wrapper.get('[role="button"][aria-label="Audio clip First take"]')
     expect(clip.attributes("aria-pressed")).toBe("false")
     expect(clip.attributes("style")).toContain("width: 100px")

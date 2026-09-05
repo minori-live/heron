@@ -1,20 +1,16 @@
 # Renderer UI audit
 
-This checklist records the source-wide audit introduced with `@heron/ui` and extended as the
-renderer grew. The inventory is now collected dynamically rather than frozen at the original 61
-Vue files. On the 2026-07-30 expansion pass, `lint:design` covered 234 renderer sources, 45 UI
-sources, and 8 design-system sources. “Reviewed” means the file is covered by the automated
-raw-color, typography, token-reference, z-index, overlay, dependency-boundary, and Storybook-only
-checks; it does not mean every product-specific DAW control was replaced with a generic primitive.
+This checklist records the source-wide audit introduced with `@heron/ui`. The inventory is
+collected dynamically. `lint:design` covers tokens and visual-source rules;
+`lint:ui-boundary` covers the stronger interaction ownership contract and requires a zero baseline.
 
-Product-specific controls were retained where their interaction is intrinsically musical or
-two-dimensional. Their colors now come from the domain palette or runtime CSS variables, and
-their focus/keyboard semantics remain part of desktop tests.
+All visible interaction, including musical/two-dimensional gestures, is now represented by a
+public Storybook component. Desktop retains passive rendering and domain conversion, while focus,
+keyboard, pointer, drag/drop, resize, cancellation, and interaction-state styling are UI-owned.
 
 ## UnoCSS migration classification (2026-08-18)
 
-The current 40 `@heron/ui` and 137 Desktop renderer Vue files fall into one of three explicit
-ownership groups:
+The Desktop renderer and public UI exports fall into three ownership groups:
 
 1. **Utility-owned structure.** Ordinary flex/grid layout, spacing, sizing, overflow, typography,
    and simple chrome were migrated in `UiButton`, `UiCheckbox`, `UiDialog`, `UiEmptyState`,
@@ -23,19 +19,16 @@ ownership groups:
    `UiToolbar`, and `UiTooltip`. Desktop migration covers `AppChrome`, `AppRouteView`, Splash,
    the settings containers, `StudioWorkspace`, `StudioTopbar`, `StudioStatusbar`,
    `ArrangementWorkspace`, and `MixerConsole`.
-2. **Scoped domain styling retained.** Mixer controls, faders, meters, rotary/curve controls,
-   waveforms, arrangement and piano-roll geometry, timeline/global lanes, menus, gradients,
-   pseudo-elements, resize handles, and runtime-positioned elements retain scoped CSS. Partially
-   migrated files keep only these stateful or geometric rules after their structural declarations
-   moved to utilities.
+2. **UI-owned domain interaction.** Mixer controls, faders, meters, clips, notes, rulers, global
+   lanes, drag/drop, resize, node graphs, and guided tours are Storybook components. Desktop passes
+   view models and handles typed intents.
 3. **No local visual ownership.** Route views, hosts, providers, logos, and controller-only
    components without ordinary local layout remain composition/API boundaries and require no
    utility conversion.
 
-This classification applies to every Vue file in the two scanned roots rather than treating a
-remaining `<style>` block as unfinished work. `lint:design` scans those roots plus design-system
-stories and rejects dynamic utility construction, raw utility colors, numeric utility z-indexes,
-and undefined semantic utility tokens.
+This classification applies to every Vue file in the scanned roots. `lint:ui-boundary` rejects
+native interactive templates, DOM gesture code, direct third-party imports, Desktop interaction
+CSS, and any mismatch between public Vue exports and the Storybook catalog.
 
 ## Application and views
 
@@ -134,6 +127,35 @@ and undefined semantic utility tokens.
 - [x] `components/InlineTrackNameEditor.vue`.
 
 ## Automated gates
+
+### Refactor equivalence
+
+Moving an interaction into the catalog is not permission to redesign it. Compare
+against the pre-boundary-refactor implementation (`14f0156`) as well as the
+interaction-design contract. A passing export/catalog audit alone does not prove
+visual or behavioral equivalence.
+
+The alignment regression suite checks these observable contracts:
+
+| Surface            | Contract                                                                                                                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Track volume       | A 15px horizontal fader over an 11px meter well; live meter data is independent of gain and the well remains visible at silence. Native thumb geometry and its hit area must agree.        |
+| Track pan          | A 23px control, two pixels per pan unit, and double-click numeric editing. Do not substitute the standard mixer's reset gesture.                                                           |
+| Mixer inserts      | Resting names occupy the full row; hover or keyboard focus reveals compact actions without overlapping the title. Test composition layout, not just emitted clicks.                        |
+| Mixer gain readout | Editing fits the 34×20px readout, starts from the raw numeric gain even when the label is −∞, and restores keyboard focus on commit/cancel.                                                |
+| Settings           | Navigation icons and neutral surfaces must survive composition. Input backgrounds and derived focus-ring tokens also need the neutral scope; changing only sidebar colors is insufficient. |
+| Clip editing       | Audio headings remain visible, fade handles sit above trim handles, MIDI trim affordances remain visible on selection, and Escape cannot be followed by a pointer-up commit.               |
+| Resize             | Every keyboard step starts from the current controlled value. Cancellation restores the pre-drag size; unrelated pointers cannot finish a gesture.                                         |
+| Piano roll erase   | Sweeping uses grid-coordinate note hit testing while pointer capture is active, then commits the collected deletion once.                                                                  |
+| File import        | Accept the `Files` drag type during protected dragover, before the browser exposes the actual files on drop.                                                                               |
+
+`apps/design-system/tests/ui-alignment.spec.ts` verifies rendered bounds, hit
+testing, input paths, focus and reflow in Chromium. UI/renderer tests cover the
+normalized intent and domain mappings. The Electron lifecycle test also checks
+the composed settings icons/palette and audio clip/fader display. Keep these
+checks complementary; stubbed components cannot validate composed layout.
+
+### Static boundaries
 
 - No renderer import from `reka-ui`.
 - No manual renderer `Teleport` overlay.

@@ -1,13 +1,12 @@
-import { computed, shallowRef, type Ref, type ShallowRef } from "vue"
+import { computed, shallowRef, type Ref } from "vue"
+import type { UiDropIntent } from "@heron/ui"
 import type { MidiClipState, TempoMapSnapshot } from "@heron/contracts"
 import type { PianoRollSnap } from "../../utils/pianoRoll"
 import { snapTicks } from "../../utils/pianoRoll"
-import { findNearestTrackId } from "../../utils/clipDrag"
 import { timelineXToTick } from "../../utils/timelineCoordinates"
 
 interface MidiClipDragOptions {
   clips: Ref<MidiClipState[]>
-  content: Readonly<ShallowRef<HTMLElement | null>>
   tempoMap: () => TempoMapSnapshot
   pixelsPerQuarter: Ref<number>
   snap: Ref<PianoRollSnap>
@@ -40,34 +39,22 @@ export function useMidiClipDrag(options: MidiClipDragOptions) {
     }
   }
 
-  function updateMidiClipDrag(event: DragEvent): void {
+  function updateMidiClipDrag(event: UiDropIntent): void {
     const drag = midiClipDrag.value
-    const contentElement = options.content.value
-    if (!drag || !contentElement) return
-    const lanes = Array.from(
-      contentElement.querySelectorAll<HTMLElement>("[data-track-id][data-track-kind='instrument']")
-    ).map((lane) => {
-      const bounds = lane.getBoundingClientRect()
-      return { trackId: lane.dataset.trackId!, top: bounds.top, bottom: bounds.bottom }
-    })
-    const trackId = findNearestTrackId(lanes, event.clientY)
-    if (!trackId) return
-    event.preventDefault()
-    if (event.dataTransfer) event.dataTransfer.dropEffect = "move"
-    const contentLeft = contentElement.getBoundingClientRect().left
+    if (!drag || event.targetKind !== "instrument" || !event.targetId) return
     const rawTick = timelineXToTick(
       options.tempoMap(),
-      Math.max(0, event.clientX - contentLeft - drag.offsetPixels),
+      Math.max(0, event.point.x - drag.offsetPixels),
       options.pixelsPerQuarter.value
     )
     midiClipDrag.value = {
       ...drag,
-      trackId,
+      trackId: event.targetId,
       startTick: snapTicks(rawTick, options.snap.value)
     }
   }
 
-  function handleMidiClipDrop(event: DragEvent): void {
+  function handleMidiClipDrop(event: UiDropIntent): void {
     if (!midiClipDrag.value) return
     updateMidiClipDrag(event)
     const drag = midiClipDrag.value

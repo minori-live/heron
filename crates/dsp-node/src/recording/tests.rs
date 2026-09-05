@@ -37,8 +37,11 @@ fn start_config(path: &std::path::Path) -> NativeRecordingStartConfig {
 
 fn decode_peaks(bytes: &[u8]) -> Vec<f32> {
     bytes
-        .chunks_exact(4)
-        .map(|value| f32::from_le_bytes(value.try_into().unwrap()))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .copied()
+        .map(f32::from_le_bytes)
         .collect()
 }
 
@@ -238,7 +241,12 @@ fn fft_resampling_preserves_sine_length_frequency_and_all_final_formats() {
                 .unwrap()
                 .read_frames(&mut rendered)
                 .unwrap();
-            let left: Vec<f32> = rendered.chunks_exact(2).map(|frame| frame[0]).collect();
+            let left: Vec<f32> = rendered
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|frame| frame[0])
+                .collect();
             let mut below = false;
             let mut positive_crossings = 0;
             for sample in &left {

@@ -24,6 +24,7 @@ const hasAsioOption = computed(() => props.options.some((option) => option.value
   >
     <div class="backend-grid">
       <UiRadioGroup
+        size="compact"
         :model-value="modelValue"
         :label="t('settings.audio.backend.ariaLabel')"
         :options="options"

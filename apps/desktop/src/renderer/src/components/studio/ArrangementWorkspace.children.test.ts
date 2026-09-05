@@ -1,4 +1,5 @@
-import { shallowMount } from "@vue/test-utils"
+import { mount, shallowMount } from "@vue/test-utils"
+import { createPinia } from "pinia"
 import { describe, expect, it, vi } from "vitest"
 import type { MixerChannelState, TempoMapSnapshot } from "@heron/contracts"
 import ArrangementTrack from "./ArrangementTrack.vue"
@@ -90,15 +91,18 @@ function timelineProps(trackRow = row()) {
 
 describe("ArrangementWorkspace presentational children", () => {
   it("keeps the track rail props-down/events-up", async () => {
-    const wrapper = shallowMount(ArrangementTrackRail, {
+    const wrapper = mount(ArrangementTrackRail, {
       props: {
         rows: [row()],
         selectedChannelId: channel.id,
         trackHeight: 88
-      }
+      },
+      global: { plugins: [createPinia()] }
     })
 
-    await wrapper.get(".track-header").trigger("click")
+    await wrapper
+      .get(".track-header")
+      .trigger("pointerdown", { pointerId: 1, clientX: 10, clientY: 10 })
     await wrapper.get(".track-header").trigger("keydown", { altKey: true, key: "ArrowDown" })
     wrapper.getComponent(InlineTrackNameEditor).vm.$emit("rename", "Lead")
     wrapper.getComponent(TrackQuickControls).vm.$emit("updateChannel", channel.id, { muted: true })

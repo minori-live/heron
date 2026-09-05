@@ -1,14 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/vue3-vite"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 
 import UiCascadingSelect from "./UiCascadingSelect.vue"
 import UiCheckbox from "./UiCheckbox.vue"
 import UiField from "./UiField.vue"
+import UiForm from "./UiForm.vue"
 import UiNumberInput from "./UiNumberInput.vue"
 import UiRadioGroup from "./UiRadioGroup.vue"
 import UiSelect from "./UiSelect.vue"
 import UiSlider from "./UiSlider.vue"
 import UiTextInput from "./UiTextInput.vue"
+import { shallowRef } from "vue"
 
 const meta = {
   title: "Components/Forms/Field",
@@ -21,6 +23,7 @@ const meta = {
     components: {
       UiCheckbox,
       UiField,
+      UiForm,
       UiRadioGroup,
       UiSelect,
       UiSlider,
@@ -50,7 +53,7 @@ const meta = {
       ]
     }),
     template: `
-      <form class="storybook-stack" style="max-width:32rem" @submit.prevent>
+      <UiForm class="storybook-stack" style="max-width:32rem">
         <UiField label="Project name" description="Shown in the project browser." required>
           <template #default="{ controlId, descriptionId }">
             <UiTextInput v-model="projectName" :id="controlId" :aria-describedby="descriptionId" />
@@ -68,7 +71,7 @@ const meta = {
             <UiSlider v-model="bufferSize" :id="controlId" :aria-describedby="descriptionId" label="Buffer size" :min="32" :max="2048" :step="32" :value-text="bufferSize + ' samples'" />
           </template>
         </UiField>
-      </form>
+      </UiForm>
     `
   })
 } satisfies Meta<typeof UiField>
@@ -76,7 +79,62 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const CompleteForm: Story = {}
+export const CompactBackend: Story = {
+  render: () => ({
+    components: { UiRadioGroup },
+    setup: () => ({
+      backend: shallowRef("wasapi"),
+      options: [
+        {
+          value: "wasapi",
+          label: "WASAPI · Windows",
+          description: "Windows shared and exclusive audio"
+        },
+        {
+          value: "asio",
+          label: "ASIO · Windows",
+          description: "Low-latency professional audio drivers"
+        },
+        { value: "unavailable", label: "Unavailable", disabled: true }
+      ]
+    }),
+    template: `<UiRadioGroup v-model="backend" size="compact" label="Audio backend" :options="options" />`
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const wasapi = canvas.getByRole("radio", { name: /WASAPI/ })
+    const asio = canvas.getByRole("radio", { name: /ASIO ·/ })
+    await expect(wasapi).toBeChecked()
+    await userEvent.tab()
+    await expect(wasapi).toHaveFocus()
+    await userEvent.keyboard("{ArrowDown}")
+    await expect(asio).toBeChecked()
+    await expect(canvas.getByRole("radio", { name: "Unavailable" })).toBeDisabled()
+    await userEvent.click(wasapi)
+    await expect(wasapi).toBeChecked()
+    const title = canvas.getByText("WASAPI · Windows")
+    const description = canvas.getByText("Windows shared and exclusive audio")
+    await expect(getComputedStyle(title).fontSize).toBe("9px")
+    await expect(getComputedStyle(description).fontSize).toBe("7px")
+    await expect(description.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      title.getBoundingClientRect().bottom
+    )
+    await expect(wasapi.getBoundingClientRect().width).toBe(12)
+  }
+}
+
+export const CompleteForm: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole("textbox", { name: /Project name/ })
+    await userEvent.clear(input)
+    await userEvent.type(input, "Album session")
+    await expect(input).toHaveValue("Album session")
+    const checkbox = canvas.getByRole("checkbox", { name: /Software monitoring/ })
+    await userEvent.click(checkbox)
+    await expect(checkbox).not.toBeChecked()
+  }
+}
 
 export const Error: Story = {
   render: () => ({
@@ -267,7 +325,15 @@ export const SelectSizesAndGroups: Story = {
         </UiField>
       </div>
     `
-  })
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const route = canvas.getByLabelText(/Cascading route/)
+    await userEvent.click(route)
+    await within(document.body).findByText("Outputs")
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(route).toHaveFocus())
+  }
 }
 
 export const EmbeddedHoverTreatments: Story = {

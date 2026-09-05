@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ApplicationSettings } from "@heron/contracts"
 import { useI18n } from "vue-i18n"
+import { UiActionRow, UiButton } from "@heron/ui"
 
 const props = defineProps<{
   projects: ApplicationSettings["recentProjects"]
@@ -18,34 +19,33 @@ const { t } = useI18n()
   <section class="welcome-recent" aria-labelledby="recent-projects-heading">
     <div class="welcome-recent__heading">
       <h2 id="recent-projects-heading">{{ t("welcome.recentProjects") }}</h2>
-      <button type="button" :disabled="props.busy" @click="emit('open')">
+      <UiButton size="sm" variant="ghost" :disabled="props.busy" @click="emit('open')">
         {{ t("welcome.openAnother") }}
-      </button>
+      </UiButton>
     </div>
 
     <div v-if="props.projects.length" class="welcome-recent__list">
-      <button
+      <UiActionRow
         v-for="recent in props.projects"
         :key="recent.path"
         class="recent-item"
-        type="button"
+        :label="recent.name"
+        :description="recent.path"
         :disabled="props.busy"
-        @click="emit('open', recent.path)"
+        @activate="emit('open', recent.path)"
       >
-        <span class="recent-item__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="M3.5 7.5h6l2-2h9v13h-17z" />
-            <path d="M3.5 9.5h17" />
-          </svg>
-        </span>
-        <span class="recent-item__copy">
-          <strong>{{ recent.name }}</strong>
-          <small>{{ recent.path }}</small>
-        </span>
-        <svg class="recent-item__arrow" aria-hidden="true" viewBox="0 0 20 20">
-          <path d="M4 10h12M12 6l4 4-4 4" />
-        </svg>
-      </button>
+        <template #leading
+          ><span class="recent-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M3.5 7.5h6l2-2h9v13h-17z" />
+              <path d="M3.5 9.5h17" />
+            </svg> </span
+        ></template>
+        <template #trailing
+          ><svg class="recent-item__arrow" aria-hidden="true" viewBox="0 0 20 20">
+            <path d="M4 10h12M12 6l4 4-4 4" /></svg
+        ></template>
+      </UiActionRow>
     </div>
 
     <p v-else class="welcome-recent__empty">{{ t("welcome.noRecent") }}</p>
@@ -80,19 +80,12 @@ const { t } = useI18n()
   color: var(--accent);
   background: transparent;
   font-size: var(--ui-font-size-xs);
-  cursor: pointer;
   transition: color var(--ui-motion-fast) var(--ui-ease-standard);
 }
 
 .welcome-recent__heading > button:disabled {
   cursor: wait;
   opacity: 0.5;
-}
-
-.welcome-recent__heading > button:focus-visible,
-.recent-item:focus-visible {
-  outline: 2px solid var(--accent-soft);
-  outline-offset: 3px;
 }
 
 .welcome-recent__list {
@@ -116,7 +109,6 @@ const { t } = useI18n()
   color: var(--text-secondary);
   background: transparent;
   text-align: left;
-  cursor: pointer;
   transition:
     border-color var(--ui-motion-fast) var(--ui-ease-standard),
     background var(--ui-motion-fast) var(--ui-ease-standard),
@@ -188,21 +180,5 @@ const { t } = useI18n()
   color: var(--text-faint);
   font-size: var(--ui-font-size-sm);
   line-height: var(--ui-type-leading-relaxed);
-}
-
-@media (hover: hover) {
-  .welcome-recent__heading > button:hover:not(:disabled) {
-    color: var(--text-primary);
-  }
-
-  .recent-item:hover:not(:disabled) {
-    border-color: var(--line-soft);
-    background: color-mix(in srgb, var(--surface-3) 72%, transparent);
-    transform: translateX(2px);
-  }
-
-  .recent-item:hover:not(:disabled) .recent-item__arrow {
-    transform: translateX(2px);
-  }
 }
 </style>

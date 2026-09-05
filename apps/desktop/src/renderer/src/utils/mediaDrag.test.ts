@@ -1,19 +1,9 @@
-import { describe, expect, it, vi } from "vitest"
-import { PROJECT_MEDIA_DRAG_TYPE, readProjectMediaDrag, writeProjectMediaDrag } from "./mediaDrag"
-
-function transfer() {
-  const values = new Map<string, string>()
-  return {
-    effectAllowed: "none",
-    setData: vi.fn((type: string, value: string) => values.set(type, value)),
-    getData: vi.fn((type: string) => values.get(type) ?? "")
-  } as unknown as DataTransfer
-}
+import { describe, expect, it } from "vitest"
+import { parseProjectMediaDrag, serializeProjectMediaDrag } from "./mediaDrag"
 
 describe("project media drag payload", () => {
   it("round-trips only the asset identity and kind", () => {
-    const data = transfer()
-    writeProjectMediaDrag(data, {
+    const data = serializeProjectMediaDrag({
       id: "asset-1",
       kind: "audio",
       name: "Audio.wav",
@@ -24,15 +14,11 @@ describe("project media drag payload", () => {
       frameCount: 48_000n
     })
 
-    expect(data.effectAllowed).toBe("copy")
-    expect(readProjectMediaDrag(data)).toEqual({ assetId: "asset-1", kind: "audio" })
+    expect(parseProjectMediaDrag(data)).toEqual({ assetId: "asset-1", kind: "audio" })
   })
 
   it("rejects malformed or unsupported payloads", () => {
-    const data = transfer()
-    data.setData(PROJECT_MEDIA_DRAG_TYPE, JSON.stringify({ assetId: "asset-1", kind: "plugin" }))
-    expect(readProjectMediaDrag(data)).toBeNull()
-    data.setData(PROJECT_MEDIA_DRAG_TYPE, "not json")
-    expect(readProjectMediaDrag(data)).toBeNull()
+    expect(parseProjectMediaDrag(JSON.stringify({ assetId: "asset-1", kind: "plugin" }))).toBeNull()
+    expect(parseProjectMediaDrag("not json")).toBeNull()
   })
 })

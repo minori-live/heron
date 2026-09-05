@@ -61,7 +61,7 @@ describe("NotesPanel", () => {
     expect(preview.find("img").exists()).toBe(false)
     expect(preview.find("script").exists()).toBe(false)
 
-    await wrapper.findAll('[role="tab"]')[1]!.trigger("click")
+    await wrapper.get('button[value="track"]').trigger("click")
     expect(wrapper.get('[data-testid="markdown-preview"]').text()).toContain("Use the 47.")
     expect(wrapper.text()).toContain("Lead vocal")
   })
@@ -69,7 +69,7 @@ describe("NotesPanel", () => {
   it("edits and saves project and track Markdown through project commands", async () => {
     const { wrapper, execute } = setup()
 
-    await wrapper.get('button[class="edit-button"]').trigger("click")
+    await wrapper.get("button.edit-button").trigger("click")
     await wrapper.get("textarea").setValue("## Revised plan")
     await wrapper
       .findAll("button")
@@ -81,8 +81,8 @@ describe("NotesPanel", () => {
       notes: "## Revised plan"
     })
 
-    await wrapper.findAll('[role="tab"]')[1]!.trigger("click")
-    await wrapper.get('button[class="edit-button"]').trigger("click")
+    await wrapper.get('button[value="track"]').trigger("click")
+    await wrapper.get("button.edit-button").trigger("click")
     await wrapper.get("textarea").setValue("Track detail")
     await wrapper.get("textarea").trigger("keydown", { key: "s", ctrlKey: true })
     await flushPromises()
@@ -96,7 +96,7 @@ describe("NotesPanel", () => {
   it("explains that track notes need a selected timeline track", async () => {
     const { wrapper, mixer } = setup()
     mixer.selectedChannelId = null
-    await wrapper.findAll('[role="tab"]')[1]!.trigger("click")
+    await wrapper.get('button[value="track"]').trigger("click")
 
     expect(wrapper.text()).toContain("Select an Audio or Instrument track")
     expect(wrapper.find("textarea").exists()).toBe(false)
@@ -105,8 +105,8 @@ describe("NotesPanel", () => {
   it("switches back to project notes, cancels empty-state editing, and closes the panel", async () => {
     const { wrapper, mixer, workspace } = setup()
 
-    await wrapper.findAll('[role="tab"]')[1]!.trigger("click")
-    await wrapper.findAll('[role="tab"]')[0]!.trigger("click")
+    await wrapper.get('button[value="track"]').trigger("click")
+    await wrapper.get('button[value="project"]').trigger("click")
     expect(wrapper.get('[data-testid="markdown-preview"]').text()).toContain("Session plan")
 
     mixer.hydrate({ ...structuredClone(mixer.graph), projectNotes: "" })
@@ -140,8 +140,8 @@ describe("NotesPanel", () => {
       channels: [...mixer.graph.channels, secondChannel]
     })
 
-    await wrapper.findAll('[role="tab"]')[1]!.trigger("click")
-    await wrapper.get('button[class="edit-button"]').trigger("click")
+    await wrapper.get('button[value="track"]').trigger("click")
+    await wrapper.get("button.edit-button").trigger("click")
     await wrapper.get("textarea").setValue("Lead vocal edit")
     mixer.selectedChannelId = secondChannel.id
     await nextTick()

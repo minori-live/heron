@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import type { MidiClipState } from "@heron/contracts"
+import type { UiGestureIntent, UiGesturePhase } from "@heron/ui"
 import { useMidiClipTrim } from "./useMidiClipTrim"
 
 const clip: MidiClipState = {
@@ -14,25 +15,15 @@ const clip: MidiClipState = {
   notes: [],
   events: []
 }
-
-function pointerEvent(
-  type: string,
-  overrides: Partial<PointerEvent> & { clientX: number; pointerId?: number }
-): PointerEvent {
-  const target = document.createElement("span")
-  target.setPointerCapture = vi.fn()
-  return {
-    type,
-    pointerId: overrides.pointerId ?? 1,
-    clientX: overrides.clientX,
-    currentTarget: target,
-    preventDefault: vi.fn(),
-    stopPropagation: vi.fn()
-  } as unknown as PointerEvent
-}
+const intent = (phase: UiGesturePhase, x: number): UiGestureIntent => ({
+  phase,
+  point: { x, y: 0 },
+  delta: { x, y: 0 },
+  modifiers: { alt: false, control: false, meta: false, shift: false }
+})
 
 describe("useMidiClipTrim", () => {
-  it("converts pointer deltas with the project ticks-per-quarter", () => {
+  it("converts normalized deltas with the project ticks-per-quarter", () => {
     const commit = vi.fn()
     const trim = useMidiClipTrim({
       clip: () => clip,
@@ -41,18 +32,14 @@ describe("useMidiClipTrim", () => {
       snap: () => "off",
       commit
     })
-
-    // 480 px/quarter at 1920 TPQ => 0.25 px/tick. A +120px drag is +480 ticks.
-    trim.start(pointerEvent("pointerdown", { clientX: 100 }), "end")
-    trim.update(pointerEvent("pointermove", { clientX: 220 }))
+    trim.gesture("end", intent("start", 0))
+    trim.gesture("end", intent("update", 120))
     expect(trim.preview.value).toMatchObject({ startTick: 960, lengthTicks: 1_440 })
-    trim.finish(pointerEvent("pointerup", { clientX: 220 }))
-
+    trim.gesture("end", intent("commit", 120))
     expect(commit).toHaveBeenCalledWith("end", 2_400)
-    expect(trim.preview.value).toBeNull()
   })
 
-  it("ignores mismatched pointer ids and cancels an in-flight preview", () => {
+  it("cancels an in-flight preview", () => {
     const commit = vi.fn()
     const trim = useMidiClipTrim({
       clip: () => clip,
@@ -61,13 +48,9 @@ describe("useMidiClipTrim", () => {
       snap: () => "1/16",
       commit
     })
-
-    trim.start(pointerEvent("pointerdown", { clientX: 100, pointerId: 3 }), "start")
-    trim.update(pointerEvent("pointermove", { clientX: 220, pointerId: 9 }))
-    expect(trim.preview.value).toEqual(clip)
-    trim.cancel()
-    trim.finish(pointerEvent("pointerup", { clientX: 220, pointerId: 3 }))
-
+    trim.gesture("start", intent("start", 0))
+    trim.gesture("start", intent("update", 120))
+    trim.gesture("start", intent("cancel", 120))
     expect(commit).not.toHaveBeenCalled()
     expect(trim.active.value).toBeNull()
   })

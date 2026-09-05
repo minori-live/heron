@@ -4,7 +4,7 @@ import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { CircleAlert, RefreshCw, TriangleAlert } from "@lucide/vue"
 import type { AudioRuntimeSnapshot } from "@heron/contracts"
-import { UiPopover } from "@heron/ui"
+import { UiButton, UiIconButton, UiPopover } from "@heron/ui"
 import type { AudioTelemetryStatistics, AudioWarning } from "../../stores/audioRuntime"
 import {
   classifyUpperBound,
@@ -95,7 +95,9 @@ function formatLatency(value: number | null): string {
 <template>
   <UiPopover align="end" side="top" :side-offset="9" content-class="performance-popover-shell">
     <template #trigger>
-      <button
+      <UiButton
+        size="status"
+        variant="ghost"
         :class="['performance-trigger', severity]"
         :aria-label="
           t('performance.trigger.ariaLabel', {
@@ -106,7 +108,7 @@ function formatLatency(value: number | null): string {
         <span class="health-light" aria-hidden="true" />
         <span>{{ t("performance.trigger.cpu") }} {{ formatPercent(cpuUsage) }}</span>
         <span>{{ t("performance.trigger.mem") }} {{ formatPercent(memoryUsage) }}</span>
-      </button>
+      </UiButton>
     </template>
     <div class="performance-popover">
       <header class="performance-header">
@@ -118,14 +120,15 @@ function formatLatency(value: number | null): string {
           <span :class="['health-badge', severity]">{{
             t(`performance.severity.${severity}`)
           }}</span>
-          <button
+          <UiIconButton
             class="refresh-performance"
-            :aria-label="t('performance.header.refreshAria')"
+            :label="t('performance.header.refreshAria')"
+            size="sm"
             :disabled="isRefreshing"
             @click="systemPerformanceStore.refresh"
           >
             <RefreshCw :class="{ spinning: isRefreshing }" :size="12" />
-          </button>
+          </UiIconButton>
         </div>
       </header>
 
@@ -166,19 +169,7 @@ function formatLatency(value: number | null): string {
   gap: 8px;
   color: var(--text-muted);
   background: transparent;
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
-  cursor: pointer;
-}
-.performance-trigger:hover {
-  border-color: var(--line-strong);
-  color: var(--text-secondary);
-  background: var(--daw-control);
-}
-.performance-trigger:focus-visible,
-.refresh-performance:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 .performance-trigger.warning {
   border-color: color-mix(in srgb, var(--warning) 45%, var(--line-strong));
@@ -296,14 +287,8 @@ function formatLatency(value: number | null): string {
   border-radius: 5px;
   color: var(--text-muted);
   background: var(--daw-control);
-  cursor: pointer;
-}
-.refresh-performance:hover {
-  color: var(--text-primary);
-  background: var(--daw-control-hover);
 }
 .refresh-performance:disabled {
-  cursor: wait;
   opacity: 0.55;
 }
 .spinning {

@@ -3,6 +3,7 @@ import type { MidiClipState } from "@heron/contracts"
 import type { PianoRollSnap } from "../../utils/pianoRoll"
 import { snapTicks } from "../../utils/pianoRoll"
 import { type ClipTrimEdge, previewMidiClipTrim } from "../../utils/clipEditing"
+import type { UiGestureIntent } from "@heron/ui"
 
 interface UseMidiClipTrimOptions {
   clip: () => MidiClipState
@@ -14,8 +15,6 @@ interface UseMidiClipTrimOptions {
 
 interface ActiveTrim {
   edge: ClipTrimEdge
-  pointerId: number
-  pointerStartX: number
   edgeStartTick: number
 }
 
@@ -23,37 +22,32 @@ export function useMidiClipTrim(options: UseMidiClipTrimOptions) {
   const preview = shallowRef<MidiClipState | null>(null)
   const active = shallowRef<ActiveTrim | null>(null)
 
-  function requestedTick(event: PointerEvent, trim: ActiveTrim): number {
+  function requestedTick(deltaX: number, trim: ActiveTrim): number {
     const ticksPerQuarter = Math.max(1, options.ticksPerQuarter())
     const pixelsPerTick = options.pixelsPerQuarter() / ticksPerQuarter
-    const rawTick =
-      trim.edgeStartTick +
-      (event.clientX - trim.pointerStartX) / Math.max(Number.EPSILON, pixelsPerTick)
+    const rawTick = trim.edgeStartTick + deltaX / Math.max(Number.EPSILON, pixelsPerTick)
     return snapTicks(rawTick, options.snap())
   }
 
-  function start(event: PointerEvent, edge: ClipTrimEdge): void {
+  function start(edge: ClipTrimEdge): void {
     const clip = options.clip()
     active.value = {
       edge,
-      pointerId: event.pointerId,
-      pointerStartX: event.clientX,
       edgeStartTick: edge === "start" ? clip.startTick : clip.startTick + clip.lengthTicks
     }
     preview.value = clip
-    ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
   }
 
-  function update(event: PointerEvent): void {
+  function update(deltaX: number): void {
     const trim = active.value
-    if (!trim || event.pointerId !== trim.pointerId) return
-    preview.value = previewMidiClipTrim(options.clip(), trim.edge, requestedTick(event, trim))
+    if (!trim) return
+    preview.value = previewMidiClipTrim(options.clip(), trim.edge, requestedTick(deltaX, trim))
   }
 
-  function finish(event: PointerEvent): void {
+  function finish(deltaX: number): void {
     const trim = active.value
-    if (!trim || event.pointerId !== trim.pointerId) return
-    update(event)
+    if (!trim) return
+    update(deltaX)
     const value = preview.value
     active.value = null
     preview.value = null
@@ -69,12 +63,17 @@ export function useMidiClipTrim(options: UseMidiClipTrimOptions) {
     preview.value = null
   }
 
+  function gesture(edge: ClipTrimEdge, intent: UiGestureIntent): void {
+    if (intent.phase === "start") start(edge)
+    else if (intent.phase === "update") update(intent.delta.x)
+    else if (intent.phase === "commit") finish(intent.delta.x)
+    else cancel()
+  }
+
   return {
     active: readonly(active),
     preview: readonly(preview),
-    start,
-    update,
-    finish,
+    gesture,
     cancel
   }
 }

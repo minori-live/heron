@@ -1,14 +1,5 @@
-import {
-  computed,
-  nextTick,
-  shallowRef,
-  toValue,
-  useTemplateRef,
-  watch,
-  type MaybeRefOrGetter,
-  type Ref
-} from "vue"
-import { useResizeObserver } from "@vueuse/core"
+import { computed, shallowRef, toValue, watch, type MaybeRefOrGetter, type Ref } from "vue"
+import type { UiViewportState, UiWheelIntent } from "@heron/ui"
 import type { TempoMapSnapshot } from "@heron/contracts"
 import { secondsToTimelineX, timelineXToSeconds } from "../../utils/timelineCoordinates"
 
@@ -40,8 +31,6 @@ export function zoomedViewportScrollLeft(
 }
 
 export function useArrangementViewport(options: ArrangementViewportOptions) {
-  const rail = useTemplateRef<HTMLElement>("rail")
-  const viewport = useTemplateRef<HTMLElement>("viewport")
   const viewportWidth = shallowRef(1)
   const scrollLeft = shallowRef(0)
   let timeZoomAnchor: { seconds: number; viewportX: number } | null = null
@@ -67,84 +56,56 @@ export function useArrangementViewport(options: ArrangementViewportOptions) {
     )
   )
 
-  function timelineViewportWidth(element: HTMLElement): number {
-    return Math.max(1, element.clientWidth - (rail.value?.offsetWidth ?? 0))
+  function handleViewport(state: UiViewportState): void {
+    viewportWidth.value = state.width
+    scrollLeft.value = state.scrollLeft
   }
 
-  function updateViewportWidth(): void {
-    const element = viewport.value
-    if (!element) return
-    viewportWidth.value = timelineViewportWidth(element)
-  }
-
-  function handleScroll(): void {
-    const element = viewport.value
-    scrollLeft.value = element?.scrollLeft ?? 0
-  }
-
-  function handleWheel(event: WheelEvent): void {
-    if ((event.ctrlKey || event.metaKey) && event.altKey) {
-      options.zoomAmplitude(event.deltaY < 0 ? 1 : -1)
-    } else if (event.ctrlKey || event.metaKey) {
-      const element = viewport.value
-      if (element) {
-        const bounds = element.getBoundingClientRect()
-        const width = timelineViewportWidth(element)
-        const viewportX = clampTimelineViewportX(
-          event.clientX,
-          bounds.left,
-          rail.value?.offsetWidth ?? 0,
-          width
-        )
-        timeZoomAnchor = {
-          seconds: timelineXToSeconds(
-            options.tempoMap(),
-            element.scrollLeft + viewportX,
-            options.pixelsPerQuarter.value
-          ),
-          viewportX
-        }
+  function handleWheel(event: UiWheelIntent): void {
+    if ((event.modifiers.control || event.modifiers.meta) && event.modifiers.alt) {
+      options.zoomAmplitude(event.delta.y < 0 ? 1 : -1)
+    } else if (event.modifiers.control || event.modifiers.meta) {
+      const viewportX = Math.max(0, Math.min(viewportWidth.value, event.point.x - scrollLeft.value))
+      timeZoomAnchor = {
+        seconds: timelineXToSeconds(
+          options.tempoMap(),
+          scrollLeft.value + viewportX,
+          options.pixelsPerQuarter.value
+        ),
+        viewportX
       }
-      options.zoomTime(event.deltaY < 0 ? 1 : -1)
-    } else if (event.altKey) {
-      options.zoomTrack(event.deltaY < 0 ? 1 : -1)
-    } else if (event.shiftKey && viewport.value) {
-      viewport.value.scrollLeft += event.deltaY
+      options.zoomTime(event.delta.y < 0 ? 1 : -1)
+    } else if (event.modifiers.alt) {
+      options.zoomTrack(event.delta.y < 0 ? 1 : -1)
+    } else if (event.modifiers.shift) {
+      scrollLeft.value += event.delta.y
     } else {
       return
     }
-    event.preventDefault()
   }
 
-  useResizeObserver(viewport, updateViewportWidth)
-  useResizeObserver(rail, updateViewportWidth)
   watch(options.pixelsPerQuarter, (value, previous) => {
-    const element = viewport.value
-    if (!element || !previous) return
-    const width = timelineViewportWidth(element)
+    if (!previous) return
+    const width = viewportWidth.value
     const anchor = timeZoomAnchor ?? {
-      seconds: timelineXToSeconds(options.tempoMap(), element.scrollLeft + width / 2, previous),
+      seconds: timelineXToSeconds(options.tempoMap(), scrollLeft.value + width / 2, previous),
       viewportX: width / 2
     }
     timeZoomAnchor = null
-    void nextTick(() => {
-      element.scrollLeft = zoomedViewportScrollLeft(
-        options.tempoMap(),
-        anchor.seconds,
-        value,
-        anchor.viewportX
-      )
-      scrollLeft.value = element.scrollLeft
-    })
+    scrollLeft.value = zoomedViewportScrollLeft(
+      options.tempoMap(),
+      anchor.seconds,
+      value,
+      anchor.viewportX
+    )
   })
 
   return {
-    rail,
-    viewport,
+    scrollLeft,
     contentWidth,
     viewportStartSeconds,
     viewportEndSeconds,
-    handleScroll,
+    handleViewport,
     handleWheel
   }
 }

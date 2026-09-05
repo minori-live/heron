@@ -2,6 +2,7 @@
 import { usePianoRollEditor } from "./usePianoRollEditor"
 import PianoRollKeyboard from "./PianoRollKeyboard.vue"
 import PianoRollNote from "./PianoRollNote.vue"
+import { UiButton, UiPianoRollGrid } from "@heron/ui"
 
 const {
   pianoRollStore,
@@ -20,10 +21,7 @@ const {
   keyStyle,
   isBlackKey,
   seekToTick,
-  handleGridPointerDown,
-  handleGridPointerMove,
-  handleGridPointerUp,
-  cancelGridGesture
+  handleGridGesture
 } = usePianoRollEditor()
 </script>
 
@@ -38,19 +36,20 @@ const {
   >
     <div class="ruler-corner" />
     <div class="ruler" :style="{ width: `${gridWidth}px` }">
-      <button
+      <UiButton
         v-for="(tick, index) in barTicks"
         :key="`bar-${tick}`"
-        type="button"
+        size="sm"
+        variant="ghost"
         class="ruler-mark bar"
         :style="{ left: `${tick * pixelsPerTick}px` }"
         @click="seekToTick(tick)"
       >
         {{ index + 1 }}
-      </button>
+      </UiButton>
     </div>
     <PianoRollKeyboard />
-    <div
+    <UiPianoRollGrid
       class="grid"
       data-testid="piano-roll-note-grid"
       :style="{
@@ -59,10 +58,8 @@ const {
         '--row-height': `${pianoRollStore.rowHeight}px`,
         '--beat-width': `${graph.tempoMap.ticksPerQuarter * pixelsPerTick}px`
       }"
-      @pointerdown.self="handleGridPointerDown"
-      @pointermove="handleGridPointerMove"
-      @pointerup="handleGridPointerUp"
-      @pointercancel="cancelGridGesture"
+      label="Piano roll note grid"
+      @gesture="handleGridGesture"
     >
       <i
         v-for="key in 128"
@@ -108,7 +105,7 @@ const {
         :style="{ left: `${playheadTick * pixelsPerTick}px` }"
         aria-hidden="true"
       />
-    </div>
+    </UiPianoRollGrid>
   </div>
 </template>
 

@@ -24,7 +24,7 @@ describe("DisplaySettings", () => {
     await flushPromises()
 
     const lightOption = wrapper
-      .findAll('[role="radio"]')
+      .findAll("button.ui-choice-card")
       .find((option) => option.text().includes("Light"))
     expect(lightOption).toBeDefined()
     await lightOption!.trigger("click")
@@ -33,7 +33,7 @@ describe("DisplaySettings", () => {
     expect(window.heron.updateApplicationSettings).toHaveBeenCalledWith(expect.any(Object), {
       theme: "light"
     })
-    expect(lightOption!.attributes("aria-checked")).toBe("true")
+    expect(lightOption!.attributes("aria-pressed")).toBe("true")
   })
 
   it("persists a locale selected by the user", async () => {
@@ -43,7 +43,7 @@ describe("DisplaySettings", () => {
     await flushPromises()
 
     const chineseOption = wrapper
-      .findAll('[role="radio"]')
+      .findAll("button.ui-choice-card")
       .find((option) => option.text().includes("简体中文"))
     expect(chineseOption).toBeDefined()
     await chineseOption!.trigger("click")
@@ -52,7 +52,7 @@ describe("DisplaySettings", () => {
     expect(window.heron.updateApplicationSettings).toHaveBeenCalledWith(expect.any(Object), {
       locale: "zh-cmn-Hans-CN"
     })
-    expect(chineseOption!.attributes("aria-checked")).toBe("true")
+    expect(chineseOption!.attributes("aria-pressed")).toBe("true")
   })
 
   it("disables automatic Studio Basics from the tutorials setting", async () => {

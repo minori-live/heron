@@ -10,23 +10,31 @@ const props = withDefaults(
     options: readonly UiSegmentedOption[]
     size?: "compact" | UiControlSize
     disabled?: boolean
+    appearance?: "default" | "separated"
+    required?: boolean
   }>(),
   {
     size: "sm",
-    disabled: false
+    disabled: false,
+    appearance: "default",
+    required: false
   }
 )
+function select(value: unknown): void {
+  if (typeof value === "string" && (value !== "" || !props.required)) model.value = value
+}
 </script>
 
 <template>
   <ToggleGroupRoot
-    v-model="model"
+    :model-value="model"
     class="ui-segmented"
-    :class="`ui-segmented--${props.size}`"
+    :class="[`ui-segmented--${props.size}`, `ui-segmented--${props.appearance}`]"
     type="single"
     orientation="horizontal"
     :disabled="props.disabled"
     :aria-label="props.label"
+    @update:model-value="select"
   >
     <ToggleGroupItem
       v-for="option in props.options"
@@ -102,5 +110,36 @@ const props = withDefaults(
   min-height: calc(var(--ui-control-lg) - 2px);
   padding: 0 var(--ui-space-5);
   font-size: var(--ui-font-size-md);
+}
+
+.ui-segmented--separated {
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.ui-segmented--separated .ui-segmented__item {
+  min-height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  color: var(--text-secondary);
+  background: var(--daw-control);
+  font: var(--ui-type-size-caption) var(--ui-type-family-interface);
+}
+.ui-segmented--separated .ui-segmented__item[data-state="on"] {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line-strong));
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) 20%, var(--daw-control));
+  box-shadow: var(--ui-shadow-highlight-inset);
+}
+.ui-segmented--separated .ui-segmented__item:hover:not(:disabled):not([data-state="on"]) {
+  background: var(--daw-control-hover);
+}
+.ui-segmented--separated .ui-segmented__item:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+  box-shadow: none;
 }
 </style>

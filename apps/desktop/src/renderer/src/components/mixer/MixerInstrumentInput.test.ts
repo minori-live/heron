@@ -37,6 +37,15 @@ afterEach(() => {
   document.body.innerHTML = ""
 })
 
+async function openPickerSubmenu(ariaLabel: string): Promise<void> {
+  const trigger = document.body.querySelector<HTMLElement>(`[aria-label="${ariaLabel}"]`)
+  expect(trigger).not.toBeNull()
+  const menuTrigger = new DOMWrapper(trigger)
+  await menuTrigger.trigger("focus")
+  await menuTrigger.trigger("keydown", { key: "ArrowRight" })
+  await flushPromises()
+}
+
 describe("MixerInstrumentInput", () => {
   it("renders the assigned instrument as the channel input", async () => {
     const wrapper = mount(MixerInstrumentInput, {
@@ -55,6 +64,13 @@ describe("MixerInstrumentInput", () => {
     expect(wrapper.find('button[aria-label="Bypass Synth"]').exists()).toBe(false)
     await wrapper.get('button[aria-label="Remove Synth"]').trigger("click")
     expect(wrapper.emitted("remove")?.at(-1)).toEqual(["instrument-plugin"])
+    expect(wrapper.get('button[aria-label="Remove Synth"]').classes()).toContain(
+      "ui-icon-button--compact"
+    )
+    expect(wrapper.get('button[aria-label="Remove Synth"]').attributes("data-variant")).toBe(
+      "danger-ghost"
+    )
+    expect(wrapper.get(".instrument-input").attributes("style")).toBeUndefined()
   })
 
   it("assigns an instrument from the empty input picker or a catalog drop", async () => {
@@ -70,14 +86,11 @@ describe("MixerInstrumentInput", () => {
     expect(wrapper.get('button[aria-label="Assign VST3 instrument input"]').text()).toBe("")
     await wrapper.get('button[aria-label="Assign VST3 instrument input"]').trigger("click")
     await flushPromises()
-    const synthButton = document.body.querySelector<HTMLButtonElement>(
-      'button[aria-label="Add Synth"]'
-    )
-    expect(synthButton).not.toBeNull()
-    await new DOMWrapper(synthButton).trigger("click")
+    await openPickerSubmenu("Browse Heron Studio plug-ins")
+    await openPickerSubmenu("Choose Synth")
     expect(wrapper.emitted("assign")).toBeUndefined()
-    const stereoButton = document.body.querySelector<HTMLButtonElement>(
-      'button[title="Stereo: 2 channel output"]'
+    const stereoButton = document.body.querySelector<HTMLElement>(
+      '[title="Stereo: 2 channel output"]'
     )
     expect(stereoButton).not.toBeNull()
     await new DOMWrapper(stereoButton).trigger("click")

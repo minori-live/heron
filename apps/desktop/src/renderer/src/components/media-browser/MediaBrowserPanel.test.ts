@@ -69,12 +69,16 @@ describe("MediaBrowserPanel", () => {
     await wrapper.findAll(".filter-row button")[1]!.trigger("click")
     expect(wrapper.text()).toContain("Kick.mp3")
     expect(wrapper.text()).not.toContain("Bass.mid")
+    await wrapper.findAll(".filter-row button")[1]!.trigger("click")
+    expect(wrapper.text()).toContain("Kick.mp3")
+    expect(wrapper.findAll(".filter-row button")[1]!.attributes("aria-pressed")).toBe("true")
   })
 
   it("auditions only the selected audio asset and toggles the active preview", async () => {
     const wrapper = mountBrowser()
     const audioRow = wrapper.findAll(".asset-row")[0]!
-    await audioRow.trigger("click")
+    await audioRow.get("button.ui-action-row").trigger("click")
+    expect(useMediaBrowserStore().selectedAssetId).toBe("audio-1")
     await wrapper.get('button[aria-label="Audition Kick.mp3"]').trigger("click")
     await flushPromises()
 
@@ -126,8 +130,7 @@ describe("MediaBrowserPanel", () => {
     await wrapper.vm.$nextTick()
     const audioRow = wrapper.findAll(".asset-row")[0]!
 
-    await audioRow.trigger("focus")
-    await audioRow.trigger("keydown", { key: "Enter" })
+    await audioRow.get("button.ui-action-row").trigger("click")
     await audioRow.trigger("dragstart")
     expect(media.selectedAssetId).toBe("audio-1")
     expect(audioRow.text()).toContain("0.0 s")

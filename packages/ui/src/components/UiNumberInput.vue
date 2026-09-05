@@ -11,6 +11,10 @@ const props = withDefaults(
     id?: string
     name?: string
     size?: "compact" | UiControlSize
+    appearance?: "default" | "workspace"
+    suffix?: string
+    accentColor?: string
+    formatOptions?: Intl.NumberFormatOptions
     min?: number
     max?: number
     step?: number
@@ -24,6 +28,10 @@ const props = withDefaults(
     id: undefined,
     name: undefined,
     size: "md",
+    appearance: "default",
+    suffix: undefined,
+    accentColor: undefined,
+    formatOptions: undefined,
     min: undefined,
     max: undefined,
     step: 1,
@@ -41,11 +49,20 @@ const props = withDefaults(
     :id="props.id"
     v-model="model"
     class="ui-number-input inline-grid min-w-0"
-    :class="`ui-number-input--${props.size}`"
+    :class="[
+      `ui-number-input--${props.size}`,
+      {
+        'ui-number-input--workspace': props.appearance === 'workspace',
+        'ui-number-input--suffix': props.suffix
+      }
+    ]"
+    :style="{ '--number-input-accent': props.accentColor }"
+    :data-invalid="props.invalid || undefined"
     :name="props.name"
     :min="props.min"
     :max="props.max"
     :step="props.step"
+    :format-options="props.formatOptions"
     :disabled="props.disabled"
     :readonly="props.readonly"
     :required="props.required"
@@ -57,11 +74,15 @@ const props = withDefaults(
       :placeholder="props.placeholder"
       :aria-invalid="props.invalid || undefined"
     />
+    <span v-if="props.suffix" class="ui-number-input__suffix" aria-hidden="true">{{
+      props.suffix
+    }}</span>
   </NumberFieldRoot>
 </template>
 
 <style scoped>
-.ui-number-input__field:hover:not(:disabled) {
+.ui-number-input:not(.ui-number-input--workspace):not(.ui-number-input--suffix)
+  .ui-number-input__field:hover:not(:disabled) {
   border-color: var(--ui-color-border-strong);
   background: var(--ui-color-control);
 }
@@ -105,5 +126,75 @@ const props = withDefaults(
   min-height: var(--ui-control-lg);
   padding: 0 var(--ui-space-4);
   font-size: var(--ui-type-size-label);
+}
+
+.ui-number-input--workspace,
+.ui-number-input--suffix {
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-color-control);
+}
+
+.ui-number-input--suffix {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.ui-number-input--workspace .ui-number-input__field,
+.ui-number-input--suffix .ui-number-input__field {
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+}
+
+.ui-number-input--workspace {
+  border-color: var(--line-soft, var(--ui-color-border));
+  background: var(--surface-sunken, var(--ui-color-control));
+}
+
+.ui-number-input--workspace .ui-number-input__field {
+  padding: 0 5px;
+  color: var(--text-primary, var(--ui-color-text));
+}
+
+.ui-number-input--workspace.ui-number-input--compact {
+  height: 23px;
+}
+
+.ui-number-input--workspace.ui-number-input--compact .ui-number-input__field {
+  min-height: 0;
+  height: 100%;
+}
+
+.ui-number-input--workspace.ui-number-input--compact.ui-number-input--suffix {
+  height: 25px;
+}
+
+.ui-number-input--workspace.ui-number-input--suffix .ui-number-input__field {
+  padding: 0 6px;
+  font-size: var(--ui-type-size-body-compact);
+}
+
+.ui-number-input__suffix {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  padding: 0 3px;
+  border-left: 1px solid var(--line-soft, var(--ui-color-border));
+  color: var(--number-input-accent, var(--ui-color-text-muted));
+  font: var(--ui-type-weight-bold) var(--ui-type-size-micro) var(--ui-type-family-data);
+  letter-spacing: var(--ui-type-tracking-wide);
+}
+
+.ui-number-input--workspace:focus-within,
+.ui-number-input--suffix:focus-within {
+  border-color: var(--number-input-accent, var(--ui-color-focus));
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--number-input-accent, var(--ui-color-focus)) 22%, transparent);
+}
+
+.ui-number-input[data-invalid] {
+  border-color: var(--ui-color-danger);
 }
 </style>

@@ -9,11 +9,12 @@ defineOptions({ inheritAttrs: false })
 const props = withDefaults(
   defineProps<{
     variant?: UiActionVariant
-    size?: UiControlSize
+    size?: UiControlSize | "compact" | "status"
     loading?: boolean
     disabled?: boolean
     type?: "button" | "submit" | "reset"
     loadingLabel?: string
+    stopPropagation?: boolean
   }>(),
   {
     variant: "secondary",
@@ -21,13 +22,28 @@ const props = withDefaults(
     loading: false,
     disabled: false,
     type: "button",
-    loadingLabel: "Loading"
+    loadingLabel: "Loading",
+    stopPropagation: false
   }
 )
+const emit = defineEmits<{ click: [] }>()
 
 const attrs = useAttrs()
 
+function activate(event: MouseEvent): void {
+  if (props.stopPropagation) event.stopPropagation()
+  // Headless trigger adapters need the native event at runtime, while the public
+  // component contract intentionally exposes a payload-free user intent.
+  ;(emit as unknown as (name: "click", nativeEvent: MouseEvent) => void)("click", event)
+}
+
+function stopPointer(event: PointerEvent): void {
+  if (props.stopPropagation) event.stopPropagation()
+}
+
 const sizeClasses = {
+  compact: "ui-button--compact",
+  status: "ui-button--status",
   sm: "min-h-[var(--ui-control-sm)] px-ui-3 text-ui-xs",
   md: "min-h-[var(--ui-control-md)] px-ui-4 text-ui-sm",
   lg: "min-h-[var(--ui-control-lg)] px-ui-5 text-ui-md"
@@ -45,6 +61,8 @@ const sizeClasses = {
     :disabled="props.disabled || props.loading"
     :aria-disabled="props.disabled || props.loading || undefined"
     :aria-busy="props.loading || undefined"
+    @pointerdown="stopPointer"
+    @click="activate"
   >
     <UiSpinner v-if="props.loading" size="sm" :label="props.loadingLabel" />
     <span class="ui-button__content"><slot /></span>
@@ -52,6 +70,23 @@ const sizeClasses = {
 </template>
 
 <style scoped>
+.ui-button--compact,
+.ui-button--status {
+  padding: 0 var(--ui-space-2);
+  border-radius: var(--ui-radius-sm);
+  font: var(--ui-type-weight-regular) var(--ui-type-size-control) / var(--ui-type-leading-tight)
+    var(--ui-type-family-data);
+}
+
+.ui-button--compact {
+  min-height: var(--ui-control-compact);
+}
+
+.ui-button--status {
+  min-height: 20px;
+  font-size: var(--ui-type-size-caption);
+}
+
 .ui-button--primary {
   color: var(--ui-color-action-text);
   background: var(--ui-color-action);
@@ -82,6 +117,17 @@ const sizeClasses = {
   background: transparent;
 }
 
+.ui-button--plain {
+  color: inherit;
+  background: transparent;
+}
+
+.ui-button--plain:hover:not(:disabled) {
+  border-color: transparent;
+  color: inherit;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
 .ui-button--danger {
   color: var(--ui-color-danger-text);
   background: var(--ui-color-danger);
@@ -89,6 +135,17 @@ const sizeClasses = {
 
 .ui-button--danger:hover:not(:disabled) {
   background: var(--ui-color-danger-hover);
+}
+
+.ui-button--danger-ghost {
+  color: inherit;
+  background: transparent;
+}
+
+.ui-button--danger-ghost:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--ui-color-danger) 45%, transparent);
+  color: var(--ui-color-danger-text);
+  background: color-mix(in srgb, var(--ui-color-danger) 42%, transparent);
 }
 
 .ui-button__content {

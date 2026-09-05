@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
-import { shallowRef } from "vue"
 import { SquareArrowOutUpRight, Trash2 } from "@lucide/vue"
+import { UiDropZone, UiIconButton, type UiDragData } from "@heron/ui"
 import type { PluginDescriptor, PluginFailureCategory } from "@heron/contracts"
 import type { PluginInstanceState, PluginRuntimeStatus } from "@heron/contracts"
-import { PLUGIN_DRAG_TYPE, readPluginDrag } from "./plugin-drag"
+import { PLUGIN_DRAG_TYPE, parsePluginDrag } from "./plugin-drag"
 
 defineProps<{
   plugin: PluginInstanceState | null
@@ -17,24 +17,16 @@ const emit = defineEmits<{
   assign: [descriptor: PluginDescriptor]
 }>()
 
-const dragging = shallowRef(false)
 const { t } = useI18n()
 
 function failureMessage(category: PluginFailureCategory): string {
   return t(`plugins.failure.${category}`)
 }
 
-function dragOver(event: DragEvent): void {
-  if (![...(event.dataTransfer?.types ?? [])].includes(PLUGIN_DRAG_TYPE)) return
-  event.preventDefault()
-  dragging.value = true
-  if (event.dataTransfer) event.dataTransfer.dropEffect = "copy"
-}
-
-function drop(event: DragEvent): void {
-  event.preventDefault()
-  dragging.value = false
-  const payload = readPluginDrag(event)
+function drop(data: UiDragData[]): void {
+  const payload = parsePluginDrag(
+    data.find((entry) => entry.mime === PLUGIN_DRAG_TYPE)?.value ?? ""
+  )
   if (payload?.source === "catalog" && payload.descriptor.kind === "instrument") {
     emit("assign", payload.descriptor)
   }
@@ -42,12 +34,10 @@ function drop(event: DragEvent): void {
 </script>
 
 <template>
-  <section
-    :class="['instrument-slot', { dragging }]"
-    :aria-label="t('plugins.instrumentSlot.ariaLabel')"
-    @dragenter="dragOver"
-    @dragover="dragOver"
-    @dragleave="dragging = false"
+  <UiDropZone
+    class="instrument-slot"
+    :label="t('plugins.instrumentSlot.ariaLabel')"
+    :mime-types="[PLUGIN_DRAG_TYPE]"
     @drop="drop"
   >
     <div class="slot-heading">
@@ -60,8 +50,9 @@ function drop(event: DragEvent): void {
         <strong>{{ plugin.descriptor.name }}</strong
         ><small>{{ plugin.descriptor.vendor }}</small>
       </div>
-      <button
-        :aria-label="
+      <UiIconButton
+        size="sm"
+        :label="
           runtime?.failure?.recoverable
             ? t('plugins.instrumentSlot.retry')
             : t('plugins.instrumentSlot.openEditor')
@@ -69,17 +60,22 @@ function drop(event: DragEvent): void {
         @click="$emit('open', plugin.id)"
       >
         <SquareArrowOutUpRight :size="11" />
-      </button>
-      <button :aria-label="t('plugins.instrumentSlot.remove')" @click="$emit('remove', plugin.id)">
+      </UiIconButton>
+      <UiIconButton
+        size="sm"
+        variant="danger"
+        :label="t('plugins.instrumentSlot.remove')"
+        @click="$emit('remove', plugin.id)"
+      >
         <Trash2 :size="11" />
-      </button>
+      </UiIconButton>
     </div>
     <p v-else>{{ t("plugins.instrumentSlot.chooseHint") }}</p>
     <small v-if="runtime?.failure" class="slot-error" role="status">
       {{ failureMessage(runtime.failure.category) }}
     </small>
     <small v-else-if="runtime?.error" class="slot-error">{{ runtime.error }}</small>
-  </section>
+  </UiDropZone>
 </template>
 
 <style scoped>
@@ -93,14 +89,6 @@ function drop(event: DragEvent): void {
     color-mix(in srgb, var(--ui-domain-color-73d6a2) 5%, transparent),
     transparent 55%
   );
-}
-.instrument-slot.dragging {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--ui-domain-color-73d6a2) 17%, transparent),
-    transparent 70%
-  );
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-domain-color-73d6a2) 65%, transparent);
 }
 .slot-heading {
   display: flex;
@@ -157,18 +145,6 @@ function drop(event: DragEvent): void {
   margin-top: 2px;
   color: var(--text-faint);
   font-size: var(--ui-type-size-micro);
-}
-.slot-body button {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 1px solid var(--line-soft);
-  border-radius: 3px;
-  color: var(--text-muted);
-  background: var(--daw-control);
-  cursor: pointer;
 }
 .instrument-slot > p {
   margin: 0;

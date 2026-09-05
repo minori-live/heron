@@ -2,7 +2,7 @@
 import { computed, onMounted, shallowRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { storeToRefs } from "pinia"
-import { UiCheckbox, UiSelect, UiSlider } from "@heron/ui"
+import { UiButton, UiCheckbox, UiSelect, UiSlider } from "@heron/ui"
 import type { RecordingBitDepth } from "@heron/contracts"
 import SettingsPage from "../settings/SettingsPage.vue"
 import SettingsSection from "../settings/SettingsSection.vue"
@@ -72,12 +72,12 @@ function setSoftwareMonitoring(enabled: boolean): void {
     >
       <div class="path-control">
         <code>{{ settings?.swapDirectory ?? t("common.loading") }}</code>
-        <button type="button" :disabled="loading" @click="settingsStore.chooseSwapDirectory">
+        <UiButton size="sm" :disabled="loading" @click="settingsStore.chooseSwapDirectory">
           {{ t("common.browse") }}
-        </button>
-        <button type="button" :disabled="loading" @click="settingsStore.openSwapDirectory">
+        </UiButton>
+        <UiButton size="sm" :disabled="loading" @click="settingsStore.openSwapDirectory">
           {{ t("common.open") }}
-        </button>
+        </UiButton>
       </div>
     </SettingsSection>
 
@@ -185,12 +185,6 @@ function setSoftwareMonitoring(enabled: boolean): void {
 }
 
 .path-control button {
-  cursor: pointer;
-}
-
-.path-control button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 
 .path-control button:disabled {

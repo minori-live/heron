@@ -28,14 +28,14 @@ describe("MidiSettings", () => {
     await flushPromises()
 
     const yamahaOption = wrapper
-      .findAll('[role="radio"]')
+      .findAll("button.ui-choice-card")
       .find((option) => option.text().includes("Yamaha (C3)"))
     expect(yamahaOption).toBeDefined()
     expect(
       wrapper
-        .findAll('[role="radio"]')
+        .findAll("button.ui-choice-card")
         .find((option) => option.text().includes("Roland (C4)"))
-        ?.attributes("aria-checked")
+        ?.attributes("aria-pressed")
     ).toBe("true")
 
     await yamahaOption!.trigger("click")
@@ -44,6 +44,14 @@ describe("MidiSettings", () => {
     expect(window.heron.updateApplicationSettings).toHaveBeenCalledWith(expect.any(Object), {
       midiCenterCStandard: "yamaha-c3"
     })
-    expect(yamahaOption!.attributes("aria-checked")).toBe("true")
+    expect(yamahaOption!.attributes("aria-pressed")).toBe("true")
+    const rolandOption = wrapper
+      .findAll("button")
+      .find((option) => option.text().includes("Roland (C4)"))!
+    expect(rolandOption.attributes("aria-pressed")).toBe("false")
+    await rolandOption.trigger("click")
+    await flushPromises()
+    expect(rolandOption.attributes("aria-pressed")).toBe("true")
+    expect(yamahaOption!.attributes("aria-pressed")).toBe("false")
   })
 })

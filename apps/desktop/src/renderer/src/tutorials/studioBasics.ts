@@ -1,71 +1,29 @@
-import type { DriveStep } from "driver.js"
+import type { UiTourStep } from "@heron/ui"
 
 export const STUDIO_BASICS_VERSION = 1
-
 type Translate = (key: string) => string
 
-export function studioBasicsSteps(t: Translate): DriveStep[] {
+export function studioBasicsSteps(t: Translate): UiTourStep[] {
+  const step = (
+    id: string,
+    target: string | undefined,
+    placement: UiTourStep["placement"] = "bottom",
+    align: UiTourStep["align"] = "center"
+  ): UiTourStep => ({
+    id,
+    target,
+    title: t(`tutorials.studioBasics.steps.${id}.title`),
+    description: t(`tutorials.studioBasics.steps.${id}.description`),
+    placement,
+    align
+  })
   return [
-    {
-      popover: {
-        title: t("tutorials.studioBasics.steps.welcome.title"),
-        description: t("tutorials.studioBasics.steps.welcome.description")
-      }
-    },
-    {
-      element: '[data-tutorial="studio-arrangement"]',
-      popover: {
-        title: t("tutorials.studioBasics.steps.arrangement.title"),
-        description: t("tutorials.studioBasics.steps.arrangement.description"),
-        side: "top",
-        align: "center"
-      }
-    },
-    {
-      element: '[data-tutorial="studio-transport"]',
-      popover: {
-        title: t("tutorials.studioBasics.steps.transport.title"),
-        description: t("tutorials.studioBasics.steps.transport.description"),
-        side: "bottom",
-        align: "center"
-      }
-    },
-    {
-      element: '[data-tutorial="studio-musical-display"]',
-      popover: {
-        title: t("tutorials.studioBasics.steps.musicalDisplay.title"),
-        description: t("tutorials.studioBasics.steps.musicalDisplay.description"),
-        side: "bottom",
-        align: "center"
-      }
-    },
-    {
-      element: '[data-tutorial="studio-inspector"]',
-      skipMissingElement: true,
-      popover: {
-        title: t("tutorials.studioBasics.steps.inspector.title"),
-        description: t("tutorials.studioBasics.steps.inspector.description"),
-        side: "bottom",
-        align: "start"
-      }
-    },
-    {
-      element: '[data-tutorial="studio-lower-editors"]',
-      popover: {
-        title: t("tutorials.studioBasics.steps.lowerEditors.title"),
-        description: t("tutorials.studioBasics.steps.lowerEditors.description"),
-        side: "bottom",
-        align: "center"
-      }
-    },
-    {
-      element: '[data-tutorial="studio-right-panels"]',
-      popover: {
-        title: t("tutorials.studioBasics.steps.rightPanels.title"),
-        description: t("tutorials.studioBasics.steps.rightPanels.description"),
-        side: "bottom",
-        align: "end"
-      }
-    }
+    step("welcome", undefined),
+    step("arrangement", '[data-tutorial="studio-arrangement"]', "top"),
+    step("transport", '[data-tutorial="studio-transport"]'),
+    step("musicalDisplay", '[data-tutorial="studio-musical-display"]'),
+    step("inspector", '[data-tutorial="studio-inspector"]', "bottom", "start"),
+    step("lowerEditors", '[data-tutorial="studio-lower-editors"]'),
+    step("rightPanels", '[data-tutorial="studio-right-panels"]', "bottom", "end")
   ]
 }

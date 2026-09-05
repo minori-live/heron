@@ -51,6 +51,7 @@ test("loads fixed custom-protocol entrypoints with isolated preload bridges", as
       }))
     ).toEqual({ heron: "object", heronSplash: "undefined" })
 
+    await expect(page.getByRole("heading", { name: /Make sound/ })).toBeVisible()
     await page.evaluate(() => {
       window.location.hash = "/settings/system"
     })

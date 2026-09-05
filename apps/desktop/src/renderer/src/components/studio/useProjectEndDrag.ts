@@ -1,5 +1,6 @@
 import { computed, shallowRef, toValue, type MaybeRefOrGetter } from "vue"
 import type { TempoMapSnapshot } from "@heron/contracts"
+import type { UiGestureIntent } from "@heron/ui"
 import { timelineXToTick } from "../../utils/timelineCoordinates"
 import { barLengthTicksAtTick, barTicksThroughTick } from "../../utils/tempoMap"
 
@@ -8,11 +9,6 @@ interface ProjectEndDragOptions {
   tempoMap: MaybeRefOrGetter<TempoMapSnapshot>
   pixelsPerQuarter: MaybeRefOrGetter<number>
   commit: (endTick: number) => void
-}
-
-interface ActiveGesture {
-  pointerId: number
-  rulerLeft: number
 }
 
 export function snapProjectEndTick(map: TempoMapSnapshot, requestedTick: number): number {
@@ -27,47 +23,41 @@ export function snapProjectEndTick(map: TempoMapSnapshot, requestedTick: number)
 }
 
 export function useProjectEndDrag(options: ProjectEndDragOptions) {
-  const gesture = shallowRef<ActiveGesture | null>(null)
+  const gesture = shallowRef(false)
   const preview = shallowRef<number | null>(null)
-  const active = computed(() => gesture.value !== null)
+  const active = computed(() => gesture.value)
 
-  function tickAtPointer(event: PointerEvent, rulerLeft: number): number {
+  function tickAtIntent(intent: UiGestureIntent): number {
     return snapProjectEndTick(
       toValue(options.tempoMap),
       timelineXToTick(
         toValue(options.tempoMap),
-        Math.max(0, event.clientX - rulerLeft),
+        Math.max(0, intent.point.x),
         toValue(options.pixelsPerQuarter)
       )
     )
   }
 
-  function start(event: PointerEvent): void {
-    const target = event.currentTarget as HTMLElement
-    const ruler = target.closest<HTMLElement>(".ruler")
-    if (!ruler) return
-    target.setPointerCapture?.(event.pointerId)
-    const rulerLeft = ruler.getBoundingClientRect().left
-    gesture.value = { pointerId: event.pointerId, rulerLeft }
-    preview.value = tickAtPointer(event, rulerLeft)
+  function start(intent: UiGestureIntent): void {
+    gesture.value = true
+    preview.value = tickAtIntent(intent)
   }
 
-  function update(event: PointerEvent): void {
-    const current = gesture.value
-    if (!current || event.pointerId !== current.pointerId) return
-    preview.value = tickAtPointer(event, current.rulerLeft)
+  function update(intent: UiGestureIntent): void {
+    if (!gesture.value) return
+    preview.value = tickAtIntent(intent)
   }
 
-  function finish(event: PointerEvent): void {
-    if (!gesture.value || event.pointerId !== gesture.value.pointerId) return
+  function finish(): void {
+    if (!gesture.value) return
     const value = preview.value
-    gesture.value = null
+    gesture.value = false
     preview.value = null
     if (value !== null && value !== toValue(options.endTick)) options.commit(value)
   }
 
   function cancel(): void {
-    gesture.value = null
+    gesture.value = false
     preview.value = null
   }
 

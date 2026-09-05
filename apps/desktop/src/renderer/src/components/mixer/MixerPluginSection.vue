@@ -1,7 +1,15 @@
 <script setup lang="ts">
-import { computed, onUnmounted, shallowRef } from "vue"
+import { computed, shallowRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { GripVertical, Power, RotateCcw, Trash2 } from "@lucide/vue"
+import {
+  UiButton,
+  UiDraggableItem,
+  UiDropZone,
+  UiIconButton,
+  UiMixerInsert,
+  type UiDragData
+} from "@heron/ui"
 import type {
   MixerChannelState,
   PluginFailureCategory,
@@ -9,14 +17,7 @@ import type {
   PluginInstanceState,
   PluginRuntimeStatus
 } from "@heron/contracts"
-import {
-  claimPluginDropPreview,
-  clearActivePluginDropPreview,
-  PLUGIN_DRAG_TYPE,
-  readPluginDrag,
-  releasePluginDropPreview,
-  writePluginDrag
-} from "../plugins/plugin-drag"
+import { PLUGIN_DRAG_TYPE, parsePluginDrag, serializePluginDrag } from "../plugins/plugin-drag"
 import PluginAudioModeMenu from "../plugins/PluginAudioModeMenu.vue"
 import {
   pluginAudioModeBadge,
@@ -25,7 +26,7 @@ import {
   type PluginSignalWidth
 } from "../plugins/plugin-audio-mode"
 import { pluginDisplayState } from "../plugins/plugin-display-state"
-import MixerAudioFxPicker from "./MixerAudioFxPicker.vue"
+import MixerPluginPicker from "./MixerPluginPicker.vue"
 
 const props = defineProps<{
   channel: MixerChannelState
@@ -54,15 +55,6 @@ const emptyRows = computed(() => Math.max(0, props.slotRows - orderedInserts.val
 const alignmentRows = computed(() => Math.max(0, emptyRows.value - 1))
 const acceptsPlugins = computed(() => props.channel.kind !== "master")
 const pendingDrop = shallowRef<{ descriptor: PluginDescriptor; slotOrder: number } | null>(null)
-const dropPreviewSlot = shallowRef<number | null>(null)
-const draggedInstanceId = shallowRef<string | null>(null)
-const previewSlotNumber = computed(() => {
-  if (dropPreviewSlot.value === null) return null
-  if (!draggedInstanceId.value) return dropPreviewSlot.value + 1
-  return adjustedMoveSlot(draggedInstanceId.value, dropPreviewSlot.value) + 1
-})
-
-onUnmounted(clearDropPreview)
 
 function inputWidthAt(slotOrder: number): PluginSignalWidth {
   let width = props.initialInputWidth
@@ -93,76 +85,19 @@ function pluginFailureMessage(plugin: PluginInstanceState): string | undefined {
   return failure ? failureMessage(failure.category) : undefined
 }
 
-function accepts(event: DragEvent): boolean {
-  return [...(event.dataTransfer?.types ?? [])].includes(PLUGIN_DRAG_TYPE)
-}
-
-function allowDrop(event: DragEvent): boolean {
-  if (!acceptsPlugins.value || !accepts(event)) return false
-  event.preventDefault()
-  if (event.dataTransfer) event.dataTransfer.dropEffect = "move"
-  return true
-}
-
 function adjustedMoveSlot(instanceId: string, slotOrder: number): number {
   const currentIndex = orderedInserts.value.findIndex((plugin) => plugin.id === instanceId)
   return currentIndex >= 0 && currentIndex < slotOrder ? slotOrder - 1 : slotOrder
 }
 
-function startRackDrag(event: DragEvent, instanceId: string): void {
-  clearActivePluginDropPreview()
-  draggedInstanceId.value = instanceId
-  writePluginDrag(event, { source: "rack", instanceId })
+function pluginDragData(instanceId: string): UiDragData[] {
+  return [{ mime: PLUGIN_DRAG_TYPE, value: serializePluginDrag({ source: "rack", instanceId }) }]
 }
 
-function showDropPreview(slotOrder: number): void {
-  claimPluginDropPreview(clearDropPreview)
-  dropPreviewSlot.value = slotOrder
-}
-
-function previewDropAtRow(event: DragEvent, rowIndex: number): void {
-  if (!allowDrop(event)) return
-  const row = event.currentTarget
-  if (!(row instanceof HTMLElement)) return
-  const bounds = row.getBoundingClientRect()
-  showDropPreview(event.clientY < bounds.top + bounds.height / 2 ? rowIndex : rowIndex + 1)
-}
-
-function previewDropAtEnd(event: DragEvent): void {
-  if (!allowDrop(event)) return
-  showDropPreview(orderedInserts.value.length)
-}
-
-function clearDropPreview(): void {
-  dropPreviewSlot.value = null
-  releasePluginDropPreview(clearDropPreview)
-}
-
-function finishRackDrag(): void {
-  draggedInstanceId.value = null
-  clearActivePluginDropPreview()
-}
-
-function leavePluginSection(event: DragEvent): void {
-  const section = event.currentTarget
-  const nextTarget = event.relatedTarget
-  if (!(section instanceof HTMLElement)) return
-  if (nextTarget instanceof Node && section.contains(nextTarget)) return
-  const bounds = section.getBoundingClientRect()
-  const pointerIsInside =
-    event.clientX >= bounds.left &&
-    event.clientX <= bounds.right &&
-    event.clientY >= bounds.top &&
-    event.clientY <= bounds.bottom
-  if (pointerIsInside) return
-  clearDropPreview()
-}
-
-function dropInsert(event: DragEvent, fallbackSlotOrder: number): void {
-  event.preventDefault()
-  const slotOrder = dropPreviewSlot.value ?? fallbackSlotOrder
-  clearDropPreview()
-  const payload = readPluginDrag(event)
+function dropInsert(data: UiDragData[], slotOrder: number): void {
+  const payload = parsePluginDrag(
+    data.find((entry) => entry.mime === PLUGIN_DRAG_TYPE)?.value ?? ""
+  )
   if (!payload) return
   if (payload.source === "catalog") {
     if (payload.descriptor.kind === "effect") {
@@ -185,109 +120,92 @@ function confirmDrop(selection: PluginSelection): void {
     class="plugin-section"
     data-section="plugins"
     :aria-label="t('mixer.pluginSection.ariaLabel')"
-    @dragleave="leavePluginSection"
   >
     <template v-if="acceptsPlugins">
       <template v-for="(plugin, index) in orderedInserts" :key="plugin.id">
-        <div
-          v-if="dropPreviewSlot === index"
-          class="plugin-drop-preview"
-          role="status"
-          aria-live="polite"
-          :aria-label="t('mixer.pluginSection.dropAtSlot', { slot: previewSlotNumber })"
-          data-testid="plugin-drop-preview"
-          @dragenter="allowDrop"
-          @dragover="allowDrop"
-          @drop="dropInsert($event, index)"
-        />
-        <article
-          :class="[
-            'plugin-row',
-            pluginState(plugin),
-            { 'drag-source': draggedInstanceId === plugin.id }
-          ]"
-          :title="pluginFailureMessage(plugin)"
-          :aria-label="
-            t('mixer.pluginSection.pluginState', {
-              name: plugin.descriptor.name,
-              state: pluginState(plugin)
-            })
-          "
-          @dragenter="previewDropAtRow($event, index)"
-          @dragover="previewDropAtRow($event, index)"
+        <UiDropZone
+          :label="t('mixer.pluginSection.dropAtSlot', { slot: index + 1 })"
+          :mime-types="[PLUGIN_DRAG_TYPE]"
           @drop="dropInsert($event, index)"
         >
-          <span
-            class="plugin-grip"
-            draggable="true"
-            :aria-label="t('plugins.pluginSlot.move', { name: plugin.descriptor.name })"
-            @pointerdown.stop
-            @dragstart.stop="startRackDrag($event, plugin.id)"
-            @dragend.stop="finishRackDrag"
+          <UiDraggableItem
+            :data="pluginDragData(plugin.id)"
+            effect-allowed="move"
+            :label="t('plugins.pluginSlot.move', { name: plugin.descriptor.name })"
           >
-            <GripVertical :size="11" aria-hidden="true" />
-          </span>
-          <button
-            type="button"
-            class="plugin-name"
-            :title="`${plugin.descriptor.name} · ${plugin.descriptor.vendor}`"
-            :aria-label="t('mixer.pluginSection.openEditor', { name: plugin.descriptor.name })"
-            @pointerdown.stop
-            @click.stop="emit('open', plugin.id)"
-          >
-            {{ plugin.descriptor.name }}
-          </button>
-          <span class="plugin-actions">
-            <span
-              class="mode-badge"
-              :title="t('mixer.pluginSection.audioMode', { mode: plugin.audioMode })"
-              >{{ pluginAudioModeBadge(plugin.audioMode) }}</span
-            >
-            <button
-              type="button"
-              :aria-pressed="plugin.enabled"
-              :aria-label="
-                canRetry(plugin)
-                  ? t('plugins.pluginSlot.retry', { name: plugin.descriptor.name })
-                  : t('mixer.pluginSection.bypassPlugin', {
-                      action: plugin.enabled
-                        ? t('mixer.pluginSection.bypass')
-                        : t('mixer.pluginSection.enable'),
-                      name: plugin.descriptor.name
-                    })
+            <UiMixerInsert
+              :class="['plugin-row', pluginState(plugin)]"
+              :title="pluginFailureMessage(plugin)"
+              :label="
+                t('mixer.pluginSection.pluginState', {
+                  name: plugin.descriptor.name,
+                  state: pluginState(plugin)
+                })
               "
-              @pointerdown.stop
-              @click.stop="toggleOrRetry(plugin)"
             >
-              <RotateCcw v-if="canRetry(plugin)" :size="9" />
-              <Power v-else :size="9" />
-            </button>
-            <button
-              type="button"
-              :aria-label="t('mixer.pluginSection.remove', { name: plugin.descriptor.name })"
-              @pointerdown.stop
-              @click.stop="emit('remove', plugin.id)"
-            >
-              <Trash2 :size="9" />
-            </button>
-          </span>
-        </article>
+              <UiButton
+                size="sm"
+                variant="plain"
+                stop-propagation
+                class="plugin-name"
+                :title="`${plugin.descriptor.name} · ${plugin.descriptor.vendor}`"
+                :aria-label="t('mixer.pluginSection.openEditor', { name: plugin.descriptor.name })"
+                @click="emit('open', plugin.id)"
+              >
+                {{ plugin.descriptor.name }}
+              </UiButton>
+              <template #leading>
+                <span class="plugin-grip" aria-hidden="true">
+                  <GripVertical :size="11" aria-hidden="true" />
+                </span>
+              </template>
+              <template #actions>
+                <span class="plugin-actions">
+                  <span
+                    class="mode-badge"
+                    :title="t('mixer.pluginSection.audioMode', { mode: plugin.audioMode })"
+                    >{{ pluginAudioModeBadge(plugin.audioMode) }}</span
+                  >
+                  <UiIconButton
+                    size="sm"
+                    density="compact"
+                    variant="plain"
+                    stop-propagation
+                    :pressed="plugin.enabled"
+                    :label="
+                      canRetry(plugin)
+                        ? t('plugins.pluginSlot.retry', { name: plugin.descriptor.name })
+                        : t('mixer.pluginSection.bypassPlugin', {
+                            action: plugin.enabled
+                              ? t('mixer.pluginSection.bypass')
+                              : t('mixer.pluginSection.enable'),
+                            name: plugin.descriptor.name
+                          })
+                    "
+                    @click="toggleOrRetry(plugin)"
+                  >
+                    <RotateCcw v-if="canRetry(plugin)" :size="9" />
+                    <Power v-else :size="9" />
+                  </UiIconButton>
+                  <UiIconButton
+                    size="sm"
+                    density="compact"
+                    variant="danger-ghost"
+                    stop-propagation
+                    :label="t('mixer.pluginSection.remove', { name: plugin.descriptor.name })"
+                    @click="emit('remove', plugin.id)"
+                  >
+                    <Trash2 :size="9" />
+                  </UiIconButton>
+                </span>
+              </template>
+            </UiMixerInsert>
+          </UiDraggableItem>
+        </UiDropZone>
       </template>
 
-      <div
-        v-if="dropPreviewSlot === orderedInserts.length"
-        class="plugin-drop-preview"
-        role="status"
-        aria-live="polite"
-        :aria-label="t('mixer.pluginSection.dropAtSlot', { slot: previewSlotNumber })"
-        data-testid="plugin-drop-preview"
-        @dragenter="allowDrop"
-        @dragover="allowDrop"
-        @drop="dropInsert($event, orderedInserts.length)"
-      />
-
-      <MixerAudioFxPicker
-        v-if="emptyRows > 0 && dropPreviewSlot === null"
+      <MixerPluginPicker
+        v-if="emptyRows > 0"
         :plugins="effectPlugins"
         :input-width="inputWidthAt(orderedInserts.length)"
         :title="t('mixer.pluginSection.addEffectTitle')"
@@ -295,15 +213,19 @@ function confirmDrop(selection: PluginSelection): void {
         :empty-message="t('mixer.pluginSection.noEffects')"
         @select="emit('insert', $event, orderedInserts.length)"
       >
-        <button
-          type="button"
-          class="plugin-row empty picker-trigger"
-          :aria-label="t('mixer.pluginSection.addEffect')"
-          @dragenter="previewDropAtEnd"
-          @dragover="previewDropAtEnd"
+        <UiDropZone
+          :label="t('mixer.pluginSection.dropAtSlot', { slot: orderedInserts.length + 1 })"
+          :mime-types="[PLUGIN_DRAG_TYPE]"
           @drop="dropInsert($event, orderedInserts.length)"
-        />
-      </MixerAudioFxPicker>
+        >
+          <UiButton
+            class="plugin-row empty picker-trigger"
+            size="sm"
+            variant="ghost"
+            :aria-label="t('mixer.pluginSection.addEffect')"
+          />
+        </UiDropZone>
+      </MixerPluginPicker>
       <span
         v-for="index in alignmentRows"
         :key="`alignment-${index}`"
@@ -351,7 +273,6 @@ function confirmDrop(selection: PluginSelection): void {
 }
 .plugin-row {
   display: grid;
-  grid-template-columns: 0 minmax(0, 1fr) 0;
   align-items: center;
   min-width: 0;
   height: 23px;
@@ -362,41 +283,22 @@ function confirmDrop(selection: PluginSelection): void {
   background: linear-gradient(var(--ui-domain-color-3f91d4), var(--ui-domain-color-2871ae));
   box-shadow: 0 1px 0 var(--ui-domain-color-ffffff28) inset;
 }
-.plugin-row:hover,
-.plugin-row:focus-within {
-  grid-template-columns: 14px minmax(0, 1fr) auto;
-}
 .plugin-grip {
+  width: 14px;
   display: grid;
   place-items: center;
   height: 100%;
   overflow: hidden;
   color: currentColor;
-  cursor: grab;
-  opacity: 0;
-}
-.plugin-row:hover .plugin-grip,
-.plugin-row:focus-within .plugin-grip {
   opacity: 0.62;
-}
-.plugin-grip:active {
-  cursor: grabbing;
 }
 .plugin-actions {
   display: grid;
   grid-template-columns: auto 18px 18px;
   align-items: center;
-  width: 0;
+  width: auto;
   height: 100%;
   overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-}
-.plugin-row:hover .plugin-actions,
-.plugin-row:focus-within .plugin-actions {
-  width: auto;
-  opacity: 1;
-  pointer-events: auto;
 }
 .mode-badge {
   padding: 1px 3px;
@@ -442,10 +344,6 @@ function confirmDrop(selection: PluginSelection): void {
   background: linear-gradient(var(--ui-domain-color-5b5b5b), var(--ui-domain-color-4b4b4b));
   box-shadow: 0 1px 0 var(--ui-domain-color-ffffff12) inset;
 }
-.plugin-row.drag-source {
-  border-style: dashed;
-  opacity: 0.48;
-}
 .plugin-row.loading,
 .plugin-row.unloaded {
   border-color: var(--ui-domain-color-566a78);
@@ -460,17 +358,6 @@ function confirmDrop(selection: PluginSelection): void {
   background: linear-gradient(var(--ui-domain-color-884f49), var(--ui-domain-color-6d3e39));
   box-shadow: 0 1px 0 var(--ui-domain-color-ffffff16) inset;
 }
-.plugin-row button {
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 20px;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
-  cursor: pointer;
-}
 .plugin-row .plugin-name {
   display: block;
   width: 100%;
@@ -481,13 +368,6 @@ function confirmDrop(selection: PluginSelection): void {
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.plugin-row button:hover {
-  background: var(--ui-domain-color-ffffff22);
-}
-.plugin-row button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: -2px;
 }
 .plugin-row.empty {
   display: grid;
@@ -502,24 +382,10 @@ function confirmDrop(selection: PluginSelection): void {
   font: var(--ui-type-size-micro) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
 }
-.plugin-row.empty:not(.disabled):hover,
-.plugin-row.empty:not(.disabled)[data-state="open"] {
-  border-color: var(--ui-domain-color-4e8dbf);
-  color: var(--ui-domain-color-b7d9f3);
-  background:
-    linear-gradient(var(--ui-domain-color-ffffff22), var(--ui-domain-color-ffffff22)),
-    var(--ui-domain-color-4d4d4d);
-}
 .plugin-row.picker-trigger {
   width: 100%;
   padding: 0;
   font: inherit;
-  cursor: pointer;
-}
-.plugin-row.picker-trigger:focus-visible {
-  border-color: var(--focus);
-  outline: 2px solid var(--focus);
-  outline-offset: -2px;
 }
 .plugin-row.alignment-spacer {
   border-color: transparent;

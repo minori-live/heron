@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import { mount } from "@vue/test-utils"
 import { createPinia } from "pinia"
 import type { MixerChannelState } from "@heron/contracts"
+import { useMixerRuntimeStore } from "../../stores/mixerRuntime"
 import TrackQuickControls from "./TrackQuickControls.vue"
 
 const channel: MixerChannelState = {
@@ -25,6 +26,34 @@ const channel: MixerChannelState = {
 }
 
 describe("TrackQuickControls", () => {
+  it("uses live runtime telemetry when its composition parent does not inject a meter", () => {
+    const pinia = createPinia()
+    const runtimeStore = useMixerRuntimeStore(pinia)
+    runtimeStore.runtime = {
+      meters: [
+        {
+          channelId: "audio",
+          preFaderPeak: [0.5, 0.5],
+          postFaderPeak: [0.5, 0.5],
+          heldPeak: [0.5, 0.5],
+          clipped: false
+        }
+      ],
+      capturedAt: 1
+    }
+
+    const wrapper = mount(TrackQuickControls, {
+      props: { channel },
+      global: { plugins: [pinia] }
+    })
+
+    const style = wrapper.get(".track-gain").attributes("style") ?? ""
+    const displayedPercent = Number(
+      /--horizontal-fader-meter-level:\s*([\d.]+)%/.exec(style)?.[1] ?? "NaN"
+    )
+    expect(displayedPercent).toBeGreaterThan(0)
+  })
+
   it("returns its meter with the shared IEC Type I display envelope", async () => {
     let timestamp = 0
     const now = vi.spyOn(performance, "now").mockImplementation(() => timestamp)
@@ -54,7 +83,9 @@ describe("TrackQuickControls", () => {
     })
 
     const style = wrapper.get(".track-gain").attributes("style") ?? ""
-    const displayedPercent = Number(/--meter-level:\s*([\d.]+)%/.exec(style)?.[1] ?? "NaN")
+    const displayedPercent = Number(
+      /--horizontal-fader-meter-level:\s*([\d.]+)%/.exec(style)?.[1] ?? "NaN"
+    )
     expect(displayedPercent).toBeCloseTo(70.3, 1)
 
     wrapper.unmount()
@@ -91,7 +122,7 @@ describe("TrackQuickControls", () => {
     await gain.trigger("pointerdown")
     ;(gain.element as HTMLInputElement).value = "-3"
     await gain.trigger("input")
-    expect(wrapper.find(".parameter-tooltip").exists()).toBe(true)
+    expect(wrapper.find(".ui-horizontal-fader__tooltip").exists()).toBe(true)
     await gain.trigger("change")
     await gain.setValue("-6")
     expect(wrapper.emitted("preview")?.at(-1)?.[0]).toMatchObject({
@@ -101,7 +132,9 @@ describe("TrackQuickControls", () => {
       value: -6
     })
     expect(wrapper.emitted("updateChannel")?.at(-1)).toEqual(["audio", { gainDb: -6 }])
-    expect(wrapper.get(".track-gain").attributes("style")).toContain("--meter-level:")
+    expect(wrapper.get(".track-gain").attributes("style")).toContain(
+      "--horizontal-fader-meter-level:"
+    )
 
     const pan = wrapper.get('input[aria-label="Vocal quick pan"]')
     expect(wrapper.find(".track-pan output").exists()).toBe(false)

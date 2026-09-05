@@ -3,9 +3,22 @@ import { mount } from "@vue/test-utils"
 import { computed, defineComponent, h, nextTick, ref } from "vue"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { MidiClipState, ProjectCommand, ProjectGraphSnapshot } from "@heron/contracts"
+import type { UiKeyboardIntent } from "@heron/ui"
 import { usePianoRollStore } from "../../stores/pianoRoll"
 import { createPianoRollEditing, type PianoRollEditing } from "./usePianoRollEditing"
 import type { NoteGestureItem, PianoRollNoteEdit } from "./usePianoRollGestures"
+
+function keyboard(
+  code: string,
+  modifiers: Partial<UiKeyboardIntent["modifiers"]> = {}
+): UiKeyboardIntent {
+  return {
+    key: code,
+    code,
+    repeat: false,
+    modifiers: { alt: false, control: false, meta: false, shift: false, ...modifiers }
+  }
+}
 
 const clip: MidiClipState = {
   id: "clip-1",
@@ -317,34 +330,23 @@ describe("createPianoRollEditing", () => {
     expect(commandsForEdits).toHaveBeenCalledWith([expect.objectContaining({ durationTicks: 360 })])
 
     batch.mockClear()
-    editing.handleKeydown(
-      new KeyboardEvent("keydown", { code: "ArrowUp", shiftKey: true, bubbles: true })
-    )
+    editing.handleKeydown(keyboard("ArrowUp", { shift: true }))
     expect(commandsForEdits).toHaveBeenCalledWith([expect.objectContaining({ patch: { key: 72 } })])
 
-    editing.handleKeydown(new KeyboardEvent("keydown", { code: "ArrowDown", bubbles: true }))
-    editing.handleKeydown(
-      new KeyboardEvent("keydown", { code: "ArrowLeft", altKey: true, bubbles: true })
-    )
-    editing.handleKeydown(new KeyboardEvent("keydown", { code: "ArrowRight", bubbles: true }))
-    editing.handleKeydown(new KeyboardEvent("keydown", { code: "Escape", bubbles: true }))
+    editing.handleKeydown(keyboard("ArrowDown"))
+    editing.handleKeydown(keyboard("ArrowLeft", { alt: true }))
+    editing.handleKeydown(keyboard("ArrowRight"))
+    editing.handleKeydown(keyboard("Escape"))
     expect(pianoRollStore.selectedNotes).toHaveLength(0)
 
     pianoRollStore.setSelectedNotes([{ clipId: "clip-1", noteId: "note-1" }])
-    editing.handleKeydown(
-      new KeyboardEvent("keydown", { code: "KeyC", ctrlKey: true, bubbles: true })
-    )
+    editing.handleKeydown(keyboard("KeyC", { control: true }))
     expect(pianoRollStore.clipboard.length).toBeGreaterThan(0)
 
-    editing.handleKeydown(
-      new KeyboardEvent("keydown", { code: "KeyA", ctrlKey: true, bubbles: true })
-    )
+    editing.handleKeydown(keyboard("KeyA", { control: true }))
     expect(pianoRollStore.selectedNotes).toHaveLength(2)
 
-    const input = document.createElement("input")
-    const ignored = new KeyboardEvent("keydown", { code: "KeyC", ctrlKey: true })
-    Object.defineProperty(ignored, "target", { value: input })
-    editing.handleKeydown(ignored)
+    editing.handleKeydown(keyboard("KeyZ"))
     unmount()
   })
 

@@ -2,8 +2,10 @@ import type { Meta, StoryObj } from "@storybook/vue3-vite"
 
 import {
   UiButton,
+  UiActionRow,
   UiCheckbox,
   UiField,
+  UiForm,
   UiProgress,
   UiSectionHeading,
   UiSelect,
@@ -25,7 +27,7 @@ type Story = StoryObj<typeof meta>
 
 export const Welcome: Story = {
   render: () => ({
-    components: { UiButton, UiSectionHeading, UiSurface, HeronLogo },
+    components: { UiActionRow, UiButton, UiSectionHeading, UiSurface, HeronLogo },
     data: () => ({
       projects: [
         { name: "Midnight Session", meta: "Modified 12 minutes ago · 48 kHz" },
@@ -44,9 +46,7 @@ export const Welcome: Story = {
           <UiSurface>
             <UiSectionHeading title="Recent projects" description="Projects are stored locally and opened in place." />
             <div style="display:grid;gap:var(--ui-space-2);margin-top:var(--ui-space-5)">
-              <button v-for="project in projects" :key="project.name" class="product-recent-button" style="display:grid;gap:.25rem;width:100%;min-height:var(--ui-control-lg);padding:var(--ui-space-3);text-align:left;color:var(--ui-color-text);background:transparent;border:1px solid var(--ui-color-border);border-radius:var(--ui-radius-md)">
-                <strong>{{ project.name }}</strong><span style="color:var(--ui-color-text-muted);font-size:var(--ui-font-size-xs)">{{ project.meta }}</span>
-              </button>
+              <UiActionRow v-for="project in projects" :key="project.name" :label="project.name" :description="project.meta" />
             </div>
           </UiSurface>
         </div>
@@ -57,7 +57,7 @@ export const Welcome: Story = {
 
 export const Settings: Story = {
   render: () => ({
-    components: { UiButton, UiCheckbox, UiField, UiSectionHeading, UiSelect, UiSurface },
+    components: { UiButton, UiCheckbox, UiField, UiForm, UiSectionHeading, UiSelect, UiSurface },
     data: () => ({
       driver: "asio",
       device: "studio",
@@ -72,12 +72,12 @@ export const Settings: Story = {
       <main style="max-width:58rem;margin:auto">
         <UiSurface padding="lg">
           <UiSectionHeading title="Audio device" description="Changes briefly suspend playback while the engine is reconfigured." />
-          <form class="storybook-stack" style="margin-top:var(--ui-space-6)" @submit.prevent>
+          <UiForm class="storybook-stack" style="margin-top:var(--ui-space-6)">
             <UiField label="Driver"><template #default="{ controlId }"><UiSelect v-model="driver" :id="controlId" :options="drivers" /></template></UiField>
             <UiField label="Output device"><template #default="{ controlId }"><UiSelect v-model="device" :id="controlId" :options="devices" /></template></UiField>
             <UiCheckbox v-model="exclusive" label="Use exclusive device access" description="Prevents other applications from changing the device format." />
             <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--ui-space-3)"><UiButton>Cancel</UiButton><UiButton variant="primary">Apply settings</UiButton></div>
-          </form>
+          </UiForm>
         </UiSurface>
       </main>
     `

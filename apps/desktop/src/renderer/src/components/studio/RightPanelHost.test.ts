@@ -31,6 +31,24 @@ describe("RightPanelHost", () => {
     expect(separator.attributes("aria-valuemax")).toBe("480")
   })
 
+  it("rolls a resize preview back on Escape", async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const workspace = useStudioWorkspaceStore()
+    workspace.toggleMediaBrowser()
+    const wrapper = mount(RightPanelHost, {
+      global: { plugins: [pinia], stubs: { MediaBrowserPanel: true, NotesPanel: true } }
+    })
+    const separator = wrapper.get('[role="separator"]')
+    await separator.trigger("pointerdown", { button: 0, pointerId: 1, clientX: 680 })
+    await separator.trigger("pointermove", { pointerId: 1, clientX: 600 })
+    expect(workspace.rightPanelWidth).toBe(400)
+    await separator.trigger("keydown", { key: "Escape" })
+    expect(workspace.rightPanelWidth).toBe(320)
+    await separator.trigger("pointerup", { pointerId: 1, clientX: 600 })
+    expect(workspace.rightPanelWidth).toBe(320)
+  })
+
   it("resizes with a captured pointer until the pointer is released", async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
@@ -48,13 +66,13 @@ describe("RightPanelHost", () => {
     const originalWidth = window.innerWidth
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 1_000 })
 
-    await separator.trigger("pointerdown", { pointerId: 7 })
+    await separator.trigger("pointerdown", { pointerId: 7, clientX: 680 })
     expect(capture).toHaveBeenCalledWith(7)
-    window.dispatchEvent(new PointerEvent("pointermove", { clientX: 600 }))
+    await separator.trigger("pointermove", { pointerId: 7, clientX: 600 })
     expect(workspace.rightPanelWidth).toBe(400)
 
-    window.dispatchEvent(new PointerEvent("pointerup"))
-    window.dispatchEvent(new PointerEvent("pointermove", { clientX: 700 }))
+    await separator.trigger("pointerup", { pointerId: 7, clientX: 600 })
+    await separator.trigger("pointermove", { pointerId: 7, clientX: 700 })
     expect(workspace.rightPanelWidth).toBe(400)
     await separator.trigger("keydown", { key: "End" })
     expect(workspace.rightPanelWidth).toBe(400)

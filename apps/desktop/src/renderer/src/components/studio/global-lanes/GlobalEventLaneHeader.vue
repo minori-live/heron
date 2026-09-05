@@ -70,24 +70,10 @@ defineSlots<{
   gap: 4px;
   min-width: 0;
 }
-.lane-controls :deep(input) {
-  min-width: 0;
-  height: 23px;
-  padding: 0 5px;
-  border: 1px solid var(--line-soft);
-  border-radius: 3px;
-  color: var(--text-primary);
-  background: var(--surface-sunken);
-  font: var(--ui-type-size-control) var(--ui-type-family-data);
-  outline: none;
-}
-.lane-controls :deep(input:focus) {
-  border-color: var(--lane-color);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lane-color) 22%, transparent);
-}
+.lane-controls :deep(.ui-number-input),
 .lane-controls :deep(.ui-select-shell),
 .lane-controls :deep(.ui-cascading-select) {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
 }
 </style>

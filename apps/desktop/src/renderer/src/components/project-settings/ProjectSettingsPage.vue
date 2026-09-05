@@ -3,6 +3,7 @@ import { computed, shallowRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { Clock3, FileAudio, FolderCog, Music2, Save, SlidersHorizontal } from "@lucide/vue"
 import type { ProjectConfiguration } from "@heron/contracts"
+import { UiButton, UiForm } from "@heron/ui"
 import SettingsContainer from "../settings/SettingsContainer.vue"
 import type { SettingsCategory } from "../settings/settings"
 import ProjectGeneralSettings from "./ProjectGeneralSettings.vue"
@@ -152,20 +153,21 @@ function save(): void {
       <span v-else-if="saved && !dirty" role="status" class="save-status">{{
         t("common.changesSaved")
       }}</span>
-      <button
+      <UiButton
         class="settings-action settings-action-primary"
         type="submit"
+        variant="primary"
         form="project-settings-form"
         :disabled="saving || !dirty"
       >
         <Save :size="14" />
         {{ saving ? t("common.saving") : t("common.saveChanges") }}
-      </button>
+      </UiButton>
     </template>
 
-    <form id="project-settings-form" class="project-settings-form" @submit.prevent="save">
+    <UiForm id="project-settings-form" class="project-settings-form" @submit="save">
       <ProjectGeneralSettings v-model="draft" />
-    </form>
+    </UiForm>
   </SettingsContainer>
 </template>
 

@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from "pinia"
 import { computed, nextTick } from "vue"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { MidiClipState, MidiNoteState, ProjectCommand } from "@heron/contracts"
+import type { UiGestureIntent } from "@heron/ui"
 import { usePianoRollStore } from "../../stores/pianoRoll"
 import {
   createPianoRollGestures,
@@ -62,23 +63,30 @@ function pointerEvent(
     button?: number
   },
   target?: HTMLElement
-): PointerEvent {
-  const event = new PointerEvent(type, {
-    bubbles: true,
-    cancelable: true,
-    clientX: options.clientX,
-    clientY: options.clientY,
-    pointerId: options.pointerId ?? 1,
-    altKey: options.altKey,
-    ctrlKey: options.ctrlKey,
-    metaKey: options.metaKey,
-    shiftKey: options.shiftKey,
-    button: options.button ?? 0
-  })
-  if (target) {
-    Object.defineProperty(event, "currentTarget", { value: target })
+): UiGestureIntent {
+  const bounds = target?.getBoundingClientRect()
+  const point = {
+    x: options.clientX - (bounds?.left ?? 0),
+    y: options.clientY - (bounds?.top ?? 0)
   }
-  return event
+  return {
+    phase:
+      type === "pointerdown"
+        ? "start"
+        : type === "pointermove"
+          ? "update"
+          : type === "pointerup"
+            ? "commit"
+            : "cancel",
+    point,
+    delta: { x: 0, y: 0 },
+    modifiers: {
+      alt: options.altKey ?? false,
+      control: options.ctrlKey ?? false,
+      meta: options.metaKey ?? false,
+      shift: options.shiftKey ?? false
+    }
+  }
 }
 
 function gridTarget(left = 0, top = 0): HTMLElement {
@@ -147,6 +155,34 @@ describe("createPianoRollGestures", () => {
     })
     return { pianoRollStore, gestures, batch, commandsForEdits }
   }
+
+  it("sweeps erasures using captured pointer coordinates without relying on DOM hover", () => {
+    const { pianoRollStore, gestures, batch } = setup()
+    pianoRollStore.tool = "erase"
+    gestures.handleNoteGesture(
+      "move",
+      pointerEvent("pointerdown", { clientX: 980, clientY: 67 * 18 + 5 }),
+      clip,
+      clip.notes[0]!
+    )
+    gestures.handleNoteGesture(
+      "move",
+      pointerEvent("pointermove", { clientX: 1460, clientY: 63 * 18 + 5 }),
+      clip,
+      clip.notes[0]!
+    )
+    expect(gestures.eraseTargetKeys.value).toEqual(new Set(["clip-1:note-1", "clip-1:note-2"]))
+    expect(batch).not.toHaveBeenCalled()
+    gestures.handleNoteGesture(
+      "move",
+      pointerEvent("pointerup", { clientX: 1460, clientY: 63 * 18 + 5 }),
+      clip,
+      clip.notes[0]!
+    )
+    expect(batch).toHaveBeenCalledExactlyOnceWith([
+      { type: "delete-midi-notes", clipId: "clip-1", noteIds: ["note-1", "note-2"] }
+    ])
+  })
 
   it("previews and commits a move gesture with snapped tick and key deltas", async () => {
     const item = noteItem(clip.notes[0]!)
@@ -261,7 +297,12 @@ describe("createPianoRollGestures", () => {
     gestures.handleNotePointerOver(clip, second.note)
     expect(gestures.eraseTargetKeys.value.has("clip-1:note-2")).toBe(true)
 
-    window.dispatchEvent(new Event("pointerup"))
+    gestures.handleNoteGesture(
+      "move",
+      pointerEvent("pointerup", { clientX: 10, clientY: 10 }, target),
+      clip,
+      item.note
+    )
     await nextTick()
     expect(batch).toHaveBeenCalledWith([
       { type: "delete-midi-notes", clipId: "clip-1", noteIds: ["note-1", "note-2"] }
@@ -399,7 +440,7 @@ describe("createPianoRollGestures", () => {
     const note = clip.notes[0]!
     const target = gridTarget()
 
-    gestures.handleNoteClick(new MouseEvent("click", { bubbles: true }), clip, note)
+    gestures.handleNoteClick({ alt: false, control: false, meta: false, shift: false }, clip, note)
     expect(pianoRollStore.selectedNoteKeys.has("clip-1:note-1")).toBe(true)
 
     gestures.beginNoteGesture(
@@ -408,12 +449,12 @@ describe("createPianoRollGestures", () => {
       note,
       "move"
     )
-    gestures.handleNoteClick(new MouseEvent("click", { bubbles: true }), clip, note)
+    gestures.handleNoteClick({ alt: false, control: false, meta: false, shift: false }, clip, note)
     expect(pianoRollStore.selectedNotes).toHaveLength(1)
 
     pianoRollStore.tool = "erase"
     pianoRollStore.clearNoteSelection()
-    gestures.handleNoteClick(new MouseEvent("click", { bubbles: true }), clip, note)
+    gestures.handleNoteClick({ alt: false, control: false, meta: false, shift: false }, clip, note)
     expect(pianoRollStore.selectedNotes).toHaveLength(0)
   })
 
