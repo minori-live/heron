@@ -5,6 +5,18 @@ import { i18n } from "../i18n"
 import { rpcSuccess, testBootstrap } from "./ipc"
 
 const api = {
+  subscribeUpdates: vi.fn(() => () => undefined),
+  updateSnapshot: vi.fn(async () =>
+    rpcSuccess({
+      revision: 0,
+      phase: "disabled",
+      currentVersion: "0.5.0",
+      channel: null,
+      availableVersion: null,
+      progress: 0,
+      error: null
+    })
+  ),
   platform: "win32",
   bootstrap: vi.fn(async () => rpcSuccess(testBootstrap())),
   subscribeOperations: vi.fn(() => () => undefined),

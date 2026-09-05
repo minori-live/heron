@@ -2,7 +2,7 @@ import type { IpcMainInvokeEvent } from "electron"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { IPC_PROTOCOL_VERSION, rpcFailure } from "@heron/contracts"
 import type { RpcRequestMeta } from "@heron/contracts"
-import { registerRpcHandler } from "./rpc"
+import { registerRpcHandler, setRpcMutationGuard, settleRpcMutations } from "./rpc"
 
 const { handle } = vi.hoisted(() => ({ handle: vi.fn() }))
 
@@ -27,6 +27,7 @@ function registeredHandler() {
 describe("registerRpcHandler", () => {
   beforeEach(() => {
     handle.mockReset()
+    setRpcMutationGuard(() => false)
   })
 
   it("wraps a successful handler value in RpcResult", async () => {
@@ -40,6 +41,30 @@ describe("registerRpcHandler", () => {
       value: { doubled: 8 },
       warnings: []
     })
+  })
+
+  it("drains admitted mutations and rejects new ones during update shutdown", async () => {
+    let finish!: () => void
+    const work = new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    const handler = vi.fn(() => work)
+    registerRpcHandler("test:mutation", handler, { authenticate: () => {} })
+    const request = { ...meta, mutation: { operationId: "op", idempotencyKey: "key" } }
+    const pending = registeredHandler()({} as IpcMainInvokeEvent, request)
+    setRpcMutationGuard(() => true)
+    expect(await registeredHandler()({} as IpcMainInvokeEvent, request)).toMatchObject({
+      ok: false,
+      error: { outcome: "not-committed" }
+    })
+    const drained = vi.fn()
+    const draining = settleRpcMutations().then(drained)
+    await Promise.resolve()
+    expect(drained).not.toHaveBeenCalled()
+    finish()
+    await Promise.all([pending, draining])
+    expect(handler).toHaveBeenCalledOnce()
+    expect(drained).toHaveBeenCalledOnce()
   })
 
   it("does not dispatch malformed or unknown-version requests", async () => {

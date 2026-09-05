@@ -58,3 +58,4 @@ review.
 - [ADR-0012: Add separate layered Live documents over the shared Mixer model](0012-separate-layered-live-documents.md)
 - [ADR-0013: Use UnoCSS as a constrained layout utility layer](0013-constrained-unocss-layout-layer.md)
 - [ADR-0014: Make Storybook the interaction-component boundary](0014-storybook-owned-interaction-boundary.md)
+- [ADR-0015: Update installed tagged releases through GitHub Releases](0015-tagged-application-updates.md)

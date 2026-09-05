@@ -345,7 +345,7 @@ run = [
 hide = true
 depends = ["build"]
 run = [
-  "pnpm --filter @heron/desktop exec electron-builder --publish never --x64",
+  "pnpm --filter @heron/desktop dist --x64",
   "pnpm --filter @heron/desktop verify:package-security",
 ]
 
@@ -358,7 +358,7 @@ HERON_REQUIRE_NOTARIZATION = "false"
 hide = true
 depends = ["build"]
 run = [
-  "pnpm --filter @heron/desktop exec electron-builder --publish never --x64",
+  "pnpm --filter @heron/desktop dist --x64",
   "pnpm --filter @heron/desktop verify:package-security",
 ]
 
@@ -371,7 +371,7 @@ HERON_REQUIRE_NOTARIZATION = "false"
 hide = true
 depends = ["build"]
 run = [
-  "pnpm --filter @heron/desktop exec electron-builder --publish never --arm64",
+  "pnpm --filter @heron/desktop dist --arm64",
   "pnpm --filter @heron/desktop verify:package-security",
 ]
 
@@ -399,7 +399,7 @@ MACOSX_DEPLOYMENT_TARGET = "14.2"
 hide = true
 depends = ["ci:build:macos-universal"]
 run = [
-  "pnpm --filter @heron/desktop exec electron-builder --config electron-builder.universal.yml --publish never --universal",
+  "pnpm --filter @heron/desktop dist --config electron-builder.universal.yml --universal",
   "pnpm --filter @heron/desktop verify:package-security",
 ]
 
@@ -413,7 +413,7 @@ HERON_REQUIRE_NOTARIZATION = "false"
 hide = true
 depends = ["ci:build:macos-universal"]
 run = [
-  "pnpm --filter @heron/desktop exec electron-builder --config electron-builder.release.yml --publish never --universal",
+  "pnpm --filter @heron/desktop dist --config electron-builder.release.yml --universal",
   "pnpm --filter @heron/desktop verify:package-security",
 ]
 
