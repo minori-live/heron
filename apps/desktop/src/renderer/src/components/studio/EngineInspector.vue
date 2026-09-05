@@ -10,6 +10,7 @@ const props = defineProps<{ runtime: AudioRuntimeSnapshot; peak?: number; error?
 const emit = defineEmits<{ runPreview: [] }>()
 const gainValues = defineModel<number[]>({ required: true })
 const { t, locale } = useI18n()
+const formattingLocale = computed(() => intlLocale(locale.value))
 const gain = computed(() => gainValues.value[0] ?? 0.5)
 const gainValue = computed({
   get: () => gain.value,
@@ -82,7 +83,7 @@ const meterSegments = Array.from({ length: 12 }, (_, index) => index)
         <dt>{{ t("studio.inspector.sampleRate") }}</dt>
         <dd>
           {{
-            runtime.sampleRate ? `${runtime.sampleRate.toLocaleString(intlLocale(locale))} Hz` : "—"
+            runtime.sampleRate ? `${runtime.sampleRate.toLocaleString(formattingLocale)} Hz` : "—"
           }}
         </dd>
       </div>

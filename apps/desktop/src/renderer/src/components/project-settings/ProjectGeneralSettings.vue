@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { intlLocale } from "../../i18n"
 import { UiNumberInput, UiSelect, UiTextInput } from "@heron/ui"
@@ -8,6 +9,7 @@ import SettingsPage from "../settings/SettingsPage.vue"
 import SettingsSection from "../settings/SettingsSection.vue"
 
 const { t, locale } = useI18n()
+const formattingLocale = computed(() => intlLocale(locale.value))
 const configuration = defineModel<ProjectConfiguration>({ required: true })
 
 function update(patch: Partial<ProjectConfiguration>): void {
@@ -53,7 +55,7 @@ function update(patch: Partial<ProjectConfiguration>): void {
             "
           >
             <option v-for="rate in PROJECT_SAMPLE_RATES" :key="rate" :value="String(rate)">
-              {{ rate.toLocaleString(intlLocale(locale)) }} Hz
+              {{ rate.toLocaleString(formattingLocale) }} Hz
             </option>
           </UiSelect>
           <small>{{ t("settings.project.general.sessionFormat.sampleRateHint") }}</small>

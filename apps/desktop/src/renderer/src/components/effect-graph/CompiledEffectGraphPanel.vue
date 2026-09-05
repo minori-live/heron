@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { shallowRef } from "vue"
+import { computed, shallowRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { intlLocale } from "../../i18n"
 import type { CompiledAudioGraphSnapshot } from "@heron/contracts"
@@ -15,6 +15,7 @@ defineProps<{
 
 const emit = defineEmits<{ retry: [] }>()
 const { t, locale } = useI18n()
+const formattingLocale = computed(() => intlLocale(locale.value))
 const resetToken = shallowRef(0)
 </script>
 
@@ -28,7 +29,7 @@ const resetToken = shallowRef(0)
             t("effectGraph.toolbar.revision", {
               revision: snapshot.graphRevision,
               build: snapshot.buildGeneration,
-              sampleRate: snapshot.sampleRate.toLocaleString(intlLocale(locale))
+              sampleRate: snapshot.sampleRate.toLocaleString(formattingLocale)
             })
           }}
         </strong>
