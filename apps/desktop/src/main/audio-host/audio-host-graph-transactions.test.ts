@@ -160,6 +160,7 @@ describe("AudioHostGraphTransactions", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    dependencies.request.mockReset()
     dependencies.client.mockReturnValue(client as never)
     dependencies.loadPlugin.mockResolvedValue(undefined)
     dependencies.pluginStatus.mockReturnValue({ latencySamples: 64, tailSamples: 12 })
@@ -320,6 +321,119 @@ describe("AudioHostGraphTransactions", () => {
     expect(dependencies.request).toHaveBeenCalledWith(
       expect.objectContaining({ type: "abort-graph" })
     )
+    expect(dependencies.commit).not.toHaveBeenCalled()
+  })
+
+  it.each(["success", "rejected-result", "transport-error"] as const)(
+    "cleans up a failed activation and preserves its outcome when abort returns %s",
+    async (abortOutcome) => {
+      const log = vi.spyOn(console, "error").mockImplementation(() => {})
+      const deployment = {
+        meta: meta({ target: engine, expectedRevision: 3 }),
+        projectGraph,
+        baseRevision: 3,
+        graphRevision: 4,
+        project: project(),
+        runtime: runtimeGraph()
+      }
+      const failed = rpcFailure(deployment.meta, {
+        code: "dependency-failed",
+        category: "dependency-failed",
+        outcome: "not-committed",
+        retry: "after-reconcile",
+        correlationId: "activation-failure",
+        userMessageKey: "errors.graphDependencyFailed",
+        details: { type: "dependency-failed", dependency: projectGraph }
+      })
+      const cleanupError = new Error("abort transport lost")
+      dependencies.request.mockResolvedValueOnce({
+        request_id: 1,
+        result: { type: "graph-transaction", result: failed }
+      })
+      if (abortOutcome === "transport-error") {
+        dependencies.request.mockRejectedValueOnce(cleanupError)
+      } else if (abortOutcome === "rejected-result") {
+        dependencies.request.mockResolvedValueOnce({
+          request_id: 2,
+          result: {
+            type: "graph-transaction",
+            result: rpcFailure(deployment.meta, {
+              ...failed.error,
+              correlationId: "abort-failure"
+            })
+          }
+        })
+      } else {
+        dependencies.request.mockResolvedValueOnce(
+          transactionResponse("request-1", {
+            type: "aborted",
+            operationId: "op-1",
+            existed: true,
+            snapshot: snapshot()
+          })
+        )
+      }
+      try {
+        await expect(transactions.activate(deployment)).resolves.toEqual(failed)
+        expect(dependencies.request).toHaveBeenNthCalledWith(2, {
+          type: "abort-graph",
+          meta: deployment.meta,
+          request: { helperEpoch: "helper-epoch", projectGraph, baseRevision: 3 }
+        })
+        expect(dependencies.commit).not.toHaveBeenCalled()
+        if (abortOutcome === "success") {
+          expect(log).not.toHaveBeenCalled()
+        } else {
+          expect(log).toHaveBeenCalledWith("Could not abort failed audio graph deployment", {
+            operationId: "op-1",
+            projectGraph,
+            activationError: failed.error,
+            abortError:
+              abortOutcome === "transport-error"
+                ? cleanupError
+                : expect.objectContaining({ correlationId: "abort-failure" })
+          })
+        }
+      } finally {
+        log.mockRestore()
+      }
+    }
+  )
+
+  it("does not abort an activation whose outcome remains unknown", async () => {
+    const deployment = {
+      meta: meta({ target: engine, expectedRevision: 3 }),
+      projectGraph,
+      baseRevision: 3,
+      graphRevision: 4,
+      project: project(),
+      runtime: runtimeGraph()
+    }
+    const unknown = rpcFailure(deployment.meta, {
+      code: "operation-timeout-unknown",
+      category: "timeout-unknown",
+      outcome: "unknown",
+      retry: "after-reconcile",
+      correlationId: "timeout-unknown",
+      userMessageKey: "errors.operationTimeout",
+      details: { type: "operation-timeout-unknown", dispatched: true }
+    })
+    dependencies.request
+      .mockResolvedValueOnce({
+        request_id: 1,
+        result: { type: "graph-transaction", result: unknown }
+      })
+      .mockResolvedValueOnce(
+        transactionResponse("request-1", {
+          type: "snapshot",
+          snapshot: snapshot({ status: "prepared" })
+        })
+      )
+    await expect(transactions.activate(deployment)).resolves.toEqual(unknown)
+    expect(dependencies.request.mock.calls.map(([command]) => command.type)).toEqual([
+      "activate-graph",
+      "graph-deployment-snapshot"
+    ])
     expect(dependencies.commit).not.toHaveBeenCalled()
   })
 })

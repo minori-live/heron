@@ -46,8 +46,13 @@ await test("macOS packaging has a single task definition and builds each artifac
       1
     )
     assert.equal(commands.match(/pnpm build:desktop/gu)?.length, 1)
-    assert.equal(commands.match(/pnpm --filter @heron\/desktop dist\b/gu)?.length, 1)
-    assert.ok(commands.includes(`dist --config ${config} --universal`))
+    const distCommands = [...commands.matchAll(/pnpm --filter @heron\/desktop dist\b([^\r\n]*)/gu)]
+    assert.equal(distCommands.length, 1)
+    const args = distCommands[0][1].trim().split(/\s+/u)
+    const configIndex = args.indexOf("--config")
+    assert.notEqual(configIndex, -1)
+    assert.equal(args[configIndex + 1], config)
+    assert.ok(args.includes("--universal"))
   }
 })
 

@@ -444,8 +444,6 @@ export class AudioHostService {
     if (!prepared.ok) throw new Error(prepared.error.userMessageKey)
     const activated = await this.graphTransactions.activate(prepared.value)
     if (!activated.ok) {
-      if (activated.error.outcome === "not-committed")
-        await this.graphTransactions.abort(prepared.value)
       throw new Error(activated.error.userMessageKey)
     }
   }

@@ -88,3 +88,17 @@ This test/documentation audit does not add new hardware or platform-soak evidenc
 Raw coverage, regression-failure and execution logs are local ignored artifacts
 under `coverage/architecture-audit/testing-policy-*`. They are not a new CI gate
 or a committed maintenance framework.
+
+## PR review follow-up
+
+PR #142 review found that a known failed native activation could retain a candidate
+and block later edits. The shared transaction client now aborts that candidate,
+logs typed or thrown cleanup failures without masking the activation error, and
+leaves unknown outcomes for reconciliation. Five added regression cases cover
+these distinct outcomes and subsequent publication through the service boundary.
+The packaging task check now verifies flags within the same invocation without
+requiring a particular flag order.
+
+The Desktop suite passes 1,439 tests; coverage increases to
+82.72 / 72.20 / 82.97 / 85.91 (statement / branch / function / line).
+Other package suites are unchanged, giving 1,769 passing JS package tests overall.

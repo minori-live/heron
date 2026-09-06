@@ -79,6 +79,10 @@ Document graphs use one prepare/activate/abort protocol. Preparation owns
 candidate processors separately from the active registry. Destruction respects
 outstanding processor leases. Failed activation leaves both graph and plug-in
 state consistent; it cannot report prepared state after consuming its instances.
+The shared main-side transaction client aborts a candidate after a known
+not-committed activation failure. Cleanup failure is logged with the operation
+and both errors without replacing the activation outcome. An unknown activation
+outcome remains subject to reconciliation, not speculative abort.
 
 The candidate retains compilation ownership until commit or abort. Internal
 plug-in refreshes coalesce to one pending latest snapshot while the background
