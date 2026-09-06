@@ -290,11 +290,12 @@ async function revertAraDocumentStateMigration(database: PGlite): Promise<void> 
   `)
 }
 
+// Cold PGlite startup, migrations and archive creation can exceed 15s on Windows CI.
 beforeAll(async () => {
   templateDirectory = await mkdtemp(join(tmpdir(), "heron-project-template-test-"))
   templateArchivePath = join(templateDirectory, "project-template.pglite.gz")
   await buildProjectTemplateArchive(templateArchivePath, PROJECT_MIGRATIONS_FOLDER)
-})
+}, 60_000)
 
 afterEach(async () => {
   for (const resource of databases.splice(0)) {
