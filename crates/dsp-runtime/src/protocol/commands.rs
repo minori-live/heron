@@ -2,10 +2,10 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     AudioEngineConfig, BinaryPayload, BounceOutputRenderRequest, GraphTransactionRequest,
-    GraphUpdate, MidiRecordingStartConfig, MidiSyncPreferences, MixerParameterPreview,
-    ParameterCommand, ParameterGesture, PluginAudioMode, PluginAuxInputConfiguration,
-    PluginEditorAction, PluginEditorAppearance, PluginEditorContext, PluginEditorPreference,
-    PluginLocator, PluginStateEnvelope, PrepareGraphRequest, RecordingStartConfig,
+    MidiRecordingStartConfig, MidiSyncPreferences, MixerParameterPreview, ParameterCommand,
+    ParameterGesture, PluginAudioMode, PluginAuxInputConfiguration, PluginEditorAction,
+    PluginEditorAppearance, PluginEditorContext, PluginEditorPreference, PluginLocator,
+    PluginStateEnvelope, PrepareGraphRequest, RecordingStartConfig,
     RoundTripLatencyMeasurementRequest, RpcRequestMeta, TransportControl,
 };
 
@@ -69,9 +69,6 @@ pub enum ControlCommand {
         request: RoundTripLatencyMeasurementRequest,
     },
     RoundTripLatencyMeasurementSnapshot,
-    UpdateGraph {
-        update: GraphUpdate,
-    },
     PrepareGraph {
         meta: RpcRequestMeta,
         request: Box<PrepareGraphRequest>,

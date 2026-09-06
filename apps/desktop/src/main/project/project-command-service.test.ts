@@ -120,6 +120,7 @@ interface ProjectMock {
   prepareProjectCommand: ReturnType<typeof vi.fn>
   commitProjectCommand: ReturnType<typeof vi.fn>
   abortProjectCommand: ReturnType<typeof vi.fn>
+  acknowledgeProjectCommand: ReturnType<typeof vi.fn>
   projectCommandStatus: ReturnType<typeof vi.fn>
   importMidi: ReturnType<typeof vi.fn>
   rollbackMidi: ReturnType<typeof vi.fn>
@@ -174,6 +175,7 @@ function projectMock(initialGraph = graph()): ProjectMock {
     abortProjectCommand: vi.fn(async (token) => {
       prepared.delete(token.id)
     }),
+    acknowledgeProjectCommand: vi.fn().mockResolvedValue(undefined),
     projectCommandStatus: vi.fn(async () => ({ state: "absent" as const })),
     importMidi: vi.fn().mockResolvedValue(undefined),
     rollbackMidi: vi.fn().mockResolvedValue(undefined),
@@ -195,6 +197,7 @@ function projectMock(initialGraph = graph()): ProjectMock {
     prepareProjectCommand: mock.prepareProjectCommand,
     commitProjectCommand: mock.commitProjectCommand,
     abortProjectCommand: mock.abortProjectCommand,
+    acknowledgeProjectCommand: mock.acknowledgeProjectCommand,
     projectCommandStatus: mock.projectCommandStatus,
     importMidi: mock.importMidi,
     rollbackMidi: mock.rollbackMidi,
@@ -208,6 +211,9 @@ function projectMock(initialGraph = graph()): ProjectMock {
 const directories: string[] = []
 
 interface ProjectHarness {
+  commands: ProjectCommandService
+  lifecycle: LifecycleCoordinator
+  operations: OperationService
   load: ProjectGraphService["load"]
   snapshot: ProjectGraphService["snapshot"]
   savePluginStates: ProjectGraphService["savePluginStates"]
@@ -318,6 +324,9 @@ async function mixer(
     return result.value
   }
   return {
+    commands,
+    lifecycle,
+    operations,
     load: graphs.load.bind(graphs),
     snapshot: graphs.snapshot.bind(graphs),
     savePluginStates: graphs.savePluginStates.bind(graphs),
@@ -356,6 +365,132 @@ afterEach(async () => {
 })
 
 describe("project graph and command services", () => {
+  it("replays a committed command at its original revision and transfers retention to main", async () => {
+    const projects = projectMock()
+    const service = await mixer(projects)
+    await service.load()
+    const workspace = service.lifecycle.applicationState.workspaceSnapshot()!
+    const meta = {
+      protocolVersion: IPC_PROTOCOL_VERSION,
+      requestId: "retry-test",
+      target: workspace.projectGraph,
+      expectedRevision: workspace.revision,
+      mutation: { operationId: "retained-command", idempotencyKey: "same-intent" }
+    }
+    const command: ProjectCommand = {
+      type: "update-channel",
+      channelId: "audio",
+      patch: { gainDb: -7 }
+    }
+    const first = await service.commands.execute(meta, command)
+    expect(first.ok).toBe(true)
+    expect(projects.acknowledgeProjectCommand).toHaveBeenCalledOnce()
+    expect(await service.commands.execute(meta, command)).toEqual(first)
+    expect(projects.commitProjectCommand).toHaveBeenCalledOnce()
+    expect(service.operations.registry.retainedTerminalCount).toBe(1)
+    expect(service.operations.acknowledgeOperation("retained-command")).toBe(true)
+    expect(service.operations.registry.retainedTerminalCount).toBe(0)
+  })
+
+  it("rejects invalid numeric input as validation without contacting the database", async () => {
+    const projects = projectMock()
+    const service = await mixer(projects)
+    await service.load()
+    await expect(
+      service.execute({ type: "update-channel", channelId: "audio", patch: { gainDb: 99 } })
+    ).rejects.toThrow("validation-failed")
+    expect(projects.prepareProjectCommand).not.toHaveBeenCalled()
+  })
+
+  it("keeps a known commit successful when worker acknowledgement fails", async () => {
+    const projects = projectMock()
+    projects.acknowledgeProjectCommand.mockRejectedValueOnce(new Error("worker unavailable"))
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined)
+    const service = await mixer(projects)
+    await service.load()
+    const result = await service.execute({
+      type: "update-channel",
+      channelId: "audio",
+      patch: { gainDb: -8 }
+    })
+    expect(result.graph.channels[0]?.gainDb).toBe(-8)
+    expect(service.operations.registry.snapshot()[0]?.state).toBe("committed")
+    expect(log).toHaveBeenCalled()
+  })
+
+  it("retries a failed worker acknowledgement before preparing the next command", async () => {
+    const projects = projectMock()
+    projects.acknowledgeProjectCommand.mockRejectedValueOnce(new Error("ack response lost"))
+    vi.spyOn(console, "error").mockImplementation(() => undefined)
+    const service = await mixer(projects)
+    await service.load()
+    await service.execute({ type: "update-channel", channelId: "audio", patch: { gainDb: -8 } })
+    const firstToken = projects.acknowledgeProjectCommand.mock.calls[0]![0]
+
+    const result = await service.execute({
+      type: "update-channel",
+      channelId: "audio",
+      patch: { gainDb: -4 }
+    })
+    expect(result.graph.channels[0]?.gainDb).toBe(-4)
+    expect(projects.acknowledgeProjectCommand).toHaveBeenNthCalledWith(2, firstToken)
+    expect(projects.acknowledgeProjectCommand.mock.invocationCallOrder[1]).toBeLessThan(
+      projects.prepareProjectCommand.mock.invocationCallOrder[1]!
+    )
+    await service.execute({ type: "update-channel", channelId: "audio", patch: { gainDb: -2 } })
+    expect(
+      projects.acknowledgeProjectCommand.mock.calls.filter(([token]) => token.id === firstToken.id)
+    ).toHaveLength(2)
+    expect(projects.commitProjectCommand).toHaveBeenCalledTimes(3)
+  })
+
+  it("does not retry old worker acknowledgements against a replacement project graph", async () => {
+    const projects = projectMock()
+    projects.acknowledgeProjectCommand.mockRejectedValueOnce(new Error("ack response lost"))
+    vi.spyOn(console, "error").mockImplementation(() => undefined)
+    const service = await mixer(projects)
+    await service.load()
+    await service.execute({ type: "update-channel", channelId: "audio", patch: { gainDb: -8 } })
+    const oldToken = projects.acknowledgeProjectCommand.mock.calls[0]![0]
+    const workspace = service.lifecycle.applicationState.workspaceSnapshot()!
+    const resources = service.lifecycle.applicationState.resources
+    const candidate = resources.create({
+      kind: "project-graph",
+      id: workspace.projectGraph.id,
+      parent: workspace.project
+    })
+    if (!candidate.ok) throw new Error("replacement graph creation failed")
+    const replacement = resources.commit(candidate.value.ref, workspace.graph)
+    if (!replacement.ok) throw new Error("replacement graph commit failed")
+    service.lifecycle.applicationState.setWorkspace({
+      ...workspace,
+      projectGraph: { ...workspace.projectGraph, generation: replacement.value.ref.generation },
+      revision: replacement.value.revision
+    })
+
+    await service.execute({ type: "update-channel", channelId: "audio", patch: { gainDb: -4 } })
+    expect(projects.acknowledgeProjectCommand).toHaveBeenCalledTimes(2)
+    expect(
+      projects.acknowledgeProjectCommand.mock.calls.filter(([token]) => token.id === oldToken.id)
+    ).toHaveLength(1)
+  })
+
+  it("aborts a confirmed database rollback and leaves the workspace editable", async () => {
+    const projects = projectMock()
+    projects.commitProjectCommand.mockRejectedValueOnce(new Error("snapshot failed before commit"))
+    projects.projectCommandStatus.mockResolvedValueOnce({ state: "prepared", token: {} })
+    const service = await mixer(projects)
+    await service.load()
+    await expect(
+      service.execute({ type: "update-channel", channelId: "audio", patch: { gainDb: -8 } })
+    ).rejects.toThrow("resource-unavailable")
+    expect(projects.abortProjectCommand).toHaveBeenCalledOnce()
+    expect(service.operations.registry.snapshot()[0]?.state).toBe("not-committed")
+    expect(
+      (await service.execute({ type: "update-channel", channelId: "audio", patch: { gainDb: -4 } }))
+        .graph.channels[0]?.gainDb
+    ).toBe(-4)
+  })
   it("loads once and returns defensive cached snapshots", async () => {
     const projects = projectMock()
     const service = await mixer(projects)
@@ -642,6 +777,27 @@ describe("project graph and command services", () => {
 
     expect((await service.snapshot()).channels.find(({ id }) => id === "audio")?.gainDb).toBe(0)
     expect(previewMixerParameter).not.toHaveBeenCalled()
+    const retained = service.operations.registry.snapshot()[0]!
+    expect(
+      await service.commands.execute(
+        {
+          protocolVersion: IPC_PROTOCOL_VERSION,
+          requestId: "retry-unknown",
+          target: retained.target,
+          expectedRevision: 1,
+          mutation: { operationId: retained.operationId, idempotencyKey: retained.idempotencyKey }
+        },
+        { type: "update-channel", channelId: "audio", patch: { gainDb: -12 } }
+      )
+    ).toMatchObject({
+      ok: false,
+      error: { outcome: "unknown" }
+    })
+    await expect(
+      service.execute({ type: "update-channel", channelId: "audio", patch: { gainDb: -6 } })
+    ).rejects.toThrow("stale-resource")
+    expect(projects.commitProjectCommand).toHaveBeenCalledOnce()
+    expect(projects.acknowledgeProjectCommand).not.toHaveBeenCalled()
   })
 
   it("recovers the committed result by operation ID when the DB response is lost", async () => {

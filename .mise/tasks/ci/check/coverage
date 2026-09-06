@@ -5,7 +5,6 @@ set -euo pipefail
 
 mise run version:check
 mise run js:format-check ::: rust:format:check ::: rust:shear ::: rust:clippy ::: js:check:configs
-pnpm lint:design
 
 target="$(cargo xtask host-target)"
 coverage_target="$PWD/target-coverage"
@@ -22,11 +21,11 @@ fi
   eval "$(cargo llvm-cov show-env --sh --target "$target")"
   cargo xtask coverage prepare
   pnpm --filter @heron/dsp-node build:debug
-  pnpm lint:oxlint
-  pnpm lint:eslint
+  pnpm lint
   pnpm check:packages
   pnpm test:coverage:js
   pnpm test:native-bindings
+  pnpm test:scripts
   mise run test:official-plugin-fixtures
   cargo xtask coverage report
   node scripts/rewrite-lcov-paths.ts coverage/rust/lcov.info

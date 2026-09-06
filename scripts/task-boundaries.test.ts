@@ -19,7 +19,10 @@ await test("macOS packaging has a single task definition and builds each artifac
     MISE_TRUSTED_CONFIG_PATHS: workspaceRoot,
     COLUMNS: "300"
   }
-  for (const task of ["ci:package:macos-universal", "ci:package:macos-universal-release"]) {
+  for (const [task, config] of [
+    ["ci:package:macos-universal", "electron-builder.universal.yml"],
+    ["ci:package:macos-universal-release", "electron-builder.release.yml"]
+  ] as const) {
     const info = spawnSync("mise", ["tasks", "info", task, "--json"], {
       cwd: workspaceRoot,
       env,
@@ -43,7 +46,8 @@ await test("macOS packaging has a single task definition and builds each artifac
       1
     )
     assert.equal(commands.match(/pnpm build:desktop/gu)?.length, 1)
-    assert.equal(commands.match(/exec electron-builder /gu)?.length, 1)
+    assert.equal(commands.match(/pnpm --filter @heron\/desktop dist\b/gu)?.length, 1)
+    assert.ok(commands.includes(`dist --config ${config} --universal`))
   }
 })
 
@@ -167,12 +171,8 @@ await test("universal macOS packaging includes only the universal DSP binding", 
     resolve(workspaceRoot, "apps/desktop/electron-builder.release.yml"),
     "utf8"
   )
-  const tasks = await readFile(resolve(workspaceRoot, "mise.toml"), "utf8")
-
   assert.match(universalConfig, /extends: \.\/electron-builder\.yml/u)
   assert.match(universalConfig, /\*\.darwin-arm64\.node/u)
   assert.match(universalConfig, /\*\.darwin-x64\.node/u)
   assert.match(releaseConfig, /extends: \.\/electron-builder\.universal\.yml/u)
-  assert.match(tasks, /cargo xtask native universal-macos --profile release/u)
-  assert.match(tasks, /dist --config electron-builder\.universal\.yml --universal/u)
 })

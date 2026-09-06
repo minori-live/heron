@@ -186,6 +186,11 @@ for current counts.
 
 ## Testing by risk
 
+[Testing policy](testing.md) defines the ownership and narrowest-boundary test
+selection rules. The table below chooses primary evidence for an owned risk;
+it does not require duplicate assertions at every layer or dependency conformance
+tests. Coverage alone does not establish correctness.
+
 | Change                                                                       | Required primary evidence                                                                                   |
 | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | Pure calculation, parser, state transition, or project invariant             | Focused unit tests with boundary and invalid cases                                                          |

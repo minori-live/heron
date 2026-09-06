@@ -52,6 +52,9 @@ native adapter -> @heron/dsp-node -> embedded runtime -> audio callback
 - `@heron/contracts` contains serializable boundary types and depends on no UI,
   Electron, persistence, or native implementation.
 - `@heron/project-model` owns pure project invariants.
+- Mixer invariants and its persistence projection are independent of Studio
+  tracks, clips, and musical maps; Studio adds its own ownership and timeline
+  validation to the shared Mixer model.
 - `@heron/project-db` is the only project persistence implementation.
 - `@heron/ui` owns shared visual behavior and accessibility, never product state.
 
@@ -68,12 +71,18 @@ result and a documented recoverable or quarantined state.
 
 Completion order is not authority. When automatic recovery competes with a
 newer user mutation, an explicit generation determines which result may commit.
-The proposed Live device-loss policy is recorded in
-[ADR-0003](adr/0003-device-recovery-precedence.md).
+The implemented device-recovery precedence is recorded in
+[ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
 
 Every workflow with these properties includes state-machine or state-table
 tests. A timeout must not manufacture a failure response when a dispatched
 mutation can still commit.
+
+Project commands read their result inside the SQL transaction. Their retained
+response transfers from the database worker to main, then is released after
+renderer acknowledgement; results are not indefinitely retained per edit.
+Unknown commit outcomes quarantine the graph until an authoritative workspace
+is re-established. See [ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
 
 ## Native control and UI events
 
@@ -115,7 +124,7 @@ provide the same host mode through an explicit format-neutral post-process
 adapter that copies left output to right without callback allocation. Native
 layout probing remains isolated; the embedded runtime never retries a layout
 that the probe did not validate. See
-[ADR-0005](adr/0005-host-owned-plugin-channel-adapters.md).
+[ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
 
 `heron-clap-host` is the only owner of CLAP unsafe FFI and depends directly on
 the pinned `clap-sys` version. It separates a main-thread, `!Send + !Sync`

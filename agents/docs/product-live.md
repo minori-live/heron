@@ -6,7 +6,7 @@ on 2026-09-06. It remains the accepted performance baseline. Unfinished
 governance, documentation, automated validation, and evidence-record work is
 tracked in the [Current Live project delivery milestone](roadmap.md).
 Standalone Live-document ownership is defined by
-[ADR-0012](adr/0012-separate-layered-live-documents.md).
+[ADR-0004](adr/0004-layered-live-documents.md).
 
 It is a product contract: an implementation is incomplete when it exposes the
 necessary controls but does not let the user finish this task safely.
@@ -106,7 +106,7 @@ Plug-in failure containment is deliberately in process. It covers failures that
 return, report, or can be safely validated at a host-owned boundary. It cannot
 contain access violations, aborts, memory corruption, or a plug-in call that
 never returns. The durable containment and recovery boundary is defined in
-[ADR-0011](adr/0011-in-process-plugin-failure-containment.md).
+[ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
 
 ## Device recovery concurrency
 

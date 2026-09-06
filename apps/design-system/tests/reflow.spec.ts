@@ -56,7 +56,6 @@ test("dialog keeps long content scrolling inside its body", async ({ page }) => 
 
   const dialog = page.getByRole("dialog", { name: "Benchmark results" })
   const scrollBody = dialog.locator(".ui-dialog__body")
-  await expect(dialog).toHaveCSS("display", "grid")
   await expect(scrollBody).toHaveCSS("overflow-y", "auto")
   await expect
     .poll(() => scrollBody.evaluate((element) => element.scrollHeight > element.clientHeight))

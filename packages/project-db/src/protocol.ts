@@ -122,6 +122,7 @@ export interface WorkerRequestMap {
   }
   "commit-project-command": { token: ProjectCommandTransactionToken }
   "abort-project-command": { token: ProjectCommandTransactionToken }
+  "acknowledge-project-command": { token: ProjectCommandTransactionToken }
   "project-command-status": { operationId: string }
   "import-midi": {
     source: MidiSourceInput
@@ -168,6 +169,7 @@ export interface WorkerResultMap {
   "prepare-project-command": PreparedProjectCommand
   "commit-project-command": CommittedProjectCommand
   "abort-project-command": void
+  "acknowledge-project-command": void
   "project-command-status": ProjectCommandTransactionStatus
   "import-midi": void
   "read-midi-source": MidiSourceState | null

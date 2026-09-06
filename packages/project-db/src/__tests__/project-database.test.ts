@@ -2,11 +2,13 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { PGlite } from "@electric-sql/pglite"
+import { drizzle } from "drizzle-orm/pglite"
 import type { MixerChannelState, ProjectCommand } from "@heron/contracts"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { PROJECT_MIGRATIONS_FOLDER } from "../migrations"
 import { ProjectDatabase } from "../node"
 import { buildProjectTemplateArchive } from "../template"
+import { readMixerGraphSnapshot } from "../internal/mixer-reads"
 
 interface TestDatabase {
   database: ProjectDatabase
@@ -16,6 +18,63 @@ interface TestDatabase {
 const databases: TestDatabase[] = []
 let templateDirectory: string
 let templateArchivePath: string
+
+describe("Mixer isolation and command commit snapshots", () => {
+  it("reads the shared Mixer after removing every Studio-only table", async () => {
+    const { database } = await createDatabase()
+    const before = await database.mixerSnapshot()
+    const client = Reflect.get(database, "client") as PGlite
+    await client.exec(`
+      drop table project, assets, asset_waveform_levels, tracks, audio_clips,
+        tempo_events, time_signature_events, key_signature_events,
+        midi_sources, midi_clips, midi_notes, midi_events cascade;
+    `)
+    const mixer = await readMixerGraphSnapshot(drizzle(client), before.sampleRate)
+    expect(mixer).toEqual({
+      sampleRate: before.sampleRate,
+      channels: before.channels,
+      sends: before.sends,
+      plugins: before.plugins
+    })
+  })
+
+  it("returns the committed graph and rolls back mutations when snapshot decoding fails", async () => {
+    const { database } = await createDatabase()
+    const committed = await database.applyCommand(
+      { type: "update-project-notes", notes: "committed" },
+      "output-1-2"
+    )
+    expect(committed.projectNotes).toBe("committed")
+    expect(committed).toEqual(await database.mixerSnapshot())
+
+    const client = Reflect.get(database, "client") as PGlite
+    await client.query("update plugin_instances set descriptor_snapshot = $1 where id = $2", [
+      "{invalid-json",
+      "metronome-instrument"
+    ])
+    await expect(
+      database.applyCommand({ type: "update-project-notes", notes: "must roll back" }, "output-1-2")
+    ).rejects.toThrow(SyntaxError)
+    const result = await client.query<{ notes: string }>("select notes from project")
+    expect(result.rows).toEqual([{ notes: "committed" }])
+  })
+
+  it("does not commit a channel edit when the enclosing project row is missing", async () => {
+    const { database } = await createDatabase()
+    const client = Reflect.get(database, "client") as PGlite
+    await client.exec("delete from project")
+    await expect(
+      database.applyCommand(
+        { type: "update-channel", channelId: "master", patch: { gainDb: -9 } },
+        "output-1-2"
+      )
+    ).rejects.toThrow("Project configuration is missing")
+    const result = await client.query<{ gain_db: number }>(
+      "select gain_db from mixer_channels where id = 'master'"
+    )
+    expect(result.rows).toEqual([{ gain_db: 0 }])
+  })
+})
 
 function encodePeaks(values: number[]): Uint8Array {
   const bytes = new Uint8Array(values.length * 4)

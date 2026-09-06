@@ -179,10 +179,13 @@ export class AudioHostTransportClient {
     }))
   }
 
-  async startAudioEngine(preferences: AudioPreferences): Promise<AudioRuntimeSnapshot> {
+  async startAudioEngine(
+    preferences: AudioPreferences,
+    sessionSampleRate = this.sessionSampleRate()
+  ): Promise<AudioRuntimeSnapshot> {
     const response = await this.request({
       type: "start-audio-engine",
-      config: this.audioEngineConfig(preferences)
+      config: this.audioEngineConfig(preferences, sessionSampleRate)
     })
     const runtime = this.runtimeResult(response)
     if (runtime.state === "running") {

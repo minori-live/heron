@@ -338,22 +338,6 @@ fn representative_wire_encodings_remain_byte_compatible() {
             "00a767657374757265a7706572666f726d"
         )
     );
-
-    let graph_update = GraphUpdate::Patch {
-        base_revision: 4,
-        revision: 5,
-        ops: vec![GraphOp::RemoveChannel {
-            id: "track-1".to_owned(),
-        }],
-    };
-    assert_eq!(
-        encoded_hex(&graph_update),
-        concat!(
-            "84a474797065a57061746368ad626173655f7265766973696f6e04a8726576697369",
-            "6f6e05a36f70739182a474797065ae72656d6f76652d6368616e6e656ca26964a7",
-            "747261636b2d31"
-        )
-    );
 }
 
 #[test]
@@ -389,29 +373,26 @@ fn midi_recording_stop_uses_the_desktop_wire_field() {
 fn messagepack_frame_round_trips() {
     let request = ControlRequest {
         request_id: 42,
-        command: ControlCommand::UpdateGraph {
-            update: GraphUpdate::Replace {
-                revision: 7,
-                graph: LiveMixerGraph {
-                    sample_rate: 48_000,
-                    project_end_tick: 61_440,
-                    latency_policy: LiveLatencyPolicy::Normal,
-                    channels: vec![],
-                    sends: vec![],
-                    clips: vec![],
-                    plugins: vec![],
-                    midi_clips: vec![],
-                    tempo_events: vec![LiveTempoEvent {
-                        tick: 0,
-                        beats_per_minute: 120.0,
-                    }],
-                    time_signature_events: vec![LiveTimeSignatureEvent {
-                        tick: 0,
-                        numerator: 4,
-                        denominator: 4,
-                    }],
-                },
+        command: ControlCommand::PrepareGraph {
+            meta: RpcRequestMeta {
+                protocol_version: IPC_PROTOCOL_VERSION,
+                request_id: "round-trip".into(),
+                target: None,
+                expected_revision: None,
+                mutation: None,
             },
+            request: Box::new(PrepareGraphRequest {
+                helper_epoch: "42".into(),
+                project_graph: ResourceRef {
+                    kind: ResourceKind::ProjectGraph,
+                    id: "graph".into(),
+                    epoch: "project".into(),
+                    generation: 1,
+                },
+                base_revision: 0,
+                graph_revision: 1,
+                graph: empty_graph(),
+            }),
         },
     };
     let mut bytes = Vec::new();
@@ -423,7 +404,7 @@ fn messagepack_frame_round_trips() {
 }
 
 #[test]
-fn plugin_editor_context_and_appearance_round_trip() {
+fn plugin_editor_commands_use_the_documented_wire_context() {
     let context = PluginEditorContext {
         channel_name: "主唱".to_owned(),
         channel_color: "#58c6c2".to_owned(),
@@ -447,6 +428,30 @@ fn plugin_editor_context_and_appearance_round_trip() {
         },
     ] {
         let bytes = rmp_serde::to_vec_named(&command).unwrap();
+        let wire: serde_json::Value = rmp_serde::from_slice(&bytes).unwrap();
+        let appearance = serde_json::json!({"theme": "light", "locale": "zh-cmn-Hans-CN"});
+        match &command {
+            ControlCommand::OpenPluginEditor { .. } => {
+                assert_eq!(wire["type"], "open-plugin-editor");
+                assert_eq!(wire["instance_id"], "gain-1");
+                assert_eq!(
+                    wire["preference"],
+                    serde_json::json!({"mode": "parameters", "zoom_percent": 200})
+                );
+                assert_eq!(
+                    wire["context"],
+                    serde_json::json!({
+                        "channel_name": "主唱", "channel_color": "#58c6c2",
+                        "plugin_name": "Heron Gain", "appearance": appearance
+                    })
+                );
+            }
+            ControlCommand::ConfigurePluginEditorAppearance { .. } => {
+                assert_eq!(wire["type"], "configure-plugin-editor-appearance");
+                assert_eq!(wire["appearance"], appearance);
+            }
+            _ => unreachable!(),
+        }
         assert_eq!(
             rmp_serde::from_slice::<ControlCommand>(&bytes).unwrap(),
             command
@@ -472,7 +477,7 @@ fn legacy_open_editor_payload_defaults_its_new_context() {
 }
 
 #[test]
-fn graph_transaction_envelopes_round_trip_with_lossless_epochs() {
+fn graph_transaction_wire_keeps_lossless_epochs_and_resource_authority() {
     let engine = ResourceRef {
         kind: ResourceKind::AudioEngine,
         id: "engine".to_owned(),
@@ -506,6 +511,30 @@ fn graph_transaction_envelopes_round_trip_with_lossless_epochs() {
     };
 
     let bytes = rmp_serde::to_vec_named(&command).expect("graph transaction must encode");
+    let wire: serde_json::Value = rmp_serde::from_slice(&bytes).unwrap();
+    assert_eq!(wire["type"], "prepare-graph");
+    assert_eq!(
+        wire["meta"]["target"],
+        serde_json::json!({
+            "kind": "audio-engine", "id": "engine", "epoch": "18446744073709551615", "generation": 2
+        })
+    );
+    assert_eq!(wire["meta"]["expectedRevision"], 7);
+    assert_eq!(
+        wire["meta"]["mutation"],
+        serde_json::json!({
+            "operationId": "operation-1", "idempotencyKey": "graph:8"
+        })
+    );
+    assert_eq!(wire["request"]["helperEpoch"], "18446744073709551615");
+    assert_eq!(
+        wire["request"]["projectGraph"],
+        serde_json::json!({
+            "kind": "project-graph", "id": "graph", "epoch": "main-epoch", "generation": 4
+        })
+    );
+    assert_eq!(wire["request"]["baseRevision"], 7);
+    assert_eq!(wire["request"]["graphRevision"], 8);
     assert_eq!(
         rmp_serde::from_slice::<ControlCommand>(&bytes).expect("graph transaction must decode"),
         command
@@ -513,7 +542,31 @@ fn graph_transaction_envelopes_round_trip_with_lossless_epochs() {
 }
 
 #[test]
-fn session_and_native_output_sample_rates_round_trip() {
+fn full_graph_requests_preserve_runtime_defaults_without_the_removed_patch_protocol() {
+    let mut wire = serde_json::to_value(empty_graph()).unwrap();
+    wire.as_object_mut().unwrap().remove("project_end_tick");
+    wire.as_object_mut().unwrap().remove("latency_policy");
+    wire["plugins"] = serde_json::json!([{
+        "instance_id": "effect", "channel_id": "channel", "role": "insert",
+        "slot_order": 0, "enabled": true, "latency_samples": 0, "tail_samples": 0
+    }]);
+    let graph: LiveMixerGraph = serde_json::from_value(wire).unwrap();
+    assert_eq!(graph.project_end_tick, 61_440);
+    assert_eq!(graph.latency_policy, LiveLatencyPolicy::Normal);
+    assert_eq!(graph.plugins[0].instance_generation, 1);
+    assert_eq!(graph.plugins[0].audio_mode, PluginAudioMode::Stereo);
+    assert!(graph.plugins[0].aux_input_buses.is_empty());
+    assert!(!graph.plugins[0].duplicate_mono_output);
+    assert!(
+        serde_json::from_value::<ControlCommand>(serde_json::json!({
+            "type": "update-graph", "update": { "type": "replace", "revision": 1, "graph": graph }
+        }))
+        .is_err()
+    );
+}
+
+#[test]
+fn audio_wire_distinguishes_session_input_and_output_sample_rates() {
     let command = ControlCommand::StartAudioEngine {
         config: AudioEngineConfig {
             backend: "mock".to_owned(),
@@ -524,6 +577,9 @@ fn session_and_native_output_sample_rates_round_trip() {
         },
     };
     let command_bytes = rmp_serde::to_vec_named(&command).unwrap();
+    let wire: serde_json::Value = rmp_serde::from_slice(&command_bytes).unwrap();
+    assert_eq!(wire["type"], "start-audio-engine");
+    assert_eq!(wire["config"]["session_sample_rate"], 44_100);
     assert_eq!(
         rmp_serde::from_slice::<ControlCommand>(&command_bytes).unwrap(),
         command
@@ -549,6 +605,10 @@ fn session_and_native_output_sample_rates_round_trip() {
         buffer_fallback: false,
     };
     let runtime_bytes = rmp_serde::to_vec_named(&runtime).unwrap();
+    let wire: serde_json::Value = rmp_serde::from_slice(&runtime_bytes).unwrap();
+    assert_eq!(wire["sample_rate"], 44_100);
+    assert_eq!(wire["input_sample_rate"], 48_000);
+    assert_eq!(wire["output_sample_rate"], 48_000);
     assert_eq!(
         rmp_serde::from_slice::<AudioRuntime>(&runtime_bytes).unwrap(),
         runtime
@@ -584,180 +644,6 @@ fn rejects_oversized_frame_before_allocating() {
     ));
 }
 
-#[test]
-fn stable_id_patch_matches_the_equivalent_full_graph() {
-    let output = LiveMixerChannel {
-        id: "output".into(),
-        name: "Output".into(),
-        color: "#000000".into(),
-        kind: "output".into(),
-        system_role: None,
-        gain_db: 0.0,
-        pan: 0.0,
-        muted: false,
-        soloed: false,
-        output_channel_id: None,
-        output_bus: None,
-        record_armed: false,
-        input_monitoring: false,
-        midi_input_port_id: None,
-        midi_input_port_name: None,
-        midi_input_channel: None,
-        input_source: None,
-        input_channels: vec![],
-        application_capture: None,
-        hardware_output_channels: vec![0, 1],
-    };
-    let mut patched = LiveMixerGraph {
-        sample_rate: 48_000,
-        project_end_tick: 61_440,
-        latency_policy: LiveLatencyPolicy::Normal,
-        channels: vec![output.clone()],
-        sends: vec![],
-        clips: vec![],
-        plugins: vec![],
-        midi_clips: vec![],
-        tempo_events: vec![LiveTempoEvent {
-            tick: 0,
-            beats_per_minute: 120.0,
-        }],
-        time_signature_events: vec![LiveTimeSignatureEvent {
-            tick: 0,
-            numerator: 4,
-            denominator: 4,
-        }],
-    };
-    let audio = LiveMixerChannel {
-        id: "audio-1".into(),
-        name: "Audio 1".into(),
-        color: "#000000".into(),
-        kind: "audio".into(),
-        system_role: None,
-        gain_db: -3.0,
-        pan: 0.25,
-        muted: false,
-        soloed: false,
-        output_channel_id: Some("output".into()),
-        output_bus: None,
-        record_armed: false,
-        input_monitoring: false,
-        midi_input_port_id: None,
-        midi_input_port_name: None,
-        midi_input_channel: None,
-        input_source: Some("hardware".into()),
-        input_channels: vec![],
-        application_capture: None,
-        hardware_output_channels: vec![],
-    };
-    patched.apply_ops(vec![
-        GraphOp::UpsertChannel {
-            value: audio.clone(),
-        },
-        GraphOp::ReplaceTempoMap {
-            tempo_events: vec![
-                LiveTempoEvent {
-                    tick: 0,
-                    beats_per_minute: 120.0,
-                },
-                LiveTempoEvent {
-                    tick: 960,
-                    beats_per_minute: 90.0,
-                },
-            ],
-            time_signature_events: vec![LiveTimeSignatureEvent {
-                tick: 0,
-                numerator: 4,
-                denominator: 4,
-            }],
-        },
-        GraphOp::SetProjectEnd {
-            project_end_tick: 15_360,
-        },
-    ]);
-    let mut full = patched.clone();
-    full.channels = vec![output, audio];
-    full.project_end_tick = 15_360;
-    assert_eq!(patched, full);
-}
-
-fn channel(id: &str) -> LiveMixerChannel {
-    LiveMixerChannel {
-        id: id.into(),
-        name: id.into(),
-        color: "#000000".into(),
-        kind: "audio".into(),
-        system_role: None,
-        gain_db: 0.0,
-        pan: 0.0,
-        muted: false,
-        soloed: false,
-        output_channel_id: None,
-        output_bus: None,
-        record_armed: false,
-        input_monitoring: false,
-        midi_input_port_id: None,
-        midi_input_port_name: None,
-        midi_input_channel: None,
-        input_source: None,
-        input_channels: vec![],
-        application_capture: None,
-        hardware_output_channels: vec![],
-    }
-}
-
-fn send(id: &str) -> LiveMixerSend {
-    LiveMixerSend {
-        id: id.into(),
-        source_channel_id: "audio-1".into(),
-        target_channel_id: Some("output".into()),
-        target_bus: None,
-        enabled: true,
-        tap: LiveMixerSendTap::Post,
-        level_db: -6.0,
-    }
-}
-
-fn clip(id: &str) -> LiveMixerClip {
-    LiveMixerClip {
-        id: id.into(),
-        channel_id: "audio-1".into(),
-        start_frame: 0,
-        source_offset_frames: 0,
-        length_frames: 48_000,
-        fade_in_frames: 0,
-        fade_out_frames: 0,
-        path: format!("/assets/{id}.wav"),
-    }
-}
-
-fn plugin(instance_id: &str) -> LivePluginInstance {
-    LivePluginInstance {
-        instance_id: instance_id.into(),
-        instance_generation: 1,
-        channel_id: "audio-1".into(),
-        role: "insert".into(),
-        slot_order: 0,
-        audio_mode: PluginAudioMode::Stereo,
-        duplicate_mono_output: false,
-        enabled: true,
-        aux_input_buses: vec![],
-        latency_samples: 0,
-        tail_samples: None,
-    }
-}
-
-fn midi_clip(id: &str) -> LiveMidiClip {
-    LiveMidiClip {
-        id: id.into(),
-        channel_id: "instrument-1".into(),
-        start_tick: 0,
-        source_offset_ticks: 0,
-        length_ticks: 1_920,
-        notes: MidiNoteBatch::Inline { notes: vec![] },
-        events: MidiEventBatch::Inline { events: vec![] },
-    }
-}
-
 fn empty_graph() -> LiveMixerGraph {
     LiveMixerGraph {
         sample_rate: 48_000,
@@ -778,165 +664,6 @@ fn empty_graph() -> LiveMixerGraph {
             denominator: 4,
         }],
     }
-}
-
-#[test]
-fn upserts_append_new_entries_and_replace_matching_ids_in_place() {
-    let mut graph = empty_graph();
-
-    graph.apply_ops(vec![
-        GraphOp::UpsertChannel {
-            value: channel("audio-1"),
-        },
-        GraphOp::UpsertChannel {
-            value: channel("audio-2"),
-        },
-        GraphOp::UpsertChannel {
-            value: LiveMixerChannel {
-                muted: true,
-                ..channel("audio-1")
-            },
-        },
-    ]);
-
-    assert_eq!(
-        graph
-            .channels
-            .iter()
-            .map(|item| item.id.as_str())
-            .collect::<Vec<_>>(),
-        vec!["audio-1", "audio-2"]
-    );
-    assert!(graph.channels[0].muted);
-}
-
-#[test]
-fn every_collection_supports_upsert_and_remove() {
-    let mut graph = empty_graph();
-
-    graph.apply_ops(vec![
-        GraphOp::UpsertChannel {
-            value: channel("audio-1"),
-        },
-        GraphOp::UpsertSend { value: send("s-1") },
-        GraphOp::UpsertClip { value: clip("c-1") },
-        GraphOp::UpsertPlugin {
-            value: plugin("p-1"),
-        },
-        GraphOp::UpsertMidiClip {
-            value: midi_clip("m-1"),
-        },
-    ]);
-    assert_eq!(graph.channels.len(), 1);
-    assert_eq!(graph.sends.len(), 1);
-    assert_eq!(graph.clips.len(), 1);
-    assert_eq!(graph.plugins.len(), 1);
-    assert_eq!(graph.midi_clips.len(), 1);
-
-    graph.apply_ops(vec![
-        GraphOp::RemoveChannel {
-            id: "audio-1".into(),
-        },
-        GraphOp::RemoveSend { id: "s-1".into() },
-        GraphOp::RemoveClip { id: "c-1".into() },
-        GraphOp::RemovePlugin { id: "p-1".into() },
-        GraphOp::RemoveMidiClip { id: "m-1".into() },
-    ]);
-    assert_eq!(graph, empty_graph());
-}
-
-#[test]
-fn removing_an_unknown_id_leaves_the_graph_untouched() {
-    let mut graph = empty_graph();
-    graph.apply_ops(vec![GraphOp::UpsertChannel {
-        value: channel("audio-1"),
-    }]);
-    let before = graph.clone();
-
-    graph.apply_ops(vec![
-        GraphOp::RemoveChannel {
-            id: "audio-9".into(),
-        },
-        GraphOp::RemoveSend { id: "s-9".into() },
-        GraphOp::RemoveClip { id: "c-9".into() },
-        GraphOp::RemovePlugin { id: "p-9".into() },
-        GraphOp::RemoveMidiClip { id: "m-9".into() },
-    ]);
-
-    assert_eq!(graph, before);
-}
-
-#[test]
-fn plugins_are_keyed_by_instance_rather_than_channel() {
-    let mut graph = empty_graph();
-
-    graph.apply_ops(vec![
-        GraphOp::UpsertPlugin {
-            value: plugin("p-1"),
-        },
-        GraphOp::UpsertPlugin {
-            value: LivePluginInstance {
-                slot_order: 1,
-                ..plugin("p-2")
-            },
-        },
-        GraphOp::UpsertPlugin {
-            value: LivePluginInstance {
-                enabled: false,
-                ..plugin("p-1")
-            },
-        },
-    ]);
-
-    assert_eq!(graph.plugins.len(), 2);
-    assert!(!graph.plugins[0].enabled);
-    assert_eq!(graph.plugins[1].slot_order, 1);
-}
-
-#[test]
-fn replacing_the_tempo_map_swaps_both_event_lists() {
-    let mut graph = empty_graph();
-
-    graph.apply_ops(vec![GraphOp::ReplaceTempoMap {
-        tempo_events: vec![LiveTempoEvent {
-            tick: 0,
-            beats_per_minute: 90.0,
-        }],
-        time_signature_events: vec![],
-    }]);
-
-    assert_eq!(graph.tempo_events[0].beats_per_minute, 90.0);
-    assert!(graph.time_signature_events.is_empty());
-}
-
-#[test]
-fn an_empty_op_list_is_a_no_op() {
-    let mut graph = empty_graph();
-
-    graph.apply_ops(vec![]);
-
-    assert_eq!(graph, empty_graph());
-}
-
-#[test]
-fn a_graph_update_reports_the_revision_it_produces() {
-    assert_eq!(
-        GraphUpdate::Replace {
-            revision: 7,
-            graph: empty_graph(),
-        }
-        .revision(),
-        7
-    );
-    assert_eq!(
-        GraphUpdate::Patch {
-            base_revision: 7,
-            revision: 8,
-            ops: vec![],
-        }
-        .revision(),
-        8
-    );
 }
 
 #[test]

@@ -65,6 +65,11 @@ export function registerMixerHandlers(context: IpcHandlerContext): void {
   })
 
   registerRpcHandler(IPC_CHANNELS.projectGraphReload, async ({ meta }) => {
+    if (meta.mutation && meta.target) {
+      const previous = context.operations.registry.find({ ...meta.mutation, target: meta.target })
+      if (!previous.ok) return validationFailure(meta, "operation")
+      if (previous.value?.result) return previous.value.result
+    }
     const invalid = validateGraphTarget(context, meta)
     if (invalid) return invalid
     const workspace = lifecycle.applicationState.workspaceSnapshot()!

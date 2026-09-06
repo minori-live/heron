@@ -1,3 +1,4 @@
+import { publishSmokeGraph } from "./audio-graph-smoke.ts"
 import { resolve } from "node:path"
 import { decode, encode } from "@msgpack/msgpack"
 import { AudioHostRuntime } from "@heron/dsp-node"
@@ -212,14 +213,7 @@ try {
     tempo_events: [{ tick: 0, beats_per_minute: 120 }],
     time_signature_events: [{ tick: 0, numerator: 4, denominator: 4 }]
   }
-  await send({
-    type: "update-graph",
-    update: {
-      type: "replace",
-      revision: 1,
-      graph: liveGraph
-    }
-  })
+  await publishSmokeGraph(send, runtime.runtimeEpoch, 1, liveGraph)
   await send({
     type: "start-audio-engine",
     config: {
@@ -236,13 +230,10 @@ try {
   if (!instrumentMeter || Math.max(instrumentMeter.held_left, instrumentMeter.held_right) <= 0) {
     throw new Error("mock live graph did not render the VST3 instrument/effect chain")
   }
-  await send({
-    type: "update-graph",
-    update: {
-      type: "replace",
-      revision: 2,
-      graph: { ...liveGraph, plugins: [], midi_clips: [] }
-    }
+  await publishSmokeGraph(send, runtime.runtimeEpoch, 2, {
+    ...liveGraph,
+    plugins: [],
+    midi_clips: []
   })
   await new Promise((resolve) => setTimeout(resolve, 50))
   await send({ type: "stop-audio-engine" })

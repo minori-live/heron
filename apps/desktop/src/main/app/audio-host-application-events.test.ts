@@ -20,6 +20,7 @@ describe("AudioHostApplicationEventBridge", () => {
     >
   >
   let execute: ReturnType<typeof vi.fn>
+  let acknowledgeOperation: ReturnType<typeof vi.fn<(id: string) => boolean>>
   let currentWorkspace: ReturnType<typeof vi.fn>
   let openEditor: ReturnType<typeof vi.fn>
   let markProjectDirty: ReturnType<typeof vi.fn<() => Promise<void>>>
@@ -31,6 +32,7 @@ describe("AudioHostApplicationEventBridge", () => {
       async (_requestId: number, _instanceId: string, _accepted: boolean, _warning?: string) => {}
     )
     execute = vi.fn()
+    acknowledgeOperation = vi.fn(() => true)
     currentWorkspace = vi.fn()
     openEditor = vi.fn(async () => ({ editorMode: "native", open: true }))
     markProjectDirty = vi.fn<() => Promise<void>>(async () => {})
@@ -52,6 +54,7 @@ describe("AudioHostApplicationEventBridge", () => {
         }
       },
       projectCommands: { currentWorkspace, execute } as never,
+      operations: { acknowledgeOperation },
       plugins: { openEditor } as never,
       sourceEpoch: "application-epoch",
       targets: () => [{ webContents: { send } }],
@@ -197,6 +200,74 @@ describe("AudioHostApplicationEventBridge", () => {
     )
     expect(send.mock.invocationCallOrder[0]).toBeLessThan(
       resolvePluginSidechainRoute.mock.invocationCallOrder[0]!
+    )
+    expect(acknowledgeOperation).toHaveBeenCalledExactlyOnceWith(
+      execute.mock.calls[0]![0].mutation.operationId
+    )
+    expect(resolvePluginSidechainRoute.mock.invocationCallOrder[0]).toBeLessThan(
+      acknowledgeOperation.mock.invocationCallOrder[0]!
+    )
+  })
+
+  it.each(["not-committed", "unknown", "quarantined"] as const)(
+    "releases only a known terminal result after a %s side-chain failure",
+    async (outcome) => {
+      currentWorkspace.mockReturnValue({
+        projectGraph: { kind: "project-graph", id: "graph", epoch: "main", generation: 1 },
+        revision: 1,
+        graph: { plugins: [{ id: "plugin-1", descriptor: {}, sidechainInputs: [] }] }
+      })
+      execute.mockResolvedValue({ ok: false, error: { outcome } })
+
+      await sidechainHandler({
+        requestId: 20,
+        instanceId: "plugin-1",
+        inputPortKey: "input",
+        sourceChannelId: null
+      })
+
+      expect(send).not.toHaveBeenCalled()
+      expect(resolvePluginSidechainRoute).toHaveBeenCalledWith(
+        20,
+        "plugin-1",
+        false,
+        "Side-chain routing could not be committed."
+      )
+      if (outcome === "not-committed") {
+        expect(acknowledgeOperation).toHaveBeenCalledExactlyOnceWith(
+          execute.mock.calls[0]![0].mutation.operationId
+        )
+      } else {
+        expect(acknowledgeOperation).not.toHaveBeenCalled()
+      }
+    }
+  )
+
+  it("releases a known commit when shutdown interrupts its notification", async () => {
+    currentWorkspace.mockReturnValue({
+      projectGraph: { kind: "project-graph", id: "graph", epoch: "main", generation: 1 },
+      revision: 1,
+      graph: { plugins: [{ id: "plugin-1", descriptor: {}, sidechainInputs: [] }] }
+    })
+    execute.mockImplementation(() => {
+      bridge.dispose()
+      return { ok: true, value: { graph: {} } }
+    })
+    await sidechainHandler({
+      requestId: 21,
+      instanceId: "plugin-1",
+      inputPortKey: "input",
+      sourceChannelId: null
+    })
+    expect(send).not.toHaveBeenCalled()
+    expect(resolvePluginSidechainRoute).toHaveBeenCalledWith(
+      21,
+      "plugin-1",
+      false,
+      "The application is shutting down."
+    )
+    expect(acknowledgeOperation).toHaveBeenCalledExactlyOnceWith(
+      execute.mock.calls[0]![0].mutation.operationId
     )
   })
 

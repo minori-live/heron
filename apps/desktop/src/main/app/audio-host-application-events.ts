@@ -4,6 +4,7 @@ import type { PluginRuntimeFailure } from "@heron/contracts"
 import type { AudioHostService, PluginSidechainRouteRequest } from "../audio-host"
 import type { PluginCatalogService } from "../plugins"
 import type { ProjectCommandService } from "../project"
+import type { OperationService } from "../kernel"
 
 export interface ApplicationEventTarget {
   webContents: {
@@ -22,6 +23,7 @@ export interface AudioHostApplicationEventOptions {
     | "setPluginFailureHandler"
   >
   projectCommands: Pick<ProjectCommandService, "currentWorkspace" | "execute">
+  operations: Pick<OperationService, "acknowledgeOperation">
   plugins: Pick<PluginCatalogService, "openEditor">
   sourceEpoch: string
   targets: () => readonly ApplicationEventTarget[]
@@ -133,41 +135,49 @@ export class AudioHostApplicationEventBridge {
           patch: { descriptor: plugin.descriptor, sidechainInputs }
         }
       )
-      if (this.disposed) {
-        await this.rejectSidechainDuringShutdown(request)
-        return
-      }
-      if (!result.ok) {
+      try {
+        if (this.disposed) {
+          await this.rejectSidechainDuringShutdown(request)
+          return
+        }
+        if (!result.ok) {
+          await this.options.audioHost.resolvePluginSidechainRoute(
+            request.requestId,
+            request.instanceId,
+            false,
+            "Side-chain routing could not be committed."
+          )
+          return
+        }
+
+        const revision = result.resourceRevision ?? workspace.revision + 1
+        this.projectCommandSequence += 1
+        this.broadcast(IPC_CHANNELS.projectCommandExternalEvent, {
+          protocolVersion: IPC_PROTOCOL_VERSION,
+          sourceEpoch: this.options.sourceEpoch,
+          sequence: this.projectCommandSequence,
+          resourceRevision: revision,
+          payload: {
+            result: result.value,
+            warnings: result.warnings ?? []
+          }
+        })
+        const degraded = result.warnings?.some(
+          (warning) => warning.code === "audio-deployment-degraded"
+        )
         await this.options.audioHost.resolvePluginSidechainRoute(
           request.requestId,
           request.instanceId,
-          false,
-          "Side-chain routing could not be committed."
+          true,
+          degraded ? "Route saved, but audio deployment is degraded." : undefined
         )
-        return
-      }
-
-      const revision = result.resourceRevision ?? workspace.revision + 1
-      this.projectCommandSequence += 1
-      this.broadcast(IPC_CHANNELS.projectCommandExternalEvent, {
-        protocolVersion: IPC_PROTOCOL_VERSION,
-        sourceEpoch: this.options.sourceEpoch,
-        sequence: this.projectCommandSequence,
-        resourceRevision: revision,
-        payload: {
-          result: result.value,
-          warnings: result.warnings ?? []
+      } finally {
+        // This main-process caller owns the result; renderer notifications carry
+        // observations, not an operation response that the renderer can acknowledge.
+        if (result.ok || result.error.outcome === "not-committed") {
+          this.options.operations.acknowledgeOperation(operationId)
         }
-      })
-      const degraded = result.warnings?.some(
-        (warning) => warning.code === "audio-deployment-degraded"
-      )
-      await this.options.audioHost.resolvePluginSidechainRoute(
-        request.requestId,
-        request.instanceId,
-        true,
-        degraded ? "Route saved, but audio deployment is degraded." : undefined
-      )
+      }
     })
   }
 

@@ -25,7 +25,7 @@ Large feature blocks do not enter Current merely because work has already
 started. [The Live performance contract](product-live.md) defines the accepted
 performance baseline. Current scope is Live project delivery below, including
 the work carried forward from v0.5.0, with its architecture defined by
-[ADR-0012](adr/0012-separate-layered-live-documents.md).
+[ADR-0004](adr/0004-layered-live-documents.md).
 
 ## Definition of done
 
@@ -158,7 +158,7 @@ for at least two hours without reading source or developer documentation.
       failure bypasses or disables only the affected instance without
       invalidating the rest of the graph. The supported boundary and required
       recovery guarantees are defined in
-      [ADR-0011](adr/0011-in-process-plugin-failure-containment.md).
+      [ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
       Manual containment check confirmed by the maintainer on 2026-09-06 for
       initialization, state restore/save, processing, and editor failures:
       the affected slot exposes failure and recovery, unrelated paths continue,
@@ -285,7 +285,7 @@ create or import Live project -> configure exact audio and MIDI devices
 ```
 
 The architecture and ownership contract is defined by
-[ADR-0012](adr/0012-separate-layered-live-documents.md). The milestone includes:
+[ADR-0004](adr/0004-layered-live-documents.md). The milestone includes:
 
 - `.hrs` as the default extension for new Studio documents while `.heron`
   remains an equally supported Studio extension;
@@ -342,7 +342,7 @@ outcome:
 - dedicated JACK, PipeWire, and PulseAudio backends;
 - native Wayland plug-in editor support under the capability and acceptance
   policy proposed in
-  [ADR-0006](adr/0006-tier-linux-plug-in-editor-compatibility.md);
+  [ADR-0007](adr/0007-linux-editor-compatibility.md);
 - signed and notarized distribution;
 - the shared iced plug-in visual language and a broader built-in processor and
   instrument rack.

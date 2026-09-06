@@ -207,27 +207,47 @@ describe("workspace controls", () => {
     expect(settings.find('nav[aria-label="Pages"]').exists()).toBe(false)
   })
 
-  it.each(["timeline", "track-height", "waveform"] as const)(
-    "shows %s zoom context and emits numeric zoom/reset intents",
-    async (visual) => {
-      const zoom = mount(UiZoomControl, {
-        props: { modelValue: 50, label: "Zoom", resetLabel: "Reset zoom", visual, valueText: "50%" }
-      })
-      expect(zoom.find("svg path").exists()).toBe(true)
-      const slider = zoom.get("input")
-      expect(slider.attributes("aria-valuetext")).toBe("50%")
-      await slider.setValue("75")
-      expect(zoom.emitted("update:modelValue")).toEqual([[75]])
-      await slider.trigger("dblclick")
-      await zoom.get('button[aria-label="Reset zoom"]').trigger("click")
-      expect(zoom.emitted("reset")).toEqual([[], []])
-      await zoom.setProps({ disabled: true, min: 50, max: 50 })
-      expect(slider.attributes("style")).toContain("--zoom-fill: 0%")
-      expect(slider.element.disabled).toBe(true)
-      await slider.trigger("dblclick")
-      expect(zoom.emitted("reset")).toHaveLength(2)
-    }
-  )
+  // Appearance variants only smoke the public control; gestures run once below.
+  it.each([
+    ["track-height", "Track height"],
+    ["waveform", "Waveform zoom"]
+  ] as const)("smokes the %s zoom control's accessible value", async (visual, label) => {
+    const zoom = mount(UiZoomControl, {
+      props: { visual, label, resetLabel: "Reset zoom", modelValue: 50 }
+    })
+    const slider = zoom.get<HTMLInputElement>('input[type="range"]')
+    expect(slider.attributes("aria-label")).toBe(label)
+    expect(slider.element.value).toBe("50")
+    expect(zoom.get<HTMLButtonElement>('button[aria-label="Reset zoom"]').element.disabled).toBe(
+      false
+    )
+    expect(zoom.get('[aria-hidden="true"]').attributes("title")).toBe(label)
+    await zoom.setProps({ modelValue: 75 })
+    expect(slider.element.value).toBe("75")
+  })
+
+  it("emits numeric zoom/reset intents and blocks reset when disabled", async () => {
+    const zoom = mount(UiZoomControl, {
+      props: {
+        modelValue: 50,
+        label: "Zoom",
+        resetLabel: "Reset zoom",
+        visual: "timeline",
+        valueText: "50%"
+      }
+    })
+    const slider = zoom.get("input")
+    expect(slider.attributes("aria-valuetext")).toBe("50%")
+    await slider.setValue("75")
+    expect(zoom.emitted("update:modelValue")).toEqual([[75]])
+    await slider.trigger("dblclick")
+    await zoom.get('button[aria-label="Reset zoom"]').trigger("click")
+    expect(zoom.emitted("reset")).toEqual([[], []])
+    await zoom.setProps({ disabled: true, min: 50, max: 50 })
+    expect(slider.element.disabled).toBe(true)
+    await slider.trigger("dblclick")
+    expect(zoom.emitted("reset")).toHaveLength(2)
+  })
 
   it("emits window commands without relying on Electron", async () => {
     const chrome = mount(UiWindowControls, {

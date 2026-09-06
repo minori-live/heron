@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type {
   PluginDescriptor,
+  MixerGraphSnapshot,
   PluginInstanceState,
   ProjectGraphSnapshot,
   ProjectCommand
@@ -14,7 +15,9 @@ import {
   onlyRealtimeParameters,
   validateGraph
 } from "./graph"
-import { projectContentEndSeconds } from "./selectors"
+import { availableOutputTargets, patchMixerGraph, projectContentEndSeconds } from "./selectors"
+import { validateMixerGraph } from "./mixer-validation"
+import { MixerValidationError, ProjectValidationError } from "./validation-error"
 
 const effectDescriptor: PluginDescriptor = {
   source: { kind: "external" },
@@ -906,6 +909,72 @@ describe("additional project graph commands", () => {
   })
 })
 
+describe("shared Mixer and Studio validation", () => {
+  it("routes and previews ordinary channels without constructing a Studio arrangement", () => {
+    const studio = graph()
+    const mixer: MixerGraphSnapshot = {
+      sampleRate: studio.sampleRate,
+      channels: studio.channels,
+      sends: studio.sends,
+      plugins: [plugin()]
+    }
+    expect(() => validateMixerGraph(mixer)).not.toThrow()
+    expect(availableOutputTargets(mixer, "instrument-1")).toContainEqual({
+      kind: "output",
+      channelId: "output"
+    })
+    const preview = patchMixerGraph(mixer, "channel", "instrument-1", { gainDb: -6 })
+    expect(preview.channels[0]!.gainDb).toBe(-6)
+    expect(mixer.channels[0]!.gainDb).toBe(0)
+    expect(() => validateMixerGraph(preview)).not.toThrow()
+    expect(() => validateGraph({ ...studio, tracks: [] })).toThrow(ProjectValidationError)
+    expect(() => validateGraph({ ...studio, tracks: [] })).toThrow("exactly one project track")
+
+    // Studio additions remain validated even though routing accepts their Mixer projection.
+    studio.midiClips[0]!.trackId = "missing-track"
+    expect(() => validateGraph(studio)).toThrow(ProjectValidationError)
+    expect(() => validateMixerGraph(mixer)).not.toThrow()
+  })
+
+  it("rejects dangling routing and invalid plug-in slots as typed Mixer domain failures", () => {
+    const studio = graph()
+    const mixer: MixerGraphSnapshot = {
+      sampleRate: studio.sampleRate,
+      channels: studio.channels,
+      sends: [],
+      plugins: [plugin({ slotOrder: -1 })]
+    }
+    expect(() => validateMixerGraph(mixer)).toThrow(MixerValidationError)
+    expect(() => validateMixerGraph(mixer)).toThrow(ProjectValidationError)
+    mixer.plugins = []
+    mixer.channels[0]!.outputChannelId = "missing-output"
+    expect(() => validateMixerGraph(mixer)).toThrow(MixerValidationError)
+  })
+
+  it("rejects ambiguous plug-in identities and descriptor routes in a Mixer import", () => {
+    const studio = graph()
+    const mixer: MixerGraphSnapshot = {
+      sampleRate: studio.sampleRate,
+      channels: studio.channels,
+      sends: [],
+      plugins: [plugin(), plugin({ slotOrder: 1 })]
+    }
+    expect(() => validateMixerGraph(mixer)).toThrow("Plugin instance IDs must be unique")
+    mixer.plugins[1] = plugin({ id: "second-plugin" })
+    expect(() => validateMixerGraph(mixer)).toThrow("Plugin slots must be unique")
+    mixer.plugins[1] = plugin({
+      id: "second-plugin",
+      slotOrder: 1,
+      locator: { ...effectDescriptor.locator, artifactPath: "/plugins/Other.vst3" }
+    })
+    expect(() => validateMixerGraph(mixer)).toThrow("Plugin locator must match")
+    mixer.plugins = [
+      plugin({ sidechainInputs: [{ inputPortKey: "", sourceChannelId: "instrument-1" }] })
+    ]
+    expect(() => validateMixerGraph(mixer)).toThrow("side-chain port keys cannot be empty")
+  })
+})
+
 describe("project graph validation and command guards", () => {
   it("accepts host-provided mono-to-stereo mode for a native mono effect", () => {
     const value = graph()
@@ -1273,7 +1342,7 @@ describe("project graph validation and command guards", () => {
       })
     )
     expect(() => validateGraph(badPlugin)).toThrow(
-      "An instrument slot requires an instrument plugin on an Instrument track"
+      "An instrument slot requires an instrument plugin on an Instrument channel"
     )
 
     const badTempo = graph()
@@ -1326,7 +1395,7 @@ describe("project graph validation and command guards", () => {
     const armedMaster = graph()
     armedMaster.channels.find((channel) => channel.kind === "master")!.recordArmed = true
     expect(() => validateGraph(armedMaster)).toThrow(
-      "Only Audio and ordinary Instrument tracks can arm recording"
+      "Only Audio and ordinary Instrument channels can arm recording"
     )
 
     const value = graph()

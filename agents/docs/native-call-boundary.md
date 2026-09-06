@@ -69,7 +69,7 @@ window. Pure Wayland is rejected explicitly; X11, AppKit, and Win32 share this
 same ownership protocol. The embedded runtime must never lazily create or pump
 a second platform event loop as a fallback. The proposed native Wayland and
 XWayland compatibility policy is recorded in
-[ADR-0006](adr/0006-tier-linux-plug-in-editor-compatibility.md); it is not
+[ADR-0007](adr/0007-linux-editor-compatibility.md); it is not
 current architecture until accepted and implemented.
 
 Do not:

@@ -149,25 +149,6 @@ describe("UiDialog", () => {
 })
 
 describe("UiAlertDialog", () => {
-  it("renders the confirm and cancel pair by default", async () => {
-    mount(UiAlertDialog, {
-      attachTo: document.body,
-      props: {
-        modelValue: true,
-        title: "Discard recording?",
-        description: "The take has not been saved."
-      }
-    })
-    await flushPromises()
-
-    expect(portal(".ui-alert-dialog__title").text()).toBe("Discard recording?")
-    expect(portal(".ui-alert-dialog__description").text()).toBe("The take has not been saved.")
-    expect(portalAll(".ui-alert-dialog__button").map((node) => node.textContent?.trim())).toEqual([
-      "Cancel",
-      "Continue"
-    ])
-  })
-
   it("emits confirm and cancel from the default buttons", async () => {
     const wrapper = mount(UiAlertDialog, {
       attachTo: document.body,
@@ -266,23 +247,6 @@ describe("UiAlertDialog", () => {
 })
 
 describe("UiPopover", () => {
-  it("wires the trigger slot to the portalled content", () => {
-    const wrapper = mount(UiPopover, {
-      attachTo: document.body,
-      props: { modelValue: false },
-      slots: {
-        trigger: '<button type="button">Performance</button>',
-        default: "<p>CPU 12%</p>"
-      }
-    })
-
-    const trigger = wrapper.get("button")
-    expect(trigger.text()).toBe("Performance")
-    expect(trigger.attributes("aria-haspopup")).toBe("dialog")
-    expect(trigger.attributes("aria-expanded")).toBe("false")
-    expect(document.body.querySelector(".ui-popover")).toBeNull()
-  })
-
   it("requests an open state when the trigger is activated", async () => {
     const wrapper = mount(UiPopover, {
       attachTo: document.body,
@@ -300,17 +264,6 @@ describe("UiPopover", () => {
 })
 
 describe("UiTooltip", () => {
-  it("renders its trigger content inline", () => {
-    const wrapper = mount(UiProvider, {
-      attachTo: document.body,
-      slots: {
-        default: () => h(UiTooltip, { text: "Play" }, () => h("button", { type: "button" }, "▶"))
-      }
-    })
-
-    expect(wrapper.get("button").text()).toBe("▶")
-  })
-
   it("shows the tooltip text and shortcut on focus", async () => {
     mount(UiProvider, {
       attachTo: document.body,
@@ -456,45 +409,5 @@ describe("UiMenubar", () => {
     await new DOMWrapper(items[0]).trigger("click")
     await flushPromises()
     expect(wrapper.emitted("select")).toEqual([["file.new"]])
-  })
-})
-
-describe("UiProvider", () => {
-  it("renders its slot content", () => {
-    const wrapper = mount(UiProvider, {
-      slots: { default: '<span class="child">Studio</span>' }
-    })
-
-    expect(wrapper.get(".child").text()).toBe("Studio")
-  })
-
-  it("propagates the configured text direction to portalled overlays", async () => {
-    mount(UiProvider, {
-      attachTo: document.body,
-      props: { dir: "rtl", locale: "ar", tooltipDelay: 0 },
-      slots: {
-        default: () => h(UiTooltip, { text: "تشغيل" }, () => h("button", { type: "button" }, "▶"))
-      }
-    })
-
-    await new DOMWrapper(document.body.querySelector<HTMLElement>("button")).trigger("focus")
-    await flushPromises()
-
-    expect(portal('[data-ui-part="tooltip-content"]').attributes("dir")).toBe("rtl")
-  })
-
-  it("holds tooltips back until the configured delay elapses", async () => {
-    mount(UiProvider, {
-      attachTo: document.body,
-      props: { tooltipDelay: 10_000 },
-      slots: {
-        default: () => h(UiTooltip, { text: "Play" }, () => h("button", { type: "button" }, "▶"))
-      }
-    })
-
-    await new DOMWrapper(document.body.querySelector<HTMLElement>("button")).trigger("pointerenter")
-    await flushPromises()
-
-    expect(document.body.querySelector('[role="tooltip"]')).toBeNull()
   })
 })

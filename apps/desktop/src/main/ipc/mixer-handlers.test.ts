@@ -126,10 +126,13 @@ describe("registerMixerHandlers", () => {
     registerMixerHandlers(context)
     const workspace = installWorkspace(context.lifecycle)
 
+    const requestMeta = mutationMeta(workspace.projectGraph, {
+      expectedRevision: workspace.revision
+    })
     const result = await invoke(
       electronMocks,
       IPC_CHANNELS.projectGraphReload,
-      mutationMeta(workspace.projectGraph, { expectedRevision: workspace.revision }),
+      requestMeta,
       undefined
     )
 
@@ -137,6 +140,10 @@ describe("registerMixerHandlers", () => {
     expect(context.lifecycle.applicationState.workspaceSnapshot()?.revision).toBeGreaterThan(
       workspace.revision
     )
+    expect(
+      await invoke(electronMocks, IPC_CHANNELS.projectGraphReload, requestMeta, undefined)
+    ).toEqual(result)
+    expect(context.projectGraph.load).toHaveBeenCalledOnce()
   })
 
   it("rejects graph reload on revision conflict", async () => {

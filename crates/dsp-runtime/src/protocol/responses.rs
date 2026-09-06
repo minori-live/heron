@@ -127,14 +127,8 @@ pub enum ControlResult {
     PluginState {
         state: PluginStateEnvelope,
     },
-    GraphAccepted {
-        revision: u64,
-    },
     GraphTransaction {
         result: Box<RpcResult<GraphTransactionValue>>,
-    },
-    RevisionMismatch {
-        current_revision: u64,
     },
     Busy,
     PluginEditor {

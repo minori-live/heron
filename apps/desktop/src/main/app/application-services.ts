@@ -191,6 +191,7 @@ export async function createApplicationServices(
   const applicationEvents = bindAudioHostApplicationEvents({
     audioHost,
     projectCommands,
+    operations,
     plugins,
     sourceEpoch: options.sourceEpoch,
     targets: options.eventTargets,

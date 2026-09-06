@@ -180,6 +180,10 @@ export class ProjectWorkerClient {
     return this.call({ type: "abort-project-command", token })
   }
 
+  acknowledgeProjectCommand(token: ProjectCommandTransactionToken): Promise<void> {
+    return this.call({ type: "acknowledge-project-command", token })
+  }
+
   projectCommandStatus(operationId: string): Promise<ProjectCommandTransactionStatus> {
     return this.call({ type: "project-command-status", operationId })
   }

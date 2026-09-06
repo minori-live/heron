@@ -25,7 +25,6 @@ use crate::{
     midi_input::MidiInputActor,
     recording::{NativeRecordingResult, NativeRecordingStartConfig, NativeWaveformSnapshot},
     vst3,
-    workers::WorkerSupervisor,
 };
 use heron_audio_plugin::PluginProcessFailure;
 use heron_dsp_runtime::protocol::{
@@ -34,7 +33,7 @@ use heron_dsp_runtime::protocol::{
     AudioDeviceList, AudioDeviceRecovery, AudioDeviceRecoveryPhase, AudioEngineConfig,
     AudioRuntime, AudioStreamDirection, BinaryPayload, ControlCommand, ControlResult,
     GraphCandidateSnapshot, GraphDeploymentSnapshot, GraphDeploymentStatus, GraphOperationOutcome,
-    GraphOperationSnapshot, GraphTransactionRequest, GraphTransactionValue, GraphUpdate, HostEvent,
+    GraphOperationSnapshot, GraphTransactionRequest, GraphTransactionValue, HostEvent,
     IPC_PROTOCOL_VERSION, LiveLatencyPolicy, LiveMixerGraph, MidiNoteBatch, MixerChannelMeter,
     PluginFailureCategory, PluginFailureOutcome, PluginFailureStage, PluginRuntimeFailure,
     RecordingResult, RecordingWaveform, ResourceKind, ResourceRef, RoundTripLatencyMeasurement,
@@ -56,9 +55,9 @@ mod wire_adapters;
 
 use audio_device_wire::{audio_device_list, audio_device_recovery};
 use engine_actor::{
-    ActorCommand, ActorRequest, GraphParameterHandles, background_io_actor, dispatch_build_graph,
-    engine_actor, forward_to_ui, publish_built_graph, queue_background_graph_build,
-    refresh_graph_handles, stable_runtime_handle,
+    ActorCommand, ActorRequest, GraphParameterHandles, background_io_actor, engine_actor,
+    forward_to_ui, publish_built_graph, queue_background_graph_build, refresh_graph_handles,
+    stable_runtime_handle,
 };
 use graph_transactions::{
     GraphTransactionState, PreparedGraphCandidate, graph_busy_error, graph_conflict_error,

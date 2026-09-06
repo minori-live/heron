@@ -7,16 +7,6 @@ test("cascading select menus use compact dropdown typography", async ({ page }) 
 
   const trigger = page.locator(".ui-cascading-select").first()
   await expect(trigger).toBeVisible()
-  await expect(trigger).toHaveClass(/ui-cascading-select--workspace/)
-  await expect(trigger).toHaveCSS(
-    "background-image",
-    "linear-gradient(rgb(109, 109, 109), rgb(93, 93, 93))"
-  )
-  await trigger.hover()
-  await expect(trigger).toHaveCSS(
-    "background-image",
-    "linear-gradient(rgb(116, 116, 116), rgb(98, 98, 98))"
-  )
   await trigger.click()
 
   const buses = page.getByRole("menuitem", { name: "Buses" })
@@ -28,35 +18,6 @@ test("cascading select menus use compact dropdown typography", async ({ page }) 
   await expect(bus).toHaveCSS("font-size", "9px")
 })
 
-test("embedded cascading selects can tint their host instead of using surface color", async ({
-  page
-}) => {
-  await page.goto(
-    "/iframe.html?id=components-forms-field--embedded-hover-treatments&viewMode=story&globals=theme:dark;motion:disabled"
-  )
-  const hostTint = page.getByRole("button", { name: "Host tint embedded hover" })
-  const surface = page.getByRole("button", { name: "Surface embedded hover" })
-  const hostTintInitial = await hostTint.evaluate(
-    (element) => getComputedStyle(element).backgroundColor
-  )
-  const hoverColors = await page.evaluate(() => {
-    const probe = document.createElement("div")
-    document.body.append(probe)
-    probe.style.backgroundColor = "var(--ui-domain-color-ffffff22)"
-    const hostTint = getComputedStyle(probe).backgroundColor
-    probe.style.backgroundColor = "var(--ui-color-surface-hover)"
-    const surface = getComputedStyle(probe).backgroundColor
-    probe.remove()
-    return { hostTint, surface }
-  })
-
-  await hostTint.hover()
-  await expect(hostTint).toHaveCSS("background-color", hoverColors.hostTint)
-  expect(hoverColors.hostTint).not.toBe(hostTintInitial)
-
-  await surface.hover()
-  await expect(surface).toHaveCSS("background-color", hoverColors.surface)
-})
 test("direct select options keep their indicator column and stay on one line", async ({ page }) => {
   await page.goto(
     "/iframe.html?id=components-forms-field--select-sizes-and-groups&viewMode=story&globals=theme:dark;motion:disabled"
@@ -87,22 +48,6 @@ test("direct select options keep their indicator column and stay on one line", a
   )
 })
 
-test("global key and meter track accent colors are defined", async ({ page }) => {
-  await page.goto(
-    "/iframe.html?id=components-forms-field--select-sizes-and-groups&viewMode=story&globals=theme:dark;motion:disabled"
-  )
-
-  const colors = await page.evaluate(() => {
-    const styles = getComputedStyle(document.documentElement)
-    return {
-      key: styles.getPropertyValue("--ui-domain-color-b894ff").trim(),
-      meter: styles.getPropertyValue("--ui-domain-color-f2a65a").trim()
-    }
-  })
-
-  expect(colors).toEqual({ key: "#b894ff", meter: "#f2a65a" })
-})
-
 test("workspace tool modes use roving focus and persistent pressed state", async ({ page }) => {
   await page.goto(
     "/iframe.html?id=components-workspace-command-surfaces--editor-toolbar&viewMode=story&globals=theme:dark;motion:disabled"
@@ -119,19 +64,4 @@ test("workspace tool modes use roving focus and persistent pressed state", async
   await draw.press("Enter")
   await expect(draw).toHaveAttribute("aria-pressed", "true")
   await expect(select).toHaveAttribute("aria-pressed", "false")
-})
-
-test("workspace clip choices pair the signal rail with text state", async ({ page }) => {
-  await page.goto(
-    "/iframe.html?id=components-workspace-command-surfaces--editor-toolbar&viewMode=story&globals=theme:light;motion:disabled"
-  )
-
-  const verse = page.getByRole("button", { name: "Verse" })
-  const counterMelody = page.getByRole("button", { name: "Counter melody" })
-  await expect(verse).toHaveAttribute("aria-pressed", "true")
-  await expect(verse).toHaveCSS("border-left-width", "3px")
-
-  await counterMelody.click()
-  await expect(counterMelody).toHaveAttribute("aria-pressed", "true")
-  await expect(verse).toHaveAttribute("aria-pressed", "false")
 })

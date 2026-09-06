@@ -152,11 +152,6 @@ const fakeHostInternal = vi.hoisted(() => {
           measurement: this.latencyMeasurement
         })
       }
-      if (request.command.type === "update-graph") {
-        const update = request.command.update as { revision?: number }
-        this.graphRevision = update.revision ?? 0
-        return response({ type: "graph-accepted", revision: this.graphRevision })
-      }
       if (
         request.command.type === "graph-deployment-snapshot" ||
         request.command.type === "prepare-graph" ||

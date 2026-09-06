@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 const worker = vi.hoisted(() => ({
   postMessage: vi.fn(),
@@ -27,7 +27,7 @@ const database = vi.hoisted(() => ({
   updateConfiguration: vi.fn(async (value) => value),
   listAssets: vi.fn(async () => []),
   mixerSnapshot: vi.fn(async () => structuredClone(graph)),
-  applyCommand: vi.fn(async () => undefined),
+  applyCommand: vi.fn(async () => structuredClone(graph)),
   importMidi: vi.fn(async () => undefined),
   rollbackMidi: vi.fn(async () => undefined),
   savePluginStates: vi.fn(async () => undefined),
@@ -69,17 +69,12 @@ type Message = Record<string, unknown> & { id: number; type: string }
 let receive!: (message: Message) => void
 
 async function send(message: Message): Promise<Record<string, unknown>> {
-  const before = worker.postMessage.mock.calls.length
-  receive(message)
-  await vi.waitFor(() => {
-    expect(
-      worker.postMessage.mock.calls.slice(before).some(([value]) => value.id === message.id)
-    ).toBe(true)
+  return new Promise((resolve) => {
+    worker.postMessage.mockImplementation((value) => {
+      if (value.id === message.id) resolve(value)
+    })
+    receive(message)
   })
-  return worker.postMessage.mock.calls
-    .slice(before)
-    .map(([value]) => value as Record<string, unknown>)
-    .find((value) => value.id === message.id)!
 }
 
 describe("project worker", () => {
@@ -87,6 +82,80 @@ describe("project worker", () => {
     await import("./project-worker")
     expect(worker.on).toHaveBeenCalledWith("message", expect.any(Function))
     receive = worker.on.mock.calls.find(([event]) => event === "message")![1]
+  })
+  beforeEach(async () => {
+    await send({ id: 0, type: "close" })
+    database.close.mockClear()
+    projectDatabase.open.mockClear()
+    projectDatabase.create.mockClear()
+  })
+
+  it("releases acknowledged commits across a long editing session and replays an unacknowledged commit", async () => {
+    await send({ id: 100, type: "open", dataDir: "/data" })
+    for (let index = 0; index < 2_050; index += 1) {
+      const operationId = `edit-${index}`
+      const prepared = await send({
+        id: 101,
+        type: "prepare-project-command",
+        operationId,
+        baseRevision: index,
+        command: { type: "batch", commands: [] },
+        fallbackOutputId: "output"
+      })
+      expect(prepared.ok).toBe(true)
+      const token = (prepared.value as { token: unknown }).token
+      const committed = await send({ id: 102, type: "commit-project-command", token })
+      expect(committed.ok).toBe(true)
+      if (index === 0) {
+        const calls = database.applyCommand.mock.calls.length
+        expect(await send({ id: 103, type: "commit-project-command", token })).toMatchObject({
+          ok: true,
+          value: committed.value
+        })
+        expect(database.applyCommand.mock.calls.length).toBe(calls)
+        await send({
+          id: 107,
+          type: "acknowledge-project-command",
+          token: { ...(token as object), id: "stale" }
+        })
+        expect(await send({ id: 108, type: "project-command-status", operationId })).toMatchObject({
+          value: { state: "committed" }
+        })
+      }
+      await send({ id: 104, type: "acknowledge-project-command", token })
+      expect(await send({ id: 105, type: "project-command-status", operationId })).toMatchObject({
+        value: { state: "absent" }
+      })
+    }
+    await send({ id: 106, type: "close" })
+    database.close.mockClear()
+    projectDatabase.open.mockClear()
+  })
+
+  it("keeps a failed database transaction prepared for explicit abort", async () => {
+    await send({ id: 200, type: "open", dataDir: "/data" })
+    const prepared = await send({
+      id: 201,
+      type: "prepare-project-command",
+      operationId: "failed-read",
+      baseRevision: 0,
+      command: { type: "batch", commands: [] },
+      fallbackOutputId: "output"
+    })
+    const token = (prepared.value as { token: unknown }).token
+    database.applyCommand.mockRejectedValueOnce(new Error("snapshot read rolled back"))
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined)
+    expect(await send({ id: 202, type: "commit-project-command", token })).toMatchObject({
+      ok: false
+    })
+    expect(
+      await send({ id: 203, type: "project-command-status", operationId: "failed-read" })
+    ).toMatchObject({ value: { state: "prepared" } })
+    await send({ id: 204, type: "abort-project-command", token })
+    expect(
+      await send({ id: 205, type: "project-command-status", operationId: "failed-read" })
+    ).toMatchObject({ value: { state: "absent" } })
+    log.mockRestore()
   })
 
   it("serializes database operations and reconciles prepared project commands", async () => {

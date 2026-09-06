@@ -1,11 +1,11 @@
 use super::{
     ApplicationCaptureLogicalTarget, ApplicationCaptureSnapshot,
     ApplicationCaptureTargetDescriptor, AudioBackend, AudioRuntime, BinaryPayload, ControlCommand,
-    ControlResult, GraphUpdate, HashMap, LiveLatencyPolicy, LiveMixerGraph, MIDI_INPUT,
-    MidiNoteBatch, MixerChannelMeter, NativeRecordingResult, NativeRecordingStartConfig,
-    NativeWaveformSnapshot, RecordingResult, RecordingWaveform, RoundTripLatencyMeasurement,
-    TempoEvent, TimeSignatureEvent, TransportState, audio_device_list, audio_device_recovery,
-    device, engine, vst3,
+    ControlResult, HashMap, LiveLatencyPolicy, LiveMixerGraph, MIDI_INPUT, MidiNoteBatch,
+    MixerChannelMeter, NativeRecordingResult, NativeRecordingStartConfig, NativeWaveformSnapshot,
+    RecordingResult, RecordingWaveform, RoundTripLatencyMeasurement, TempoEvent,
+    TimeSignatureEvent, TransportState, audio_device_list, audio_device_recovery, device, engine,
+    vst3,
 };
 
 fn audio_runtime(value: engine::NativeAudioRuntimeSnapshot) -> AudioRuntime {
@@ -413,7 +413,6 @@ fn audition_control_result<E: std::fmt::Display>(
 pub(super) fn engine_command(
     audio_engine: &engine::AudioEngine,
     command: ControlCommand,
-    processors: Option<&HashMap<String, vst3::AudioPluginProcessorHandle>>,
 ) -> Option<ControlResult> {
     let result = match command {
         ControlCommand::ListAudioBackends => ControlResult::AudioBackends {
@@ -563,23 +562,6 @@ pub(super) fn engine_command(
                 },
             }
         }
-        ControlCommand::UpdateGraph {
-            update: GraphUpdate::Replace { revision, graph },
-        } => {
-            match live_graph(revision, &graph, processors).and_then(|graph| {
-                audio_engine
-                    .load_mixer_graph(graph)
-                    .map_err(|error| error.to_string())
-            }) {
-                Ok(()) => ControlResult::GraphAccepted { revision },
-                Err(error) => control_error! { message: error },
-            }
-        }
-        ControlCommand::UpdateGraph {
-            update: GraphUpdate::Patch { .. },
-        } => control_error! {
-            message: "graph patches require the IPC protocol actor".into(),
-        },
         ControlCommand::PreviewMixerParameter { preview } => {
             match audio_engine.preview_mixer_parameter(engine::NativeMixerParameterPreview {
                 target: preview.target,
@@ -850,12 +832,11 @@ mod tests {
                     path: "missing.bwf".to_owned(),
                     hardware_outputs: [1, 2]
                 },
-                None
             ),
             Some(ControlResult::Error { .. })
         ));
         assert!(matches!(
-            engine_command(&engine, ControlCommand::StopAssetAudition, None),
+            engine_command(&engine, ControlCommand::StopAssetAudition),
             Some(ControlResult::Error { .. })
         ));
     }
@@ -872,7 +853,7 @@ mod tests {
         };
 
         assert!(matches!(
-            engine_command(&engine, ControlCommand::DeviceRecoverySnapshot, None),
+            engine_command(&engine, ControlCommand::DeviceRecoverySnapshot),
             Some(ControlResult::AudioDeviceRecovery {
                 recovery: None,
                 runtime: Some(_)
@@ -882,7 +863,6 @@ mod tests {
             engine_command(
                 &engine,
                 ControlCommand::AuthorizeDeviceRecovery { recovery_id: 99 },
-                None
             ),
             Some(ControlResult::Error { .. })
         ));
@@ -893,7 +873,6 @@ mod tests {
                     recovery_id: 99,
                     config
                 },
-                None
             ),
             Some(ControlResult::Error { .. })
         ));
@@ -901,7 +880,6 @@ mod tests {
             engine_command(
                 &engine,
                 ControlCommand::KeepRestoredDevice { recovery_id: 99 },
-                None
             ),
             Some(ControlResult::Error { .. })
         ));

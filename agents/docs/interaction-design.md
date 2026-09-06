@@ -193,7 +193,7 @@ The dialog remains stable while device results refresh. A device appearing,
 disappearing, or reconnecting must not move the focused action or silently
 commit a choice. The concurrent state and generation rules live in
 [the Live product contract](product-live.md) and
-[ADR-0003](adr/0003-device-recovery-precedence.md).
+[ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
 
 ## Review checklist
 

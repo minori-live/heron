@@ -251,6 +251,94 @@ describe("project graph store", () => {
     useProjectStore().applyWorkspace(workspace(graph()))
   })
 
+  it("acknowledges a received graph command only after adopting its result", async () => {
+    const project = useProjectStore()
+    project.applyDesktopSession({
+      kind: "desktop-session",
+      id: "desktop",
+      epoch: "test-main",
+      generation: 1
+    })
+    const store = useProjectGraphStore()
+    store.hydrate(graph())
+    const changed = graph()
+    changed.channels[0]!.gainDb = -9
+    window.heron.executeProjectCommand = vi
+      .fn()
+      .mockResolvedValue(success({ graph: changed, inverse: { type: "batch", commands: [] } }))
+    window.heron.acknowledgeOperation = vi.fn(async () => {
+      expect(store.graph.channels[0]?.gainDb).toBe(-9)
+      return success(true)
+    })
+    await store.execute({ type: "update-channel", channelId: "audio", patch: { gainDb: -9 } })
+    expect(window.heron.acknowledgeOperation).toHaveBeenCalledWith(
+      expect.anything(),
+      "test-operation"
+    )
+  })
+
+  it("retries a lost acknowledgement without rolling back an accepted edit", async () => {
+    const project = useProjectStore()
+    project.applyDesktopSession({
+      kind: "desktop-session",
+      id: "desktop",
+      epoch: "test-main",
+      generation: 1
+    })
+    const store = useProjectGraphStore()
+    store.hydrate(graph())
+    const changed = graph()
+    changed.channels[0]!.gainDb = -9
+    window.heron.executeProjectCommand = vi
+      .fn()
+      .mockResolvedValue(success({ graph: changed, inverse: { type: "batch", commands: [] } }))
+    window.heron.acknowledgeOperation = vi
+      .fn()
+      .mockResolvedValueOnce(failure())
+      .mockResolvedValue(success(false))
+    await store.execute({ type: "update-channel", channelId: "audio", patch: { gainDb: -9 } })
+    expect(store.graph.channels[0]?.gainDb).toBe(-9)
+    window.heron.loadProjectGraph = vi.fn().mockResolvedValue(success(changed))
+    await store.load()
+    expect(window.heron.acknowledgeOperation).toHaveBeenCalledTimes(2)
+    await store.load()
+    expect(window.heron.acknowledgeOperation).toHaveBeenCalledTimes(2)
+  })
+
+  it.each(["not-committed", "unknown"] as const)(
+    "acknowledges only known failure outcomes: %s",
+    async (outcome) => {
+      const project = useProjectStore()
+      project.applyDesktopSession({
+        kind: "desktop-session",
+        id: "desktop",
+        epoch: "test-main",
+        generation: 1
+      })
+      const store = useProjectGraphStore()
+      store.hydrate(graph())
+      const result = failure()
+      if (result.ok) throw new Error("expected failure fixture")
+      result.operationId = "failed-command"
+      if (outcome === "unknown") {
+        result.error = {
+          code: "operation-timeout-unknown",
+          category: "timeout-unknown",
+          outcome: "unknown",
+          retry: "after-reconcile",
+          correlationId: "unknown",
+          userMessageKey: "errors.operationOutcomeUnknown",
+          details: { type: "operation-timeout-unknown", dispatched: true }
+        }
+      }
+      window.heron.executeProjectCommand = vi.fn().mockResolvedValue(result)
+      window.heron.loadProjectGraph = vi.fn().mockResolvedValue(success(graph()))
+      window.heron.acknowledgeOperation = vi.fn().mockResolvedValue(success(true))
+      await store.execute({ type: "update-channel", channelId: "audio", patch: { gainDb: -9 } })
+      expect(window.heron.acknowledgeOperation).toHaveBeenCalledTimes(outcome === "unknown" ? 0 : 1)
+    }
+  )
+
   it("hydrates, replaces, and resets local graph state", () => {
     const store = useProjectGraphStore()
     const next = graph()

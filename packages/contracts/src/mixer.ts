@@ -30,7 +30,7 @@ export interface MixerChannelState {
   inputFormat: MixerInputFormat | null
   /** Logical identity of the application captured by an application input. */
   applicationCapture?: ApplicationCaptureTarget | null
-  /** Present only for ordinary Instrument tracks. */
+  /** Present only for ordinary Instrument channels. */
   midiInput?: MidiInputRoute | null
   gainDb: number
   pan: number
@@ -112,15 +112,19 @@ export interface MixerSendState {
   levelDb: number
 }
 
-export interface ProjectGraphSnapshot {
+/** Shared routing and processing graph, independent of an arrangement or musical timeline. */
+export interface MixerGraphSnapshot {
   sampleRate: number
+  channels: MixerChannelState[]
+  sends: MixerSendState[]
+  plugins: PluginInstanceState[]
+}
+
+export interface ProjectGraphSnapshot extends MixerGraphSnapshot {
   projectNotes?: string
   projectEndTick?: number
   tracks: TrackState[]
-  channels: MixerChannelState[]
   audioClips: AudioClipState[]
-  sends: MixerSendState[]
-  plugins: PluginInstanceState[]
   midiClips: MidiClipState[]
   tempoMap: TempoMapSnapshot
   keySignatureEvents: KeySignatureEventState[]

@@ -18,3 +18,13 @@ Resource epochs remain useful even without an audio helper: they distinguish a
 renderer command created for an older project/native session from the current
 one. On application relaunch all renderer state is rebuilt through bootstrap;
 there is no in-process audio-host recovery transaction.
+
+Project command responses have an explicit retention owner. The database
+worker keeps a committed response until main has recorded it; main keeps it
+until its caller acknowledges a known terminal outcome. Renderer graph
+commands retry undelivered acknowledgements on subsequent interactions.
+Native editor requests are acknowledged by their main-process caller.
+Unknown outcomes cannot be acknowledged away and quarantine the affected
+graph; a matching retry returns the retained result even after quarantine.
+Reopening establishes a new authoritative project workspace. See
+[ADR-0001](adr/0001-runtime-ownership-and-transactions.md).

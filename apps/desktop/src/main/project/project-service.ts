@@ -355,6 +355,10 @@ export class ProjectService {
     return this.requireActive().worker.abortProjectCommand(token)
   }
 
+  acknowledgeProjectCommand(token: ProjectCommandTransactionToken): Promise<void> {
+    return this.requireActive().worker.acknowledgeProjectCommand(token)
+  }
+
   projectCommandStatus(operationId: string): Promise<ProjectCommandTransactionStatus> {
     return this.requireActive().worker.projectCommandStatus(operationId)
   }

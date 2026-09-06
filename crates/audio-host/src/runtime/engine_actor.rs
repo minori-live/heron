@@ -1,6 +1,6 @@
 use super::{
     Arc, ControlCommand, ControlResult, HashMap, LiveMixerGraph, Mutex, UiEvent, UiMailboxWaker,
-    WorkerSupervisor, engine, engine_command, mpsc, oneshot, std_mpsc,
+    engine, engine_command, mpsc, oneshot, std_mpsc,
 };
 
 pub(super) struct ActorRequest {
@@ -43,6 +43,7 @@ pub(super) enum ActorCommand {
     PreparePluginGraph {
         operation_id: String,
         graph: LiveMixerGraph,
+        processors: Arc<Mutex<HashMap<String, crate::vst3::AudioPluginProcessorHandle>>>,
     },
     ActivatePluginGraph {
         operation_id: String,
@@ -176,12 +177,13 @@ pub(super) async fn engine_actor(
         let engine = Arc::clone(&audio_engine);
         let parameter_handles = Arc::clone(&handles);
         let result = tokio::task::spawn_blocking(move || match message.command {
-            ActorCommand::Control(command) => engine_command(&engine, command, None)
-                .unwrap_or_else(|| {
+            ActorCommand::Control(command) => {
+                engine_command(&engine, command).unwrap_or_else(|| {
                     control_error! {
                         message: "unsupported engine command".into(),
                     }
-                }),
+                })
+            }
             ActorCommand::Parameter(command) => {
                 mixer_parameter_command(&engine, &parameter_handles, command)
             }
@@ -226,7 +228,6 @@ pub(super) async fn publish_built_graph(
 }
 
 async fn build_graph_on_worker(
-    supervisor: &WorkerSupervisor,
     engine_sender: &mpsc::Sender<ActorRequest>,
     graph: engine::NativeMixerGraph,
     audio_engine: &engine::AudioEngine,
@@ -240,23 +241,14 @@ async fn build_graph_on_worker(
             };
         }
     };
-    let complete = match supervisor.submit_graph_build(input) {
-        Ok(complete) => complete,
+    let built = match crate::graph_compilation::compile(input).await {
+        Ok(built) => built,
         Err(message) => return control_error! { message },
     };
-    let built = match complete.await {
-        Ok(Ok(built)) => built,
-        Ok(Err(message)) => return control_error! { message },
-        Err(_) => {
-            return control_error! {
-                message: "graph worker dropped the build result".into(),
-            };
-        }
-    };
     match publish_built_graph(engine_sender, built).await {
-        ControlResult::Accepted => ControlResult::GraphAccepted { revision },
+        ControlResult::Accepted => ControlResult::Accepted,
         ControlResult::Error { .. } if audio_engine.published_graph_generation() >= revision => {
-            ControlResult::GraphAccepted { revision }
+            ControlResult::Accepted
         }
         other => other,
     }
@@ -265,17 +257,37 @@ async fn build_graph_on_worker(
 pub(super) async fn background_io_actor(
     mut inbox: mpsc::Receiver<ActorRequest>,
     engine_sender: mpsc::Sender<ActorRequest>,
-    supervisor: Arc<WorkerSupervisor>,
     audio_engine: Arc<engine::AudioEngine>,
+    graph_build_gate: Arc<tokio::sync::Mutex<()>>,
 ) {
-    while let Some(message) = inbox.recv().await {
+    let mut pending_refresh: Option<(engine::NativeMixerGraph, oneshot::Sender<ControlResult>)> =
+        None;
+    loop {
+        let message = tokio::select! {
+            _build_guard = graph_build_gate.lock(), if pending_refresh.is_some() => {
+                if let Some((graph, reply)) = pending_refresh.take() {
+                    let result = build_graph_on_worker(&engine_sender, graph, &audio_engine).await;
+                    let _ = reply.send(result);
+                }
+                continue;
+            }
+            message = inbox.recv() => {
+                let Some(message) = message else { break; };
+                message
+            }
+        };
         let result = match message.command {
             ActorCommand::BuildGraph { graph } => {
-                build_graph_on_worker(&supervisor, &engine_sender, graph, &audio_engine).await
+                // Keep only the latest runtime snapshot while a document owns preparation.
+                // Device queries still pass through this actor during that interval.
+                if let Some((_, reply)) = pending_refresh.replace((graph, message.reply)) {
+                    let _ = reply.send(ControlResult::Busy);
+                }
+                continue;
             }
             ActorCommand::Control(command) => {
                 let engine = Arc::clone(&audio_engine);
-                tokio::task::spawn_blocking(move || engine_command(&engine, command, None))
+                tokio::task::spawn_blocking(move || engine_command(&engine, command))
                     .await
                     .unwrap_or_else(|error| {
                         Some(control_error! {
@@ -305,7 +317,6 @@ pub(super) async fn background_io_actor(
         };
         let _ = message.reply.send(result);
     }
-    supervisor.shutdown();
 }
 
 pub(super) async fn dispatch_actor_command(
@@ -323,13 +334,6 @@ pub(super) async fn dispatch_actor_command(
             message: "audio-host actor dropped its response".into(),
         }
     })
-}
-
-pub(super) async fn dispatch_build_graph(
-    background_sender: &mpsc::Sender<ActorRequest>,
-    graph: engine::NativeMixerGraph,
-) -> ControlResult {
-    dispatch_actor_command(background_sender, ActorCommand::BuildGraph { graph }).await
 }
 
 pub(super) fn queue_background_graph_build(

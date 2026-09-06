@@ -23,10 +23,9 @@ use super::{
     ActorRequest, Arc as RuntimeArc, AtomicU64 as RuntimeAtomicU64, BounceJobRegistry,
     EmbeddedUiHost, GraphParameterHandles, HashMap as RuntimeHashMap, MIDI_INPUT,
     Mutex as RuntimeMutex, NativeUiContext, RuntimeConfig, UiEvent, UiMailboxWaker, Vst3ActorDeps,
-    WorkerSupervisor, audio_plugin_actor, background_io_actor, clap, dispatch_actor,
-    dispatch_parameter, editor_platform, engine, engine_actor, is_background_io_command,
-    is_vst3_command, mpsc, slow_request_threshold, stable_runtime_handle, std_mpsc as runtime_mpsc,
-    vst3,
+    audio_plugin_actor, background_io_actor, clap, dispatch_actor, dispatch_parameter,
+    editor_platform, engine, engine_actor, is_background_io_command, is_vst3_command, mpsc,
+    slow_request_threshold, stable_runtime_handle, std_mpsc as runtime_mpsc, vst3,
 };
 use heron_dsp_runtime::protocol::{
     ControlCommand, ControlRequest, ControlResponse, ControlResult, HostEvent, ParameterCommand,
@@ -271,8 +270,8 @@ impl EmbeddedAudioHost {
             inbox: ui_inbox,
             processors: Arc::clone(&processors),
             audio_engine: Arc::clone(&audio_engine),
-            background_sender: background_sender.clone(),
             host_events: host_event_sender,
+            background_sender: background_sender.clone(),
             pending_ara_events: VecDeque::new(),
             vst3: Some(vst3::Vst3Runtime::new()),
             clap: Some(clap::ClapRuntime::default()),
@@ -743,7 +742,7 @@ async fn run_direct_actor(
     let handles = Arc::new(Mutex::new(GraphParameterHandles::default()));
     let (engine_sender, engine_inbox) = mpsc::channel(ACTOR_CAPACITY);
     let (vst3_sender, vst3_inbox) = mpsc::channel(ACTOR_CAPACITY);
-    let worker_supervisor = WorkerSupervisor::new();
+    let graph_build_gate = Arc::new(tokio::sync::Mutex::new(()));
     let bounce_jobs = Arc::new(BounceJobRegistry::default());
     tokio::spawn(engine_actor(
         engine_inbox,
@@ -757,9 +756,9 @@ async fn run_direct_actor(
             ui_sender,
             processors,
             handles,
-            background_sender: background_sender.clone(),
             engine_sender: engine_sender.clone(),
             audio_engine: Arc::clone(&audio_engine),
+            graph_build_gate: Arc::clone(&graph_build_gate),
             session_epoch,
             bounce_jobs,
         },
@@ -767,8 +766,8 @@ async fn run_direct_actor(
     tokio::spawn(background_io_actor(
         background_inbox,
         engine_sender.clone(),
-        worker_supervisor,
         Arc::clone(&audio_engine),
+        graph_build_gate,
     ));
     let recovery_task = tokio::spawn(drive_device_recovery(
         Arc::clone(&audio_engine),

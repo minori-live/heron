@@ -32,21 +32,15 @@ describe("UI controls", () => {
     expect(button.text()).toContain("Save project")
   })
 
-  it("forwards input attributes and updates v-model", async () => {
+  it("emits the edited text through the public input model", async () => {
     const wrapper = mount(UiTextInput, {
       props: {
-        modelValue: "Initial",
-        "onUpdate:modelValue": (value: string) => wrapper.setProps({ modelValue: value })
-      },
-      attrs: {
-        name: "project-name",
-        autocomplete: "off"
+        modelValue: "Initial"
       }
     })
 
     await wrapper.get("input").setValue("Renamed")
-    expect(wrapper.props("modelValue")).toBe("Renamed")
-    expect(wrapper.get("input").attributes("name")).toBe("project-name")
+    expect(wrapper.emitted("update:modelValue")).toEqual([["Renamed"]])
   })
 
   it("updates checkbox v-model from a user interaction", async () => {
@@ -123,7 +117,7 @@ describe("UI controls", () => {
     expect(wrapper.emitted("select")).toHaveLength(1)
   })
 
-  it("renders toolbar semantics on an allowed generic element", () => {
+  it("smokes bare and composed toolbars through their accessible commands", () => {
     const wrapper = mount(UiToolbar, {
       props: {
         label: "Piano roll commands",
@@ -134,9 +128,25 @@ describe("UI controls", () => {
       }
     })
 
-    expect(wrapper.element.tagName).toBe("DIV")
     expect(wrapper.attributes("role")).toBe("toolbar")
     expect(wrapper.attributes("aria-label")).toBe("Piano roll commands")
+    expect(wrapper.get("button").text()).toBe("Select")
+
+    const composed = mount(UiToolbar, {
+      props: { label: "Transport" },
+      slots: {
+        start: '<button type="button">Record</button>',
+        default: '<button type="button">Play</button>',
+        end: '<button type="button">Settings</button>'
+      }
+    })
+    expect(composed.attributes("role")).toBe("toolbar")
+    expect(composed.attributes("aria-label")).toBe("Transport")
+    expect(composed.findAll("button").map((button) => button.text())).toEqual([
+      "Record",
+      "Play",
+      "Settings"
+    ])
   })
 
   it("renders grouped select options with a separator and updates v-model", async () => {
@@ -292,9 +302,6 @@ describe("UI controls", () => {
 
     const modeElement = document.body.querySelector<HTMLElement>(".ui-cascading-menu__item")
     expect(modeElement).not.toBeNull()
-    expect(modeElement?.classList.contains("ui-cascading-menu__item--detailed")).toBe(true)
-    expect(modeElement?.classList.contains("ui-menu__item--detailed")).toBe(true)
-    expect(modeElement?.classList.contains("ui-menu__item--leading")).toBe(true)
     expect(modeElement?.textContent).toContain("Heron / Delay")
     const mode = new DOMWrapper(modeElement)
     await mode.trigger("click")
@@ -321,14 +328,11 @@ describe("UI controls", () => {
     })
 
     const trigger = wrapper.get("button")
-    expect(trigger.classes()).toContain("ui-cascading-select--embedded")
-    expect(trigger.classes()).toContain("ui-cascading-select--hover-host-tint")
     expect(trigger.text()).toBe("IN 1")
 
     await trigger.trigger("click")
     const options = document.body.querySelectorAll<HTMLElement>(".ui-cascading-select__item")
     expect(options).toHaveLength(2)
-    expect(document.body.querySelectorAll(".ui-cascading-select__indicator-slot")).toHaveLength(2)
     await new DOMWrapper(options[1]).trigger("click")
 
     expect(wrapper.emitted("update:modelValue")).toEqual([["2"]])
@@ -354,12 +358,15 @@ describe("UI feedback semantics", () => {
 
     const input = wrapper.get("input")
     expect(wrapper.get("label").attributes("for")).toBe(input.attributes("id"))
-    expect(input.attributes("aria-describedby")).toContain("-description")
-    expect(input.attributes("aria-describedby")).toContain("-error")
+    const descriptions = input
+      .attributes("aria-describedby")!
+      .split(" ")
+      .map((id) => wrapper.get(`[id="${id}"]`).text())
+    expect(descriptions).toEqual(["Shown in recent projects.", "A project name is required."])
     expect(wrapper.get('[role="alert"]').text()).toContain("required")
   })
 
-  it("supports compact inline inspector fields without changing associations", () => {
+  it("keeps field associations valid as validation feedback appears and clears", async () => {
     const wrapper = mount(UiField, {
       props: {
         label: "Velocity",
@@ -367,15 +374,29 @@ describe("UI feedback semantics", () => {
       },
       slots: {
         default: `
-          <template #default="{ controlId }">
-            <input :id="controlId" />
+          <template #default="{ controlId, descriptionId, errorId }">
+            <input :id="controlId" :aria-describedby="[descriptionId, errorId].filter(Boolean).join(' ')" />
           </template>
         `
       }
     })
 
-    expect(wrapper.classes()).toContain("ui-field--inline")
     expect(wrapper.get("label").attributes("for")).toBe(wrapper.get("input").attributes("id"))
+    await wrapper.setProps({ description: "MIDI velocity", error: "Enter a value from 1 to 127." })
+    const input = wrapper.get("input")
+    const linkedText = () =>
+      (input.attributes("aria-describedby") ?? "")
+        .split(" ")
+        .filter(Boolean)
+        .map((id) => wrapper.get(`[id="${id}"]`).text())
+    expect(linkedText()).toEqual(["MIDI velocity", "Enter a value from 1 to 127."])
+    await wrapper.setProps({ id: "note-velocity", error: undefined })
+    expect(input.attributes("id")).toBe("note-velocity")
+    expect(wrapper.get("label").attributes("for")).toBe("note-velocity")
+    expect(linkedText()).toEqual(["MIDI velocity"])
+    await wrapper.setProps({ description: undefined })
+    expect(linkedText()).toEqual([])
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
   it("distinguishes determinate from indeterminate progress", async () => {

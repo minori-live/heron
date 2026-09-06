@@ -13,6 +13,9 @@ pub(super) struct PreparedGraphCandidate {
     pub(super) graph_revision: u64,
     pub(super) graph: LiveMixerGraph,
     pub(super) built: engine::CompiledGraphBuild,
+    // A prepared document owns graph compilation until it commits or aborts.
+    // Runtime-only plug-in refreshes must not invalidate its build generation.
+    pub(super) build_guard: tokio::sync::OwnedMutexGuard<()>,
 }
 
 pub(super) struct GraphTransactionState {
@@ -82,13 +85,6 @@ impl GraphTransactionState {
 
     pub(super) fn observe_engine(&mut self, engine: ResourceRef) {
         self.engine = Some(engine);
-    }
-
-    pub(super) fn observe_legacy_commit(&mut self, revision: u64) {
-        self.committed_project_graph = None;
-        self.committed_revision = revision;
-        self.last_operation = None;
-        self.degraded = false;
     }
 
     pub(super) fn prepare(&mut self, candidate: PreparedGraphCandidate) {
@@ -370,6 +366,14 @@ pub(super) async fn wait_for_graph_publication(
 ) -> bool {
     let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(2);
     loop {
+        // A stopped engine owns the accepted graph in pending_mixer; no callback can
+        // acknowledge it until audio starts. The successful queue commit is terminal.
+        if audio_engine
+            .audio_engine_snapshot()
+            .is_ok_and(|snapshot| snapshot.state == "stopped")
+        {
+            return true;
+        }
         if audio_engine.published_graph_generation() >= revision {
             return true;
         }
@@ -443,12 +447,6 @@ mod tests {
         assert!(!state.abort("missing"));
         state.degraded = true;
         assert_eq!(state.snapshot_at(7).status, GraphDeploymentStatus::Degraded);
-
-        state.observe_legacy_commit(10);
-        let legacy = state.snapshot_at(10);
-        assert_eq!(legacy.status, GraphDeploymentStatus::Active);
-        assert_eq!(legacy.committed_project_graph, None);
-        assert_eq!(legacy.last_operation, None);
     }
 
     #[test]

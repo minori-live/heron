@@ -18,6 +18,33 @@ describe("AudioHostService graph", () => {
     vi.useRealTimers()
   })
 
+  it("uses graph transactions for publication and preserves recovery state after prepare failure", async () => {
+    const service = new AudioHostService(
+      { workerThreads: "auto", maxBlockingThreads: "auto" },
+      undefined,
+      () => {},
+      async () => {}
+    )
+    service.start()
+    const original = graph(48_000)
+    await service.loadGraph(1, original.project, original.runtime)
+    const client = fakeHost.Client.instances[0]!
+    const request = client.request.bind(client)
+    vi.spyOn(client, "request").mockImplementation(async (payload) => {
+      const { decode } = await import("@msgpack/msgpack")
+      const message = decode(payload) as { command: { type: string } }
+      if (message.command.type === "prepare-graph") throw new Error("candidate rejected")
+      return request(payload)
+    })
+    await expect(service.loadGraph(2, original.project, original.runtime)).rejects.toThrow(
+      "candidate rejected"
+    )
+    expect((service as unknown as { lastGraph: { revision: number } }).lastGraph.revision).toBe(1)
+    expect(client.commands.some((command) => command.type === "update-graph")).toBe(false)
+    expect(client.commands.some((command) => command.type === "activate-graph")).toBe(true)
+    await service.stop()
+  })
+
   it("does not update the committed recovery graph until candidate activation", async () => {
     const service = new AudioHostService(
       {

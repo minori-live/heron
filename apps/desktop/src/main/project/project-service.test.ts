@@ -14,6 +14,7 @@ const terminatedWorkers: Array<ReturnType<typeof vi.fn>> = []
 
 interface MockWorker {
   abortProjectCommand: ReturnType<typeof vi.fn>
+  acknowledgeProjectCommand: ReturnType<typeof vi.fn>
   assetContentHashes: ReturnType<typeof vi.fn>
   assetsMissingWaveform: ReturnType<typeof vi.fn>
   cancel: ReturnType<typeof vi.fn>
@@ -54,6 +55,7 @@ vi.mock("./project-worker-client", () => ({
     close = closeProject
     onProgress: MockWorker["onProgress"] = null
     abortProjectCommand = vi.fn().mockResolvedValue(undefined)
+    acknowledgeProjectCommand = vi.fn().mockResolvedValue(undefined)
     assetContentHashes = vi.fn().mockResolvedValue([{ id: "asset-1", contentHash: "hash" }])
     assetsMissingWaveform = vi.fn().mockResolvedValue(["asset-1"])
     cancel = vi.fn().mockResolvedValue(undefined)
@@ -268,6 +270,7 @@ describe("ProjectService.create", () => {
     await service.prepareProjectCommand("operation", 1, command, "output")
     await service.commitProjectCommand({ id: "token" } as never, command)
     await service.abortProjectCommand({ id: "token" } as never)
+    await service.acknowledgeProjectCommand({ id: "token" } as never)
     await service.projectCommandStatus("operation")
     await service.importMidi({ id: "midi" } as never, command, "output")
     await service.rollbackMidi("midi", command, "output")

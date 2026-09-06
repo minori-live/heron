@@ -125,30 +125,36 @@ export class OperationRegistry {
     return count
   }
 
-  begin(
+  find(
     options: BeginOperationOptions
-  ): KernelResult<BeginOperationResult, OperationRegistryError> {
+  ): KernelResult<OperationRecord | null, OperationRegistryError> {
     const existingById = this.operations.get(options.operationId)
     const key = idempotencyKey(options)
     const existingId = this.idempotency.get(key)
     if (existingById) {
-      if (existingById.idempotencyKey !== options.idempotencyKey) {
+      if (
+        existingById.idempotencyKey !== options.idempotencyKey ||
+        targetKey(existingById.target) !== targetKey(options.target)
+      ) {
         return kernelFailure({ code: "operation-conflict", operationId: options.operationId })
       }
-      return kernelSuccess({
-        disposition: "existing",
-        operation: cloneOperation(existingById)
-      })
+      return kernelSuccess(cloneOperation(existingById))
     }
     if (existingId) {
       const existing = this.operations.get(existingId)
       if (existing) {
-        return kernelSuccess({
-          disposition: "existing",
-          operation: cloneOperation(existing)
-        })
+        return kernelSuccess(cloneOperation(existing))
       }
     }
+    return kernelSuccess(null)
+  }
+
+  begin(
+    options: BeginOperationOptions
+  ): KernelResult<BeginOperationResult, OperationRegistryError> {
+    const found = this.find(options)
+    if (!found.ok) return found
+    if (found.value) return kernelSuccess({ disposition: "existing", operation: found.value })
     if (this.operations.size >= this.terminalLimit) {
       return kernelFailure({
         code: "operation-busy",
@@ -168,7 +174,7 @@ export class OperationRegistry {
       ...(options.cancelHandler ? { cancelHandler: options.cancelHandler } : {})
     }
     this.operations.set(operation.operationId, operation)
-    this.idempotency.set(key, operation.operationId)
+    this.idempotency.set(idempotencyKey(options), operation.operationId)
     return kernelSuccess({
       disposition: "started",
       operation: cloneOperation(operation)
@@ -248,7 +254,7 @@ export class OperationRegistry {
   acknowledge(operationId: string): KernelResult<void, OperationRegistryError> {
     const operation = this.operations.get(operationId)
     if (!operation) return kernelFailure({ code: "operation-not-found", operationId })
-    if (!isTerminal(operation.state)) {
+    if (!isTerminal(operation.state) || operation.state === "quarantined") {
       return kernelFailure({ code: "operation-conflict", operationId })
     }
     this.operations.delete(operationId)

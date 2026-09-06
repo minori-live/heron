@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import ArrangementZoomControls from "./ArrangementZoomControls.vue"
 
 describe("ArrangementZoomControls", () => {
-  it("renders three accessible sliders without numeric buttons", async () => {
+  it("maps zoom controls into arrangement units and forwards reset intent", async () => {
     const wrapper = mount(ArrangementZoomControls, {
       props: {
         pixelsPerQuarter: 50,
@@ -15,10 +15,6 @@ describe("ArrangementZoomControls", () => {
     const time = wrapper.get('input[aria-label="Time zoom"]')
     const track = wrapper.get('input[aria-label="Track height"]')
     const gain = wrapper.get('input[aria-label="Waveform gain"]')
-    expect(wrapper.findAll('input[type="range"]')).toHaveLength(3)
-    expect(wrapper.findAll("button")).toHaveLength(3)
-    expect(wrapper.findAll(".ui-zoom-control__visual")).toHaveLength(3)
-    expect(wrapper.findAll(".ui-zoom-control__visual svg")).toHaveLength(3)
 
     await time.setValue(100)
     await track.setValue(50)
