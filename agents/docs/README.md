@@ -16,6 +16,8 @@ installed copies under `.agents/skills/`.
 - [Product roadmap](roadmap.md)
 - [Live performance product contract](product-live.md)
 - [Engineering standards](engineering-standards.md)
+- [Testing policy](testing.md)
+- [Testing policy audit](testing-audit.md)
 - [Product interaction design](interaction-design.md)
 - [Rust performance benchmarks](benchmarks.md)
 - [Continuous integration and releases](ci.md)
@@ -26,14 +28,14 @@ installed copies under `.agents/skills/`.
 - [Native call boundary](native-call-boundary.md)
 - [Renderer/main resource and error contract](cross-process-error-contract.md)
 - [Playback runtime architecture](playback-runtime.md)
-- [ADR-0011: Contain returning plug-in failures in process](adr/0011-in-process-plugin-failure-containment.md)
+- [Runtime ownership, transactions, and plug-in failure containment](adr/0001-runtime-ownership-and-transactions.md)
 - [Project database development rules](project-database.md)
 
 ## Authority
 
 `AGENTS.md` is the concise repository entry point. These documents are the
 normative detail behind it. The roadmap orders user outcomes; the Live product
-contract defines the v0.5.0 performance baseline, and ADR-0012 defines Current
+contract defines the v0.5.0 performance baseline, and ADR-0004 defines Current
 Live project delivery architecture; engineering standards govern code and
 tests; architecture and ADRs govern ownership and durable technical decisions;
 interaction design governs workflow behavior; and the design system governs

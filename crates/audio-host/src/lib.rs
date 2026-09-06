@@ -91,7 +91,7 @@ pub mod mock {
 pub mod recording {
     pub use heron_audio_engine::recording::*;
 }
+mod graph_compilation;
 pub mod runtime;
 pub mod vst3;
 mod vst3_presentation_latency;
-pub mod workers;

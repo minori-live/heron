@@ -6,7 +6,8 @@ import type {
   MixerParameterPreview,
   ProjectCommand,
   ProjectCommandResult,
-  ProjectGraphSnapshot
+  ProjectGraphSnapshot,
+  RpcResult
 } from "@heron/contracts"
 import { DEFAULT_PROJECT_END_TICK, MUSICAL_TICKS_PER_QUARTER } from "@heron/contracts"
 import { applyToGraph, patchMixerGraph } from "@heron/project-model"
@@ -39,6 +40,37 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
   let mutationTail: Promise<void> = Promise.resolve()
   const pendingPreviews = new Map<string, MixerParameterPreview>()
   let previewFlush: Promise<void> | null = null
+  const pendingAcknowledgements = new Set<string>()
+  let acknowledgementEpoch: string | null = null
+
+  async function flushAcknowledgements(): Promise<void> {
+    const target = projectStore.desktopSession
+    if (!target) return
+    if (acknowledgementEpoch !== target.epoch) {
+      pendingAcknowledgements.clear()
+      acknowledgementEpoch = target.epoch
+    }
+    for (const operationId of pendingAcknowledgements) {
+      const result = await window.heron.acknowledgeOperation(
+        mutationMeta(target, "project-result-acknowledge"),
+        operationId
+      )
+      // A false value means the record is already absent. Transport failure is
+      // retained and retried on the next interaction, without undoing this edit.
+      if (!result.ok) return
+      pendingAcknowledgements.delete(operationId)
+    }
+  }
+
+  async function acknowledgeResult(result: RpcResult<unknown>): Promise<void> {
+    const target = projectStore.desktopSession
+    if (!target || !result.operationId || (!result.ok && result.error.outcome !== "not-committed"))
+      return
+    if (acknowledgementEpoch !== target.epoch) pendingAcknowledgements.clear()
+    acknowledgementEpoch = target.epoch
+    pendingAcknowledgements.add(result.operationId)
+    await flushAcknowledgements()
+  }
 
   function enqueue<T>(task: () => Promise<T>): Promise<T> {
     const result = mutationTail.then(task, task)
@@ -100,6 +132,7 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
     loading.value = true
     error.value = ""
     try {
+      await flushAcknowledgements()
       const target = projectStore.projectGraphRef
       if (!target) return
       const result = reload
@@ -109,12 +142,14 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
         : await window.heron.loadProjectGraph(readMeta(target))
       if (!result.ok) {
         error.value = rpcErrorMessage(result.error)
+        if (reload) await acknowledgeResult(result)
         return
       }
       replace(result.value)
       if (result.resourceRevision !== undefined) {
         projectStore.projectRevision = result.resourceRevision
       }
+      if (reload) await acknowledgeResult(result)
     } finally {
       loading.value = false
     }
@@ -135,6 +170,7 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
       const previous = graph.value
       const finishMutation = projectStore.beginProjectMutation()
       try {
+        await flushAcknowledgements()
         graph.value = applyToGraph(previous, command)
         const target = projectStore.projectGraphRef
         if (!target) return null
@@ -146,6 +182,7 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
           graph.value = previous
           error.value = rpcErrorMessage(result.error)
           if (result.error.retry === "after-reconcile") await loadNow(false)
+          await acknowledgeResult(result)
           return null
         }
         replace(result.value.graph)
@@ -153,6 +190,7 @@ export const useProjectGraphStore = defineStore("project-graph", () => {
           projectStore.projectRevision = result.resourceRevision
         }
         projectStore.markDirty()
+        await acknowledgeResult(result)
         return result.value
       } catch (reason) {
         graph.value = previous

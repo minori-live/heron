@@ -1,3 +1,4 @@
+import { publishSmokeGraph } from "./audio-graph-smoke.ts"
 import { resolve } from "node:path"
 import { decode, encode } from "@msgpack/msgpack"
 import { AudioHostRuntime } from "@heron/dsp-node"
@@ -72,13 +73,15 @@ async function loadGain(instanceId: string): Promise<void> {
   const loaded = await request({
     type: "load-plugin",
     instance_id: instanceId,
-    module_path: pluginPath,
-    class_id: "46774F504DF84B4AC1F308AB88DD3677",
+    locator: {
+      format: "vst3",
+      artifact_path: pluginPath,
+      native_id: "46774F504DF84B4AC1F308AB88DD3677"
+    },
     plugin_kind: "effect",
     audio_mode: "stereo",
     sample_rate: 48_000,
-    component_state: { storage: "inline", bytes: new Uint8Array() },
-    controller_state: { storage: "inline", bytes: new Uint8Array() }
+    state: { version: 1, chunks: [] }
   })
   if (loaded.type !== "plugin-loaded") throw new Error("VST3 load response mismatch")
 }
@@ -98,76 +101,68 @@ try {
     }
   })
   if (engine.type !== "audio-runtime") throw new Error("audio engine start response mismatch")
-  const graph = await request({
-    type: "update-graph",
-    update: {
-      type: "replace",
-      revision: 1,
-      graph: {
-        sample_rate: 48_000,
-        channels: [
-          {
-            id: "project-audio",
-            kind: "audio",
-            gain_db: 0,
-            pan: 0,
-            muted: false,
-            soloed: false,
-            output_channel_id: "output",
-            record_armed: false,
-            input_monitoring: true,
-            input_source: "hardware",
-            input_channels: [1, 2],
-            hardware_output_channels: []
-          },
-          {
-            id: "master",
-            kind: "master",
-            gain_db: 0,
-            pan: 0,
-            muted: false,
-            soloed: false,
-            output_channel_id: null,
-            record_armed: false,
-            input_monitoring: false,
-            input_channels: [],
-            hardware_output_channels: []
-          },
-          {
-            id: "output",
-            kind: "output",
-            gain_db: 0,
-            pan: 0,
-            muted: false,
-            soloed: false,
-            output_channel_id: null,
-            record_armed: false,
-            input_monitoring: false,
-            input_channels: [],
-            hardware_output_channels: [1, 2]
-          }
-        ],
-        sends: [],
-        clips: [],
-        plugins: [
-          {
-            instance_id: projectPluginInstanceId,
-            channel_id: "project-audio",
-            role: "insert",
-            slot_order: 0,
-            audio_mode: "stereo",
-            enabled: true,
-            latency_samples: 0,
-            tail_samples: 0
-          }
-        ],
-        midi_clips: [],
-        tempo_events: [{ tick: 0, beats_per_minute: 120 }],
-        time_signature_events: [{ tick: 0, numerator: 4, denominator: 4 }]
+  await publishSmokeGraph(request, client.runtimeEpoch, 1, {
+    sample_rate: 48_000,
+    channels: [
+      {
+        id: "project-audio",
+        kind: "audio",
+        gain_db: 0,
+        pan: 0,
+        muted: false,
+        soloed: false,
+        output_channel_id: "output",
+        record_armed: false,
+        input_monitoring: true,
+        input_source: "hardware",
+        input_channels: [1, 2],
+        hardware_output_channels: []
+      },
+      {
+        id: "master",
+        kind: "master",
+        gain_db: 0,
+        pan: 0,
+        muted: false,
+        soloed: false,
+        output_channel_id: null,
+        record_armed: false,
+        input_monitoring: false,
+        input_channels: [],
+        hardware_output_channels: []
+      },
+      {
+        id: "output",
+        kind: "output",
+        gain_db: 0,
+        pan: 0,
+        muted: false,
+        soloed: false,
+        output_channel_id: null,
+        record_armed: false,
+        input_monitoring: false,
+        input_channels: [],
+        hardware_output_channels: [1, 2]
       }
-    }
+    ],
+    sends: [],
+    clips: [],
+    plugins: [
+      {
+        instance_id: projectPluginInstanceId,
+        channel_id: "project-audio",
+        role: "insert",
+        slot_order: 0,
+        audio_mode: "stereo",
+        enabled: true,
+        latency_samples: 0,
+        tail_samples: 0
+      }
+    ],
+    midi_clips: [],
+    tempo_events: [{ tick: 0, beats_per_minute: 120 }],
+    time_signature_events: [{ tick: 0, numerator: 4, denominator: 4 }]
   })
-  if (graph.type !== "graph-accepted") throw new Error("project graph response mismatch")
   const transport = await request({
     type: "transport",
     command: { kind: "play", position_frames: null }

@@ -153,6 +153,7 @@ impl EmbeddedUiHost {
             ActorCommand::PreparePluginGraph {
                 operation_id,
                 graph,
+                processors: candidate_processors,
             } => {
                 let Some(runtime) = self.vst3.as_mut() else {
                     let _ = reply.send(control_error! {
@@ -162,7 +163,7 @@ impl EmbeddedUiHost {
                 };
                 let result = match runtime.prepare_graph_instances(&operation_id, &graph) {
                     Ok(()) => {
-                        if let Ok(mut processors) = self.processors.lock() {
+                        if let Ok(mut processors) = candidate_processors.lock() {
                             let mut handles = self
                                 .clap
                                 .as_ref()
@@ -243,13 +244,8 @@ impl EmbeddedUiHost {
             ActorCommand::AbortPluginGraph { operation_id } => {
                 if let Some(runtime) = self.vst3.as_mut() {
                     runtime.abort_graph_instances(&operation_id);
-                    if let Ok(mut processors) = self.processors.lock() {
-                        let mut handles = self
-                            .clap
-                            .as_ref()
-                            .map_or_else(HashMap::new, clap::ClapRuntime::processor_handles);
-                        handles.extend(runtime.processor_handles());
-                        *processors = handles;
+                    if runtime.has_retired_instances() {
+                        self.next_retirement_tick = Some(Instant::now());
                     }
                 }
                 let _ = reply.send(ControlResult::Accepted);
@@ -550,6 +546,30 @@ impl EmbeddedUiHost {
 mod tests {
     use super::*;
     use crate::runtime::ui_runtime::test_support::{FixtureFailure, host, processor};
+
+    #[test]
+    fn preparing_a_graph_keeps_the_active_processor_registry_unchanged() {
+        let (mut host, _events) = host(1);
+        host.vst3 = Some(crate::vst3::Vst3Runtime::new());
+        host.processors
+            .lock()
+            .unwrap()
+            .insert("active".into(), processor(None));
+        let (reply, response) = tokio::sync::oneshot::channel();
+        host.execute_audio_plugin_request(ActorRequest {
+            command: ActorCommand::PreparePluginGraph {
+                operation_id: "candidate".into(),
+                graph: crate::runtime::ui_runtime::graph_deployment_tests::empty_graph(),
+                processors: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
+            },
+            reply,
+        });
+        assert!(matches!(
+            response.blocking_recv().unwrap(),
+            ControlResult::Accepted
+        ));
+        assert!(host.processors.lock().unwrap().contains_key("active"));
+    }
 
     fn retry(host: &mut EmbeddedUiHost, instance_id: &str) -> ControlResult {
         let (reply, result) = tokio::sync::oneshot::channel();

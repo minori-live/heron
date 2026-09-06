@@ -37,7 +37,7 @@ import {
 } from "./schema"
 import * as schema from "./schema"
 import { applyProjectCommand, assertProjectCommandAllowed } from "./internal/command-persistence"
-import { readMixerSnapshot } from "./internal/mixer-reads"
+import { readProjectGraphSnapshot } from "./internal/project-reads"
 import { ProjectAssetRepository } from "./internal/assets"
 import { dumpProjectArchive } from "./internal/archive"
 import { importMidiSource, rollbackMidiSource } from "./internal/midi"
@@ -360,13 +360,15 @@ export class ProjectDatabase {
   }
 
   async mixerSnapshot(): Promise<ProjectGraphSnapshot> {
-    return readMixerSnapshot(this.db, await this.getConfiguration())
+    return readProjectGraphSnapshot(this.db)
   }
 
-  applyCommand(command: ProjectCommand, fallbackOutputId: string): Promise<void> {
+  applyCommand(command: ProjectCommand, fallbackOutputId: string): Promise<ProjectGraphSnapshot> {
     return this.db.transaction(async (tx) => {
       await assertProjectCommandAllowed(tx, command)
       await applyProjectCommand(tx, command, fallbackOutputId)
+      // Read before commit so snapshot/decoding failures roll back the mutation.
+      return readProjectGraphSnapshot(tx)
     })
   }
 

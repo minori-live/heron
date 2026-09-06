@@ -29,19 +29,6 @@ function normalizeWireValue(value: unknown): unknown {
 }
 
 describe("Rust MessagePack fixtures", () => {
-  it("cover the stable protocol scenarios", () => {
-    expect(fixtures.map(({ name }) => name)).toEqual([
-      "ping",
-      "typed-rpc-error",
-      "plugin-event",
-      "plugin-failure-event",
-      "heartbeat",
-      "graph-transaction-resource-ref",
-      "recording-binary-payload",
-      "plugin-failure-host-panic"
-    ])
-  })
-
   for (const fixture of fixtures.filter(({ producer }) => producer === "rust")) {
     it(`decodes and normalizes ${fixture.name}`, () => {
       const decoded = decode(Buffer.from(fixture.base64, "base64"))

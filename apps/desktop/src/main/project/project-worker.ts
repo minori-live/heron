@@ -114,6 +114,13 @@ async function handle(request: WorkerRequest): Promise<WorkerResult> {
       return { token: structuredClone(token), graph }
     }
     case "commit-project-command": {
+      const committed = committedCommands.get(request.token.operationId)
+      if (
+        committed &&
+        committed.token.id === request.token.id &&
+        committed.token.baseRevision === request.token.baseRevision
+      )
+        return structuredClone(committed)
       const prepared = preparedCommands.get(request.token.id)
       if (
         !prepared ||
@@ -122,10 +129,15 @@ async function handle(request: WorkerRequest): Promise<WorkerResult> {
       ) {
         throw new Error("Project command transaction token is stale")
       }
-      await requireDatabase().applyCommand(prepared.command, prepared.fallbackOutputId)
+      // The database returns its snapshot inside the transaction, before commit.
+      // A failed read therefore cannot leave a committed command marked prepared.
+      const graph = await requireDatabase().applyCommand(
+        prepared.command,
+        prepared.fallbackOutputId
+      )
       const result = {
         token: structuredClone(prepared.token),
-        graph: await requireDatabase().mixerSnapshot()
+        graph
       }
       preparedCommands.delete(request.token.id)
       committedCommands.set(prepared.token.operationId, structuredClone(result))
@@ -134,6 +146,16 @@ async function handle(request: WorkerRequest): Promise<WorkerResult> {
     case "abort-project-command":
       preparedCommands.delete(request.token.id)
       return
+    case "acknowledge-project-command": {
+      const committed = committedCommands.get(request.token.operationId)
+      if (
+        committed?.token.id === request.token.id &&
+        committed.token.baseRevision === request.token.baseRevision
+      ) {
+        committedCommands.delete(request.token.operationId)
+      }
+      return
+    }
     case "project-command-status": {
       const committed = committedCommands.get(request.operationId)
       if (committed) {

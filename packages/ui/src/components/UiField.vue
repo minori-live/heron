@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useId } from "vue"
+import { computed, useId } from "vue"
 
 const props = withDefaults(
   defineProps<{
@@ -28,9 +28,11 @@ defineSlots<{
 }>()
 
 const generatedId = useId()
-const controlId = props.id ?? `ui-field-${generatedId}`
-const descriptionId = props.description ? `${controlId}-description` : undefined
-const errorId = props.error ? `${controlId}-error` : undefined
+const controlId = computed(() => props.id ?? `ui-field-${generatedId}`)
+const descriptionId = computed(() =>
+  props.description ? `${controlId.value}-description` : undefined
+)
+const errorId = computed(() => (props.error ? `${controlId.value}-error` : undefined))
 </script>
 
 <template>

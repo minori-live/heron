@@ -4,7 +4,6 @@ pub(in crate::runtime) fn is_vst3_command(command: &ControlCommand) -> bool {
     matches!(
         command,
         ControlCommand::Ping
-            | ControlCommand::UpdateGraph { .. }
             | ControlCommand::PrepareGraph { .. }
             | ControlCommand::ActivateGraph { .. }
             | ControlCommand::AbortGraph { .. }
@@ -45,8 +44,7 @@ pub(in crate::runtime) fn slow_request_threshold(command: &ControlCommand) -> st
         std::time::Duration::from_secs(60)
     } else if matches!(
         command,
-        ControlCommand::UpdateGraph { .. }
-            | ControlCommand::PrepareGraph { .. }
+        ControlCommand::PrepareGraph { .. }
             | ControlCommand::ActivateGraph { .. }
             | ControlCommand::AbortGraph { .. }
             | ControlCommand::LoadPlugin { .. }

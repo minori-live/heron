@@ -72,7 +72,7 @@ export function startMainProcess(
     })
     await shutdownPromise
     // Only aborts before native teardown may reopen the mutation gate. A stop
-    // failure can leave services partially stopped; ADR-0015 requires quarantine
+    // failure can leave services partially stopped; ADR-0006 requires quarantine
     // until relaunch, with ordinary quit still available through before-quit.
     if (!updateShutdown) shutdownPromise = null
     return succeeded

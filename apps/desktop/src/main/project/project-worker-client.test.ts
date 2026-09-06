@@ -166,6 +166,10 @@ describe("ProjectWorkerClient", () => {
       },
       { type: "abort-project-command", call: () => client.abortProjectCommand({} as never) },
       {
+        type: "acknowledge-project-command",
+        call: () => client.acknowledgeProjectCommand({} as never)
+      },
+      {
         type: "project-command-status",
         call: () => client.projectCommandStatus("operation"),
         value: { state: "absent" }

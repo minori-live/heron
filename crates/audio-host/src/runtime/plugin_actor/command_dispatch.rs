@@ -2,12 +2,12 @@ use super::graph_deployment::{log_graph_transaction_failure, update_graph_midi_r
 use super::loading::resolve_deferred_binary;
 use super::{
     ActorCommand, ActorRequest, BinaryPayload, ControlCommand, ControlResult,
-    GraphTransactionRequest, GraphTransactionState, GraphTransactionValue, GraphUpdate,
-    LiveMixerGraph, PreparedGraphCandidate, UiMailboxWaker, Vst3ActorDeps, dispatch_build_graph,
-    engine, forward_to_ui, graph_busy_error, graph_conflict_error, graph_dependency_error,
-    graph_failure, graph_stale_error, graph_success, graph_timeout_error, graph_validation_error,
-    live_graph, mpsc, oneshot, publish_built_graph, refresh_graph_handles, std_mpsc,
-    validate_graph_meta, validate_graph_request, wait_for_graph_publication,
+    GraphTransactionRequest, GraphTransactionState, GraphTransactionValue, LiveMixerGraph,
+    PreparedGraphCandidate, UiMailboxWaker, Vst3ActorDeps, engine, forward_to_ui, graph_busy_error,
+    graph_conflict_error, graph_dependency_error, graph_failure, graph_stale_error, graph_success,
+    graph_timeout_error, graph_validation_error, live_graph, mpsc, oneshot, publish_built_graph,
+    refresh_graph_handles, std_mpsc, validate_graph_meta, validate_graph_request,
+    wait_for_graph_publication,
 };
 
 pub(in crate::runtime) async fn audio_plugin_actor(
@@ -19,13 +19,12 @@ pub(in crate::runtime) async fn audio_plugin_actor(
         ui_sender,
         processors,
         handles,
-        background_sender,
         engine_sender,
         audio_engine,
+        graph_build_gate,
         session_epoch,
         bounce_jobs,
     } = deps;
-    let mut graph_revision = 0_u64;
     let mut graph_snapshot: Option<LiveMixerGraph> = None;
     let mut graph_transactions = GraphTransactionState::new(session_epoch);
     while let Some(message) = inbox.recv().await {
@@ -233,12 +232,17 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                         continue;
                     }
 
+                    let build_guard = std::sync::Arc::clone(&graph_build_gate).lock_owned().await;
+                    let candidate_processors = std::sync::Arc::new(std::sync::Mutex::new(
+                        std::collections::HashMap::new(),
+                    ));
                     let plugin_prepare = dispatch_ui_actor_command(
                         &ui_sender,
                         &ui_proxy,
                         ActorCommand::PreparePluginGraph {
                             operation_id: operation_id.clone(),
                             graph: request.graph.clone(),
+                            processors: std::sync::Arc::clone(&candidate_processors),
                         },
                     )
                     .await;
@@ -257,7 +261,7 @@ pub(in crate::runtime) async fn audio_plugin_actor(
 
                     let graph = request.graph;
                     let native = (|| {
-                        let processors = processors
+                        let processors = candidate_processors
                             .lock()
                             .map_err(|_| "VST3 processor registry is poisoned".to_owned())?
                             .clone();
@@ -301,13 +305,9 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                             continue;
                         }
                     };
-                    let built = match tokio::task::spawn_blocking(move || {
-                        engine::compile_graph_build(input)
-                    })
-                    .await
-                    {
-                        Ok(Ok(built)) => built,
-                        Ok(Err(error)) => {
+                    let built = match crate::graph_compilation::compile(input).await {
+                        Ok(built) => built,
+                        Err(error) => {
                             let _ = dispatch_ui_actor_command(
                                 &ui_sender,
                                 &ui_proxy,
@@ -323,22 +323,6 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                             ));
                             continue;
                         }
-                        Err(error) => {
-                            let _ = dispatch_ui_actor_command(
-                                &ui_sender,
-                                &ui_proxy,
-                                ActorCommand::AbortPluginGraph {
-                                    operation_id: operation_id.clone(),
-                                },
-                            )
-                            .await;
-                            log_graph_transaction_failure(&meta, "compile-worker", &error);
-                            let _ = message.reply.send(graph_failure(
-                                &meta,
-                                graph_dependency_error(&meta, request.project_graph),
-                            ));
-                            continue;
-                        }
                     };
                     graph_transactions.prepare(PreparedGraphCandidate {
                         operation_id,
@@ -347,6 +331,7 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                         graph_revision: request.graph_revision,
                         graph,
                         built,
+                        build_guard,
                     });
                     graph_success(
                         &meta,
@@ -458,7 +443,8 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                         )
                         .await;
                         let dependency = candidate.project_graph.clone();
-                        graph_transactions.restore_candidate(candidate);
+                        graph_transactions
+                            .finish_not_committed(candidate.operation_id, candidate.graph_revision);
                         let _ = message.reply.send(graph_failure(
                             &meta,
                             graph_dependency_error(&meta, dependency),
@@ -472,6 +458,7 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                         graph_revision: candidate_revision,
                         graph,
                         built,
+                        build_guard: _build_guard,
                         ..
                     } = candidate;
                     match publish_built_graph(&engine_sender, built).await {
@@ -486,7 +473,6 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                             .await;
                             update_graph_midi_routes(&graph);
                             refresh_graph_handles(&handles, &graph);
-                            graph_revision = candidate_revision;
                             graph_snapshot = Some(graph);
                             graph_transactions.commit(
                                 operation_id,
@@ -628,82 +614,6 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                             )
                         }
                         Err(error) => graph_failure(&meta, error),
-                    }
-                }
-                ControlCommand::UpdateGraph { update } => {
-                    let (revision, candidate) = match update {
-                        GraphUpdate::Replace { revision, graph } => (revision, graph),
-                        GraphUpdate::Patch {
-                            base_revision,
-                            revision,
-                            ops,
-                        } => {
-                            if base_revision != graph_revision {
-                                let _ = message.reply.send(ControlResult::RevisionMismatch {
-                                    current_revision: graph_revision,
-                                });
-                                continue;
-                            }
-                            let Some(mut graph) = graph_snapshot.clone() else {
-                                let _ = message.reply.send(ControlResult::RevisionMismatch {
-                                    current_revision: graph_revision,
-                                });
-                                continue;
-                            };
-                            graph.apply_ops(ops);
-                            (revision, graph)
-                        }
-                    };
-                    let prepared = (|| {
-                        let processors = processors
-                            .lock()
-                            .map_err(|_| "VST3 processor registry is poisoned".to_owned())?
-                            .clone();
-                        let graph = live_graph(revision, &candidate, Some(&processors))?;
-                        Ok::<_, String>((graph, candidate))
-                    })();
-                    match prepared {
-                        Err(message) => control_error! { message },
-                        Ok((graph, candidate)) => {
-                            let previous_graph = graph_snapshot.clone();
-                            let ara_result = dispatch_ui_actor_command(
-                                &ui_sender,
-                                &ui_proxy,
-                                ActorCommand::SyncAraGraph {
-                                    graph: Some(candidate.clone()),
-                                },
-                            )
-                            .await;
-                            if let ControlResult::Error { .. } = ara_result {
-                                ara_result
-                            } else {
-                                match dispatch_build_graph(&background_sender, graph).await {
-                                    ControlResult::GraphAccepted {
-                                        revision: accepted_revision,
-                                    } => {
-                                        update_graph_midi_routes(&candidate);
-                                        refresh_graph_handles(&handles, &candidate);
-                                        graph_revision = accepted_revision;
-                                        graph_snapshot = Some(candidate);
-                                        graph_transactions.observe_legacy_commit(accepted_revision);
-                                        ControlResult::GraphAccepted {
-                                            revision: accepted_revision,
-                                        }
-                                    }
-                                    other => {
-                                        let _ = dispatch_ui_actor_command(
-                                            &ui_sender,
-                                            &ui_proxy,
-                                            ActorCommand::SyncAraGraph {
-                                                graph: previous_graph,
-                                            },
-                                        )
-                                        .await;
-                                        other
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
                 ControlCommand::RunAudioBenchmark {

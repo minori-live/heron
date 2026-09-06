@@ -5,17 +5,20 @@ import type {
   MidiImportCommitResult,
   ProjectCommand,
   ProjectCommandResult,
+  ProjectGraphRef,
   ProjectWorkspaceSnapshot,
   RpcError,
   RpcRequestMeta,
   RpcResult,
   RpcWarning
 } from "@heron/contracts"
+import type { ProjectCommandTransactionToken } from "@heron/project-db/protocol"
 import {
   applyToGraph,
   deletedChannelIds,
   inverseFor,
   onlyRealtimeParameters,
+  ProjectValidationError,
   validateGraph
 } from "@heron/project-model"
 import type { PreparedProjectGraph } from "./audio-graph-publisher"
@@ -115,16 +118,13 @@ function unavailableError(meta: RpcRequestMeta, dispatched: boolean): RpcError {
   }
 }
 
-function isGraphCommandError(error: unknown): error is Error {
-  if (!(error instanceof Error)) return false
-  return /(?:was not found|require a valid .* input|must reference|must target|must be supported|cannot be)/i.test(
-    error.message
-  )
-}
-
 export class ProjectCommandService {
   private lifecycle: LifecycleCoordinator | null = null
   private operations: OperationService | null = null
+  private readonly pendingWorkerAcknowledgements = new Map<
+    string,
+    { target: ProjectGraphRef; token: ProjectCommandTransactionToken }
+  >()
 
   constructor(
     private readonly graphs: ProjectGraphService,
@@ -245,6 +245,12 @@ export class ProjectCommandService {
     meta: RpcRequestMeta,
     command: ProjectCommand
   ): Promise<RpcResult<ProjectCommandResult>> {
+    await this.retryWorkerAcknowledgements()
+    if (meta.mutation && meta.target) {
+      const previous = this.operations!.registry.find({ ...meta.mutation, target: meta.target })
+      if (!previous.ok) return rpcFailure(meta, validationError(meta, "operation"))
+      if (previous.value?.result) return previous.value.result as RpcResult<ProjectCommandResult>
+    }
     const validation = this.validate(meta)
     if (!validation.ok) return validation
     const { workspace, revision } = validation.value
@@ -258,6 +264,12 @@ export class ProjectCommandService {
       const existing = begun.value.operation
       if (existing.result) return existing.result as RpcResult<ProjectCommandResult>
       return rpcFailure(meta, validationError(meta, "operation"))
+    }
+    // An already committed operation remains replayable at its original revision.
+    if (meta.expectedRevision !== revision) {
+      const result = rpcFailure(meta, conflictError(meta, revision))
+      this.finish(meta, "not-committed", result)
+      return result
     }
 
     let workerPrepared: Awaited<ReturnType<ProjectService["prepareProjectCommand"]>> | null = null
@@ -306,7 +318,12 @@ export class ProjectCommandService {
         committed = await this.projects.commitProjectCommand(workerPrepared.token, resolvedCommand)
       } catch (error) {
         const status = await this.projects.projectCommandStatus(meta.mutation!.operationId)
-        if (status.state !== "committed") throw error
+        if (status.state !== "committed") {
+          // The worker only retains Prepared when its SQL transaction did not commit.
+          // Missing status or a failed query still leaves the outcome unknown.
+          if (status.state === "prepared") commitDispatched = false
+          throw error
+        }
         committed = status.result
       }
       if (nativePrepared?.native) await this.audioHost?.commitDesiredGraph(nativePrepared.native)
@@ -360,13 +377,16 @@ export class ProjectCommandService {
         { resourceRevision: updated.value.revision, warnings }
       )
       this.finish(meta, "committed", result)
+      // Main now owns the retained response until renderer acknowledgement.
+      // Cleanup failure must not turn a known commit into an unknown outcome.
+      await this.acknowledgeWorkerCommand(workspace.projectGraph, workerPrepared.token)
       return result
     } catch (error) {
       if (!commitDispatched && workerPrepared) {
         await this.projects.abortProjectCommand(workerPrepared.token).catch(() => undefined)
       }
       if (nativePrepared) await this.graphs.abortMutation(nativePrepared).catch(() => undefined)
-      const graphError = !commitDispatched && isGraphCommandError(error)
+      const graphError = !commitDispatched && error instanceof ProjectValidationError
       const failure = rpcFailure(
         meta,
         graphError
@@ -382,7 +402,36 @@ export class ProjectCommandService {
         )
       }
       this.finish(meta, commitDispatched ? "quarantined" : "not-committed", failure)
+      if (commitDispatched) {
+        this.lifecycle!.applicationState.resources.quarantine(workspace.projectGraph)
+      }
       return failure
+    }
+  }
+
+  private async acknowledgeWorkerCommand(
+    target: ProjectGraphRef,
+    token: ProjectCommandTransactionToken
+  ): Promise<void> {
+    try {
+      await this.projects.acknowledgeProjectCommand(token)
+      this.pendingWorkerAcknowledgements.delete(token.id)
+    } catch (error) {
+      this.pendingWorkerAcknowledgements.set(token.id, { target, token })
+      console.error("Project command acknowledged by main but worker cleanup failed", error)
+    }
+  }
+
+  private async retryWorkerAcknowledgements(): Promise<void> {
+    const target = this.currentWorkspace()?.projectGraph
+    for (const [id, pending] of this.pendingWorkerAcknowledgements) {
+      // Closing/replacing a workspace disposes its worker. Never send its receipts
+      // to the replacement worker through ProjectService's active context.
+      if (!sameRef(target, pending.target)) {
+        this.pendingWorkerAcknowledgements.delete(id)
+        continue
+      }
+      await this.acknowledgeWorkerCommand(pending.target, pending.token)
     }
   }
 
@@ -398,9 +447,6 @@ export class ProjectCommandService {
     }
     const resolved = this.lifecycle!.applicationState.resources.resolve(workspace.projectGraph)
     if (!resolved.ok) return rpcFailure(meta, staleError(meta))
-    if (resolved.value.revision !== meta.expectedRevision) {
-      return rpcFailure(meta, conflictError(meta, resolved.value.revision))
-    }
     return rpcSuccess(meta, { workspace, revision: resolved.value.revision })
   }
 

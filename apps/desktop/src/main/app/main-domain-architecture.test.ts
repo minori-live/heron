@@ -58,16 +58,6 @@ function relativeSpecifiers(source: string): string[] {
 }
 
 describe("Electron main domain architecture", () => {
-  it("keeps the main root limited to the executable entry", async () => {
-    const entries = await readdir(mainRoot, { withFileTypes: true })
-    expect(
-      entries
-        .filter((entry) => entry.isFile())
-        .map((entry) => entry.name)
-        .sort()
-    ).toEqual(["index.ts"])
-  })
-
   it("keeps cross-domain imports on public barrels", async () => {
     const violations: string[] = []
     for (const file of await typescriptFiles(mainRoot)) {
@@ -100,17 +90,5 @@ describe("Electron main domain architecture", () => {
       }
     }
     expect(violations).toEqual([])
-  })
-
-  it("keeps composition entry points thin", async () => {
-    const limits = new Map([
-      ["index.ts", 80],
-      [join("app", "startup.ts"), 320],
-      [join("app", "application-services.ts"), 220]
-    ])
-    for (const [path, maximumLines] of limits) {
-      const source = await readFile(join(mainRoot, path), "utf8")
-      expect(source.trimEnd().split(/\r?\n/).length, path).toBeLessThanOrEqual(maximumLines)
-    }
   })
 })

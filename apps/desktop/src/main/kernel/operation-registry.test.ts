@@ -20,6 +20,20 @@ function committed(operationId: string): RpcResult<unknown> {
 }
 
 describe("OperationRegistry", () => {
+  it("rejects reuse of an operation ID for another resource generation", () => {
+    const registry = new OperationRegistry()
+    registry.begin({ operationId: "operation-1", idempotencyKey: "save", target })
+    expect(
+      registry.begin({
+        operationId: "operation-1",
+        idempotencyKey: "save",
+        target: { ...target, generation: target.generation + 1 }
+      })
+    ).toMatchObject({
+      ok: false,
+      error: { code: "operation-conflict" }
+    })
+  })
   it("returns the original operation for duplicate idempotency keys", () => {
     const registry = new OperationRegistry()
     const first = registry.begin({
@@ -133,6 +147,11 @@ describe("OperationRegistry", () => {
           }
         }
       }
+    })
+    expect(registry.acknowledge("operation-1")).toMatchObject({ ok: false })
+    expect(registry.status("operation-1")).toMatchObject({
+      ok: true,
+      value: { state: "quarantined" }
     })
   })
 })

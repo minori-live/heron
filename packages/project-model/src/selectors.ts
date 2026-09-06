@@ -1,5 +1,6 @@
 import type {
   MixerBusState,
+  MixerGraphSnapshot,
   MixerChannelState,
   ProjectGraphSnapshot,
   MixerRouteTarget,
@@ -16,12 +17,12 @@ export const MIXER_BUSES: readonly MixerBusState[] = Array.from(
   })
 )
 
-export function patchMixerGraph(
-  graph: ProjectGraphSnapshot,
+export function patchMixerGraph<T extends MixerGraphSnapshot>(
+  graph: T,
   target: "channel" | "send" | "plugin",
   id: string,
   patch: Record<string, unknown>
-): ProjectGraphSnapshot {
+): T {
   if (target === "channel") {
     const channels = patchById(graph.channels, id, patch)
     return channels ? { ...graph, channels } : graph
@@ -85,7 +86,7 @@ export function channelForTrack(
   return graph.channels.find((channel) => channel.id === channelId)
 }
 
-export function sendsFor(graph: ProjectGraphSnapshot, channelId: string): MixerSendState[] {
+export function sendsFor(graph: MixerGraphSnapshot, channelId: string): MixerSendState[] {
   return graph.sends.filter((send) => send.sourceChannelId === channelId)
 }
 
@@ -133,7 +134,7 @@ export function projectContentEndSeconds(graph: ProjectGraphSnapshot): number {
 }
 
 export function availableOutputTargets(
-  graph: ProjectGraphSnapshot,
+  graph: MixerGraphSnapshot,
   channelId: string
 ): MixerRouteTarget[] {
   const source = graph.channels.find((channel) => channel.id === channelId)
@@ -154,7 +155,7 @@ export function availableOutputTargets(
 }
 
 export function availableSendTargets(
-  graph: ProjectGraphSnapshot,
+  graph: MixerGraphSnapshot,
   channelId: string
 ): MixerRouteTarget[] {
   const source = graph.channels.find((channel) => channel.id === channelId)
@@ -187,7 +188,7 @@ export function availableSendTargets(
   })
 }
 
-function routeTargets(graph: ProjectGraphSnapshot): MixerRouteTarget[] {
+function routeTargets(graph: MixerGraphSnapshot): MixerRouteTarget[] {
   return [
     ...MIXER_BUSES.map((bus) => ({ kind: "bus" as const, bus: bus.channel })),
     ...graph.channels
@@ -196,7 +197,7 @@ function routeTargets(graph: ProjectGraphSnapshot): MixerRouteTarget[] {
   ]
 }
 
-function isAcyclic(graph: ProjectGraphSnapshot): boolean {
+function isAcyclic(graph: MixerGraphSnapshot): boolean {
   const edges = new Map(graph.channels.map((channel) => [channel.id, [] as string[]]))
   for (const channel of graph.channels) {
     if (channel.outputChannelId) edges.get(channel.id)?.push(channel.outputChannelId)

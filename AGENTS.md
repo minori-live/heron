@@ -53,6 +53,9 @@ under `.agents/skills/`.
 - Treat Logic Pro as the default behavior reference for Mixer, channel-strip,
   routing, Send, plug-in-slot, and parameter gestures. Material deviations need
   a documented decision. See `agents/docs/interaction-design.md`.
+- Tests must prove Heron-owned behavior at the narrowest useful boundary.
+  Follow `agents/docs/testing.md` when adding, changing, or auditing tests;
+  remove upstream conformance checks and duplicate evidence.
 - Create an ADR for changes to process/thread boundaries, persistence, cross-
   process protocols, real-time assumptions, foundational dependencies,
   compatibility commitments, or material interaction semantics.
@@ -112,6 +115,7 @@ pnpm lint
 - [Product roadmap](agents/docs/roadmap.md)
 - [Live performance product contract](agents/docs/product-live.md)
 - [Engineering standards](agents/docs/engineering-standards.md)
+- [Testing policy](agents/docs/testing.md)
 - [Product interaction design](agents/docs/interaction-design.md)
 - [Rust performance benchmarks](agents/docs/benchmarks.md)
 - [Development environment](agents/docs/environment.md)

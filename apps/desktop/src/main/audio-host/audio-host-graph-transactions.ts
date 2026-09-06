@@ -155,7 +155,26 @@ export class AudioHostGraphTransactions {
         })
       }
     }
-    if (result.ok) await this.dependencies.commit(deployment)
+    if (result.ok) {
+      await this.dependencies.commit(deployment)
+    } else if (result.error.outcome === "not-committed") {
+      // Native activation can retain its candidate after a plug-in failure.
+      // Cleanup belongs here so every activation caller releases that ownership.
+      const reportAbortFailure = (abortError: unknown) => {
+        console.error("Could not abort failed audio graph deployment", {
+          operationId: deployment.meta.mutation?.operationId,
+          projectGraph: deployment.projectGraph,
+          activationError: result.error,
+          abortError
+        })
+      }
+      try {
+        const aborted = await this.abort(deployment)
+        if (!aborted.ok) reportAbortFailure(aborted.error)
+      } catch (error) {
+        reportAbortFailure(error)
+      }
+    }
     return result
   }
 

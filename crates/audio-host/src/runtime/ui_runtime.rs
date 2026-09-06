@@ -221,3 +221,7 @@ mod event_loop;
 mod window_config;
 
 pub(super) use window_config::{should_drain_ui_request, vst3_host_request_payload};
+
+#[cfg(test)]
+#[path = "ui_runtime/graph_deployment_tests.rs"]
+mod graph_deployment_tests;

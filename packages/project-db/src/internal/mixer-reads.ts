@@ -1,108 +1,45 @@
-import { asc, eq } from "drizzle-orm"
-import type { PgliteDatabase } from "drizzle-orm/pglite"
-import type { ProjectGraphSnapshot, ProjectConfiguration } from "@heron/contracts"
+import { asc } from "drizzle-orm"
+import type { MixerGraphSnapshot } from "@heron/contracts"
 import {
-  audioClips,
-  assets,
-  keySignatureEvents,
-  midiClips,
-  midiEvents,
-  midiNotes,
   mixerChannels,
   mixerSends,
   pluginInstances,
   pluginSidechainRoutes,
-  pluginStateChunks,
-  PROJECT_ID,
-  project,
-  tempoEvents,
-  tracks,
-  timeSignatureEvents
-} from "../schema"
-import * as schema from "../schema"
+  pluginStateChunks
+} from "../mixer-schema"
+import type { PgliteDatabase } from "drizzle-orm/pglite"
 import { bytes, pluginDescriptor } from "./serialization"
 
-type ProjectDb = PgliteDatabase<typeof schema>
-
-export async function readMixerSnapshot(
-  db: ProjectDb,
-  configuration: ProjectConfiguration
-): Promise<ProjectGraphSnapshot> {
-  const [
-    trackRows,
-    channelRows,
-    clipRows,
-    sendRows,
-    pluginRows,
-    pluginSidechainRouteRows,
-    pluginStateChunkRows,
-    midiClipRows,
-    midiNoteRows,
-    midiEventRows,
-    tempoRows,
-    signatureRows,
-    keySignatureRows,
-    projectRows
-  ] = await Promise.all([
-    db.select().from(tracks).orderBy(asc(tracks.sortOrder), asc(tracks.id)),
-    db.select().from(mixerChannels).orderBy(asc(mixerChannels.sortOrder), asc(mixerChannels.id)),
-    db
-      .select({
-        id: audioClips.id,
-        assetId: audioClips.assetId,
-        trackId: audioClips.trackId,
-        name: audioClips.name,
-        startFrame: audioClips.startFrame,
-        sourceOffsetFrames: audioClips.sourceOffsetFrames,
-        lengthFrames: audioClips.lengthFrames,
-        fadeInFrames: audioClips.fadeInFrames,
-        fadeOutFrames: audioClips.fadeOutFrames,
-        assetSampleRate: assets.sampleRate,
-        assetChannels: assets.channels,
-        assetFrameCount: assets.frameCount
-      })
-      .from(audioClips)
-      .innerJoin(assets, eq(assets.id, audioClips.assetId))
-      .orderBy(asc(audioClips.startFrame), asc(audioClips.id)),
-    db
-      .select()
-      .from(mixerSends)
-      .orderBy(asc(mixerSends.sourceChannelId), asc(mixerSends.sortOrder), asc(mixerSends.id)),
-    db
-      .select()
-      .from(pluginInstances)
-      .orderBy(
-        asc(pluginInstances.channelId),
-        asc(pluginInstances.role),
-        asc(pluginInstances.slotOrder),
-        asc(pluginInstances.id)
-      ),
-    db
-      .select()
-      .from(pluginSidechainRoutes)
-      .orderBy(asc(pluginSidechainRoutes.pluginId), asc(pluginSidechainRoutes.inputPortKey)),
-    db
-      .select()
-      .from(pluginStateChunks)
-      .orderBy(asc(pluginStateChunks.pluginId), asc(pluginStateChunks.chunkKey)),
-    db.select().from(midiClips).orderBy(asc(midiClips.startTick), asc(midiClips.id)),
-    db
-      .select()
-      .from(midiNotes)
-      .orderBy(asc(midiNotes.clipId), asc(midiNotes.startTick), asc(midiNotes.id)),
-    db
-      .select()
-      .from(midiEvents)
-      .orderBy(asc(midiEvents.clipId), asc(midiEvents.tick), asc(midiEvents.id)),
-    db.select().from(tempoEvents).orderBy(asc(tempoEvents.tick)),
-    db.select().from(timeSignatureEvents).orderBy(asc(timeSignatureEvents.tick)),
-    db.select().from(keySignatureEvents).orderBy(asc(keySignatureEvents.tick)),
-    db
-      .select({ notes: project.notes, projectEndTick: project.projectEndTick })
-      .from(project)
-      .where(eq(project.id, PROJECT_ID))
-      .limit(1)
-  ])
+/** Reads only shared Mixer tables; sample rate belongs to the enclosing document. */
+export async function readMixerGraphSnapshot(
+  db: Pick<PgliteDatabase, "select">,
+  sampleRate: number
+): Promise<MixerGraphSnapshot> {
+  const [channelRows, sendRows, pluginRows, pluginSidechainRouteRows, pluginStateChunkRows] =
+    await Promise.all([
+      db.select().from(mixerChannels).orderBy(asc(mixerChannels.sortOrder), asc(mixerChannels.id)),
+      db
+        .select()
+        .from(mixerSends)
+        .orderBy(asc(mixerSends.sourceChannelId), asc(mixerSends.sortOrder), asc(mixerSends.id)),
+      db
+        .select()
+        .from(pluginInstances)
+        .orderBy(
+          asc(pluginInstances.channelId),
+          asc(pluginInstances.role),
+          asc(pluginInstances.slotOrder),
+          asc(pluginInstances.id)
+        ),
+      db
+        .select()
+        .from(pluginSidechainRoutes)
+        .orderBy(asc(pluginSidechainRoutes.pluginId), asc(pluginSidechainRoutes.inputPortKey)),
+      db
+        .select()
+        .from(pluginStateChunks)
+        .orderBy(asc(pluginStateChunks.pluginId), asc(pluginStateChunks.chunkKey))
+    ])
 
   const kindOrder = new Map([
     ["audio", 0],
@@ -118,10 +55,9 @@ export async function readMixerSnapshot(
       left.id.localeCompare(right.id)
   )
 
-  const notesByClip = new Map<string, ProjectGraphSnapshot["midiClips"][number]["notes"]>()
   const sidechainRoutesByPlugin = new Map<
     string,
-    ProjectGraphSnapshot["plugins"][number]["sidechainInputs"]
+    MixerGraphSnapshot["plugins"][number]["sidechainInputs"]
   >()
   const stateChunksByPlugin = new Map<string, Array<{ key: string; bytes: Uint8Array }>>()
   for (const chunk of pluginStateChunkRows) {
@@ -137,37 +73,8 @@ export async function readMixerSnapshot(
     })
     sidechainRoutesByPlugin.set(route.pluginId, routes)
   }
-  for (const note of midiNoteRows) {
-    const notes = notesByClip.get(note.clipId) ?? []
-    notes.push({
-      id: note.id,
-      startTick: note.startTick,
-      durationTicks: note.durationTicks,
-      channel: note.channel,
-      key: note.key,
-      velocity: note.velocity,
-      releaseVelocity: note.releaseVelocity
-    })
-    notesByClip.set(note.clipId, notes)
-  }
-  const eventsByClip = new Map<string, ProjectGraphSnapshot["midiClips"][number]["events"]>()
-  for (const event of midiEventRows) {
-    const events = eventsByClip.get(event.clipId) ?? []
-    events.push({
-      id: event.id,
-      tick: event.tick,
-      channel: event.channel,
-      kind: event.kind,
-      data: bytes(event.data)
-    })
-    eventsByClip.set(event.clipId, events)
-  }
-
   return {
-    sampleRate: configuration.sampleRate,
-    projectNotes: projectRows[0]?.notes ?? "",
-    projectEndTick: projectRows[0]?.projectEndTick,
-    tracks: trackRows,
+    sampleRate,
     channels: channelRows.map((channel) => ({
       id: channel.id,
       kind: channel.kind,
@@ -200,18 +107,6 @@ export async function readMixerSnapshot(
       inputChannels: channel.inputChannels,
       hardwareOutputChannels: channel.hardwareOutputChannels
     })),
-    audioClips: clipRows.map(({ assetFrameCount, ...clip }) => ({
-      ...clip,
-      startFrame: Number(clip.startFrame),
-      sourceOffsetFrames: Number(clip.sourceOffsetFrames),
-      lengthFrames: Number(clip.lengthFrames),
-      sourceLengthFrames: Math.max(
-        1,
-        Math.round((Number(assetFrameCount) * configuration.sampleRate) / clip.assetSampleRate)
-      ),
-      fadeInFrames: Number(clip.fadeInFrames),
-      fadeOutFrames: Number(clip.fadeOutFrames)
-    })),
     sends: sendRows,
     plugins: pluginRows.map((plugin) => {
       const chunks = stateChunksByPlugin.get(plugin.id) ?? []
@@ -232,30 +127,6 @@ export async function readMixerSnapshot(
         sidechainInputs: sidechainRoutesByPlugin.get(plugin.id) ?? [],
         state: { version: 1 as const, chunks }
       }
-    }),
-    midiClips: midiClipRows.map((clip) => ({
-      id: clip.id,
-      sourceId: clip.sourceId,
-      trackId: clip.trackId,
-      name: clip.name,
-      startTick: clip.startTick,
-      lengthTicks: clip.lengthTicks,
-      sourceOffsetTicks: clip.sourceOffsetTicks,
-      sourceLengthTicks: clip.sourceLengthTicks,
-      notes: notesByClip.get(clip.id) ?? [],
-      events: eventsByClip.get(clip.id) ?? []
-    })),
-    tempoMap: {
-      ticksPerQuarter: 960,
-      tempoEvents: tempoRows.map((event) => ({
-        tick: event.tick,
-        beatsPerMinute: event.beatsPerMinute
-      })),
-      timeSignatureEvents: signatureRows
-    },
-    keySignatureEvents: keySignatureRows.map((event) => ({
-      ...event,
-      mode: event.mode === "minor" ? "minor" : "major"
-    }))
+    })
   }
 }

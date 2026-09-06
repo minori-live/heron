@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import test from "node:test"
+import { stripVTControlCharacters } from "node:util"
 import { summarizeSccache } from "./ci-sccache-report.ts"
 
 const workspaceRoot = resolve(import.meta.dirname, "..")
@@ -17,9 +18,14 @@ await test("macOS packaging has a single task definition and builds each artifac
     MISE_STATE_DIR: join(scratch, "state"),
     MISE_CACHE_DIR: join(scratch, "cache"),
     MISE_TRUSTED_CONFIG_PATHS: workspaceRoot,
+    CLICOLOR_FORCE: "1",
+    NO_COLOR: undefined,
     COLUMNS: "300"
   }
-  for (const task of ["ci:package:macos-universal", "ci:package:macos-universal-release"]) {
+  for (const [task, config] of [
+    ["ci:package:macos-universal", "electron-builder.universal.yml"],
+    ["ci:package:macos-universal-release", "electron-builder.release.yml"]
+  ] as const) {
     const info = spawnSync("mise", ["tasks", "info", task, "--json"], {
       cwd: workspaceRoot,
       env,
@@ -35,7 +41,8 @@ await test("macOS packaging has a single task definition and builds each artifac
       encoding: "utf8"
     })
     assert.equal(preview.status, 0, preview.stderr)
-    const commands = `${preview.stdout}\n${preview.stderr}`
+    // CI may color the dry run, including a reset attached to the final flag.
+    const commands = stripVTControlCharacters(`${preview.stdout}\n${preview.stderr}`)
     assert.equal(commands.match(/napi build --platform --release --target /gu)?.length, 2)
     assert.equal(commands.match(/napi universalize/gu)?.length, 1)
     assert.equal(
@@ -43,7 +50,15 @@ await test("macOS packaging has a single task definition and builds each artifac
       1
     )
     assert.equal(commands.match(/pnpm build:desktop/gu)?.length, 1)
-    assert.equal(commands.match(/exec electron-builder /gu)?.length, 1)
+    const distCommands = [...commands.matchAll(/pnpm --filter @heron\/desktop dist\b([^\r\n]*)/gu)]
+    assert.equal(distCommands.length, 1)
+    const distArgs = distCommands[0]?.[1]
+    assert.ok(distArgs, "Expected packaging arguments on the dist invocation")
+    const args = distArgs.trim().split(/\s+/u)
+    const configIndex = args.indexOf("--config")
+    assert.notEqual(configIndex, -1)
+    assert.equal(args[configIndex + 1], config)
+    assert.ok(args.includes("--universal"))
   }
 })
 
@@ -167,12 +182,8 @@ await test("universal macOS packaging includes only the universal DSP binding", 
     resolve(workspaceRoot, "apps/desktop/electron-builder.release.yml"),
     "utf8"
   )
-  const tasks = await readFile(resolve(workspaceRoot, "mise.toml"), "utf8")
-
   assert.match(universalConfig, /extends: \.\/electron-builder\.yml/u)
   assert.match(universalConfig, /\*\.darwin-arm64\.node/u)
   assert.match(universalConfig, /\*\.darwin-x64\.node/u)
   assert.match(releaseConfig, /extends: \.\/electron-builder\.universal\.yml/u)
-  assert.match(tasks, /cargo xtask native universal-macos --profile release/u)
-  assert.match(tasks, /dist --config electron-builder\.universal\.yml --universal/u)
 })

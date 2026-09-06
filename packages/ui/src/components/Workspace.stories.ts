@@ -124,11 +124,15 @@ export const EditorToolbar: Story = {
     const draw = canvas.getByRole("button", { name: "Draw" })
     await userEvent.click(draw)
     await expect(draw).toHaveAttribute("aria-pressed", "true")
+    const verse = canvas.getByRole("button", { name: "Verse" })
+    await expect(verse).toHaveAttribute("aria-pressed", "true")
+    await expect(getComputedStyle(verse).borderInlineStartWidth).toBe("3px")
     const clip = canvas.getByRole("button", { name: "Counter melody" })
     await userEvent.click(clip)
     await expect(clip).toHaveAttribute("aria-pressed", "true")
+    await expect(verse).toHaveAttribute("aria-pressed", "false")
     await userEvent.click(canvas.getByRole("button", { name: "Select" }))
-    await userEvent.click(canvas.getByRole("button", { name: "Verse" }))
+    await userEvent.click(verse)
   }
 }
 

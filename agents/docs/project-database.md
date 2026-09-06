@@ -10,8 +10,10 @@ reintroduce them as compatibility layers.
 
 ## Source of Truth
 
-`packages/project-db/src/schema.ts` is the only source of truth for the current
-database structure.
+`packages/project-db/src/schema.ts` composes the current Studio database schema.
+Shared Mixer tables live in `mixer-schema.ts`; Studio adds tracks, clips, and
+musical timing. These Drizzle declarations are the structural source of truth.
+The shared Mixer reader must work without querying Studio tables.
 
 - Define every table, column, default, primary key, foreign key, unique
   constraint, check constraint, and index in the Drizzle schema.
@@ -129,6 +131,11 @@ database work:
   unit.
 - Return named typed objects. Do not pass `unknown[][]` row arrays across
   process boundaries or decode columns by numeric position.
+- Apply a project command and decode its resulting snapshot inside the same
+  SQL transaction. A snapshot failure must roll back the write, so a retained
+  prepared token always means the command has not committed. Main acknowledges
+  the worker's committed result only after retaining its own terminal response;
+  see ADR-0001 for delivery reconciliation and acknowledgement ownership.
 
 ## Raw SQL Policy
 

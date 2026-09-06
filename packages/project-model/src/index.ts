@@ -21,3 +21,6 @@ export {
   sendsFor,
   systemChannels
 } from "./selectors"
+
+export { validateMixerGraph } from "./mixer-validation"
+export { ProjectValidationError, MixerValidationError } from "./validation-error"

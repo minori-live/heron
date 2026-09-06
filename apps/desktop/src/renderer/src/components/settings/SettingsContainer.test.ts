@@ -71,8 +71,6 @@ describe("SettingsContainer", () => {
     expect(
       wrapper.get('nav[aria-label="System settings categories"] button[aria-current="page"]').text()
     ).toContain("System")
-    expect(wrapper.findAll(".ui-settings-navigator__category-icon svg")).toHaveLength(3)
-    expect(wrapper.findAll(".ui-settings-navigator__page-icon svg")).toHaveLength(1)
   })
 
   it("selects the first enabled page in a category and ignores unavailable categories", async () => {

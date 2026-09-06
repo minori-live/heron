@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto"
+import { IPC_PROTOCOL_VERSION } from "@heron/contracts"
 import { AudioHostDiagnostics } from "./audio-host-diagnostics"
 import { AudioHostBenchmarkRunner } from "./audio-host-benchmark-runner"
 import type { AudioHostBenchmarkReport } from "./audio-host-benchmark-runner"
@@ -10,7 +12,6 @@ import type {
   PluginHostNotification,
   PluginSidechainRouteRequest
 } from "./audio-host-events"
-import { graphDiff } from "./audio-host-graph-client"
 import { AudioHostRecordingClient } from "./audio-host-recording-client"
 import { AudioHostPluginClient } from "./audio-host-plugin-client"
 import { AudioHostTransportClient } from "./audio-host-transport-client"
@@ -87,6 +88,12 @@ export type {
 export type { PreparedGraphDeployment } from "./audio-host-graph-transactions"
 
 export class AudioHostService {
+  private readonly publicationGraph: ProjectGraphRef = {
+    kind: "project-graph",
+    id: randomUUID(),
+    epoch: randomUUID(),
+    generation: 1
+  }
   private pluginEditorAppearance: PluginEditorAppearanceWire = {
     theme: "dark",
     locale: "en-US"
@@ -360,13 +367,8 @@ export class AudioHostService {
     runtime: AudioHostGraph,
     awaitPublication = false
   ): Promise<void> {
-    this.lastGraph = {
-      revision,
-      project: structuredClone(project),
-      runtime: structuredClone(runtime)
-    }
     const transport = await this.prepareSessionRateTransition(project.sampleRate)
-    await this.restoreGraph()
+    await this.publishGraph(revision, project, runtime)
     if (awaitPublication || transport) {
       const audio = await this.audioEngineSnapshot()
       if (audio.state === "running") await this.waitForGraphPublication(revision)
@@ -393,7 +395,7 @@ export class AudioHostService {
       0,
       Math.round((transport.positionFrames * sessionSampleRate) / previousSampleRate)
     )
-    const runtime = await this.startAudioEngine(audioPreferences)
+    const runtime = await this.audioTransport.startAudioEngine(audioPreferences, sessionSampleRate)
     if (runtime.state !== "running" || runtime.sampleRate !== sessionSampleRate) {
       throw new Error("Audio engine did not adopt the project sample rate")
     }
@@ -417,65 +419,32 @@ export class AudioHostService {
     if (transport.state === "playing") await this.transport({ type: "play" })
   }
 
-  private async restoreGraph(immediate = false): Promise<void> {
+  private async restoreGraph(): Promise<void> {
     const graph = this.lastGraph
-    if (!graph) return
-    const loaded = await Promise.allSettled(
-      graph.project.plugins.map((plugin) =>
-        this.plugins.loadPluginWithRequest(plugin, graph.project.sampleRate, immediate)
-      )
+    if (graph) await this.publishGraph(graph.revision, graph.project, graph.runtime)
+  }
+
+  private async publishGraph(
+    revision: number,
+    project: ProjectGraphSnapshot,
+    runtime: AudioHostGraph
+  ): Promise<void> {
+    const operationId = randomUUID()
+    const prepared = await this.graphTransactions.prepare(
+      {
+        protocolVersion: IPC_PROTOCOL_VERSION,
+        requestId: operationId,
+        mutation: { operationId, idempotencyKey: operationId }
+      },
+      this.publicationGraph,
+      revision,
+      project,
+      runtime
     )
-    for (const [index, result] of loaded.entries()) {
-      if (result.status === "rejected") {
-        console.error(
-          `Could not restore VST3 instance ${graph.project.plugins[index]?.id}:`,
-          result.reason
-        )
-      }
-    }
-    const runtime = structuredClone(graph.runtime)
-    runtime.plugins = runtime.plugins.map((plugin) => {
-      const status = this.plugins.status(plugin.instance_id)
-      return {
-        ...plugin,
-        enabled: plugin.enabled && !this.plugins.isBypassed(plugin.instance_id),
-        latency_samples: status?.latencySamples ?? 0,
-        tail_samples: status?.tailSamples ?? 0
-      }
-    })
-    this.audioTransport.setChannelIds(runtime.channels)
-    const previous = this.publishedGraph
-    const update =
-      previous &&
-      previous.runtime.sample_rate === runtime.sample_rate &&
-      JSON.stringify(previous.runtime.latency_policy ?? { type: "normal" }) ===
-        JSON.stringify(runtime.latency_policy ?? { type: "normal" })
-        ? {
-            type: "patch",
-            base_revision: previous.revision,
-            revision: graph.revision,
-            ops: graphDiff(previous.runtime, runtime)
-          }
-        : {
-            type: "replace",
-            revision: graph.revision,
-            graph: runtime
-          }
-    const request = (command: Record<string, unknown>) =>
-      immediate ? this.requestImmediately(command) : this.request(command)
-    let response = await request({ type: "update-graph", update })
-    if (response.result.type === "revision-mismatch") {
-      response = await request({
-        type: "update-graph",
-        update: { type: "replace", revision: graph.revision, graph: runtime }
-      })
-    }
-    if (response.result.type !== "graph-accepted") {
-      throw new Error("audio host did not accept the mixer graph")
-    }
-    this.publishedGraph = {
-      revision: graph.revision,
-      runtime: structuredClone(runtime)
+    if (!prepared.ok) throw new Error(prepared.error.userMessageKey)
+    const activated = await this.graphTransactions.activate(prepared.value)
+    if (!activated.ok) {
+      throw new Error(activated.error.userMessageKey)
     }
   }
 
@@ -853,7 +822,7 @@ export class AudioHostService {
     await this.shutdownCurrentClient()
     this.stopping = false
     this.start(false)
-    await this.restoreGraph(true)
+    await this.restoreGraph()
     if (preferences && restoreAudioEngine) await this.startAudioEngine(preferences)
   }
 

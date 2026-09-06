@@ -3,6 +3,7 @@
 - Status: Proposed
 - Date: YYYY-MM-DD
 - Owners: project maintainers
+- Scope: current implementation, accepted future design, or proposal; link delivery evidence separately
 - Related: issue or pull request when available
 
 ## Context
@@ -12,7 +13,7 @@ decision is required now.
 
 ## Decision
 
-State the decision in testable terms. Name ownership, boundaries, persisted
+State the decision in testable terms (use "Proposed decision" while proposed). Name ownership, boundaries, persisted
 state, failure behavior, and compatibility consequences where applicable.
 
 ## Alternatives rejected
