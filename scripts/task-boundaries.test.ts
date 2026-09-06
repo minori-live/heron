@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import test from "node:test"
+import { stripVTControlCharacters } from "node:util"
 import { summarizeSccache } from "./ci-sccache-report.ts"
 
 const workspaceRoot = resolve(import.meta.dirname, "..")
@@ -17,6 +18,8 @@ await test("macOS packaging has a single task definition and builds each artifac
     MISE_STATE_DIR: join(scratch, "state"),
     MISE_CACHE_DIR: join(scratch, "cache"),
     MISE_TRUSTED_CONFIG_PATHS: workspaceRoot,
+    CLICOLOR_FORCE: "1",
+    NO_COLOR: undefined,
     COLUMNS: "300"
   }
   for (const [task, config] of [
@@ -38,7 +41,8 @@ await test("macOS packaging has a single task definition and builds each artifac
       encoding: "utf8"
     })
     assert.equal(preview.status, 0, preview.stderr)
-    const commands = `${preview.stdout}\n${preview.stderr}`
+    // CI may color the dry run, including a reset attached to the final flag.
+    const commands = stripVTControlCharacters(`${preview.stdout}\n${preview.stderr}`)
     assert.equal(commands.match(/napi build --platform --release --target /gu)?.length, 2)
     assert.equal(commands.match(/napi universalize/gu)?.length, 1)
     assert.equal(
