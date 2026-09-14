@@ -44,6 +44,37 @@ function graph(): ProjectGraphSnapshot {
 }
 
 describe("ProjectGraphService Low Latency Mode", () => {
+  it("keeps snapshot reads in the graph queue until their asynchronous work settles", async () => {
+    const source = graph()
+    let releaseBudget!: (value: number) => void
+    const lowLatencyPluginBudgetMs = vi.fn(
+      () =>
+        new Promise<number>((resolve) => {
+          releaseBudget = resolve
+        })
+    )
+    const publisher = {
+      resolve: vi.fn((value: ProjectGraphSnapshot) => structuredClone(value)),
+      lowLatencyPluginBudgetMs,
+      compiledAudioGraphSnapshot: vi.fn(async () => null)
+    } as unknown as AudioGraphPublisher
+    const projects = { current: { id: "project" } } as unknown as ProjectService
+    const service = new ProjectGraphService(projects, publisher)
+    service.commit("project", source)
+
+    const reading = service.lowLatencySnapshot()
+    await vi.waitFor(() => expect(lowLatencyPluginBudgetMs).toHaveBeenCalledOnce())
+    const queued = vi.fn(async () => undefined)
+    const afterRead = service.enqueue(queued)
+    await Promise.resolve()
+    expect(queued).not.toHaveBeenCalled()
+
+    releaseBudget(5)
+    await expect(reading).resolves.toMatchObject({ pluginBudgetMs: 5 })
+    await afterRead
+    expect(queued).toHaveBeenCalledOnce()
+  })
+
   it("restores normal policy when persisting a newly enabled budget fails", async () => {
     const source = graph()
     const publish = vi.fn(async () => structuredClone(source))

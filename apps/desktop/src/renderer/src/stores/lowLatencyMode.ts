@@ -3,6 +3,7 @@ import { computed, shallowRef } from "vue"
 import type { LowLatencyModeConfiguration, LowLatencyModeSnapshot } from "@heron/contracts"
 import { mutationMeta, readMeta, rpcErrorMessage } from "../rpc"
 import { useAudioRuntimeStore } from "./audioRuntime"
+import { useProjectStore } from "./project"
 import { useTransportStore } from "./transport"
 
 const EMPTY_SNAPSHOT: LowLatencyModeSnapshot = {
@@ -17,6 +18,7 @@ const EMPTY_SNAPSHOT: LowLatencyModeSnapshot = {
 
 export const useLowLatencyModeStore = defineStore("low-latency-mode", () => {
   const audioRuntime = useAudioRuntimeStore()
+  const project = useProjectStore()
   const transport = useTransportStore()
   const snapshot = shallowRef<LowLatencyModeSnapshot>({ ...EMPTY_SNAPSHOT })
   const applying = shallowRef(false)
@@ -34,7 +36,7 @@ export const useLowLatencyModeStore = defineStore("low-latency-mode", () => {
       !applying.value
   )
 
-  async function refresh(): Promise<boolean> {
+  async function refreshNow(): Promise<boolean> {
     const target = audioRuntime.audioEngineRef
     if (!target) {
       snapshot.value = { ...EMPTY_SNAPSHOT }
@@ -54,35 +56,43 @@ export const useLowLatencyModeStore = defineStore("low-latency-mode", () => {
     return true
   }
 
+  async function refresh(): Promise<boolean> {
+    return (await project.withProjectAccess(refreshNow)) ?? false
+  }
+
   async function configure(configuration: LowLatencyModeConfiguration): Promise<boolean> {
-    if (!canConfigure.value) return false
-    const target = audioRuntime.audioEngineRef
-    if (!target) return false
-    applying.value = true
-    error.value = ""
-    try {
-      let result = await window.heron.configureLowLatencyMode(
-        mutationMeta(target, "low-latency-mode", resourceRevision.value),
-        configuration
-      )
-      if (!result.ok && result.error.retry === "after-reconcile") {
-        if (!(await refresh()) || !audioRuntime.audioEngineRef) return false
-        result = await window.heron.configureLowLatencyMode(
-          mutationMeta(audioRuntime.audioEngineRef, "low-latency-mode", resourceRevision.value),
-          configuration
-        )
-      }
-      if (!result.ok) {
-        if (result.error.outcome === "unknown") await refresh()
-        error.value = rpcErrorMessage(result.error)
-        return false
-      }
-      snapshot.value = structuredClone(result.value)
-      resourceRevision.value = result.resourceRevision ?? resourceRevision.value
-      return true
-    } finally {
-      applying.value = false
-    }
+    return (
+      (await project.withProjectAccess(async () => {
+        if (!canConfigure.value) return false
+        const target = audioRuntime.audioEngineRef
+        if (!target) return false
+        applying.value = true
+        error.value = ""
+        try {
+          let result = await window.heron.configureLowLatencyMode(
+            mutationMeta(target, "low-latency-mode", resourceRevision.value),
+            configuration
+          )
+          if (!result.ok && result.error.retry === "after-reconcile") {
+            if (!(await refreshNow()) || !audioRuntime.audioEngineRef) return false
+            result = await window.heron.configureLowLatencyMode(
+              mutationMeta(audioRuntime.audioEngineRef, "low-latency-mode", resourceRevision.value),
+              configuration
+            )
+          }
+          if (!result.ok) {
+            if (result.error.outcome === "unknown") await refreshNow()
+            error.value = rpcErrorMessage(result.error)
+            return false
+          }
+          snapshot.value = structuredClone(result.value)
+          resourceRevision.value = result.resourceRevision ?? resourceRevision.value
+          return true
+        } finally {
+          applying.value = false
+        }
+      })) ?? false
+    )
   }
 
   function toggle(): Promise<boolean> {

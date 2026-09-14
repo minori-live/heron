@@ -322,6 +322,36 @@ describe("project store dialogs", () => {
     )
   })
 
+  it("defers close for admitted project reads without marking the project dirty", async () => {
+    window.heron.closeProject = vi
+      .fn()
+      .mockResolvedValue(success({ closed: true, snapshot: bootstrap(null) }))
+    const store = useProjectStore()
+    store.applyBootstrap(
+      bootstrap({
+        ...workspace,
+        session: { ...workspace.session, dirty: false }
+      })
+    )
+    let releaseRead!: () => void
+    const reading = store.withProjectAccess(
+      () =>
+        new Promise<boolean>((resolve) => {
+          releaseRead = () => resolve(true)
+        })
+    )
+
+    const closing = store.close()
+    await Promise.resolve()
+    expect(store.hasUnsavedChanges).toBe(false)
+    expect(window.heron.closeProject).not.toHaveBeenCalled()
+
+    releaseRead()
+    await expect(reading).resolves.toBe(true)
+    await expect(closing).resolves.toBe(true)
+    expect(window.heron.closeProject).toHaveBeenCalledOnce()
+  })
+
   it("coalesces repeated close requests into one dirty-project decision", async () => {
     window.heron.closeProject = vi
       .fn()

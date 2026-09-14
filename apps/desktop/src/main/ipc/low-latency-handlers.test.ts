@@ -85,6 +85,20 @@ describe("registerLowLatencyHandlers", () => {
     ).resolves.toMatchObject({ ok: false, error: { code: "stale-resource" } })
   })
 
+  it("rejects snapshots after project close has taken ownership", async () => {
+    const context = createContext()
+    const readSnapshot = vi.fn(async () => snapshot)
+    context.projectGraph.lowLatencySnapshot = readSnapshot
+    const audio = await context.lifecycle.applicationState.commitAudioEngine(runtime)
+    context.lifecycle.beginProject("closing")
+    registerLowLatencyHandlers(context)
+
+    await expect(
+      invoke(electronMocks, IPC_CHANNELS.lowLatencyModeSnapshot, meta({ target: audio.engine! }))
+    ).resolves.toMatchObject({ ok: false, error: { code: "stale-resource" } })
+    expect(readSnapshot).not.toHaveBeenCalled()
+  })
+
   it("validates the mutation envelope and bounded configuration", async () => {
     const context = createContext()
     const audio = await context.lifecycle.applicationState.commitAudioEngine(runtime)

@@ -99,6 +99,9 @@ function rebind(meta: RpcRequestMeta, result: RpcResult<unknown>): RpcResult<unk
 
 export function registerLowLatencyHandlers(context: IpcHandlerContext): void {
   registerRpcHandler(IPC_CHANNELS.lowLatencyModeSnapshot, async ({ meta }) => {
+    if (context.lifecycle.snapshot().project.status !== "open") {
+      return rpcFailure(meta, failure(meta, "stale"))
+    }
     const engine = context.lifecycle.applicationState.audioResourceSnapshot().engine
     if (!sameRef(meta.target, engine)) return rpcFailure(meta, failure(meta, "stale"))
     const resolved = context.lifecycle.applicationState.resources.resolve(engine!)
@@ -111,6 +114,9 @@ export function registerLowLatencyHandlers(context: IpcHandlerContext): void {
   registerRpcHandler(IPC_CHANNELS.lowLatencyModeConfigure, async ({ meta }, value: unknown) => {
     if (!meta.mutation || meta.expectedRevision === undefined || !valid(value)) {
       return rpcFailure(meta, failure(meta, "validation"))
+    }
+    if (context.lifecycle.snapshot().project.status !== "open") {
+      return rpcFailure(meta, failure(meta, "stale"))
     }
     const exclusive = exclusiveOfflineOperationFailure(context, meta)
     if (exclusive) return exclusive

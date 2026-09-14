@@ -238,26 +238,14 @@ export class ProjectGraphService {
     })
   }
 
-  async lowLatencySnapshot(): Promise<LowLatencyModeSnapshot> {
-    await this.mutationTail
-    const graph = this.snapshotNow()
-    const pluginBudgetMs = await this.publisher.lowLatencyPluginBudgetMs()
-    this.lowLatencyPluginBudgetMs = pluginBudgetMs
-    const effectiveBudgetSamples = Math.floor((pluginBudgetMs * graph.sampleRate) / 1_000)
-    const compiled = await this.publisher.compiledAudioGraphSnapshot()
-    const sensitivePlugins =
-      compiled?.nodes.filter((node) => node.latencySensitive && node.pluginInstanceId) ?? []
-    return {
-      enabled: this.lowLatencyEnabled,
-      targetOutputChannelId: this.lowLatencyTargetOutputChannelId,
-      pluginBudgetMs,
-      effectiveBudgetSamples,
-      bypassedPluginInstanceIds: sensitivePlugins
-        .filter((node) => node.lowLatencyBypassed)
-        .map((node) => node.pluginInstanceId!),
-      unavoidableLatencySamples: compiled?.lowLatencyUnavoidableLatencySamples ?? 0,
-      hasMonitoringPath: this.lowLatencyEnabled && (compiled?.hasLowLatencyMonitoringPath ?? false)
-    }
+  lowLatencySnapshot(): Promise<LowLatencyModeSnapshot> {
+    // Reserve the graph queue for the whole read so close cannot clear its backing project mid-read.
+    return this.enqueue(async () => {
+      const graph = this.snapshotNow()
+      const pluginBudgetMs = await this.publisher.lowLatencyPluginBudgetMs()
+      this.lowLatencyPluginBudgetMs = pluginBudgetMs
+      return this.lowLatencySnapshotUnlocked(graph, pluginBudgetMs)
+    })
   }
 
   configureLowLatencyMode(
