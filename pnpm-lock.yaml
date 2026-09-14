@@ -335,7 +335,7 @@ importers:
         specifier: ^43.6.0
         version: 43.7.0(supports-color@7.2.0)
       electron-builder:
-        specifier: ^26.16.0
+        specifier: ^26.16.1
         version: 26.16.1(electron-builder-squirrel-windows@26.16.1)(supports-color@7.2.0)
       happy-dom:
         specifier: 'catalog:'
