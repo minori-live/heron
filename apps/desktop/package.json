@@ -55,7 +55,7 @@
     "@vue/test-utils": "catalog:",
     "@vueuse/core": "^14.4.0",
     "electron": "^43.6.0",
-    "electron-builder": "^26.16.0",
+    "electron-builder": "^26.16.1",
     "happy-dom": "catalog:",
     "pinia": "catalog:",
     "typescript": "catalog:",
