@@ -20,7 +20,7 @@ catalog:
   "@storybook/addon-vitest": 10.6.0
   "@storybook/vue3": 10.6.0
   "@storybook/vue3-vite": 10.6.0
-  "@types/node": ^26.4.1
+  "@types/node": ^26.5.1
   "@unhead/vue": ^3.4.0
   "@vitejs/plugin-vue": 6.0.8
   "@vitest/browser-playwright": 4.1.11
