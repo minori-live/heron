@@ -346,6 +346,7 @@ export class ProjectLifecycleService {
     let preparedGraph: PreparedProjectGraph | null = null
     let workerClosed = false
     try {
+      await this.lifecycle.settleProjectWork()
       if (hooks.preparePersistedState) {
         await hooks.preparePersistedState()
         patchProgress("stopping-playback", 1)

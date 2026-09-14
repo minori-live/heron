@@ -341,7 +341,12 @@ export const useProjectStore = defineStore("project", () => {
 
   // Admit project-backed async work before close and make close wait for its release.
   async function withProjectAccess<T>(task: () => Promise<T>): Promise<T | null> {
-    if (lifecycle.value.status !== "open" || pendingClose) return null
+    if (
+      (lifecycle.value.status !== "open" && lifecycle.value.status !== "saving") ||
+      pendingClose
+    ) {
+      return null
+    }
     let releaseAccess!: () => void
     const access = new Promise<void>((resolve) => {
       releaseAccess = resolve

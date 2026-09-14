@@ -322,6 +322,26 @@ describe("project store dialogs", () => {
     )
   })
 
+  it("admits project access while saving but not once lifecycle is closing", async () => {
+    const store = useProjectStore()
+    store.applyBootstrap(bootstrap(workspace))
+    store.applyLifecycleState({ status: "saving", session, error: null })
+    const savingTask = vi.fn(async () => "saved")
+
+    await expect(store.withProjectAccess(savingTask)).resolves.toBe("saved")
+    expect(savingTask).toHaveBeenCalledOnce()
+
+    store.applyLifecycleState({ status: "closing", session, error: null })
+    const closingTask = vi.fn(async () => "closed")
+    await expect(store.withProjectAccess(closingTask)).resolves.toBeNull()
+    expect(closingTask).not.toHaveBeenCalled()
+
+    store.applyLifecycleState({ status: "closed", error: null })
+    const closedTask = vi.fn(async () => "closed")
+    await expect(store.withProjectAccess(closedTask)).resolves.toBeNull()
+    expect(closedTask).not.toHaveBeenCalled()
+  })
+
   it("defers close for admitted project reads without marking the project dirty", async () => {
     window.heron.closeProject = vi
       .fn()
@@ -342,7 +362,9 @@ describe("project store dialogs", () => {
     )
 
     const closing = store.close()
-    await Promise.resolve()
+    const lateRead = vi.fn(async () => true)
+    await expect(store.withProjectAccess(lateRead)).resolves.toBeNull()
+    expect(lateRead).not.toHaveBeenCalled()
     expect(store.hasUnsavedChanges).toBe(false)
     expect(window.heron.closeProject).not.toHaveBeenCalled()
 

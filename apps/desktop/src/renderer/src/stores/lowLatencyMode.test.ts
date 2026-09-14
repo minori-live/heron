@@ -79,6 +79,19 @@ describe("low latency mode store", () => {
     expect(store.canConfigure).toBe(false)
   })
 
+  it("keeps project-backed requests available while saving", async () => {
+    const request = vi.fn().mockResolvedValue(rpcSuccess(disabled, 3))
+    window.heron.lowLatencyModeSnapshot = request
+    useProjectStore().applyLifecycleState({
+      status: "saving",
+      session: useProjectStore().session!,
+      error: null
+    })
+
+    await expect(useLowLatencyModeStore().refresh()).resolves.toBe(true)
+    expect(request).toHaveBeenCalledOnce()
+  })
+
   it("does not start project-backed requests after close begins", async () => {
     const request = vi.fn()
     window.heron.lowLatencyModeSnapshot = request

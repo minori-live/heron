@@ -88,16 +88,20 @@ const lowLatencyTooltip = computed(() => {
   })
 })
 
+function projectAvailable(): boolean {
+  return projectStore.lifecycle.status === "open" || projectStore.lifecycle.status === "saving"
+}
+
 let mounted = true
 onMounted(async () => {
-  if (projectStore.lifecycle.status !== "open") {
+  if (!projectAvailable()) {
     await router.replace({ name: "welcome" })
     return
   }
   await engineStore.initialize()
-  if (!mounted || projectStore.lifecycle.status !== "open") return
+  if (!mounted || !projectAvailable()) return
   await lowLatencyModeStore.refresh()
-  if (!mounted || projectStore.lifecycle.status !== "open") return
+  if (!mounted || !projectAvailable()) return
   mixerStore.startMetering()
   transportStore.startPolling()
 })

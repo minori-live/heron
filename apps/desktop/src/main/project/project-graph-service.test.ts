@@ -75,6 +75,42 @@ describe("ProjectGraphService Low Latency Mode", () => {
     expect(queued).toHaveBeenCalledOnce()
   })
 
+  it("reserves the graph queue before an asynchronous configure preflight", async () => {
+    const source = graph()
+    const publish = vi.fn(async () => structuredClone(source))
+    const publisher = {
+      resolve: vi.fn((value: ProjectGraphSnapshot) => structuredClone(value)),
+      publish,
+      lowLatencyPluginBudgetMs: vi.fn(async () => 5),
+      setLowLatencyPluginBudgetMs: vi.fn(async () => undefined),
+      compiledAudioGraphSnapshot: vi.fn(async () => null)
+    } as unknown as AudioGraphPublisher
+    const projects = { current: { id: "project" } } as unknown as ProjectService
+    const service = new ProjectGraphService(projects, publisher)
+    service.commit("project", source)
+    let releasePreflight!: () => void
+    const preflight = new Promise<void>((resolve) => {
+      releasePreflight = resolve
+    })
+    const firstStarted = vi.fn()
+
+    const first = service.configureLowLatencyModeTransaction(async (configure) => {
+      firstStarted()
+      await preflight
+      return configure({ enabled: true })
+    })
+    await vi.waitFor(() => expect(firstStarted).toHaveBeenCalledOnce())
+    const second = service.configureLowLatencyMode({ enabled: false })
+    await Promise.resolve()
+    expect(publisher.lowLatencyPluginBudgetMs).not.toHaveBeenCalled()
+    expect(publish).not.toHaveBeenCalled()
+
+    releasePreflight()
+    await expect(first).resolves.toMatchObject({ enabled: true })
+    await expect(second).resolves.toMatchObject({ enabled: false })
+    expect(publish).toHaveBeenCalledTimes(2)
+  })
+
   it("restores normal policy when persisting a newly enabled budget fails", async () => {
     const source = graph()
     const publish = vi.fn(async () => structuredClone(source))

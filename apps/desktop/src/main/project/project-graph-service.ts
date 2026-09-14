@@ -251,60 +251,74 @@ export class ProjectGraphService {
   configureLowLatencyMode(
     configuration: LowLatencyModeConfiguration
   ): Promise<LowLatencyModeSnapshot> {
-    return this.enqueue(async () => {
-      const graph = this.snapshotNow()
-      const oldEnabled = this.lowLatencyEnabled
-      const oldTarget = this.lowLatencyTargetOutputChannelId
-      const oldBudgetMs = await this.publisher.lowLatencyPluginBudgetMs()
-      const nextEnabled = configuration.enabled ?? oldEnabled
-      const nextTarget = configuration.targetOutputChannelId ?? oldTarget
-      const nextBudgetMs = configuration.pluginBudgetMs ?? oldBudgetMs
-      if (!Number.isInteger(nextBudgetMs) || nextBudgetMs < 0 || nextBudgetMs > 50) {
-        throw new TypeError("invalid-low-latency-budget")
-      }
-      if (
-        !nextTarget ||
-        !graph.channels.some((channel) => channel.id === nextTarget && channel.kind === "output")
-      ) {
-        throw new TypeError("invalid-low-latency-output")
-      }
-      const nextPolicy: RuntimeLatencyPolicy = nextEnabled
-        ? {
-            type: "low-latency",
-            targetOutputChannelId: nextTarget,
-            pluginBudgetSamples: Math.floor((nextBudgetMs * graph.sampleRate) / 1_000)
-          }
-        : { type: "normal" }
-      const policyPublished = nextEnabled || oldEnabled || nextTarget !== oldTarget
-      if (policyPublished) {
-        await this.publisher.publish(graph, { latencyPolicy: nextPolicy, awaitPublication: true })
-      }
-      if (nextBudgetMs !== oldBudgetMs) {
-        try {
-          await this.publisher.setLowLatencyPluginBudgetMs(nextBudgetMs)
-        } catch (error) {
-          if (policyPublished) {
-            const oldPolicy: RuntimeLatencyPolicy =
-              oldEnabled && oldTarget
-                ? {
-                    type: "low-latency",
-                    targetOutputChannelId: oldTarget,
-                    pluginBudgetSamples: Math.floor((oldBudgetMs * graph.sampleRate) / 1_000)
-                  }
-                : { type: "normal" }
-            await this.publisher.publish(graph, {
-              latencyPolicy: oldPolicy,
-              awaitPublication: true
-            })
-          }
-          throw error
+    return this.configureLowLatencyModeTransaction((configure) => configure(configuration))
+  }
+
+  configureLowLatencyModeTransaction<T>(
+    transaction: (
+      configure: (configuration: LowLatencyModeConfiguration) => Promise<LowLatencyModeSnapshot>
+    ) => Promise<T>
+  ): Promise<T> {
+    return this.enqueue(() =>
+      transaction((configuration) => this.configureLowLatencyModeUnlocked(configuration))
+    )
+  }
+
+  private async configureLowLatencyModeUnlocked(
+    configuration: LowLatencyModeConfiguration
+  ): Promise<LowLatencyModeSnapshot> {
+    const graph = this.snapshotNow()
+    const oldEnabled = this.lowLatencyEnabled
+    const oldTarget = this.lowLatencyTargetOutputChannelId
+    const oldBudgetMs = await this.publisher.lowLatencyPluginBudgetMs()
+    const nextEnabled = configuration.enabled ?? oldEnabled
+    const nextTarget = configuration.targetOutputChannelId ?? oldTarget
+    const nextBudgetMs = configuration.pluginBudgetMs ?? oldBudgetMs
+    if (!Number.isInteger(nextBudgetMs) || nextBudgetMs < 0 || nextBudgetMs > 50) {
+      throw new TypeError("invalid-low-latency-budget")
+    }
+    if (
+      !nextTarget ||
+      !graph.channels.some((channel) => channel.id === nextTarget && channel.kind === "output")
+    ) {
+      throw new TypeError("invalid-low-latency-output")
+    }
+    const nextPolicy: RuntimeLatencyPolicy = nextEnabled
+      ? {
+          type: "low-latency",
+          targetOutputChannelId: nextTarget,
+          pluginBudgetSamples: Math.floor((nextBudgetMs * graph.sampleRate) / 1_000)
         }
+      : { type: "normal" }
+    const policyPublished = nextEnabled || oldEnabled || nextTarget !== oldTarget
+    if (policyPublished) {
+      await this.publisher.publish(graph, { latencyPolicy: nextPolicy, awaitPublication: true })
+    }
+    if (nextBudgetMs !== oldBudgetMs) {
+      try {
+        await this.publisher.setLowLatencyPluginBudgetMs(nextBudgetMs)
+      } catch (error) {
+        if (policyPublished) {
+          const oldPolicy: RuntimeLatencyPolicy =
+            oldEnabled && oldTarget
+              ? {
+                  type: "low-latency",
+                  targetOutputChannelId: oldTarget,
+                  pluginBudgetSamples: Math.floor((oldBudgetMs * graph.sampleRate) / 1_000)
+                }
+              : { type: "normal" }
+          await this.publisher.publish(graph, {
+            latencyPolicy: oldPolicy,
+            awaitPublication: true
+          })
+        }
+        throw error
       }
-      this.lowLatencyEnabled = nextEnabled
-      this.lowLatencyTargetOutputChannelId = nextTarget
-      this.lowLatencyPluginBudgetMs = nextBudgetMs
-      return this.lowLatencySnapshotUnlocked(graph, nextBudgetMs)
-    })
+    }
+    this.lowLatencyEnabled = nextEnabled
+    this.lowLatencyTargetOutputChannelId = nextTarget
+    this.lowLatencyPluginBudgetMs = nextBudgetMs
+    return this.lowLatencySnapshotUnlocked(graph, nextBudgetMs)
   }
 
   private async lowLatencySnapshotUnlocked(
