@@ -38,7 +38,20 @@ function router() {
   })
 }
 
-function mountStudio() {
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((settle) => {
+    resolve = settle
+  })
+  return { promise, resolve }
+}
+
+function mountStudio(
+  options: {
+    initialize?: () => Promise<void>
+    refresh?: () => Promise<boolean>
+  } = {}
+) {
   const navigation = router()
   const project = useProjectStore()
   project.applyLifecycleState({ status: "open", session, error: null })
@@ -47,8 +60,10 @@ function mountStudio() {
   const mixer = useMixerStore()
   const transport = useTransportStore()
   const workflow = useStudioWorkflowStore()
-  vi.spyOn(engine, "initialize").mockResolvedValue()
-  vi.spyOn(lowLatency, "refresh").mockResolvedValue(true)
+  vi.spyOn(engine, "initialize").mockImplementation(options.initialize ?? (() => Promise.resolve()))
+  vi.spyOn(lowLatency, "refresh").mockImplementation(
+    options.refresh ?? (() => Promise.resolve(true))
+  )
   vi.spyOn(mixer, "startMetering").mockImplementation(() => undefined)
   vi.spyOn(mixer, "stopMetering").mockImplementation(() => undefined)
   vi.spyOn(transport, "startPolling").mockImplementation(() => undefined)
@@ -96,6 +111,60 @@ describe("StudioView", () => {
     expect(transport.startPolling).toHaveBeenCalledOnce()
 
     wrapper.unmount()
+    expect(mixer.stopMetering).toHaveBeenCalledOnce()
+    expect(transport.stopPolling).toHaveBeenCalledOnce()
+    expect(lowLatency.reset).toHaveBeenCalledOnce()
+  })
+
+  it("continues deferred initialization while the project is saving", async () => {
+    const initialization = deferred<void>()
+    const { wrapper, engine, lowLatency, mixer, transport } = mountStudio({
+      initialize: () => initialization.promise
+    })
+    await vi.waitFor(() => expect(engine.initialize).toHaveBeenCalledOnce())
+    useProjectStore().applyLifecycleState({ status: "saving", session, error: null })
+
+    initialization.resolve(undefined)
+    await flushPromises()
+
+    expect(lowLatency.refresh).toHaveBeenCalledOnce()
+    expect(mixer.startMetering).toHaveBeenCalledOnce()
+    expect(transport.startPolling).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
+  it("does not start studio services after unmount during engine initialization", async () => {
+    const initialization = deferred<void>()
+    const { wrapper, engine, lowLatency, mixer, transport } = mountStudio({
+      initialize: () => initialization.promise
+    })
+    await vi.waitFor(() => expect(engine.initialize).toHaveBeenCalledOnce())
+
+    wrapper.unmount()
+    initialization.resolve(undefined)
+    await flushPromises()
+
+    expect(lowLatency.refresh).not.toHaveBeenCalled()
+    expect(mixer.startMetering).not.toHaveBeenCalled()
+    expect(transport.startPolling).not.toHaveBeenCalled()
+    expect(mixer.stopMetering).toHaveBeenCalledOnce()
+    expect(transport.stopPolling).toHaveBeenCalledOnce()
+    expect(lowLatency.reset).toHaveBeenCalledOnce()
+  })
+
+  it("does not start studio services after unmount during low-latency refresh", async () => {
+    const refresh = deferred<boolean>()
+    const { wrapper, lowLatency, mixer, transport } = mountStudio({
+      refresh: () => refresh.promise
+    })
+    await vi.waitFor(() => expect(lowLatency.refresh).toHaveBeenCalledOnce())
+
+    wrapper.unmount()
+    refresh.resolve(true)
+    await flushPromises()
+
+    expect(mixer.startMetering).not.toHaveBeenCalled()
+    expect(transport.startPolling).not.toHaveBeenCalled()
     expect(mixer.stopMetering).toHaveBeenCalledOnce()
     expect(transport.stopPolling).toHaveBeenCalledOnce()
     expect(lowLatency.reset).toHaveBeenCalledOnce()

@@ -64,10 +64,24 @@ For ordinary project commands:
   Main-originated sidechain edits acknowledge after handling their own result.
 - Unknown results remain retained and the graph stays quarantined until an
   authoritative workspace is re-established. Reopening creates a fresh workspace.
-- Replay lookup precedes validation of the revision for a new operation. An
-  operation ID cannot be reused for another resource generation.
-- Acknowledgement ends replay eligibility. Retention remains bounded; arbitrary
-  eviction, timers, and larger limits do not replace ownership transfer.
+- When mutation identity and a complete target generation are present, replay
+  lookup precedes configuration-body, expected-revision, and lifecycle checks
+  that apply only to fresh work. An operation-ID match requires the same
+  idempotency key and target; otherwise, a target-scoped idempotency-key match
+  may return the original operation under a different operation ID. An operation
+  ID cannot be reused for another generation.
+- `saving` retains the active workspace and remains available for project-backed
+  work. `closing` synchronously owns teardown and closes authoritative main-side
+  admission; renderer admission is only an early UX gate.
+- Close drains work admitted before it took ownership before synchronizing
+  persisted state or tearing down the graph. Low-latency configure reserves the
+  graph queue in admission order before revision and asynchronous transport
+  preflight checks, then holds it through graph publication, resource advancement,
+  and terminal receipt retention. Fresh work rejected during closing creates no
+  operation record.
+- Acknowledgement ends replay eligibility. Terminal and quarantined records stay
+  available for acknowledgement or reconciliation, subject to bounded retention;
+  arbitrary eviction, timers, and larger limits do not replace ownership transfer.
 
 Domain validation has a typed error; message wording does not choose retry or
 outcome semantics. Other protocols document their own receipt lifecycle, such

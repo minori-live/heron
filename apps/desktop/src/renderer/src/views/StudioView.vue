@@ -88,10 +88,20 @@ const lowLatencyTooltip = computed(() => {
   })
 })
 
+function projectAvailable(): boolean {
+  return projectStore.lifecycle.status === "open" || projectStore.lifecycle.status === "saving"
+}
+
+let mounted = true
 onMounted(async () => {
-  if (!session.value) void router.replace({ name: "welcome" })
+  if (!projectAvailable()) {
+    await router.replace({ name: "welcome" })
+    return
+  }
   await engineStore.initialize()
+  if (!mounted || !projectAvailable()) return
   await lowLatencyModeStore.refresh()
+  if (!mounted || !projectAvailable()) return
   mixerStore.startMetering()
   transportStore.startPolling()
 })
@@ -195,6 +205,7 @@ function handleShortcut(event: KeyboardEvent): void {
 
 useEventListener(window, "keydown", handleShortcut)
 onBeforeUnmount(() => {
+  mounted = false
   transportStore.stopPolling()
   mixerStore.stopMetering()
   lowLatencyModeStore.reset()

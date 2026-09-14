@@ -66,6 +66,19 @@ function failure(
   }
 }
 
+function busy(meta: RpcRequestMeta, activeOperationId: string): RpcError {
+  return {
+    code: "resource-busy",
+    category: "busy",
+    outcome: "not-committed",
+    retry: "safe",
+    correlationId: randomUUID(),
+    userMessageKey: "errors.resourceBusy",
+    ...(meta.target ? { resource: meta.target } : {}),
+    details: { type: "resource-busy", activeOperationId }
+  }
+}
+
 function unknownOutcome(meta: RpcRequestMeta): RpcError {
   return {
     code: "operation-timeout-unknown",
@@ -99,68 +112,106 @@ function rebind(meta: RpcRequestMeta, result: RpcResult<unknown>): RpcResult<unk
 
 export function registerLowLatencyHandlers(context: IpcHandlerContext): void {
   registerRpcHandler(IPC_CHANNELS.lowLatencyModeSnapshot, async ({ meta }) => {
-    const engine = context.lifecycle.applicationState.audioResourceSnapshot().engine
-    if (!sameRef(meta.target, engine)) return rpcFailure(meta, failure(meta, "stale"))
-    const resolved = context.lifecycle.applicationState.resources.resolve(engine!)
-    if (!resolved.ok) return rpcFailure(meta, failure(meta, "stale"))
-    return rpcSuccess(meta, await context.projectGraph.lowLatencySnapshot(), {
-      resourceRevision: resolved.value.revision
-    })
+    const release = context.lifecycle.admitProjectWork()
+    if (!release) return rpcFailure(meta, failure(meta, "stale"))
+    try {
+      const engine = context.lifecycle.applicationState.audioResourceSnapshot().engine
+      if (!sameRef(meta.target, engine)) return rpcFailure(meta, failure(meta, "stale"))
+      const resolved = context.lifecycle.applicationState.resources.resolve(engine!)
+      if (!resolved.ok) return rpcFailure(meta, failure(meta, "stale"))
+      return rpcSuccess(meta, await context.projectGraph.lowLatencySnapshot(), {
+        resourceRevision: resolved.value.revision
+      })
+    } finally {
+      release()
+    }
   })
 
   registerRpcHandler(IPC_CHANNELS.lowLatencyModeConfigure, async ({ meta }, value: unknown) => {
+    if (meta.mutation && meta.target) {
+      const existing = context.operations.registry.find({ ...meta.mutation, target: meta.target })
+      if (!existing.ok) return rpcFailure(meta, failure(meta, "validation"))
+      if (existing.value) {
+        return existing.value.result
+          ? rebind(meta, existing.value.result)
+          : rpcFailure(meta, busy(meta, existing.value.operationId))
+      }
+    }
     if (!meta.mutation || meta.expectedRevision === undefined || !valid(value)) {
       return rpcFailure(meta, failure(meta, "validation"))
     }
-    const exclusive = exclusiveOfflineOperationFailure(context, meta)
-    if (exclusive) return exclusive
-    const existing = context.operations.registry.status(meta.mutation.operationId)
-    if (existing.ok) {
-      return existing.value.result
-        ? rebind(meta, existing.value.result)
-        : rpcFailure(meta, failure(meta, "validation"))
-    }
-    const state = context.lifecycle.applicationState
-    const engine = state.audioResourceSnapshot().engine
-    if (!sameRef(meta.target, engine)) return rpcFailure(meta, failure(meta, "stale"))
-    const resolved = state.resources.resolve(engine!)
-    if (!resolved.ok) return rpcFailure(meta, failure(meta, "stale"))
-    const begun = context.operations.registry.begin({
-      operationId: meta.mutation.operationId,
-      idempotencyKey: meta.mutation.idempotencyKey,
-      target: engine!
-    })
-    if (!begun.ok || begun.value.disposition !== "started") {
-      return rpcFailure(meta, failure(meta, "validation"))
-    }
-    if (resolved.value.revision !== meta.expectedRevision) {
-      const result = rpcFailure(meta, failure(meta, "conflict", resolved.value.revision))
-      context.operations.registry.finish(meta.mutation.operationId, "not-committed", result)
-      return result
-    }
+    const mutation = meta.mutation
+    const expectedRevision = meta.expectedRevision
+    const configuration = value
+
+    const release = context.lifecycle.admitProjectWork()
+    if (!release) return rpcFailure(meta, failure(meta, "stale"))
     try {
-      if ((await context.transport.snapshot()).state !== "stopped") {
-        const result = rpcFailure(meta, failure(meta, "validation"))
-        context.operations.registry.finish(meta.mutation.operationId, "not-committed", result)
+      const exclusive = exclusiveOfflineOperationFailure(context, meta)
+      if (exclusive) return exclusive
+      const state = context.lifecycle.applicationState
+      const engine = state.audioResourceSnapshot().engine
+      if (!sameRef(meta.target, engine)) return rpcFailure(meta, failure(meta, "stale"))
+      const resolved = state.resources.resolve(engine!)
+      if (!resolved.ok) return rpcFailure(meta, failure(meta, "stale"))
+      const begun = context.operations.registry.begin({
+        operationId: mutation.operationId,
+        idempotencyKey: mutation.idempotencyKey,
+        target: engine!
+      })
+      if (!begun.ok) return rpcFailure(meta, failure(meta, "validation"))
+      if (begun.value.disposition !== "started") {
+        return begun.value.operation.result
+          ? rebind(meta, begun.value.operation.result)
+          : rpcFailure(meta, busy(meta, begun.value.operation.operationId))
+      }
+      try {
+        return await context.projectGraph.configureLowLatencyModeTransaction(async (configure) => {
+          const currentEngine = state.audioResourceSnapshot().engine
+          if (!sameRef(meta.target, currentEngine)) {
+            const result = rpcFailure(meta, failure(meta, "stale"))
+            context.operations.registry.finish(mutation.operationId, "not-committed", result)
+            return result
+          }
+          const current = state.resources.resolve(currentEngine!)
+          if (!current.ok) {
+            const result = rpcFailure(meta, failure(meta, "stale"))
+            context.operations.registry.finish(mutation.operationId, "not-committed", result)
+            return result
+          }
+          if (current.value.revision !== expectedRevision) {
+            const result = rpcFailure(meta, failure(meta, "conflict", current.value.revision))
+            context.operations.registry.finish(mutation.operationId, "not-committed", result)
+            return result
+          }
+          if ((await context.transport.snapshot()).state !== "stopped") {
+            const result = rpcFailure(meta, failure(meta, "validation"))
+            context.operations.registry.finish(mutation.operationId, "not-committed", result)
+            return result
+          }
+          const snapshot = await configure(configuration)
+          const revision = state.advanceAudioEngine(expectedRevision, {
+            lowLatencyMode: snapshot
+          })
+          const result = rpcSuccess(meta, snapshot, { resourceRevision: revision })
+          context.operations.registry.finish(mutation.operationId, "committed", result)
+          return result
+        })
+      } catch (error) {
+        const validation = error instanceof TypeError
+        const result = rpcFailure(
+          meta,
+          validation ? failure(meta, "validation") : unknownOutcome(meta)
+        )
+        context.operations.registry.finish(
+          mutation.operationId,
+          validation ? "not-committed" : "quarantined",
+          result
+        )
         return result
       }
-      const snapshot = await context.projectGraph.configureLowLatencyMode(value)
-      const revision = state.advanceAudioEngine(meta.expectedRevision, { lowLatencyMode: snapshot })
-      const result = rpcSuccess(meta, snapshot, { resourceRevision: revision })
-      context.operations.registry.finish(meta.mutation.operationId, "committed", result)
-      return result
-    } catch (error) {
-      const validation = error instanceof TypeError
-      const result = rpcFailure(
-        meta,
-        validation ? failure(meta, "validation") : unknownOutcome(meta)
-      )
-      context.operations.registry.finish(
-        meta.mutation.operationId,
-        validation ? "not-committed" : "quarantined",
-        result
-      )
-      return result
+    } finally {
+      release()
     }
   })
 }

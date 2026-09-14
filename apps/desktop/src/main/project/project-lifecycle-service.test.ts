@@ -310,6 +310,31 @@ describe("ProjectLifecycleService", () => {
     )
   })
 
+  it("drains admitted project work before close starts persisted or graph teardown", async () => {
+    const { lifecycle, projectGraph, service } = fixture()
+    const desktop = lifecycle.applicationState.desktopSession
+    const opened = await service.open(mutation(desktop, "drain-setup"), "Healthy.heron", false)
+    expect(opened.ok).toBe(true)
+    if (!opened.ok) return
+    const release = lifecycle.admitProjectWork()
+    expect(release).not.toBeNull()
+    const preparePersistedState = vi.fn(async () => undefined)
+
+    const closing = service.close(mutation(opened.value.project, "drain-close"), "save", {
+      preparePersistedState
+    })
+    await Promise.resolve()
+
+    expect(lifecycle.snapshot().project.status).toBe("closing")
+    expect(preparePersistedState).not.toHaveBeenCalled()
+    expect(projectGraph.prepareSilentCandidate).not.toHaveBeenCalled()
+
+    release!()
+    await expect(closing).resolves.toMatchObject({ ok: true, value: { closed: true } })
+    expect(preparePersistedState).toHaveBeenCalledOnce()
+    expect(projectGraph.prepareSilentCandidate).toHaveBeenCalledOnce()
+  })
+
   it("keeps a committed close successful when post-commit cleanup is quarantined", async () => {
     const { lifecycle, operations, service } = fixture()
     const desktop = lifecycle.applicationState.desktopSession

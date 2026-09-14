@@ -39,6 +39,7 @@ export const useProjectStore = defineStore("project", () => {
   const rpcError = shallowRef("")
   let pendingClose: Promise<boolean> | null = null
   let projectMutationTail: Promise<void> = Promise.resolve()
+  let projectAccessTail: Promise<void> = Promise.resolve()
 
   const session = computed(() => ("session" in lifecycle.value ? lifecycle.value.session : null))
   const hasUnsavedChanges = computed(
@@ -205,7 +206,7 @@ export const useProjectStore = defineStore("project", () => {
         })) ?? "cancel"
     }
     if (disposition === "cancel") return null
-    await projectMutationTail
+    await Promise.all([projectMutationTail, projectAccessTail])
     const statusAfterMutations = (lifecycle.value as ProjectLifecycleState).status
     if (statusAfterMutations !== "open") return null
     return disposition
@@ -216,7 +217,7 @@ export const useProjectStore = defineStore("project", () => {
     if (lifecycle.value.status !== "open" || disposition === "cancel") return false
     const preparedDisposition = disposition ?? (await prepareClose())
     if (!preparedDisposition) return false
-    if (disposition) await projectMutationTail
+    if (disposition) await Promise.all([projectMutationTail, projectAccessTail])
     const target = projectRef.value
     if (!target || pendingIntent.value) return false
     pendingIntent.value = "close"
@@ -338,6 +339,29 @@ export const useProjectStore = defineStore("project", () => {
     await projectMutationTail
   }
 
+  // Admit project-backed async work before close and make close wait for its release.
+  async function withProjectAccess<T>(task: () => Promise<T>): Promise<T | null> {
+    if (
+      (lifecycle.value.status !== "open" && lifecycle.value.status !== "saving") ||
+      pendingClose
+    ) {
+      return null
+    }
+    let releaseAccess!: () => void
+    const access = new Promise<void>((resolve) => {
+      releaseAccess = resolve
+    })
+    projectAccessTail = projectAccessTail.then(
+      () => access,
+      () => access
+    )
+    try {
+      return await task()
+    } finally {
+      releaseAccess()
+    }
+  }
+
   return {
     lifecycle,
     session,
@@ -370,7 +394,8 @@ export const useProjectStore = defineStore("project", () => {
     stopAssetAudition,
     markDirty,
     beginProjectMutation,
-    waitForProjectMutations
+    waitForProjectMutations,
+    withProjectAccess
   }
 })
 

@@ -46,6 +46,8 @@ function realtimeOnly(command: ProjectCommand): boolean {
 export class LifecycleCoordinator {
   private projectRollback: ProjectLifecycleState | null = null
   private exclusiveOfflineOperationId: string | null = null
+  private activeProjectWork = 0
+  private readonly projectWorkSettled = new Set<() => void>()
   private readonly state: ApplicationStateStore
 
   constructor(
@@ -129,6 +131,25 @@ export class LifecycleCoordinator {
 
   endExclusiveOfflineOperation(operationId: string): void {
     if (this.exclusiveOfflineOperationId === operationId) this.exclusiveOfflineOperationId = null
+  }
+
+  admitProjectWork(): (() => void) | null {
+    if (this.projectState.status !== "open" && this.projectState.status !== "saving") return null
+    this.activeProjectWork += 1
+    let released = false
+    return () => {
+      if (released) return
+      released = true
+      this.activeProjectWork -= 1
+      if (this.activeProjectWork !== 0) return
+      for (const resolve of this.projectWorkSettled) resolve()
+      this.projectWorkSettled.clear()
+    }
+  }
+
+  settleProjectWork(): Promise<void> {
+    if (this.activeProjectWork === 0) return Promise.resolve()
+    return new Promise((resolve) => this.projectWorkSettled.add(resolve))
   }
 
   beginProject(transition: ProjectTransition): void {

@@ -48,6 +48,39 @@ describe("LifecycleCoordinator", () => {
     expect(lifecycle.snapshot().project).toMatchObject({ status: "open", session: project })
   })
 
+  it("admits project work synchronously until closing and drains admitted leases", async () => {
+    const lifecycle = new LifecycleCoordinator(project)
+    const release = lifecycle.admitProjectWork()
+    expect(release).not.toBeNull()
+
+    lifecycle.beginProject("closing")
+    expect(lifecycle.admitProjectWork()).toBeNull()
+    let settled = false
+    const draining = lifecycle.settleProjectWork().then(() => {
+      settled = true
+    })
+    await Promise.resolve()
+    expect(settled).toBe(false)
+
+    release!()
+    release!()
+    await draining
+    expect(settled).toBe(true)
+
+    lifecycle.completeProject(null)
+    expect(lifecycle.admitProjectWork()).toBeNull()
+  })
+
+  it("keeps project work admissible while saving", () => {
+    const lifecycle = new LifecycleCoordinator(project)
+    lifecycle.beginProject("saving")
+
+    const release = lifecycle.admitProjectWork()
+
+    expect(release).not.toBeNull()
+    release!()
+  })
+
   it("publishes externally synchronized dirty project state", () => {
     const lifecycle = new LifecycleCoordinator(project)
 

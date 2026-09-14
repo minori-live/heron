@@ -44,6 +44,73 @@ function graph(): ProjectGraphSnapshot {
 }
 
 describe("ProjectGraphService Low Latency Mode", () => {
+  it("keeps snapshot reads in the graph queue until their asynchronous work settles", async () => {
+    const source = graph()
+    let releaseBudget!: (value: number) => void
+    const lowLatencyPluginBudgetMs = vi.fn(
+      () =>
+        new Promise<number>((resolve) => {
+          releaseBudget = resolve
+        })
+    )
+    const publisher = {
+      resolve: vi.fn((value: ProjectGraphSnapshot) => structuredClone(value)),
+      lowLatencyPluginBudgetMs,
+      compiledAudioGraphSnapshot: vi.fn(async () => null)
+    } as unknown as AudioGraphPublisher
+    const projects = { current: { id: "project" } } as unknown as ProjectService
+    const service = new ProjectGraphService(projects, publisher)
+    service.commit("project", source)
+
+    const reading = service.lowLatencySnapshot()
+    await vi.waitFor(() => expect(lowLatencyPluginBudgetMs).toHaveBeenCalledOnce())
+    const queued = vi.fn(async () => undefined)
+    const afterRead = service.enqueue(queued)
+    await Promise.resolve()
+    expect(queued).not.toHaveBeenCalled()
+
+    releaseBudget(5)
+    await expect(reading).resolves.toMatchObject({ pluginBudgetMs: 5 })
+    await afterRead
+    expect(queued).toHaveBeenCalledOnce()
+  })
+
+  it("reserves the graph queue before an asynchronous configure preflight", async () => {
+    const source = graph()
+    const publish = vi.fn(async () => structuredClone(source))
+    const publisher = {
+      resolve: vi.fn((value: ProjectGraphSnapshot) => structuredClone(value)),
+      publish,
+      lowLatencyPluginBudgetMs: vi.fn(async () => 5),
+      setLowLatencyPluginBudgetMs: vi.fn(async () => undefined),
+      compiledAudioGraphSnapshot: vi.fn(async () => null)
+    } as unknown as AudioGraphPublisher
+    const projects = { current: { id: "project" } } as unknown as ProjectService
+    const service = new ProjectGraphService(projects, publisher)
+    service.commit("project", source)
+    let releasePreflight!: () => void
+    const preflight = new Promise<void>((resolve) => {
+      releasePreflight = resolve
+    })
+    const firstStarted = vi.fn()
+
+    const first = service.configureLowLatencyModeTransaction(async (configure) => {
+      firstStarted()
+      await preflight
+      return configure({ enabled: true })
+    })
+    await vi.waitFor(() => expect(firstStarted).toHaveBeenCalledOnce())
+    const second = service.configureLowLatencyMode({ enabled: false })
+    await Promise.resolve()
+    expect(publisher.lowLatencyPluginBudgetMs).not.toHaveBeenCalled()
+    expect(publish).not.toHaveBeenCalled()
+
+    releasePreflight()
+    await expect(first).resolves.toMatchObject({ enabled: true })
+    await expect(second).resolves.toMatchObject({ enabled: false })
+    expect(publish).toHaveBeenCalledTimes(2)
+  })
+
   it("restores normal policy when persisting a newly enabled budget fails", async () => {
     const source = graph()
     const publish = vi.fn(async () => structuredClone(source))

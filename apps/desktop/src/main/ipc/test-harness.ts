@@ -3,6 +3,8 @@ import { vi } from "vitest"
 import { IPC_PROTOCOL_VERSION } from "@heron/contracts"
 import type {
   ApplicationSettings,
+  LowLatencyModeConfiguration,
+  LowLatencyModeSnapshot,
   ProjectGraphSnapshot,
   ProjectSession,
   ProjectWorkspaceSnapshot,
@@ -179,6 +181,33 @@ export function createContext(
   const lifecycle = new LifecycleCoordinator(projectSession)
   const desktopSession = lifecycle.applicationState.desktopSession
   const operations = new OperationService(registry, desktopSession)
+  let projectGraphTail: Promise<void> = Promise.resolve()
+  function enqueueProjectGraph<T>(task: () => Promise<T>): Promise<T> {
+    const result = projectGraphTail.then(task, task)
+    projectGraphTail = result.then(
+      () => undefined,
+      () => undefined
+    )
+    return result
+  }
+  const projectGraph = {
+    snapshot: vi.fn(async () => emptyGraph),
+    load: vi.fn(async () => emptyGraph),
+    refreshFromDatabase: vi.fn(async () => undefined),
+    setSoftwareMonitoringEnabled: vi.fn(async () => undefined),
+    configureLowLatencyMode: vi.fn(async (_configuration: LowLatencyModeConfiguration) => {
+      throw new Error("Low-latency configure mock is not installed")
+    }),
+    configureLowLatencyModeTransaction<T>(
+      transaction: (
+        configure: (configuration: LowLatencyModeConfiguration) => Promise<LowLatencyModeSnapshot>
+      ) => Promise<T>
+    ): Promise<T> {
+      return enqueueProjectGraph(() =>
+        transaction((configuration) => projectGraph.configureLowLatencyMode(configuration))
+      )
+    }
+  }
   const context = {
     settings: {
       get: vi.fn(async () => structuredClone(defaultSettings)),
@@ -237,12 +266,7 @@ export function createContext(
       keepRestored: vi.fn()
     },
     waveforms: {},
-    projectGraph: {
-      snapshot: vi.fn(async () => emptyGraph),
-      load: vi.fn(async () => emptyGraph),
-      refreshFromDatabase: vi.fn(async () => undefined),
-      setSoftwareMonitoringEnabled: vi.fn(async () => undefined)
-    },
+    projectGraph,
     projectCommands: {
       execute: vi.fn(async () => ({ ok: true }))
     },
