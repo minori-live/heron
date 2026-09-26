@@ -3,6 +3,7 @@ import { flushPromises, mount } from "@vue/test-utils"
 import { defineComponent } from "vue"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { AudioDeviceList, LiveDocumentConfiguration, RpcResult } from "@heron/contracts"
+import { PROJECT_SAMPLE_RATES } from "@heron/contracts"
 import { rpcFailure, rpcSuccess, testBootstrap } from "../../test/ipc"
 import { useAudioRuntimeStore } from "../../stores/audioRuntime"
 import { useLiveDeviceSettings } from "./useLiveDeviceSettings"
@@ -73,6 +74,20 @@ beforeEach(() => {
 })
 
 describe("Live device configuration", () => {
+  it("validates exactly the project sample rates accepted by persistence", async () => {
+    const { settings, wrapper } = setup()
+    await flushPromises()
+    for (const rate of PROJECT_SAMPLE_RATES) {
+      settings.updateSampleRate(rate)
+      expect(settings.valid.value).toBe(true)
+    }
+    for (const rate of [8000, 44101, 48000.5, 384000, NaN]) {
+      settings.updateSampleRate(rate)
+      expect(settings.valid.value).toBe(false)
+    }
+    expect(configuration.sampleRate).toBe(48000)
+    wrapper.unmount()
+  })
   it("keeps exact saved IDs and MIDI allowlist when discovered default devices differ", async () => {
     const { settings, wrapper } = setup()
     await flushPromises()

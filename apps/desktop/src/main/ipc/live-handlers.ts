@@ -35,24 +35,26 @@ function isConfiguration(value: unknown): value is LiveDocumentConfiguration {
   )
 }
 
+const LIVE_EDIT_COMMAND_TYPES = {
+  "create-channel": true,
+  "update-channel": true,
+  "delete-channel": true,
+  "create-send": true,
+  "update-send": true,
+  "delete-send": true,
+  "create-plugin": true,
+  "insert-plugin": true,
+  "update-plugin": true,
+  "delete-plugin": true,
+  "move-plugin": true,
+  "replace-plugin": true,
+  "set-midi-bindings": true
+} satisfies Record<LiveEditCommand["type"], true>
+
 function isEditCommand(value: unknown): value is LiveEditCommand {
   if (!value || typeof value !== "object") return false
   const command = value as Partial<LiveEditCommand>
-  return (
-    typeof command.type === "string" &&
-    [
-      "create-channel",
-      "update-channel",
-      "delete-channel",
-      "create-send",
-      "update-send",
-      "delete-send",
-      "create-plugin",
-      "update-plugin",
-      "delete-plugin",
-      "set-midi-bindings"
-    ].includes(command.type)
-  )
+  return typeof command.type === "string" && Object.hasOwn(LIVE_EDIT_COMMAND_TYPES, command.type)
 }
 
 export function registerLiveHandlers(

@@ -1,6 +1,6 @@
 import { computed, onBeforeUnmount, onMounted, shallowRef, toRaw, watch } from "vue"
 import { useI18n } from "vue-i18n"
-import { AUDIO_BACKENDS } from "@heron/contracts"
+import { AUDIO_BACKENDS, PROJECT_SAMPLE_RATES } from "@heron/contracts"
 import type {
   AudioBackend,
   AudioBackendDescriptor,
@@ -81,9 +81,7 @@ export function useLiveDeviceSettings(configuration: () => LiveDocumentConfigura
   const valid = computed(() => {
     const audio = draft.value.audio
     return (
-      Number.isInteger(draft.value.sampleRate) &&
-      draft.value.sampleRate >= 8_000 &&
-      draft.value.sampleRate <= 384_000 &&
+      PROJECT_SAMPLE_RATES.some((rate) => rate === draft.value.sampleRate) &&
       (!audio ||
         (Boolean(audio.inputDeviceId) &&
           Boolean(audio.outputDeviceId) &&

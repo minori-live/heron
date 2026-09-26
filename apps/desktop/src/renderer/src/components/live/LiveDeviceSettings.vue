@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
-import { UiButton, UiCheckbox, UiField, UiNumberInput, UiStatusNotice } from "@heron/ui"
+import { UiButton, UiCheckbox, UiField, UiNumberInput, UiSelect, UiStatusNotice } from "@heron/ui"
+import { PROJECT_SAMPLE_RATES } from "@heron/contracts"
 import type { LiveDocumentConfiguration } from "@heron/contracts"
 import AudioBackendSection from "../system-settings/AudioBackendSection.vue"
 import AudioDeviceSections from "../system-settings/AudioDeviceSections.vue"
@@ -74,17 +75,17 @@ function configure(): void {
     >
       <div class="grid gap-ui-4">
         <UiField v-slot="{ controlId }" :label="t('studio.inspector.sampleRate')">
-          <UiNumberInput
+          <UiSelect
             :id="controlId"
             :aria-label="t('studio.inspector.sampleRate')"
-            :model-value="draft.sampleRate"
-            :min="8000"
-            :max="384000"
-            :step="100"
-            suffix="Hz"
+            :model-value="String(draft.sampleRate)"
             :disabled="pending"
-            @update:model-value="updateSampleRate"
-          />
+            @update:model-value="updateSampleRate(Number($event))"
+          >
+            <option v-for="rate in PROJECT_SAMPLE_RATES" :key="rate" :value="String(rate)">
+              {{ rate }} Hz
+            </option>
+          </UiSelect>
         </UiField>
         <UiField v-slot="{ controlId }" :label="t('live.buffer')">
           <UiNumberInput
