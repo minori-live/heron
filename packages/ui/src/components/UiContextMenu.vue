@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch } from "vue"
+import { nextTick, useTemplateRef, watch } from "vue"
 import { ContextMenuContent, ContextMenuPortal, ContextMenuRoot, ContextMenuTrigger } from "reka-ui"
 import type { UiMenuDensity, UiMenuEntry, UiMenuSearchOptions } from "../menu"
 import UiMenuPanel from "./menu/UiMenuPanel.vue"
@@ -29,6 +29,14 @@ const emit = defineEmits<{
   select: [id: string]
   openContext: [event: MouseEvent]
 }>()
+
+const panel = useTemplateRef<{ focusSearch(): void }>("panel")
+
+function handleOpenAutoFocus(event: Event): void {
+  if (!props.searchOptions) return
+  event.preventDefault()
+  void nextTick(() => panel.value?.focusSearch())
+}
 
 watch(open, (isOpen) => {
   if (!isOpen) search.value = ""
@@ -60,12 +68,14 @@ function toggle(id: string): void {
         class="ui-menu__content ui-menu__root-content"
         :collision-padding="8"
         :aria-label="props.menuLabel"
+        @open-auto-focus="handleOpenAutoFocus"
       >
         <div
           :role="props.searchOptions ? 'dialog' : 'menu'"
           :aria-orientation="props.searchOptions ? undefined : 'vertical'"
         >
           <UiMenuPanel
+            ref="panel"
             :entries="props.entries"
             variant="context"
             :query="search"

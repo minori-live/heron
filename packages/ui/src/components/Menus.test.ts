@@ -1,5 +1,5 @@
 import { DOMWrapper, enableAutoUnmount, flushPromises, mount } from "@vue/test-utils"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import type { UiMenuEntry } from "../menu"
 import UiContextMenu from "./UiContextMenu.vue"
 import UiDropdownMenu from "./UiDropdownMenu.vue"
@@ -168,3 +168,53 @@ describe("menu components", () => {
     expect(wrapper.emitted("select")).toEqual([["rename"]])
   })
 })
+
+it.each(["dropdown", "context"] as const)(
+  "clears %s search before dismissing the popup through Escape",
+  async (kind) => {
+    // Flush the previous menu's deferred focus restoration before opening a new popup.
+    await flushPromises()
+    const Component = kind === "context" ? UiContextMenu : UiDropdownMenu
+    const wrapper = mount(Component, {
+      attachTo: document.body,
+      props: {
+        entries: [{ kind: "item", id: "rename", label: "Rename" }],
+        open: false,
+        "onUpdate:open": (value: boolean) => void wrapper.setProps({ open: value }),
+        menuLabel: "Commands",
+        searchOptions: { label: "Find command", emptyMessage: "No matches" }
+      },
+      slots: { default: '<button type="button">Commands</button>' }
+    })
+    wrapper.get("button").element.focus()
+    if (kind === "context")
+      await wrapper.get("button").trigger("contextmenu", { clientX: 10, clientY: 10 })
+    else await wrapper.get("button").trigger("click")
+    await flushPromises()
+    await vi.waitFor(() =>
+      expect(document.body.querySelector('[role="dialog"][aria-label="Commands"]')).not.toBeNull()
+    )
+    const popup = document.body.querySelector('[role="dialog"][aria-label="Commands"]')!
+    expect(popup).not.toBeNull()
+    const menu = popup.querySelector('[role="menu"]')!
+    expect(menu.querySelector("input")).toBeNull()
+    const search = new DOMWrapper(
+      popup.querySelector<HTMLInputElement>('input[aria-label="Find command"]')
+    )
+    await search.setValue("unmatched")
+    await flushPromises()
+    expect(popup.textContent).toContain("No matches")
+    expect(popup.querySelector('[role="menu"]')).toBeNull()
+    await search.trigger("keydown", { key: "Escape" })
+    await flushPromises()
+    expect(search.element.value).toBe("")
+    expect(popup.querySelector('[role="menuitem"]')?.textContent).toContain("Rename")
+    await search.trigger("keydown", { key: "Escape" })
+    await flushPromises()
+    await vi.waitFor(() =>
+      expect(document.body.querySelector('[role="dialog"][aria-label="Commands"]')).toBeNull()
+    )
+    expect(wrapper.emitted("update:open")?.at(-1)).toEqual([false])
+    wrapper.unmount()
+  }
+)

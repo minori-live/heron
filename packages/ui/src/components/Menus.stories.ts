@@ -267,6 +267,22 @@ export const ScrollableContextMenu: Story = {
   })
 }
 
+export const SearchableContextMenu: Story = {
+  render: () => ({
+    components: { UiButton, UiContextMenu },
+    setup: () => ({ effectEntries }),
+    template: `
+      <UiContextMenu
+        :entries="effectEntries"
+        menu-label="Insert effect"
+        :search-options="{ label: 'Search effects', emptyMessage: 'No matching effects' }"
+      >
+        <UiButton>Right-click to insert effect</UiButton>
+      </UiContextMenu>
+    `
+  })
+}
+
 export const CascadingMenu: Story = {
   render: () => ({
     components: { UiButton, UiCascadingMenu },
