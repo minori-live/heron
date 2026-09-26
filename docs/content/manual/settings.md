@@ -112,5 +112,5 @@ starting installation; simply quitting does not authorize an update.
 
 If a check or download fails, use **Check for updates** to retry. If Heron cannot
 confirm a safe shutdown, quit and reopen the application before retrying.
-Linux updates require running the AppImage. Users upgrading from a version
-without automatic updates need to install an update-enabled release manually once.
+Linux updates require running the AppImage. Heron 0.5.1 and earlier need one
+manual installation when moving to the website-hosted update feed.

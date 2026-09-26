@@ -1,0 +1,60 @@
+name: Publish update manifests
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: Promote published release manifests
+    if: ${{ startsWith(github.event.release.tag_name, 'v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: update-manifests
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Install locked toolchain
+        uses: jdx/mise-action@v4
+        with:
+          version: 2026.7.13
+          cache: true
+
+      - name: Install workspace dependencies
+        run: mise run install
+
+      - name: Promote manifests
+        shell: bash
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin refs/heads/update-manifests:refs/remotes/origin/update-manifests
+          git worktree add --detach "$RUNNER_TEMP/update-manifests" origin/update-manifests
+          node apps/desktop/scripts/promote-update-manifests.ts \
+            "$RUNNER_TEMP/update-manifests" "$TAG_NAME"
+          git -C "$RUNNER_TEMP/update-manifests" add current
+          if ! git -C "$RUNNER_TEMP/update-manifests" diff --cached --quiet; then
+            git -C "$RUNNER_TEMP/update-manifests" commit \
+              -m "Publish update manifests for $TAG_NAME"
+            git -C "$RUNNER_TEMP/update-manifests" push origin HEAD:update-manifests
+          fi
+
+      - name: Deploy updated Pages site from main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run pages.yml --ref main

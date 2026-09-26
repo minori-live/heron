@@ -9,8 +9,9 @@ builds, and tagged releases.
 - **CI** (`.github/workflows/ci.yml`) runs on pull requests and pushes to
   `main`. It calls the reusable Test and Build workflows and builds the
   VitePress user documentation in parallel, then reports their combined result
-  through the stable `Gate` job. After the gate succeeds on `main`, it deploys
-  the documentation artifact to GitHub Pages. Configure the `Gate` check (shown
+  through the stable `Gate` job. After the gate succeeds on `main`, it calls the
+  shared Pages workflow, which builds the documentation and includes the current
+  update manifests. Configure the `Gate` check (shown
   under the `CI` workflow) as the only required status check for pull requests.
 - **Test** (`.github/workflows/test.yml`) runs repository checks on Linux x64,
   Windows x64, and macOS. Linux runs `mise run ci:check:coverage`, a variant of
@@ -31,7 +32,15 @@ builds, and tagged releases.
 - **Publish** (`.github/workflows/publish.yml`) runs on a `v*` tag, validates
   that the tag matches `VERSION`, calls the reusable Test and Build workflows
   (Build with `full_release_profile: true`), and creates a draft GitHub Release
-  only after both succeed.
+  only after both succeed. It stages verified update manifests on the
+  `update-manifests` branch before creating the draft, while Release assets
+  contain installers and checksums only.
+- **Publish update manifests** (`.github/workflows/publish-updates.yml`) handles
+  the Release `published` event. It promotes the staged manifests and dispatches
+  the shared Pages workflow from `main`, the branch allowed by the Pages
+  environment's deployment policy. The shared workflow also preserves the
+  manifests during ordinary documentation deployments. Staging and promotion
+  share a repository-wide concurrency group so their branch writes are serialized.
 
 ## Workflow tiers
 
@@ -41,9 +50,11 @@ builds, and tagged releases.
   Pages. Installers remain available as workflow artifacts for 14 days.
 - Manual `workflow_dispatch` runs are available on `CI`, `Test`, and `Build`.
 - Tags beginning with `v` run `Publish`, which calls `Test` and `Build`. After
-  both succeed, `Publish` downloads the Build artifacts and adds the
-  installers, a `SHA256SUMS` file, generated release notes, and (for public
-  repositories) GitHub artifact attestations to a draft GitHub Release.
+  both succeed, `Publish` downloads the Build artifacts, stages update metadata,
+  and adds the installers, a `SHA256SUMS` file, generated release notes, and
+  (for public repositories) GitHub artifact attestations to a draft GitHub
+  Release. Publishing the draft makes the update manifests available at
+  `https://heron.minori.live/updates/` after the Pages deployment succeeds.
 
 The Test and Build workflows install the versions in `mise.lock`, use frozen
 pnpm dependencies, and pin the VST3 SDK commit where a native setup is

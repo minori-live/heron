@@ -20,6 +20,11 @@ release.
    - **Linux x64 or arm64:** `.AppImage`
 4. Keep the accompanying `SHA256SUMS` file if you want to verify the download.
 
+If you have Heron 0.5.1 or earlier, install the first release using the new
+update feed manually. Those versions look for update metadata in GitHub Release
+assets; newer releases provide it through the Heron website instead. Automatic
+updates resume after that installation.
+
 ::: tip No release listed?
 Heron is experimental. If the Releases page has no published installer yet,
 you can build it from source by following the

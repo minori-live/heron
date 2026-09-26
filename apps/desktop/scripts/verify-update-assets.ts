@@ -67,7 +67,6 @@ export async function verifyUpdateAssets(
       hash.update(chunk)
     }
     if (hash.digest("base64") !== file.sha512) throw new Error(`Checksum mismatch: ${file.url}`)
-    if (file.url.endsWith(".exe") || file.url.endsWith(".zip")) await stat(`${path}.blockmap`)
   }
   return metadataName
 }

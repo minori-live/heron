@@ -1,7 +1,8 @@
-# ADR-0006: Update installed tagged releases through GitHub Releases
+# ADR-0006: Update installed tagged releases through Pages metadata and GitHub Releases
 
 - Status: Accepted
 - Date: 2026-09-06
+- Amended: 2026-09-26
 - Owners: project maintainers
 - Scope: implemented update contract; installed upgrade evidence is a separate release gate
 - Related: [CI and releases](../ci.md), [Transaction ownership](0001-runtime-ownership-and-transactions.md)
@@ -29,14 +30,29 @@ non-enabled builds require manual installation of the first enabled release.
 
 Support `X.Y.Z` and `X.Y.Z-alpha.N/beta.N/rc.N`. Stable excludes prereleases;
 alpha may advance to beta/stable, beta to stable, and rc follows rc. Disable
-downgrades after channel assignment. The bundled update configuration targets
-public `minori-live/heron` GitHub assets, with no renderer-supplied feed or token.
+downgrades after channel assignment. The bundled generic update configuration
+reads channel metadata from `https://heron.minori.live/updates/`. Each manifest
+uses absolute URLs for public `minori-live/heron` Release installers, with no
+renderer-supplied feed or token.
 
 Generate metadata with `--publish never`. Before upload, validate channel files,
 referenced sizes and SHA-512 hashes. Linux uses separate `CHANNEL-linux.yml` and
-`CHANNEL-linux-arm64.yml`. Upload installers, ZIPs, blockmaps and metadata into
-the draft release; publishing the complete draft exposes the update. The workflow
-cannot overwrite published releases. Correct bad releases with higher versions.
+`CHANNEL-linux-arm64.yml`. Stage versioned manifests on the `update-manifests`
+branch before creating the draft Release. The Release contains installers, the
+macOS ZIP and checksums; it contains no manifests or blockmaps. On the Release
+`published` event, promote the staged manifests to the branch's `current/`
+directory, then deploy them under the Pages `/updates/` route together with the
+documentation site. Main-branch documentation deployments overlay the same
+current manifests so a later site deployment cannot erase the update feed.
+Disable differential downloads because blockmaps are not distributed. The
+workflow cannot overwrite published Releases. Correct bad releases with higher
+versions.
+
+The 0.5.1 updater has the GitHub provider baked into its package and cannot
+discover a later Release without its metadata asset. Older builds either use
+that provider or have no updater. Moving to the Pages feed therefore requires
+one manual installation of the first release using it. Subsequent releases
+update through Pages.
 
 ### Scheduling and installation
 
@@ -79,7 +95,8 @@ installation on quit conflicts with audio work and cancellation of saving.
 
 ## Consequences
 
-Updates depend on public GitHub availability and compatible signed/package assets.
+Updates depend on public Pages metadata, GitHub Release assets and compatible
+signed/package assets. Publishing a draft alone does not change the update feed.
 Runtime ownership stays in main with no helper, callback or project schema change.
 Dependency upgrades and signing-policy changes require their own review; package
 manifests and locks, not this ADR, record exact installed versions.

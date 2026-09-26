@@ -29,10 +29,8 @@ artifactName: "${productName}-${version}-${os}-${arch}.${ext}"
 
 # Upload only after every platform and test has passed (publish.yml).
 publish:
-  provider: github
-  owner: minori-live
-  repo: heron
-  releaseType: draft
+  provider: generic
+  url: https://heron.minori.live/updates/
 generateUpdatesFilesForAllChannels: false
 
 files:

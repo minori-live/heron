@@ -9,6 +9,7 @@ export function electronUpdateDriver(updater: AppUpdater, channel: string): Upda
   // Setting channel enables downgrade internally, so set this afterwards.
   updater.allowDowngrade = false
   updater.disableWebInstaller = true
+  updater.disableDifferentialDownload = true
   let installFailed: (() => void) | null = null
   const onError = (error: Error): void => {
     console.error("Application update failed", error)

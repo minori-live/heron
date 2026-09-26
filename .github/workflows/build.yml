@@ -262,7 +262,6 @@ jobs:
           path: |
             ${{ matrix.package-glob }}
             release/*.zip
-            release/*.blockmap
             release/latest*.yml
             release/alpha*.yml
             release/beta*.yml

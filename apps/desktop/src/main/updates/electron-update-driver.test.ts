@@ -12,6 +12,7 @@ describe("electron updater adapter", () => {
       allowPrerelease: true,
       channel: "beta",
       disableWebInstaller: false,
+      disableDifferentialDownload: false,
       checkForUpdates: vi.fn(async () => ({
         isUpdateAvailable: false,
         updateInfo: { version: "1.0.0" }
@@ -26,7 +27,8 @@ describe("electron updater adapter", () => {
       allowDowngrade: false,
       allowPrerelease: false,
       channel: "latest",
-      disableWebInstaller: true
+      disableWebInstaller: true,
+      disableDifferentialDownload: true
     })
     expect(await driver.check()).toBeNull()
     await driver.download(vi.fn())
