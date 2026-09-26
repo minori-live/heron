@@ -85,18 +85,20 @@ struct RealtimeInputShared {
 }
 
 impl RealtimeInputShared {
+    fn new() -> Self {
+        Self {
+            events: Arc::new(HeapRb::new(MIDI_SHORT_QUEUE_CAPACITY)),
+            sysex: Arc::new(HeapRb::new(MIDI_SYSEX_SLAB_BYTES)),
+            panic_requested: Arc::new(AtomicBool::new(false)),
+            sync_lost: AtomicBool::new(false),
+            external_sync_enabled: AtomicBool::new(false),
+            dropped: Arc::new(AtomicU64::new(0)),
+            presentation_latency_micros: AtomicU64::new(0),
+        }
+    }
+
     fn get() -> Arc<Self> {
-        Arc::clone(REALTIME_INPUT.get_or_init(|| {
-            Arc::new(Self {
-                events: Arc::new(HeapRb::new(MIDI_SHORT_QUEUE_CAPACITY)),
-                sysex: Arc::new(HeapRb::new(MIDI_SYSEX_SLAB_BYTES)),
-                panic_requested: Arc::new(AtomicBool::new(false)),
-                sync_lost: AtomicBool::new(false),
-                external_sync_enabled: AtomicBool::new(false),
-                dropped: Arc::new(AtomicU64::new(0)),
-                presentation_latency_micros: AtomicU64::new(0),
-            })
-        }))
+        Arc::clone(REALTIME_INPUT.get_or_init(|| Arc::new(Self::new())))
     }
 }
 
@@ -108,6 +110,15 @@ pub struct RealtimeMidiConsumer {
 }
 
 impl RealtimeMidiConsumer {
+    fn new(shared: Arc<RealtimeInputShared>) -> Self {
+        Self {
+            events: Cons::new(Arc::clone(&shared.events)),
+            sysex: Cons::new(Arc::clone(&shared.sysex)),
+            shared,
+            pending: None,
+        }
+    }
+
     #[must_use]
     pub fn next_before(&mut self, deadline_micros: u64) -> Option<RealtimeMidiEvent> {
         let event = self.pending.take().or_else(|| self.events.try_pop())?;
@@ -159,13 +170,7 @@ impl RealtimeMidiConsumer {
 
 #[must_use]
 pub fn realtime_consumer() -> RealtimeMidiConsumer {
-    let shared = RealtimeInputShared::get();
-    RealtimeMidiConsumer {
-        events: Cons::new(Arc::clone(&shared.events)),
-        sysex: Cons::new(Arc::clone(&shared.sysex)),
-        shared,
-        pending: None,
-    }
+    RealtimeMidiConsumer::new(RealtimeInputShared::get())
 }
 
 #[must_use]

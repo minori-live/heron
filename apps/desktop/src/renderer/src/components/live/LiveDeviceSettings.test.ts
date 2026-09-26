@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from "pinia"
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { LiveDocumentConfiguration } from "@heron/contracts"
+import { PROJECT_SAMPLE_RATES } from "@heron/contracts"
 import { rpcFailure, rpcSuccess, testBootstrap } from "../../test/ipc"
 import { useAudioRuntimeStore } from "../../stores/audioRuntime"
 import LiveDeviceSettings from "./LiveDeviceSettings.vue"
@@ -26,6 +27,20 @@ describe("Live device settings pending transaction", () => {
       midiInputSnapshot: vi.fn(async () => rpcFailure("rendererErrors.engineUnavailable")),
       subscribeMidiInput: vi.fn(() => () => undefined)
     })
+  })
+
+  it("offers only supported sample rates and submits the selected rate", async () => {
+    const wrapper = mount(LiveDeviceSettings, { props: { configuration, pending: false } })
+    await flushPromises()
+    const rate = wrapper.get('select[aria-label="Sample rate"]')
+    expect(rate.findAll("option").map((option) => Number(option.element.value))).toEqual([
+      ...PROJECT_SAMPLE_RATES
+    ])
+    await rate.setValue("96000")
+    const save = wrapper.findAll("button").find((button) => button.text() === "Save device setup")!
+    await save.trigger("click")
+    expect(wrapper.emitted("configure")).toEqual([[{ ...configuration, sampleRate: 96000 }]])
+    expect(configuration.sampleRate).toBe(48000)
   })
 
   it("locks the complete rig form while saving and restores editing afterward", async () => {

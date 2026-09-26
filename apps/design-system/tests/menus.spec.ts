@@ -1,5 +1,27 @@
 import { expect, test } from "@playwright/test"
 
+test("searchable context menu clears search then closes on Escape", async ({ page }) => {
+  await page.goto(
+    "/iframe.html?id=components-menus--searchable-context-menu&viewMode=story&globals=theme:dark;motion:disabled"
+  )
+  const trigger = page.getByRole("button", { name: "Right-click to insert effect" })
+  await trigger.focus()
+  await trigger.click({ button: "right" })
+  const popup = page.getByRole("dialog", { name: "Insert effect" })
+  const search = popup.getByRole("textbox", { name: "Search effects" })
+  await expect(search).toBeFocused()
+  await search.fill("missing")
+  await expect(popup.getByText("No matching effects")).toBeVisible()
+  await search.press("Escape")
+  await expect(search).toHaveValue("")
+  await expect(popup.getByRole("menu")).toBeVisible()
+  await search.fill("   ")
+  await expect(popup.getByRole("menu")).toBeVisible()
+  await search.press("Escape")
+  await expect(popup).toHaveCount(0)
+  await expect(trigger).toBeFocused()
+})
+
 test("search flattens nested menu results and keeps their category path", async ({ page }) => {
   await page.goto(
     "/iframe.html?id=components-menus--searchable-taxonomy&viewMode=story&globals=theme:dark;motion:disabled"

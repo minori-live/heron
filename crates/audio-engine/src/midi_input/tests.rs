@@ -1,13 +1,5 @@
 use super::*;
 
-struct ExternalSyncReset(Arc<RealtimeInputShared>);
-
-impl Drop for ExternalSyncReset {
-    fn drop(&mut self) {
-        self.0.external_sync_enabled.store(false, Ordering::Release);
-    }
-}
-
 fn prefs(
     enabled: bool,
     source: Option<(&str, &str)>,
@@ -278,18 +270,11 @@ fn callback_state_marks_panic_when_short_queue_is_full() {
 
 #[test]
 fn realtime_consumer_defers_future_events_and_exposes_flags() {
-    let _guard = GLOBAL_MIDI_TEST_LOCK
-        .lock()
-        .unwrap_or_else(|error| error.into_inner());
-    let shared = RealtimeInputShared::get();
-    let _external_sync_reset = ExternalSyncReset(Arc::clone(&shared));
+    // Audio-engine integration tests may own the process-global consumer concurrently.
+    let shared = Arc::new(RealtimeInputShared::new());
     let mut producer = Prod::new(Arc::clone(&shared.events));
     let mut sysex_prod = Prod::new(Arc::clone(&shared.sysex));
-    let mut consumer = realtime_consumer();
-    // Drain any leftover events from other tests sharing the process-global rings.
-    while consumer.next_before(u64::MAX).is_some() {}
-    let mut drain_byte = [0_u8; 1];
-    while consumer.pop_sysex(&mut drain_byte) {}
+    let mut consumer = RealtimeMidiConsumer::new(Arc::clone(&shared));
 
     shared.panic_requested.store(true, Ordering::Release);
     shared.sync_lost.store(true, Ordering::Release);
@@ -634,9 +619,9 @@ fn actor_state_with_local_rings(
     Cons<Arc<HeapRb<RealtimeMidiEvent>>>,
     Cons<Arc<HeapRb<u8>>>,
 ) {
-    let events = Arc::new(HeapRb::new(64));
-    let sysex = Arc::new(HeapRb::new(64));
-    let shared = RealtimeInputShared::get();
+    let shared = Arc::new(RealtimeInputShared::new());
+    let events = Arc::clone(&shared.events);
+    let sysex = Arc::clone(&shared.sysex);
     let state = ActorState {
         preferences,
         ports: Vec::new(),
@@ -752,8 +737,6 @@ fn flush_realtime_events_maps_channel_voice_and_transport_messages() {
 
 #[test]
 fn snapshot_maps_clock_states_and_aggregates_dropped_events() {
-    let shared = RealtimeInputShared::get();
-    shared.dropped.store(4, Ordering::Relaxed);
     let (mut state, _events, _sysex) = actor_state_with_local_rings(
         prefs(
             true,
@@ -764,6 +747,7 @@ fn snapshot_maps_clock_states_and_aggregates_dropped_events() {
         ),
         Vec::new(),
     );
+    state.realtime_shared.dropped.store(4, Ordering::Relaxed);
     state.ports = vec![WireMidiInputPort {
         id: "src".into(),
         name: "Source".into(),

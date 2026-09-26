@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest"
-import type { LiveRuntimeSnapshot, MixerGraphSnapshot, PluginInstanceState } from "@heron/contracts"
-import { applyLiveCapture, applyLiveEdit, diffLiveCapture } from "./live"
+import type {
+  LiveRuntimeSnapshot,
+  LivePerformanceCommand,
+  MixerGraphSnapshot,
+  PluginInstanceState
+} from "@heron/contracts"
+import {
+  applyLiveCapture,
+  applyLiveEdit,
+  applyLivePerformanceCommand,
+  diffLiveCapture
+} from "./live"
 
 function graph(): MixerGraphSnapshot {
   return {
@@ -285,5 +295,165 @@ describe("Live root editing and capture", () => {
       { type: "channel", id: "audio", parameter: "muted" },
       { type: "plugin-parameter", id: "effect", parameterKey: "cutoff" }
     ])
+  })
+})
+
+describe("Live performance changes and selective capture", () => {
+  function baseline(): LiveRuntimeSnapshot {
+    const value = graph()
+    value.plugins = [effect()]
+    value.sends = [
+      {
+        id: "send",
+        sourceChannelId: "audio",
+        targetChannelId: null,
+        targetBus: 1,
+        sortOrder: 0,
+        enabled: false,
+        tap: "post-pan",
+        levelDb: -90
+      }
+    ]
+    return {
+      graph: value,
+      parameterValues: [{ pluginId: "effect", parameterKey: "mix", value: 0.2 }]
+    }
+  }
+
+  it("keeps performance changes temporary and captures every field category independently", () => {
+    const base = baseline()
+    let live = applyLivePerformanceCommand(base, {
+      type: "channel",
+      id: "audio",
+      parameter: "pan",
+      value: 0.5
+    })
+    live = applyLivePerformanceCommand(live, {
+      type: "channel",
+      id: "audio",
+      parameter: "muted",
+      value: true
+    })
+    live = applyLivePerformanceCommand(live, {
+      type: "send",
+      id: "send",
+      parameter: "levelDb",
+      value: -6
+    })
+    live = applyLivePerformanceCommand(live, {
+      type: "send",
+      id: "send",
+      parameter: "enabled",
+      value: true
+    })
+    live = applyLivePerformanceCommand(live, {
+      type: "plugin",
+      id: "effect",
+      parameter: "enabled",
+      value: false
+    })
+    live = applyLivePerformanceCommand(live, {
+      type: "plugin-parameter",
+      id: "effect",
+      parameterKey: "mix",
+      value: 0.8
+    })
+    live = applyLivePerformanceCommand(live, {
+      type: "plugin-parameter",
+      id: "effect",
+      parameterKey: "gain",
+      value: 0.4
+    })
+    const fields = diffLiveCapture(base, live)
+    expect(fields).toHaveLength(7)
+    expect(base).toEqual(baseline())
+    const sendAndPlugin = fields.filter(
+      (field) =>
+        field.type === "send" || field.type === "plugin" || field.type === "plugin-parameter"
+    )
+    const captured = applyLiveCapture(base, live, fields, sendAndPlugin)
+    expect(captured.graph.channels[0]?.pan).toBe(0)
+    expect(captured.graph.sends).toEqual(live.graph.sends)
+    expect(captured.graph.plugins[0]?.enabled).toBe(false)
+    expect(captured.parameterValues).toEqual(live.parameterValues)
+    expect(diffLiveCapture(captured, live)).toEqual(
+      fields.filter((field) => field.type === "channel")
+    )
+    expect(applyLiveCapture(base, live, fields, fields)).toEqual(live)
+  })
+
+  it.each([
+    { type: "channel", id: "audio", parameter: "pan", value: true },
+    { type: "channel", id: "audio", parameter: "muted", value: 1 },
+    { type: "send", id: "send", parameter: "levelDb", value: false },
+    { type: "send", id: "send", parameter: "enabled", value: 1 },
+    { type: "plugin", id: "effect", parameter: "enabled", value: 1 },
+    { type: "plugin-parameter", id: "effect", parameterKey: "", value: 1 },
+    { type: "plugin-parameter", id: "missing", parameterKey: "mix", value: 1 }
+  ])("rejects invalid performance values or targets: $type $parameter", (command) => {
+    const base = baseline()
+    expect(() => applyLivePerformanceCommand(base, command as LivePerformanceCommand)).toThrow()
+    expect(base).toEqual(baseline())
+  })
+
+  it.each(["channels", "sends", "plugins"] as const)(
+    "refuses capture after %s structure changes",
+    (field) => {
+      const base = baseline()
+      const changed = structuredClone(base)
+      changed.graph[field][0]!.id = "new"
+      expect(() => diffLiveCapture(base, changed)).toThrow("structure changed")
+      changed.graph[field] = []
+      expect(() => diffLiveCapture(base, changed)).toThrow("structure changed")
+    }
+  )
+
+  it("rejects duplicate, missing and nonfinite parameter values without corrupting a baseline", () => {
+    const base = baseline()
+    for (const parameterValues of [
+      [],
+      [{ pluginId: "missing", parameterKey: "mix", value: 1 }],
+      [base.parameterValues[0]!, base.parameterValues[0]!],
+      [{ pluginId: "effect", parameterKey: "mix", value: NaN }]
+    ]) {
+      expect(() => diffLiveCapture(base, { ...structuredClone(base), parameterValues })).toThrow()
+    }
+    const field = { type: "plugin-parameter" as const, id: "effect", parameterKey: "absent" }
+    expect(() => applyLiveCapture(base, base, [field], [field])).toThrow("missing")
+  })
+
+  it("creates and removes Sends and updates plugins through normal Edit commands", () => {
+    let edit = { graph: graph(), bindings: [] }
+    edit = applyLiveEdit(edit, {
+      type: "create-channel",
+      channel: { ...edit.graph.channels[0]!, id: "audio-2" }
+    }) as typeof edit
+    edit = applyLiveEdit(edit, {
+      type: "create-send",
+      send: baseline().graph.sends[0]!
+    }) as typeof edit
+    edit = applyLiveEdit(edit, {
+      type: "update-send",
+      sendId: "send",
+      patch: { levelDb: -12, enabled: true }
+    }) as typeof edit
+    expect(edit.graph.sends[0]).toMatchObject({ enabled: true, levelDb: -12 })
+    edit = applyLiveEdit(edit, { type: "delete-send", sendId: "send" }) as typeof edit
+    expect(edit.graph.sends).toEqual([])
+    edit = applyLiveEdit(edit, { type: "create-plugin", plugin: effect() }) as typeof edit
+    edit = applyLiveEdit(edit, {
+      type: "update-plugin",
+      pluginId: "effect",
+      patch: { enabled: false }
+    }) as typeof edit
+    expect(edit.graph.plugins[0]?.enabled).toBe(false)
+    edit = applyLiveEdit(edit, { type: "set-midi-bindings", bindings: [] }) as typeof edit
+    expect(edit.bindings).toEqual([])
+    expect(() =>
+      applyLiveEdit(edit, {
+        type: "insert-plugin",
+        plugin: { ...effect(), id: "bad", slotOrder: -1 }
+      })
+    ).toThrow("slot order")
   })
 })

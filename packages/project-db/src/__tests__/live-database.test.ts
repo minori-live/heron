@@ -178,3 +178,188 @@ describe("Live database lineage", () => {
     } satisfies Partial<LiveArchiveFormatError>)
   }, 30_000)
 })
+
+describe("Live rig persistence", () => {
+  it("round-trips exact devices, MIDI bindings, Sends, plugin chunks and captured parameters", async () => {
+    const { root, template } = await fixture()
+    const configuration = {
+      name: "Stage",
+      sampleRate: 48000,
+      audio: {
+        backend: "mock" as const,
+        inputDeviceId: "physical-input",
+        outputDeviceId: "physical-output",
+        bufferSize: 128
+      },
+      enabledMidiDeviceIds: ["keyboard"]
+    }
+    const database = await LiveDatabase.create(join(root, "rig"), configuration, template)
+    try {
+      expect(await database.configuration()).toEqual(configuration)
+      expect(await database.updateConfiguration({ ...configuration, name: "Tour" }, 0)).toBe(1)
+      await expect(database.updateConfiguration(configuration, 0)).rejects.toMatchObject({
+        code: "revision-conflict"
+      })
+      const graph = await database.mixerSnapshot()
+      const audio = graph.channels.find((channel) => channel.kind === "audio")!
+      graph.channels.push({
+        ...audio,
+        id: "keys",
+        name: "Keys",
+        kind: "instrument",
+        inputSource: null,
+        inputFormat: null,
+        inputChannels: [],
+        midiInput: { portId: "keyboard", portName: "Keyboard", channel: 2 }
+      })
+      graph.sends = [
+        {
+          id: "send",
+          sourceChannelId: audio.id,
+          targetChannelId: null,
+          targetBus: 1,
+          sortOrder: 0,
+          tap: "post-pan",
+          enabled: true,
+          levelDb: -12
+        }
+      ]
+      const locator = {
+        format: "vst3" as const,
+        artifactPath: "/plugins/Effect.vst3",
+        nativeId: "effect"
+      }
+      graph.plugins = [
+        {
+          id: "effect",
+          channelId: audio.id,
+          role: "insert",
+          slotOrder: 0,
+          locator,
+          descriptor: {
+            source: { kind: "external" },
+            locator,
+            name: "Effect",
+            vendor: "Heron",
+            version: "1",
+            categories: ["Fx"],
+            kind: "effect",
+            architecture: "x86_64",
+            buses: [
+              {
+                portKey: "sidechain",
+                direction: "input",
+                kind: "aux",
+                name: "Sidechain",
+                channels: 2,
+                defaultActive: true
+              }
+            ],
+            supportedAudioModes: ["stereo"],
+            hasEditor: false,
+            compatibility: "compatible",
+            compatibilityReason: null
+          },
+          audioMode: "stereo",
+          enabled: true,
+          controlAlias: null,
+          sidechainInputs: [{ inputPortKey: "sidechain", sourceChannelId: "keys" }],
+          state: { version: 1, chunks: [{ key: "component", bytes: new Uint8Array([1, 3, 5]) }] }
+        }
+      ]
+      const binding: import("@heron/contracts").LiveMidiBinding = {
+        id: "gain",
+        address: {
+          portId: "keyboard",
+          portName: "keyboard",
+          channel: 2,
+          type: "control-change",
+          number: 7
+        },
+        input: { type: "absolute" },
+        target: { type: "channel", channelId: audio.id, parameter: "gain" },
+        transformProfileId: "builtin:absolute-linear"
+      }
+      const bindings = [
+        binding,
+        {
+          ...binding,
+          id: "mix",
+          target: { type: "plugin-parameter" as const, pluginId: "effect", parameterKey: "mix" }
+        }
+      ]
+      const snapshot = {
+        graph,
+        parameterValues: [{ pluginId: "effect", parameterKey: "mix", value: 0.75 }]
+      }
+      expect(await database.replaceBaseline(snapshot, bindings, 1)).toBe(2)
+      expect(await database.midiBindings()).toEqual(bindings)
+      expect(await database.pluginParameterValues()).toEqual(snapshot.parameterValues)
+      expect((await database.mixerSnapshot()).plugins).toMatchObject(graph.plugins)
+      const path = join(root, "Tour.hrl")
+      await database.dump(path)
+      const reopened = await LiveDatabase.open(join(root, "reopened"), path)
+      try {
+        expect(await reopened.configuration()).toEqual({ ...configuration, name: "Tour" })
+        expect(await reopened.revision()).toBe(2)
+        expect(await reopened.mixerSnapshot()).toEqual(await database.mixerSnapshot())
+        expect(await reopened.pluginParameterValues()).toEqual(snapshot.parameterValues)
+        expect(await reopened.midiBindings()).toEqual(bindings)
+      } finally {
+        await reopened.close()
+      }
+
+      for (const invalid of [
+        { ...snapshot, graph: { ...graph, sampleRate: 44100 } },
+        { ...snapshot, parameterValues: [{ pluginId: "missing", parameterKey: "mix", value: 1 }] },
+        { ...snapshot, parameterValues: [...snapshot.parameterValues, ...snapshot.parameterValues] }
+      ])
+        await expect(database.replaceBaseline(invalid, bindings, 2)).rejects.toThrow()
+      await expect(database.replaceBaseline(snapshot, [binding, binding], 2)).rejects.toThrow(
+        "unique"
+      )
+      // Fail a database constraint after the revision has advanced inside the transaction.
+      const invalidSql = structuredClone(snapshot)
+      invalidSql.graph.channels[0]!.name = " "
+      await expect(database.replaceBaseline(invalidSql, bindings, 2)).rejects.toThrow()
+      expect(await database.revision()).toBe(2)
+      expect((await database.mixerSnapshot()).plugins).toMatchObject(graph.plugins)
+      expect(await database.pluginParameterValues()).toEqual(snapshot.parameterValues)
+    } finally {
+      await database.close()
+    }
+  }, 30000)
+
+  it("rejects invalid rig configuration before replacing the persisted choice", async () => {
+    const { root, template } = await fixture()
+    const configuration = {
+      name: "Stage",
+      sampleRate: 48000,
+      audio: null,
+      enabledMidiDeviceIds: []
+    }
+    const database = await LiveDatabase.create(join(root, "rig"), configuration, template)
+    try {
+      for (const invalid of [
+        { ...configuration, name: " " },
+        { ...configuration, sampleRate: 12 },
+        { ...configuration, enabledMidiDeviceIds: ["keyboard", "keyboard"] },
+        { ...configuration, enabledMidiDeviceIds: [""] },
+        {
+          ...configuration,
+          audio: {
+            backend: "mock" as const,
+            inputDeviceId: "",
+            outputDeviceId: "out",
+            bufferSize: 128
+          }
+        }
+      ])
+        await expect(database.updateConfiguration(invalid, 0)).rejects.toThrow()
+      expect(await database.revision()).toBe(0)
+      expect(await database.configuration()).toEqual(configuration)
+    } finally {
+      await database.close()
+    }
+  })
+})
