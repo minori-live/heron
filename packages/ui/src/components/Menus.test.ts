@@ -169,9 +169,14 @@ describe("menu components", () => {
   })
 })
 
-it.each(["dropdown", "context"] as const)(
-  "clears %s search before dismissing the popup through Escape",
-  async (kind) => {
+it.each([
+  { kind: "dropdown", query: "" },
+  { kind: "context", query: "" },
+  { kind: "dropdown", query: " \t " },
+  { kind: "context", query: " \t " }
+] as const)(
+  "clears $kind search then dismisses the popup through Escape with query '$query'",
+  async ({ kind, query }) => {
     // Flush the previous menu's deferred focus restoration before opening a new popup.
     await flushPromises()
     const Component = kind === "context" ? UiContextMenu : UiDropdownMenu
@@ -208,6 +213,9 @@ it.each(["dropdown", "context"] as const)(
     await search.trigger("keydown", { key: "Escape" })
     await flushPromises()
     expect(search.element.value).toBe("")
+    expect(popup.querySelector('[role="menuitem"]')?.textContent).toContain("Rename")
+    await search.setValue(query)
+    await flushPromises()
     expect(popup.querySelector('[role="menuitem"]')?.textContent).toContain("Rename")
     await search.trigger("keydown", { key: "Escape" })
     await flushPromises()

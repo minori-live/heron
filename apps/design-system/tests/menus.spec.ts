@@ -15,6 +15,8 @@ test("searchable context menu clears search then closes on Escape", async ({ pag
   await search.press("Escape")
   await expect(search).toHaveValue("")
   await expect(popup.getByRole("menu")).toBeVisible()
+  await search.fill("   ")
+  await expect(popup.getByRole("menu")).toBeVisible()
   await search.press("Escape")
   await expect(popup).toHaveCount(0)
   await expect(trigger).toBeFocused()

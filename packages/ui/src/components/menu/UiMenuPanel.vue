@@ -62,7 +62,7 @@ function focusSearch(): void {
 function handleSearchKeydown(event: KeyboardEvent): void {
   // ContextMenuRoot owns its open state internally. Let an empty-search Escape
   // reach Reka's dismiss layer as well as notifying controlled menu hosts.
-  if (!event.isComposing && event.key === "Escape" && !props.query) {
+  if (!event.isComposing && event.key === "Escape" && !normalizedQuery.value) {
     emit("close")
     return
   }
