@@ -11,6 +11,8 @@ playwright-report/
 coverage/
 **/coverage/
 *.node
+**/.napi-rs-filesystem-transaction.swp/
+crates/dsp-node/..heron-dsp-node*.retired.tmp.*
 *.log
 .DS_Store
 

@@ -244,6 +244,16 @@ Live project delivery.
 This successor milestone owns all unfinished work from the v0.5.0 closure as
 well as the standalone Live-document outcome below.
 
+The root-only bootstrap is a staged subset of this milestone
+([ADR-0008](adr/0008-root-live-bootstrap-and-capture.md)). Its independent
+`.hrl` storage, Studio/Live dispatch, and revisioned Edit document are in the
+development build. Live reuses Studio's workspace chrome and original Mixer
+components, with the Mixer in the right column and the center reserved for
+custom performance layouts. Device/MIDI values can be recorded, but Live audition,
+Perform, selective Capture, and the required hardware evidence are still open.
+Set/Patch inheritance and Studio import remain later stages within the same
+milestone; completing the root bootstrap will not close Live project delivery.
+
 ### Work carried forward from v0.5.0
 
 Tracked in [issue #135](https://github.com/minori-live/heron/issues/135).

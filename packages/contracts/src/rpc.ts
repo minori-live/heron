@@ -58,6 +58,8 @@ export interface RpcRequestMeta {
 
 export const RPC_ERROR_CODES = [
   "validation-failed",
+  "document-format-mismatch",
+  "unsupported-document-version",
   "protocol-mismatch",
   "revision-conflict",
   "stale-resource",
@@ -87,6 +89,11 @@ export type RpcRetry = "never" | "safe" | "after-reconcile"
 export interface RpcValidationErrorDetails {
   type: "validation-failed"
   field?: string
+}
+
+export interface RpcDocumentFormatErrorDetails {
+  type: "document-format-mismatch" | "unsupported-document-version"
+  kind: "studio" | "live"
 }
 
 export interface RpcProtocolMismatchDetails {
@@ -139,6 +146,7 @@ export interface RpcInvariantViolationDetails {
 
 export type RpcErrorDetails =
   | RpcValidationErrorDetails
+  | RpcDocumentFormatErrorDetails
   | RpcProtocolMismatchDetails
   | RpcRevisionConflictDetails
   | RpcStaleResourceDetails
@@ -173,6 +181,13 @@ export type RpcError =
       "not-committed",
       "never",
       RpcValidationErrorDetails
+    >
+  | RpcErrorBase<
+      "document-format-mismatch" | "unsupported-document-version",
+      "validation",
+      "not-committed",
+      "never",
+      RpcDocumentFormatErrorDetails
     >
   | RpcErrorBase<
       "protocol-mismatch",

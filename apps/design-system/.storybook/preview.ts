@@ -2,6 +2,7 @@ import type { Decorator, Preview } from "@storybook/vue3-vite"
 import { setup } from "@storybook/vue3"
 import { createHead } from "@unhead/vue/client"
 import { createPinia, setActivePinia } from "pinia"
+import { onScopeDispose, watchEffect } from "vue"
 import { withThemeByDataAttribute } from "@storybook/addon-themes"
 
 import { UiProvider } from "@heron/ui"
@@ -20,12 +21,19 @@ const withIsolatedUiContext: Decorator = (story, context) => ({
   setup() {
     setActivePinia(createPinia())
     useLocaleFonts("en-US")
-    return {
-      motion: context.globals.motion as string
-    }
+    // Overlays teleport to body, outside the story's stage.
+    const previousMotion = document.body.dataset.uiMotion
+    watchEffect(() => {
+      document.body.dataset.uiMotion = context.globals.motion === "enabled" ? "enabled" : "disabled"
+    })
+    onScopeDispose(() => {
+      if (previousMotion === undefined) delete document.body.dataset.uiMotion
+      else document.body.dataset.uiMotion = previousMotion
+    })
+    return {}
   },
   template: `
-    <div class="storybook-stage" :data-ui-motion="motion === 'enabled' ? undefined : 'disabled'">
+    <div class="storybook-stage">
       <UiProvider>
         <story />
       </UiProvider>

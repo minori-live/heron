@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MixerStripChannel } from "./mixer-surface-context"
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { Trash2 } from "@lucide/vue"
@@ -12,7 +13,6 @@ import {
 } from "@heron/ui"
 import type {
   MixerBusState,
-  MixerChannelState,
   MixerParameterPreview,
   MixerRouteTarget,
   MixerSendPatch,
@@ -22,10 +22,10 @@ import type {
 import { mixerRouteGroups } from "./mixer-route-groups"
 
 const props = defineProps<{
-  channel: MixerChannelState
+  channel: MixerStripChannel
   sends: MixerSendState[]
   buses: readonly MixerBusState[]
-  outputs: MixerChannelState[]
+  outputs: MixerStripChannel[]
   sendTargets: MixerRouteTarget[]
   slotRows: number
 }>()

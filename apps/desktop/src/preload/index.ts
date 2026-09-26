@@ -101,6 +101,19 @@ const api: HeronDesktopApi = {
   saveProject: (meta, path?: string) => invokeRpc(IPC_CHANNELS.projectSave, meta, path),
   closeProject: (meta, disposition?: ProjectCloseDisposition) =>
     invokeRpc(IPC_CHANNELS.projectClose, meta, disposition),
+  createLiveDocument: (meta, configuration, path) =>
+    invokeRpc(IPC_CHANNELS.liveCreate, meta, configuration, path),
+  prepareOpenDocument: (meta, path) => invokeRpc(IPC_CHANNELS.documentPrepareOpen, meta, path),
+  prepareOpenLiveDocument: (meta, path) => invokeRpc(IPC_CHANNELS.livePrepareOpen, meta, path),
+  openLiveDocument: (meta, path, recover) => invokeRpc(IPC_CHANNELS.liveOpen, meta, path, recover),
+  saveLiveDocument: (meta) => invokeRpc(IPC_CHANNELS.liveSave, meta),
+  closeLiveDocument: (meta, disposition) => invokeRpc(IPC_CHANNELS.liveClose, meta, disposition),
+  liveWorkspaceSnapshot: (meta) => invokeRpc(IPC_CHANNELS.liveSnapshot, meta),
+  executeLiveEdit: (meta, command) => invokeRpc(IPC_CHANNELS.liveEdit, meta, command),
+  configureLiveDocument: (meta, configuration) =>
+    invokeRpc(IPC_CHANNELS.liveConfigure, meta, configuration),
+  undoLiveEdit: (meta) => invokeRpc(IPC_CHANNELS.liveUndo, meta),
+  redoLiveEdit: (meta) => invokeRpc(IPC_CHANNELS.liveRedo, meta),
   listProjectAssets: (meta) => invokeRpc(IPC_CHANNELS.projectAssetsList, meta),
   importProjectAudio: (meta, paths) => invokeRpc(IPC_CHANNELS.projectAudioImport, meta, paths),
   updateProjectConfiguration: (meta, configuration: ProjectConfiguration) =>

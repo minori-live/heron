@@ -255,22 +255,43 @@ function respond(request: WorkerRequest): Promise<void> {
     (error: unknown) => {
       const correlationId = randomUUID()
       console.error(`[project-worker] ${correlationId} request failed`, error)
+      const formatCode = error && typeof error === "object" && "code" in error ? error.code : null
+      const formatError = formatCode === "format-mismatch" || formatCode === "unsupported-version"
       const response = {
         id: request.id,
         type: request.type,
         ok: false,
-        error: {
-          code: "invariant-violation",
-          category: "invariant-violation",
-          outcome: "quarantined",
-          retry: "after-reconcile",
-          correlationId,
-          userMessageKey: "errors.projectWorkerFailed",
-          details: {
-            type: "invariant-violation",
-            component: "project-worker"
-          }
-        }
+        error: formatError
+          ? {
+              code:
+                formatCode === "format-mismatch"
+                  ? "document-format-mismatch"
+                  : "unsupported-document-version",
+              category: "validation",
+              outcome: "not-committed",
+              retry: "never",
+              correlationId,
+              userMessageKey:
+                formatCode === "format-mismatch"
+                  ? "errors.documentFormatMismatch"
+                  : "errors.unsupportedDocumentVersion",
+              details: {
+                type:
+                  formatCode === "format-mismatch"
+                    ? "document-format-mismatch"
+                    : "unsupported-document-version",
+                kind: "studio"
+              }
+            }
+          : {
+              code: "invariant-violation",
+              category: "invariant-violation",
+              outcome: "quarantined",
+              retry: "after-reconcile",
+              correlationId,
+              userMessageKey: "errors.projectWorkerFailed",
+              details: { type: "invariant-violation", component: "project-worker" }
+            }
       } as WorkerResponse
       port.postMessage(response)
     }

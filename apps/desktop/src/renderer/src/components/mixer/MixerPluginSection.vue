@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MixerStripChannel } from "./mixer-surface-context"
 import { computed, shallowRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { GripVertical, Power, RotateCcw, Trash2 } from "@lucide/vue"
@@ -11,7 +12,6 @@ import {
   type UiDragData
 } from "@heron/ui"
 import type {
-  MixerChannelState,
   PluginFailureCategory,
   PluginDescriptor,
   PluginInstanceState,
@@ -28,14 +28,18 @@ import {
 import { pluginDisplayState } from "../plugins/plugin-display-state"
 import MixerPluginPicker from "./MixerPluginPicker.vue"
 
-const props = defineProps<{
-  channel: MixerChannelState
-  inserts: PluginInstanceState[]
-  runtime: Record<string, PluginRuntimeStatus>
-  effectPlugins: PluginDescriptor[]
-  slotRows: number
-  initialInputWidth: PluginSignalWidth
-}>()
+const props = withDefaults(
+  defineProps<{
+    channel: MixerStripChannel
+    inserts: PluginInstanceState[]
+    runtime: Record<string, PluginRuntimeStatus>
+    effectPlugins: PluginDescriptor[]
+    slotRows: number
+    initialInputWidth: PluginSignalWidth
+    editorsEnabled?: boolean
+  }>(),
+  { editorsEnabled: true }
+)
 
 const emit = defineEmits<{
   open: [instanceId: string]
@@ -68,7 +72,7 @@ function pluginState(plugin: PluginInstanceState): PluginRuntimeStatus["state"] 
 }
 
 function canRetry(plugin: PluginInstanceState): boolean {
-  return props.runtime[plugin.id]?.failure?.recoverable === true
+  return props.editorsEnabled !== false && props.runtime[plugin.id]?.failure?.recoverable === true
 }
 
 function toggleOrRetry(plugin: PluginInstanceState): void {
@@ -148,6 +152,7 @@ function confirmDrop(selection: PluginSelection): void {
                 variant="plain"
                 stop-propagation
                 class="plugin-name"
+                :disabled="editorsEnabled === false"
                 :title="`${plugin.descriptor.name} · ${plugin.descriptor.vendor}`"
                 :aria-label="t('mixer.pluginSection.openEditor', { name: plugin.descriptor.name })"
                 @click="emit('open', plugin.id)"

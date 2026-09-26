@@ -1,66 +1,37 @@
 <script setup lang="ts">
-import { useI18n } from "vue-i18n"
 import type {
   MixerChannelMeter,
   MixerChannelPatch,
-  MixerChannelState,
+  MixerChannelCoreState,
   MixerParameterPreview
 } from "@heron/contracts"
-import { FADER_MIN_DB } from "../../../utils/mixerDbScale"
-import TrackGainControl from "../TrackGainControl.vue"
+import { useStudioChannelMeter } from "../../../composables/useStudioChannelMeter"
+import WorkspaceMasterControl from "../../workspace/WorkspaceMasterControl.vue"
 
 const props = defineProps<{
-  channel: MixerChannelState | null
+  channel: MixerChannelCoreState | null
   meter?: MixerChannelMeter
+  disabled?: boolean
 }>()
 const emit = defineEmits<{
   preview: [preview: MixerParameterPreview]
   updateChannel: [channelId: string, patch: MixerChannelPatch]
 }>()
 
-const { t } = useI18n()
-
-function previewGain(value: number): void {
-  if (!props.channel) return
-  emit("preview", {
-    target: "channel",
-    id: props.channel.id,
-    parameter: "gainDb",
-    value
-  })
-}
-
-function commitGain(value: number): void {
-  if (!props.channel) return
-  emit("updateChannel", props.channel.id, { gainDb: value })
-}
+const { meter, meterPeakHold, meterReturnRate } = useStudioChannelMeter(
+  () => props.channel?.id,
+  () => props.meter
+)
 </script>
 
 <template>
-  <section class="master-control" :aria-label="t('studio.master.ariaLabel')">
-    <TrackGainControl
-      :channel-name="t('studio.master.channelName')"
-      :channel-id="channel?.id ?? 'master'"
-      :value="channel?.gainDb ?? FADER_MIN_DB"
-      :meter="meter"
-      :disabled="!channel"
-      @preview="previewGain"
-      @commit="commitGain"
-    />
-  </section>
+  <WorkspaceMasterControl
+    :channel="channel"
+    :meter="meter"
+    :meter-peak-hold="meterPeakHold"
+    :meter-return-rate="meterReturnRate"
+    :disabled="disabled"
+    @preview="emit('preview', $event)"
+    @update-channel="(id, patch) => emit('updateChannel', id, patch)"
+  />
 </template>
-
-<style scoped>
-.master-control {
-  flex: none;
-  width: clamp(112px, 10vw, 148px);
-  min-width: 0;
-  -webkit-app-region: no-drag;
-}
-
-@media (max-width: 1279px) {
-  .master-control {
-    width: 112px;
-  }
-}
-</style>

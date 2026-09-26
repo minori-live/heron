@@ -4,6 +4,8 @@ import { computed, ref, shallowRef } from "vue"
 import { INITIAL_AUDIO_RUNTIME_SNAPSHOT } from "@heron/contracts"
 import type {
   AudioEngineRef,
+  AudioBackend,
+  AudioDeviceList,
   AudioDeviceRecoveryRef,
   AudioDeviceRecoverySnapshot,
   AudioHostRef,
@@ -100,6 +102,18 @@ export const useAudioRuntimeStore = defineStore("audio-runtime", () => {
   const audioRecoveryRef = shallowRef<AudioDeviceRecoveryRef | null>(null)
   const transportRef = shallowRef<TransportRef | null>(null)
   const midiRuntimeRef = shallowRef<MidiRuntimeRef | null>(null)
+
+  async function listDevices(backend: AudioBackend): Promise<AudioDeviceList | null> {
+    const host = audioHostRef.value
+    if (!host) return null
+    const result = await window.heron.listAudioDevices(readMeta(host), backend)
+    if (!result.ok) {
+      rpcError.value = rpcErrorMessage(result.error)
+      return null
+    }
+    rpcError.value = ""
+    return result.value
+  }
   const transportRevision = ref(0)
   const xrunBaseline = ref(0)
   let sessionStartedAt = 0
@@ -490,6 +504,7 @@ export const useAudioRuntimeStore = defineStore("audio-runtime", () => {
     recovery,
     transportRef,
     midiRuntimeRef,
+    listDevices,
     transportRevision,
     applyLifecycleState,
     applyResources,

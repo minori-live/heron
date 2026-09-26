@@ -185,6 +185,30 @@ function snapshot(overrides: Partial<ProjectGraphSnapshot> = {}): ProjectGraphSn
 }
 
 describe("AudioGraphCompiler", () => {
+  it("compiles a trackless Live Mixer with explicit monitoring and runtime-only clock defaults", () => {
+    const studio = snapshot()
+    const live = {
+      sampleRate: studio.sampleRate,
+      channels: studio.channels.map(
+        ({ systemRole: _systemRole, recordArmed: _recordArmed, ...channel }) => channel
+      ),
+      sends: studio.sends,
+      plugins: studio.plugins
+    }
+    const runtime = new AudioGraphCompiler().compile(live, new Map(), {
+      softwareMonitoringEnabled: true,
+      latencyPolicy: { type: "normal" }
+    })
+    expect(runtime.channels.find((channel) => channel.id === "audio-1")).toMatchObject({
+      input_monitoring: true,
+      record_armed: false
+    })
+    expect(runtime.clips).toEqual([])
+    expect(runtime.midi_clips).toEqual([])
+    expect(runtime.tempo_events).toEqual([{ tick: 0, beats_per_minute: 120 }])
+    expect(runtime.time_signature_events).toEqual([{ tick: 0, numerator: 4, denominator: 4 }])
+  })
+
   const compiler = new AudioGraphCompiler()
   const assetPaths = new Map([["asset-1", "/assets/take.wav"]])
 

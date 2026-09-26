@@ -28,6 +28,7 @@ import type {
   ApplicationCaptureSnapshot,
   ApplicationCaptureTargetDescriptor,
   CompiledAudioGraphSnapshot,
+  MixerGraphSnapshot,
   ProjectGraphSnapshot,
   MixerParameterPreview,
   MixerRuntimeSnapshot,
@@ -320,7 +321,7 @@ export class AudioHostService {
     meta: RpcRequestMeta,
     projectGraph: ProjectGraphRef,
     graphRevision: number,
-    project: ProjectGraphSnapshot,
+    project: MixerGraphSnapshot,
     runtimeInput: AudioHostGraph
   ): Promise<RpcResult<PreparedGraphDeployment>> {
     return this.graphTransactions.prepare(meta, projectGraph, graphRevision, project, runtimeInput)
@@ -363,7 +364,7 @@ export class AudioHostService {
 
   async loadGraph(
     revision: number,
-    project: ProjectGraphSnapshot,
+    project: MixerGraphSnapshot,
     runtime: AudioHostGraph,
     awaitPublication = false
   ): Promise<void> {
@@ -426,7 +427,7 @@ export class AudioHostService {
 
   private async publishGraph(
     revision: number,
-    project: ProjectGraphSnapshot,
+    project: MixerGraphSnapshot,
     runtime: AudioHostGraph
   ): Promise<void> {
     const operationId = randomUUID()

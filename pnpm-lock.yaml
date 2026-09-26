@@ -446,6 +446,9 @@ importers:
       '@heron/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@heron/project-model':
+        specifier: workspace:*
+        version: link:../project-model
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@electric-sql/pglite@0.5.8)

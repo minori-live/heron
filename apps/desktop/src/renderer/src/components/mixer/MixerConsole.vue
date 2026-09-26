@@ -1,62 +1,18 @@
 <script setup lang="ts">
-import { computed } from "vue"
-import { useI18n } from "vue-i18n"
-import { Plus, RotateCcw, RotateCw } from "@lucide/vue"
-import { UiButton, UiIconButton } from "@heron/ui"
-import { useGlobalDialog } from "../../composables/useGlobalDialog"
+import { useMixerConfirmations } from "../../composables/useMixerConfirmations"
 import { useMixerStore } from "../../stores/mixer"
 import { usePluginStore } from "../../stores/plugins"
 import { useLowLatencyModeStore } from "../../stores/lowLatencyMode"
 import { useBounceStore } from "../../stores/bounce"
 import type { PluginSelection } from "../plugins/plugin-audio-mode"
-import MixerChannelStrip from "./MixerChannelStrip.vue"
-import MixerSectionLabels from "./MixerSectionLabels.vue"
+import MixerSurface from "./MixerSurface.vue"
 import BounceOutputDialog from "../bounce/BounceOutputDialog.vue"
 
 const mixerStore = useMixerStore()
 const pluginStore = usePluginStore()
 const lowLatencyModeStore = useLowLatencyModeStore()
 const bounceStore = useBounceStore()
-const { confirm } = useGlobalDialog()
-const { t } = useI18n()
-
-const pluginSlotRows = computed(
-  () =>
-    Math.max(
-      0,
-      ...mixerStore.orderedChannels.map((channel) => {
-        if (channel.kind === "master") return 0
-        const insertCount = mixerStore.graph.plugins.filter(
-          (plugin) => plugin.channelId === channel.id && plugin.role === "insert"
-        ).length
-        return insertCount
-      })
-    ) + 1
-)
-const sendSlotRows = computed(() =>
-  Math.max(
-    1,
-    ...mixerStore.orderedChannels.map((channel) =>
-      ["audio", "instrument", "aux"].includes(channel.kind)
-        ? mixerStore.sendsFor(channel.id).length +
-          (mixerStore.availableSendTargets(channel.id).length > 0 ? 1 : 0)
-        : 0
-    )
-  )
-)
-const sectionStyle = computed(() => ({
-  "--plugin-section-height": `${12 + pluginSlotRows.value * 24}px`,
-  "--send-section-height": `${12 + sendSlotRows.value * 26}px`
-}))
-
-function pluginsFor(channelId: string) {
-  return mixerStore.graph.plugins
-    .filter((plugin) => plugin.channelId === channelId)
-    .sort((left, right) => {
-      if (left.role !== right.role) return left.role === "instrument" ? -1 : 1
-      return left.slotOrder - right.slotOrder
-    })
-}
+const { confirmChannelDeletion, confirmInstrumentReplacement } = useMixerConfirmations()
 
 function togglePlugin(instanceId: string, enabled: boolean): void {
   void mixerStore.setPluginEnabled(instanceId, enabled)
@@ -79,18 +35,10 @@ async function assignInstrument(channelId: string, selection: PluginSelection): 
     (plugin) => plugin.channelId === channelId && plugin.role === "instrument"
   )
   if (current) {
-    const confirmed = await confirm({
-      eyebrow: t("mixer.console.replaceInstrument.eyebrow"),
-      tone: "warning",
-      title: t("mixer.console.replaceInstrument.title"),
-      description: t("mixer.console.replaceInstrument.description", {
-        current: current.descriptor.name,
-        next: selection.descriptor.name
-      }),
-      detail: t("mixer.console.replaceInstrument.detail"),
-      confirmLabel: t("mixer.console.replaceInstrument.confirm"),
-      destructive: false
-    })
+    const confirmed = await confirmInstrumentReplacement(
+      current.descriptor.name,
+      selection.descriptor.name
+    )
     if (!confirmed) return
   }
   await pluginStore.assignInstrument(selection, channelId)
@@ -99,149 +47,55 @@ async function assignInstrument(channelId: string, selection: PluginSelection): 
 async function deleteChannel(channelId: string): Promise<void> {
   const channel = mixerStore.channels.find((candidate) => candidate.id === channelId)
   if (!channel || channel.kind === "master" || channel.systemRole !== null) return
-  const confirmed = await confirm({
-    eyebrow: t("mixer.console.deleteChannel.eyebrow"),
-    tone: "danger",
-    title: t("mixer.console.deleteChannel.title"),
-    description: t("mixer.console.deleteChannel.description", { name: channel.name }),
-    detail: t("mixer.console.deleteChannel.detail"),
-    confirmLabel: t("mixer.console.deleteChannel.confirm"),
-    destructive: true
-  })
+  const confirmed = await confirmChannelDeletion(channel.name)
   if (confirmed) void mixerStore.deleteChannel(channel.id)
+}
+function createChannel(kind: "audio" | "instrument" | "aux" | "output"): void {
+  if (kind === "audio") void mixerStore.createAudioTrack()
+  else if (kind === "instrument") void mixerStore.createInstrumentTrack()
+  else if (kind === "aux") void mixerStore.createAux()
+  else void mixerStore.createOutput()
+}
+
+function bounceOutput(channel: { id: string }): void {
+  const studioChannel = mixerStore.channels.find((candidate) => candidate.id === channel.id)
+  if (studioChannel) bounceStore.openFor(studioChannel)
 }
 </script>
 
 <template>
-  <section
-    class="mixer-console relative grid min-h-0 min-w-0 grid-rows-[43px_minmax(0,1fr)] overflow-hidden bg-[var(--daw-workspace)]"
-    :aria-label="t('mixer.console.ariaLabel')"
+  <MixerSurface
+    :graph="mixerStore.graph"
+    :selected-channel-id="mixerStore.selectedChannelId"
+    :can-undo="mixerStore.canUndo"
+    :can-redo="mixerStore.canRedo"
+    :plugin-runtime="pluginStore.runtime"
+    :effect-plugins="pluginStore.compatibleEffects"
+    :instrument-plugins="pluginStore.compatibleInstruments"
+    :low-latency-target-output-channel-id="lowLatencyModeStore.targetOutputChannelId"
+    :low-latency-target-disabled="!lowLatencyModeStore.canConfigure"
+    :error="mixerStore.error"
+    @create-channel="createChannel"
+    @undo="mixerStore.undo"
+    @redo="mixerStore.redo"
+    @select="mixerStore.selectedChannelId = $event"
+    @preview="mixerStore.preview"
+    @update-channel="mixerStore.updateChannel"
+    @update-send="mixerStore.updateSend"
+    @add-send="mixerStore.addSend"
+    @delete-send="mixerStore.deleteSend"
+    @open-plugin="pluginStore.openEditor"
+    @retry-plugin="pluginStore.retry"
+    @toggle-plugin="togglePlugin"
+    @remove-plugin="removePlugin"
+    @insert-plugin="insertPlugin"
+    @move-plugin="movePlugin"
+    @assign-instrument="assignInstrument"
+    @delete-channel="deleteChannel"
+    @reset-meter-clips="mixerStore.clearMeterClips"
+    @select-low-latency-output="lowLatencyModeStore.selectOutput"
+    @bounce-output="bounceOutput"
   >
-    <header
-      class="mixer-toolbar flex items-center justify-between gap-ui-4 border-b border-b-solid bg-[var(--surface-1)] py-0 pe-[11px] ps-[14px] [border-bottom-color:var(--line-strong)]"
-    >
-      <span>{{ t("mixer.console.title") }}</span>
-      <nav :aria-label="t('mixer.console.actions.ariaLabel')">
-        <UiButton
-          size="sm"
-          :aria-label="t('mixer.console.actions.addAudio')"
-          @click="mixerStore.createAudioTrack()"
-        >
-          <Plus :size="12" />{{ t("mixer.console.actions.addAudioLabel") }}
-        </UiButton>
-        <UiButton
-          size="sm"
-          :aria-label="t('mixer.console.actions.addInstrument')"
-          @click="mixerStore.createInstrumentTrack"
-        >
-          <Plus :size="12" />{{ t("mixer.console.actions.addInstrumentLabel") }}
-        </UiButton>
-        <UiButton
-          size="sm"
-          :aria-label="t('mixer.console.actions.addAux')"
-          @click="mixerStore.createAux()"
-        >
-          <Plus :size="12" />{{ t("mixer.console.actions.addAuxLabel") }}
-        </UiButton>
-        <UiButton
-          size="sm"
-          :aria-label="t('mixer.console.actions.addOutput')"
-          @click="mixerStore.createOutput"
-        >
-          <Plus :size="12" />{{ t("mixer.console.actions.addOutputLabel") }}
-        </UiButton>
-        <UiIconButton
-          :label="t('mixer.console.actions.undo')"
-          :disabled="!mixerStore.canUndo"
-          @click="mixerStore.undo"
-        >
-          <RotateCcw :size="13" />
-        </UiIconButton>
-        <UiIconButton
-          :label="t('mixer.console.actions.redo')"
-          :disabled="!mixerStore.canRedo"
-          @click="mixerStore.redo"
-        >
-          <RotateCw :size="13" />
-        </UiIconButton>
-      </nav>
-    </header>
-    <div
-      class="channel-scroll flex min-h-0 min-w-0 items-start overflow-auto"
-      :style="sectionStyle"
-    >
-      <MixerSectionLabels />
-      <MixerChannelStrip
-        v-for="channel in mixerStore.orderedChannels"
-        :key="channel.id"
-        :channel="channel"
-        :sends="mixerStore.sendsFor(channel.id)"
-        :outputs="mixerStore.outputs"
-        :buses="mixerStore.buses"
-        :output-targets="mixerStore.availableOutputTargets(channel.id)"
-        :send-targets="mixerStore.availableSendTargets(channel.id)"
-        :plugins="pluginsFor(channel.id)"
-        :plugin-runtime="pluginStore.runtime"
-        :effect-plugins="pluginStore.compatibleEffects"
-        :instrument-plugins="pluginStore.compatibleInstruments"
-        :plugin-slot-rows="pluginSlotRows"
-        :send-slot-rows="sendSlotRows"
-        :selected="channel.id === mixerStore.selectedChannelId"
-        :low-latency-target="channel.id === lowLatencyModeStore.targetOutputChannelId"
-        :low-latency-target-disabled="!lowLatencyModeStore.canConfigure"
-        @select="mixerStore.selectedChannelId = $event"
-        @preview="mixerStore.preview"
-        @update-channel="mixerStore.updateChannel"
-        @update-send="mixerStore.updateSend"
-        @add-send="mixerStore.addSend"
-        @delete-send="mixerStore.deleteSend"
-        @open-plugin="pluginStore.openEditor"
-        @retry-plugin="pluginStore.retry"
-        @toggle-plugin="togglePlugin"
-        @remove-plugin="removePlugin"
-        @insert-plugin="insertPlugin"
-        @move-plugin="movePlugin"
-        @assign-instrument="assignInstrument"
-        @delete-channel="deleteChannel"
-        @reset-meter-clips="mixerStore.clearMeterClips"
-        @select-low-latency-output="lowLatencyModeStore.selectOutput"
-        @bounce-output="bounceStore.openFor"
-      />
-    </div>
-    <p v-if="mixerStore.error" class="mixer-error" role="alert">{{ mixerStore.error }}</p>
     <BounceOutputDialog />
-  </section>
+  </MixerSurface>
 </template>
-
-<style scoped>
-.mixer-toolbar > span {
-  color: var(--accent);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-widest);
-}
-.mixer-toolbar nav {
-  display: flex;
-  gap: 5px;
-}
-.channel-scroll {
-  background-color: var(--ui-domain-color-4f4f4f);
-  background-image: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--text-primary) 3%, transparent) 1px,
-    transparent 1px
-  );
-  background-size: 112px 100%;
-}
-.mixer-error {
-  position: absolute;
-  right: 10px;
-  bottom: 8px;
-  margin: 0;
-  padding: 6px 9px;
-  border: 1px solid color-mix(in srgb, var(--record) 55%, var(--line-strong));
-  border-radius: 4px;
-  color: var(--record);
-  background: color-mix(in srgb, var(--record) 14%, var(--surface-1));
-  font-size: var(--ui-type-size-control);
-}
-</style>

@@ -52,7 +52,7 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
         predicate: (candidate) => !candidate.url().includes("splash.html")
       }))
     await page.waitForLoadState("domcontentloaded")
-    await expect(page.getByRole("button", { name: "Start creating", exact: true })).toBeVisible()
+    await expect(page.getByRole("button", { name: "New Studio", exact: true })).toBeVisible()
     await page.evaluate(() => {
       window.location.hash = "/settings/system"
     })
@@ -102,7 +102,7 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     const title = (await row.locator("strong").boundingBox())!
     expect((await row.locator("small").boundingBox())!.y).toBeGreaterThan(title.y + title.height)
     await page.getByRole("button", { name: "Back to welcome" }).click()
-    await page.getByRole("button", { name: "Start creating" }).click()
+    await page.getByRole("button", { name: "New Studio" }).click()
     await expect(page.locator(".studio-shell")).toBeVisible({ timeout: 90_000 })
     await dismissAutomaticTutorial(page)
     const mixer = page.getByRole("button", { name: "Mixer", exact: true })

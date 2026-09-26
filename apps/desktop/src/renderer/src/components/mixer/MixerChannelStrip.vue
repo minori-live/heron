@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MixerStripChannel } from "./mixer-surface-context"
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { UiButton, UiMixerSlot } from "@heron/ui"
@@ -6,7 +7,6 @@ import type {
   MixerBusState,
   MixerChannelMeter,
   MixerChannelPatch,
-  MixerChannelState,
   MixerParameterPreview,
   MixerRouteTarget,
   MixerSendPatch,
@@ -28,25 +28,41 @@ import MixerPluginSection from "./MixerPluginSection.vue"
 import MixerSendSection from "./MixerSendSection.vue"
 import type { MixerStripDisplayOptions } from "./mixer-strip-display-options"
 
-const props = defineProps<{
-  channel: MixerChannelState
-  sends: MixerSendState[]
-  meter?: MixerChannelMeter
-  outputs: MixerChannelState[]
-  buses: readonly MixerBusState[]
-  outputTargets: MixerRouteTarget[]
-  sendTargets: MixerRouteTarget[]
-  plugins: PluginInstanceState[]
-  pluginRuntime: Record<string, PluginRuntimeStatus>
-  effectPlugins: PluginDescriptor[]
-  instrumentPlugins: PluginDescriptor[]
-  pluginSlotRows: number
-  sendSlotRows: number
-  selected: boolean
-  lowLatencyTarget?: boolean
-  lowLatencyTargetDisabled?: boolean
-  displayOptions?: MixerStripDisplayOptions
-}>()
+const props = withDefaults(
+  defineProps<{
+    channel: MixerStripChannel
+    sends: MixerSendState[]
+    meter?: MixerChannelMeter
+    outputs: MixerStripChannel[]
+    buses: readonly MixerBusState[]
+    outputTargets: MixerRouteTarget[]
+    sendTargets: MixerRouteTarget[]
+    plugins: PluginInstanceState[]
+    pluginRuntime: Record<string, PluginRuntimeStatus>
+    effectPlugins: PluginDescriptor[]
+    instrumentPlugins: PluginDescriptor[]
+    pluginSlotRows: number
+    sendSlotRows: number
+    selected: boolean
+    lowLatencyTarget?: boolean
+    lowLatencyTargetDisabled?: boolean
+    displayOptions?: MixerStripDisplayOptions
+    studioControls?: boolean
+    applicationCaptureEnabled?: boolean
+    pluginEditorsEnabled?: boolean
+    hardwareInputCount?: number
+    hardwareOutputCount?: number
+  }>(),
+  {
+    meter: undefined,
+    displayOptions: undefined,
+    studioControls: true,
+    applicationCaptureEnabled: true,
+    pluginEditorsEnabled: true,
+    hardwareInputCount: 32,
+    hardwareOutputCount: 32
+  }
+)
 
 const emit = defineEmits<{
   select: [channelId: string]
@@ -65,7 +81,7 @@ const emit = defineEmits<{
   deleteChannel: [channelId: string]
   resetMeterClips: []
   selectLowLatencyOutput: [channelId: string]
-  bounceOutput: [channel: MixerChannelState]
+  bounceOutput: [channel: MixerStripChannel]
 }>()
 
 const { t } = useI18n()
@@ -109,6 +125,9 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       :instrument="instrument"
       :plugin-runtime="pluginRuntime"
       :instrument-plugins="instrumentPlugins"
+      :application-capture-enabled="applicationCaptureEnabled"
+      :plugin-editors-enabled="pluginEditorsEnabled"
+      :hardware-input-count="hardwareInputCount"
       @update-channel="emit('updateChannel', channel.id, $event)"
       @open-plugin="emit('openPlugin', $event)"
       @retry-plugin="emit('retryPlugin', $event)"
@@ -123,6 +142,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       :effect-plugins="effectPlugins"
       :slot-rows="pluginSlotRows"
       :initial-input-width="insertInitialInputWidth"
+      :editors-enabled="pluginEditorsEnabled"
       @open="emit('openPlugin', $event)"
       @retry="emit('retryPlugin', $event)"
       @toggle="(id, enabled) => emit('togglePlugin', id, enabled)"
@@ -151,6 +171,8 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       :targets="outputTargets"
       :low-latency-target="lowLatencyTarget"
       :low-latency-target-disabled="lowLatencyTargetDisabled"
+      :low-latency-enabled="studioControls"
+      :hardware-output-count="hardwareOutputCount"
       @update-channel="emit('updateChannel', channel.id, $event)"
       @select-low-latency-output="emit('selectLowLatencyOutput', channel.id)"
     />
@@ -176,6 +198,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       :channel="channel"
       :meter="meter"
       :display-options="displayOptions"
+      :studio-controls="studioControls"
       @preview="emit('preview', $event)"
       @update-channel="emit('updateChannel', channel.id, $event)"
       @reset-meter-clips="emit('resetMeterClips')"
@@ -193,7 +216,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       <MixerChannelMenu
         :channel-name="channel.name"
         :color="channel.color"
-        :deletable="channel.kind !== 'master' && channel.systemRole === null"
+        :deletable="channel.kind !== 'master' && channel.systemRole == null"
         @update-color="emit('updateChannel', channel.id, { color: $event })"
         @delete="emit('deleteChannel', channel.id)"
       />

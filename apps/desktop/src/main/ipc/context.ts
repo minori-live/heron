@@ -12,6 +12,7 @@ import type { ProjectCommandService } from "../project"
 import type { ProjectGraphService } from "../project"
 import type { ProjectLifecycleService } from "../project"
 import type { ProjectService } from "../project"
+import type { LiveDocumentService } from "../project"
 import type { RecordingService } from "../recording"
 import type { TransportService } from "../audio"
 import type { WaveformService } from "../project"
@@ -20,6 +21,7 @@ import type { AudioDeviceRecoveryCoordinator } from "../app"
 export interface ApplicationServices {
   settings: ApplicationSettingsStore
   projects: ProjectService
+  liveDocuments?: LiveDocumentService
   recordings: RecordingService
   operations: OperationService
   waveforms: WaveformService

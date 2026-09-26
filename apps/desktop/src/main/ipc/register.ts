@@ -7,6 +7,8 @@ import { registerLowLatencyHandlers } from "./low-latency-handlers"
 import { registerMixerHandlers } from "./mixer-handlers"
 import { registerPluginHandlers } from "./plugin-handlers"
 import { registerProjectHandlers } from "./project-handlers"
+import { registerLiveHandlers } from "./live-handlers"
+import { LiveDocumentCoordinator } from "./live-document-coordinator"
 import { registerRecordingHandlers } from "./recording-handlers"
 import { registerSettingsRpcHandlers } from "./settings-rpc-handlers"
 import { registerSystemHandlers } from "./system-handlers"
@@ -45,6 +47,19 @@ export function registerIpcHandlers(services: ApplicationServices): DisposableRe
     registerDiagnosticHandlers(context)
     registerSettingsRpcHandlers(context)
     registerProjectHandlers(context)
+    if (services.liveDocuments) {
+      registerLiveHandlers(
+        new LiveDocumentCoordinator(
+          services.liveDocuments,
+          services.projects,
+          services.lifecycle.applicationState,
+          services.operations,
+          services.settings
+        ),
+        services.liveDocuments,
+        services.lifecycle.applicationState
+      )
+    }
     registerRecordingHandlers(context)
     return eventPublishers
   } catch (error) {

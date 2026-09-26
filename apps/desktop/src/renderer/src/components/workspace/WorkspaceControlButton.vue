@@ -48,7 +48,7 @@ function activate(): void {
     variant="ghost"
     :title="tooltipText"
     :class="[
-      'studio-control-button',
+      'workspace-control-button',
       `tone-${tone}`,
       {
         unavailable,
@@ -67,7 +67,7 @@ function activate(): void {
 </template>
 
 <style scoped>
-.studio-control-button {
+.workspace-control-button {
   display: grid;
   place-items: center;
   flex: none;
@@ -80,44 +80,44 @@ function activate(): void {
   background: transparent;
   -webkit-app-region: no-drag;
 }
-.studio-control-button[aria-pressed="true"] {
+.workspace-control-button[aria-pressed="true"] {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--line-strong));
   color: var(--text-primary);
   background: var(--surface-active);
   box-shadow: 0 -2px 0 var(--accent) inset;
 }
-.studio-control-button.tone-play {
+.workspace-control-button.tone-play {
   color: var(--signal-cyan);
 }
-.studio-control-button.tone-record {
+.workspace-control-button.tone-record {
   color: var(--record);
 }
-.studio-control-button.tone-accent {
+.workspace-control-button.tone-accent {
   color: var(--accent-soft);
 }
-.studio-control-button.tone-loop {
+.workspace-control-button.tone-loop {
   color: var(--loop);
 }
-.studio-control-button.tone-success {
+.workspace-control-button.tone-success {
   color: var(--text-muted);
 }
-.studio-control-button.tone-play[aria-pressed="true"] {
+.workspace-control-button.tone-play[aria-pressed="true"] {
   color: var(--ui-domain-color-081116);
   background: var(--signal-cyan);
   box-shadow: 0 0 12px color-mix(in srgb, var(--signal-cyan) 38%, transparent);
 }
-.studio-control-button.tone-record[aria-pressed="true"] {
+.workspace-control-button.tone-record[aria-pressed="true"] {
   color: var(--ui-domain-color-fff);
   background: var(--record);
   box-shadow: 0 0 12px color-mix(in srgb, var(--record) 45%, transparent);
 }
-.studio-control-button.tone-loop[aria-pressed="true"] {
+.workspace-control-button.tone-loop[aria-pressed="true"] {
   border-color: var(--loop);
   color: var(--loop-ink);
   background: var(--loop);
   box-shadow: 0 0 12px color-mix(in srgb, var(--loop) 42%, transparent);
 }
-.studio-control-button.tone-success[aria-pressed="true"] {
+.workspace-control-button.tone-success[aria-pressed="true"] {
   border-color: color-mix(in srgb, var(--ui-color-success) 62%, var(--line-strong));
   color: var(--ui-color-success);
   background: color-mix(in srgb, var(--ui-color-success) 14%, var(--surface-active));
@@ -125,16 +125,16 @@ function activate(): void {
     0 -2px 0 var(--ui-color-success) inset,
     0 0 10px color-mix(in srgb, var(--ui-color-success) 20%, transparent);
 }
-.studio-control-button.unavailable {
+.workspace-control-button.unavailable {
   opacity: 0.48;
   cursor: help;
 }
-.studio-control-button:disabled {
+.workspace-control-button:disabled {
   opacity: 0.32;
   cursor: not-allowed;
 }
 @media (max-width: 1279px) {
-  .studio-control-button.compact-hidden {
+  .workspace-control-button.compact-hidden {
     display: none;
   }
 }

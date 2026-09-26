@@ -22,6 +22,8 @@ import { useCompiledEffectGraphStore } from "../stores/compiledEffectGraph"
 import { useApplicationWindowStore } from "../stores/applicationWindow"
 import { useMixerStore } from "../stores/mixer"
 import { useProjectStore } from "../stores/project"
+import { useLiveStore } from "../stores/live"
+import { useLiveWorkspaceStore } from "../stores/liveWorkspace"
 import { useStudioWorkflowStore } from "../stores/studioWorkflow"
 import { usePianoRollStore } from "../stores/pianoRoll"
 import { useApplicationSettingsStore } from "../stores/applicationSettings"
@@ -56,6 +58,8 @@ export function useApplicationCommands() {
   const { t } = useI18n()
   const router = useRouter()
   const projectStore = useProjectStore()
+  const liveStore = useLiveStore()
+  const liveWorkspaceStore = useLiveWorkspaceStore()
   const mixerStore = useMixerStore()
   const studioWorkflowStore = useStudioWorkflowStore()
   const pianoRollStore = usePianoRollStore()
@@ -78,6 +82,7 @@ export function useApplicationCommands() {
   const activeMidiControls = new Set<string>()
 
   const projectReady = computed(() => lifecycle.value.status === "open")
+  const documentReady = computed(() => projectReady.value || liveStore.isOpen)
   const keyboardShortcuts = computed(() =>
     resolveKeyboardShortcuts(
       applicationWindowStore.platform,
@@ -108,13 +113,13 @@ export function useApplicationCommands() {
           label: t("menu.saveProject"),
           shortcut: shortcutLabel("project.save"),
           separatorBefore: true,
-          disabled: !projectReady.value
+          disabled: !documentReady.value
         },
         {
           value: "project.close",
           label: t("menu.closeProject"),
           shortcut: shortcutLabel("project.close"),
-          disabled: !projectReady.value
+          disabled: !documentReady.value
         },
         {
           value: "project.settings",
@@ -133,13 +138,17 @@ export function useApplicationCommands() {
           value: "edit.undo",
           label: t("menu.undo"),
           shortcut: shortcutLabel("edit.undo"),
-          disabled: !projectReady.value || !canUndo.value
+          disabled: liveStore.isOpen
+            ? !liveStore.canUndo || liveStore.pending
+            : !projectReady.value || !canUndo.value
         },
         {
           value: "edit.redo",
           label: t("menu.redo"),
           shortcut: shortcutLabel("edit.redo"),
-          disabled: !projectReady.value || !canRedo.value
+          disabled: liveStore.isOpen
+            ? !liveStore.canRedo || liveStore.pending
+            : !projectReady.value || !canRedo.value
         },
         {
           value: "edit.cut",
@@ -207,6 +216,11 @@ export function useApplicationCommands() {
   ])
 
   async function leaveCurrentProject(): Promise<boolean> {
+    if (liveStore.isOpen) {
+      const closed = await liveStore.close()
+      if (closed) await router.push({ name: "welcome" })
+      return closed
+    }
     if (!session.value) return true
     const closed = await studioWorkflowStore.closeProject()
     if (closed) await router.push({ name: "welcome" })
@@ -225,18 +239,29 @@ export function useApplicationCommands() {
 
   async function openProject(): Promise<void> {
     if (projectBusy.value || !(await leaveCurrentProject())) return
-    const workspace = await projectStore.open()
+    const prepared = await projectStore.prepareDocumentOpen()
+    if (!prepared) return
+    if (prepared.kind === "live") {
+      if (await liveStore.open(prepared.path)) await router.push({ name: "live" })
+      return
+    }
+    const workspace = await projectStore.open(prepared.path)
     if (!workspace) return
     mixerStore.hydrate(workspace.graph)
     await router.push({ name: "studio" })
   }
 
   async function closeProject(): Promise<void> {
+    if (liveStore.isOpen) {
+      if (await liveStore.close()) await router.push({ name: "welcome" })
+      return
+    }
     if (!projectReady.value || !(await studioWorkflowStore.closeProject())) return
     await router.push({ name: "welcome" })
   }
 
   async function closeApplication(command: "application.quit" | "window.close"): Promise<void> {
+    if (liveStore.isOpen && !(await liveStore.close())) return
     if (session.value && !(await studioWorkflowStore.closeProject())) return
     await applicationWindowStore.execute(command)
   }
@@ -256,7 +281,8 @@ export function useApplicationCommands() {
         await openProject()
         break
       case "project.save":
-        if (projectReady.value) await studioWorkflowStore.saveProject()
+        if (liveStore.isOpen) await liveStore.save()
+        else if (projectReady.value) await studioWorkflowStore.saveProject()
         break
       case "project.close":
         await closeProject()
@@ -269,6 +295,8 @@ export function useApplicationCommands() {
           await applicationWindowStore.execute(command)
         } else if (projectReady.value) {
           await mixerStore.undo()
+        } else if (liveStore.isOpen) {
+          await liveStore.edit("undo")
         }
         break
       case "edit.redo":
@@ -276,6 +304,8 @@ export function useApplicationCommands() {
           await applicationWindowStore.execute(command)
         } else if (projectReady.value) {
           await mixerStore.redo()
+        } else if (liveStore.isOpen) {
+          await liveStore.edit("redo")
         }
         break
       case "edit.cut":
@@ -322,6 +352,7 @@ export function useApplicationCommands() {
         break
       case "view.toggle-mixer-dock":
         if (router.currentRoute.value.name === "studio") workspaceStore.toggleMixerDock()
+        else if (router.currentRoute.value.name === "live") liveWorkspaceStore.toggleMixer()
         break
       case "transport.toggle-playback":
         if (isEditableTarget(document.activeElement)) break

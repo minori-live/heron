@@ -54,8 +54,8 @@ describe("StudioMasterControl", () => {
       [{ target: "channel", id: "master", parameter: "gainDb", value: -12 }]
     ])
     expect(wrapper.emitted("updateChannel")).toEqual([["master", { gainDb: -12 }]])
-    expect(wrapper.find(".track-gain").exists()).toBe(true)
-    expect(wrapper.get(".track-gain").attributes("style")).toContain(
+    expect(wrapper.find(".mixer-quick-gain").exists()).toBe(true)
+    expect(wrapper.get(".mixer-quick-gain").attributes("style")).toContain(
       "--horizontal-fader-meter-level:"
     )
     expect(wrapper.find(".master-meter").exists()).toBe(false)

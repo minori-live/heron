@@ -52,6 +52,13 @@ Use [the menu specification](menu-design.md) for menu mechanics. Use a popover
 for persistent controls and a menu for commands or a terminal choice. Neither
 primitive justifies hiding a primary parameter.
 
+Studio and Live share workspace chrome and its control components. File actions
+(new, open, save, and close) use the application File menu and shortcuts; document
+topbars do not duplicate them as standalone buttons. The topbar shows document
+identity, workspace controls, and controls needed during editing or performance.
+Live keeps the left/center/right layout with the Mixer in the right column and
+the center reserved for a future custom performance surface.
+
 ## Parameter gestures
 
 Equivalent continuous parameters share a gesture grammar:

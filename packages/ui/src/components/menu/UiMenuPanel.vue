@@ -10,6 +10,7 @@ const props = withDefaults(
     entries: readonly UiMenuEntry[]
     variant: "context" | "dropdown"
     query: string
+    menuLabel: string
     density?: UiMenuDensity
     search?: UiMenuSearchOptions
     emptyMessage?: string
@@ -161,13 +162,19 @@ defineExpose({
     <p v-if="isEmpty" class="ui-menu__empty" role="status">
       {{ emptyCopy }}
     </p>
-    <UiMenuBranch
+    <div
       v-else
-      :entries="visibleEntries"
-      :variant="props.variant"
-      @select="emit('select', $event)"
-      @toggle="emit('toggle', $event)"
-    />
+      :role="props.search ? 'menu' : undefined"
+      :aria-label="props.search ? props.menuLabel : undefined"
+      :aria-orientation="props.search ? 'vertical' : undefined"
+    >
+      <UiMenuBranch
+        :entries="visibleEntries"
+        :variant="props.variant"
+        @select="emit('select', $event)"
+        @toggle="emit('toggle', $event)"
+      />
+    </div>
   </div>
 </template>
 

@@ -156,6 +156,42 @@ export const SearchableTaxonomy: Story = {
   }
 }
 
+export const OpenSearchableTaxonomy: Story = {
+  ...SearchableTaxonomy,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Add audio effect" }))
+    await expect(
+      await within(document.body).findByRole("textbox", { name: "Search effects" })
+    ).toHaveFocus()
+  }
+}
+
+export const OpenSearchableTaxonomyLight: Story = {
+  ...OpenSearchableTaxonomy,
+  globals: { theme: "light" }
+}
+
+export const FilteredSearchableTaxonomy: Story = {
+  ...SearchableTaxonomy,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Add audio effect" }))
+    const page = within(document.body)
+    await userEvent.type(await page.findByRole("textbox", { name: "Search effects" }), "pro")
+    await expect(await page.findByRole("menuitem", { name: /Pro-C 2/ })).toBeVisible()
+  }
+}
+
+export const EmptySearchableTaxonomy: Story = {
+  ...SearchableTaxonomy,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Add audio effect" }))
+    const page = within(document.body)
+    await userEvent.type(await page.findByRole("textbox", { name: "Search effects" }), "missing")
+    await expect(await page.findByText("No effects match this search.")).toBeVisible()
+    await expect(page.queryByRole("menu")).not.toBeInTheDocument()
+  }
+}
+
 export const ClipContextMenu: Story = {
   render: () => ({
     components: { UiButton, UiContextMenu },

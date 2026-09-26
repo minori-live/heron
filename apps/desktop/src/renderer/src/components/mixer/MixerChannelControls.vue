@@ -1,24 +1,30 @@
 <script setup lang="ts">
+import type { MixerStripChannel } from "./mixer-surface-context"
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
-import type { MixerChannelPatch, MixerChannelState } from "@heron/contracts"
+import type { MixerChannelPatch } from "@heron/contracts"
 import { UiMixerStateButton } from "@heron/ui"
 
-const props = defineProps<{
-  channel: MixerChannelState
-  monitoringAvailable: boolean
-  monitoringActive: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    channel: MixerStripChannel
+    monitoringAvailable: boolean
+    monitoringActive: boolean
+    studioControls?: boolean
+  }>(),
+  { studioControls: true }
+)
 const supportsRecording = computed(
   () =>
-    props.channel.kind === "audio" ||
-    (props.channel.kind === "instrument" && props.channel.systemRole === null)
+    props.studioControls !== false &&
+    (props.channel.kind === "audio" ||
+      (props.channel.kind === "instrument" && props.channel.systemRole == null))
 )
 const supportsMonitoring = computed(
   () =>
     props.channel.kind === "audio" ||
     props.channel.kind === "aux" ||
-    (props.channel.kind === "instrument" && props.channel.systemRole === null)
+    (props.channel.kind === "instrument" && props.channel.systemRole == null)
 )
 
 const emit = defineEmits<{
@@ -33,7 +39,7 @@ const { t } = useI18n()
   <div :class="['channel-actions', { 'has-input': supportsRecording }]">
     <div class="input-actions">
       <UiMixerStateButton
-        v-if="channel.kind === 'output'"
+        v-if="channel.kind === 'output' && studioControls !== false"
         size="wide"
         tone="bounce"
         :label="t('mixer.channelControls.bounce', { name: channel.name })"
@@ -48,7 +54,7 @@ const { t } = useI18n()
           size="narrow"
           tone="record"
           joined="start"
-          :pressed="channel.recordArmed"
+          :pressed="channel.recordArmed ?? false"
           :label="t('mixer.channelControls.arm', { name: channel.name })"
           :title="t('mixer.channelControls.recordEnable')"
           stop-propagation

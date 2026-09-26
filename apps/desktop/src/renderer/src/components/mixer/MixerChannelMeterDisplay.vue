@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
-import { computed, shallowRef } from "vue"
+import { computed, inject, shallowRef } from "vue"
 import { storeToRefs } from "pinia"
 import { DEFAULT_METER_RETURN_RATE } from "@heron/contracts"
 import type {
@@ -15,6 +15,7 @@ import { useApplicationSettingsStore } from "../../stores/applicationSettings"
 import { useMixerRuntimeStore } from "../../stores/mixerRuntime"
 import { METER_SCALE_MARKS } from "../../utils/mixerDbScale"
 import type { MixerStripDisplayOptions } from "./mixer-strip-display-options"
+import { mixerMeterSourceKey } from "./mixer-surface-context"
 
 const { t } = useI18n()
 
@@ -30,12 +31,24 @@ const emit = defineEmits<{
 
 // Tests and static previews can provide a meter directly. Production instances subscribe here so
 // a 30 Hz runtime update invalidates only this small display rather than the full channel strip.
-const runtimeStore = useMixerRuntimeStore()
+const meterSource = inject(mixerMeterSourceKey, null)
+const runtimeStore = meterSource ? null : useMixerRuntimeStore()
 const settingsStore = props.displayOptions ? null : useApplicationSettingsStore()
 const settings = settingsStore
   ? storeToRefs(settingsStore).settings
   : shallowRef<ApplicationSettings | null>(null)
-const meter = computed(() => props.meter ?? runtimeStore.meterFor(props.channelId))
+const meter = computed<MixerChannelMeter>(
+  () =>
+    props.meter ??
+    meterSource?.(props.channelId) ??
+    runtimeStore?.meterFor(props.channelId) ?? {
+      channelId: props.channelId,
+      preFaderPeak: [0, 0],
+      postFaderPeak: [0, 0],
+      heldPeak: [0, 0],
+      clipped: false
+    }
+)
 const peakHold = computed<MeterPeakHold>(
   () => props.displayOptions?.meterPeakHold ?? settings.value?.meterPeakHold ?? "800ms"
 )

@@ -10,11 +10,15 @@ import { pluginAudioModeBadge, type PluginSelection } from "../plugins/plugin-au
 import { pluginDisplayState } from "../plugins/plugin-display-state"
 import MixerPluginPicker from "./MixerPluginPicker.vue"
 
-const props = defineProps<{
-  instrument: PluginInstanceState | null
-  runtime: Record<string, PluginRuntimeStatus>
-  plugins: PluginDescriptor[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    instrument: PluginInstanceState | null
+    runtime: Record<string, PluginRuntimeStatus>
+    plugins: PluginDescriptor[]
+    editorsEnabled?: boolean
+  }>(),
+  { editorsEnabled: true }
+)
 
 const emit = defineEmits<{
   open: [instanceId: string]
@@ -37,7 +41,7 @@ const failureMessage = computed(() =>
 )
 
 function openOrRetry(): void {
-  if (!props.instrument) return
+  if (!props.instrument || props.editorsEnabled === false) return
   if (failure.value?.recoverable) emit("retry", props.instrument.id)
   else emit("open", props.instrument.id)
 }
@@ -80,6 +84,7 @@ function confirmDrop(selection: PluginSelection): void {
           variant="plain"
           stop-propagation
           class="instrument-name"
+          :disabled="editorsEnabled === false"
           :title="instrument.descriptor.name"
           :aria-label="
             failure?.recoverable

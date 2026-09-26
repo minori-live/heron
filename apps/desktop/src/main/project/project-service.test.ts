@@ -95,9 +95,9 @@ describe("ProjectService.create", () => {
     workerInstances.length = 0
   })
 
-  it("writes the initial .heron archive and returns a clean session", async () => {
+  it("writes the initial .hrs archive and returns a clean session", async () => {
     const userData = await mkdtemp(join(tmpdir(), "heron-project-create-"))
-    const projectPath = join(userData, "Untitled.heron")
+    const projectPath = join(userData, "Untitled.hrs")
     service = new ProjectService(userData, new ApplicationSettingsStore(userData))
     const progress = vi.fn()
 
@@ -143,10 +143,31 @@ describe("ProjectService.create", () => {
         timeSignatureDenominator: 4,
         waveformDisplayMode: "separate"
       })
-    ).rejects.toThrow("Project path must use the .heron extension")
+    ).rejects.toThrow("Studio project path must use .hrs or .heron")
     await expect(service.open(projectPath, false)).rejects.toThrow(
-      "Project path must use the .heron extension"
+      "Studio project path must use .hrs or .heron"
     )
+  })
+
+  it("adds .hrs to extensionless new Studio paths and accepts existing .heron paths", async () => {
+    const userData = await mkdtemp(join(tmpdir(), "heron-project-alias-"))
+    service = new ProjectService(userData, new ApplicationSettingsStore(userData))
+    const created = await service.create({
+      path: join(userData, "Untitled"),
+      name: "Untitled",
+      sampleRate: 48_000,
+      timeSignatureNumerator: 4,
+      timeSignatureDenominator: 4,
+      waveformDisplayMode: "separate"
+    })
+    expect(created.path).toBe(join(userData, "Untitled.hrs"))
+    await access(created.path)
+    await service.shutdown()
+    service = new ProjectService(userData, new ApplicationSettingsStore(userData))
+    const aliasPath = join(userData, "Existing.heron")
+    await writeFile(aliasPath, "archive")
+    const opened = await service.open(aliasPath, false)
+    expect(opened.path).toBe(aliasPath)
   })
 
   it("leaves the source archive byte-for-byte untouched when migration fails", async () => {

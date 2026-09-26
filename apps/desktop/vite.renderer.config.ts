@@ -33,6 +33,9 @@ export default defineConfig(({ command }) => ({
     __APP_VERSION__: appVersionDefine
   },
   build: {
+    // Even small locale subsets must remain same-origin files for font-src 'self'.
+    assetsInlineLimit: (filePath) =>
+      /\.(?:woff2?|ttf|otf|eot)(?:\?.*)?$/iu.test(filePath) ? false : undefined,
     emptyOutDir: true,
     outDir: resolve(import.meta.dirname, "out/renderer"),
     rolldownOptions: {

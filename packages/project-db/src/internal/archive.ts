@@ -26,6 +26,11 @@ export async function dumpProjectArchive(
   outputPath: string
 ): Promise<void> {
   await maintainForSave(db)
+  await dumpDataDirectory(client, outputPath)
+}
+
+/** Write the PGlite image durably; each document kind performs its own maintenance first. */
+export async function dumpDataDirectory(client: PGlite, outputPath: string): Promise<void> {
   const dump = await client.dumpDataDir("none")
   const handle = await open(outputPath, "w")
   try {

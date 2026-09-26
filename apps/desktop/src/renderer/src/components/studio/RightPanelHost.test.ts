@@ -1,37 +1,15 @@
 import { enableAutoUnmount, mount } from "@vue/test-utils"
 import { createPinia, setActivePinia } from "pinia"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
+import { nextTick } from "vue"
 import { useStudioWorkspaceStore } from "../../stores/studioWorkspace"
+import WorkspaceSidePanel from "../workspace/WorkspaceSidePanel.vue"
 import RightPanelHost from "./RightPanelHost.vue"
 
 enableAutoUnmount(afterEach)
 
 describe("RightPanelHost", () => {
-  it("exposes bounded keyboard resizing and restores the default width", async () => {
-    const pinia = createPinia()
-    setActivePinia(pinia)
-    const workspace = useStudioWorkspaceStore()
-    workspace.toggleMediaBrowser()
-    const wrapper = mount(RightPanelHost, {
-      global: {
-        plugins: [pinia],
-        stubs: { MediaBrowserPanel: true, NotesPanel: true }
-      }
-    })
-    const separator = wrapper.get('[role="separator"]')
-
-    await separator.trigger("keydown", { key: "ArrowLeft" })
-    expect(workspace.rightPanelWidth).toBe(330)
-    await separator.trigger("keydown", { key: "ArrowRight" })
-    expect(workspace.rightPanelWidth).toBe(320)
-    workspace.setRightPanelWidth(460)
-    await separator.trigger("keydown", { key: "Home" })
-    expect(workspace.rightPanelWidth).toBe(320)
-    expect(separator.attributes("aria-valuemin")).toBe("260")
-    expect(separator.attributes("aria-valuemax")).toBe("480")
-  })
-
-  it("rolls a resize preview back on Escape", async () => {
+  it("shares the panel interaction while preserving Studio persistence and content selection", async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const workspace = useStudioWorkspaceStore()
@@ -39,44 +17,27 @@ describe("RightPanelHost", () => {
     const wrapper = mount(RightPanelHost, {
       global: { plugins: [pinia], stubs: { MediaBrowserPanel: true, NotesPanel: true } }
     })
-    const separator = wrapper.get('[role="separator"]')
-    await separator.trigger("pointerdown", { button: 0, pointerId: 1, clientX: 680 })
-    await separator.trigger("pointermove", { pointerId: 1, clientX: 600 })
-    expect(workspace.rightPanelWidth).toBe(400)
-    await separator.trigger("keydown", { key: "Escape" })
-    expect(workspace.rightPanelWidth).toBe(320)
-    await separator.trigger("pointerup", { pointerId: 1, clientX: 600 })
-    expect(workspace.rightPanelWidth).toBe(320)
-  })
-
-  it("resizes with a captured pointer until the pointer is released", async () => {
-    const pinia = createPinia()
-    setActivePinia(pinia)
-    const workspace = useStudioWorkspaceStore()
-    workspace.toggleMediaBrowser()
-    const wrapper = mount(RightPanelHost, {
-      global: {
-        plugins: [pinia],
-        stubs: { MediaBrowserPanel: true, NotesPanel: true }
-      }
+    const panel = wrapper.getComponent(WorkspaceSidePanel)
+    expect(panel.props()).toMatchObject({
+      modelValue: 320,
+      minimum: 260,
+      maximum: 480,
+      defaultWidth: 320
     })
-    const separator = wrapper.get<HTMLElement>('[role="separator"]')
-    const capture = vi.fn()
-    separator.element.setPointerCapture = capture
-    const originalWidth = window.innerWidth
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1_000 })
-
-    await separator.trigger("pointerdown", { pointerId: 7, clientX: 680 })
-    expect(capture).toHaveBeenCalledWith(7)
-    await separator.trigger("pointermove", { pointerId: 7, clientX: 600 })
-    expect(workspace.rightPanelWidth).toBe(400)
-
-    await separator.trigger("pointerup", { pointerId: 7, clientX: 600 })
-    await separator.trigger("pointermove", { pointerId: 7, clientX: 700 })
-    expect(workspace.rightPanelWidth).toBe(400)
-    await separator.trigger("keydown", { key: "End" })
-    expect(workspace.rightPanelWidth).toBe(400)
-
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth })
+    expect(wrapper.find("media-browser-panel-stub").exists()).toBe(true)
+    const separator = wrapper.get('[role="separator"]')
+    await separator.trigger("keydown", { key: "ArrowLeft" })
+    expect(workspace.rightPanelWidth).toBe(330)
+    expect(wrapper.attributes("style")).toContain("width: 330px")
+    workspace.toggleNotesPanel()
+    await nextTick()
+    expect(wrapper.find("notes-panel-stub").exists()).toBe(true)
+    expect(wrapper.find("media-browser-panel-stub").exists()).toBe(false)
+    expect(workspace.rightPanelWidth).toBe(330)
+    await separator.trigger("keydown", { key: "Home" })
+    expect(workspace.rightPanelWidth).toBe(320)
+    workspace.setRightPanelWidth(600)
+    await nextTick()
+    expect(panel.props("modelValue")).toBe(480)
   })
 })

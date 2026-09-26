@@ -1,6 +1,7 @@
 import type { AudioResourceSnapshot, DesktopLifecycleSnapshot } from "./audio"
 import type { OfflineToolsResourceSnapshot } from "./application"
 import type { ProjectWorkspaceSnapshot } from "./project"
+import type { LiveWorkspaceSnapshot } from "./live"
 import type { RecordingResourceSnapshot } from "./recording"
 import type { ApplicationSettingsRef, DesktopSessionRef } from "./rpc"
 import type { ApplicationSettingsResourceSnapshot } from "./settings"
@@ -18,6 +19,7 @@ export interface ApplicationBootstrapSnapshot {
   recordingResource: RecordingResourceSnapshot | null
   settings: ApplicationSettingsResourceSnapshot
   workspace: ProjectWorkspaceSnapshot | null
+  liveWorkspace?: LiveWorkspaceSnapshot | null
 }
 
 export interface ProjectCloseResult {

@@ -11,6 +11,7 @@ import AppTitleBar from "./AppTitleBar.vue"
 import ApplicationUpdateNotice from "./ApplicationUpdateNotice.vue"
 import { useApplicationWindowStore } from "../../stores/applicationWindow"
 import { useProjectStore } from "../../stores/project"
+import { useLiveStore } from "../../stores/live"
 
 defineProps<{
   platform: DesktopPlatform
@@ -22,9 +23,13 @@ const emit = defineEmits<{
 }>()
 
 const projectStore = useProjectStore()
+const liveStore = useLiveStore()
 const applicationWindowStore = useApplicationWindowStore()
 const { hasUnsavedChanges, session } = storeToRefs(projectStore)
-const projectName = computed(() => session.value?.configuration.name ?? null)
+const projectName = computed(
+  () => session.value?.configuration.name ?? liveStore.session?.configuration.name ?? null
+)
+const documentDirty = computed(() => hasUnsavedChanges.value || liveStore.session?.dirty === true)
 
 function executeWindowCommand(command: ApplicationWindowCommandId): void {
   if (command === "window.close") {
@@ -41,7 +46,7 @@ function executeWindowCommand(command: ApplicationWindowCommandId): void {
       :platform="platform"
       :menus="menus"
       :project-name="projectName"
-      :dirty="hasUnsavedChanges"
+      :dirty="documentDirty"
       @command="emit('command', $event)"
       @window-command="executeWindowCommand"
     />

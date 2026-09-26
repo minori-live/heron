@@ -55,6 +55,7 @@
     "saveChanges": "Save changes",
     "changesSaved": "Changes saved",
     "backToStudio": "Back to studio",
+    "backToLive": "Back to Live",
     "backToWelcome": "Back to welcome"
   },
   "chrome": {
@@ -115,6 +116,8 @@
     "studioBasics": "Studio Basics…"
   },
   "dialog": {
+    "createLive": { "title": "Create Live document", "filter": "Heron Live document" },
+    "openLive": { "title": "Open Live document", "filter": "Heron Live document" },
     "actions": {
       "ok": "OK",
       "cancel": "Cancel",
@@ -197,6 +200,8 @@
     "audioDeviceRecoveryUnavailable": "Audio device recovery is no longer available.",
     "audioDeviceRecoveryFailed": "The selected audio devices could not be applied.",
     "invalidRpcRequest": "The request was invalid.",
+    "documentFormatMismatch": "This file is not the selected document type.",
+    "unsupportedDocumentVersion": "This document was created by a newer version of Heron.",
     "lowLatencyModeUnavailable": "Low Latency Mode can only be changed while transport is stopped and a valid Output is selected.",
     "protocolMismatch": "This application component uses an incompatible protocol version.",
     "untrustedSender": "The request came from an untrusted application context.",
@@ -347,11 +352,34 @@
     "newProjectTitle": "New project",
     "newProjectBody": "Open an empty timeline and make the first sound.",
     "createProject": "Start creating",
+    "createStudio": "New Studio",
+    "createLive": "New Live",
     "creating": "Creating…",
     "recentProjects": "Continue creating",
+    "recentKindPath": "{kind} · {path}",
     "openAnother": "Open a project",
     "noRecent": "Your recent projects will appear here when you start creating.",
-    "untitledProject": "Untitled project"
+    "untitledProject": "Untitled project",
+    "untitledLive": "Untitled Live"
+  },
+  "live": {
+    "document": "Live document",
+    "editMode": "Edit",
+    "mixer": "Mixer",
+    "devices": "Audio & MIDI devices",
+    "performanceWorkspace": "Performance workspace",
+    "resizeMixer": "Resize Mixer",
+    "unsaved": "Unsaved changes",
+    "chooseDevice": "Choose a device",
+    "missing": "Missing",
+    "buffer": "Buffer size",
+    "saveRig": "Save device setup",
+    "midiDevices": "MIDI devices",
+    "noMidiDevices": "No MIDI devices found",
+    "deviceMidiDescription": "Choose the physical MIDI inputs available to this Live document.",
+    "inputDeviceDescription": "Choose the physical input saved with this Live document.",
+    "outputDeviceDescription": "Choose the physical output saved with this Live document.",
+    "outputLimit": "All 16 hardware output pairs are already in use."
   },
   "settings": {
     "midi": {
@@ -1141,8 +1169,10 @@
       "actions": {
         "ariaLabel": "Mixer actions",
         "addAudio": "Add audio track",
+        "addAudioChannel": "Add audio channel",
         "addAudioLabel": "Audio",
         "addInstrument": "Add instrument track",
+        "addInstrumentChannel": "Add instrument channel",
         "addInstrumentLabel": "Instrument",
         "addAux": "Add aux channel",
         "addAuxLabel": "Aux",

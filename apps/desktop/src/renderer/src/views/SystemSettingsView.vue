@@ -15,6 +15,7 @@ import { useAudioRuntimeStore } from "../stores/audioRuntime"
 import { useMidiInputStore } from "../stores/midiInput"
 import { usePluginStore } from "../stores/plugins"
 import { useProjectStore } from "../stores/project"
+import { useLiveStore } from "../stores/live"
 
 const { t } = useI18n()
 
@@ -22,6 +23,7 @@ const router = useRouter()
 const audioPreferencesStore = useAudioPreferencesStore()
 const audioRuntimeStore = useAudioRuntimeStore()
 const projectStore = useProjectStore()
+const liveStore = useLiveStore()
 const applicationSettingsStore = useApplicationSettingsStore()
 const midiInputStore = useMidiInputStore()
 const pluginStore = usePluginStore()
@@ -46,11 +48,17 @@ const {
 } = storeToRefs(pluginStore)
 
 const backLabel = computed(() =>
-  projectStore.session ? t("common.backToStudio") : t("common.backToWelcome")
+  liveStore.isOpen
+    ? t("common.backToLive")
+    : projectStore.session
+      ? t("common.backToStudio")
+      : t("common.backToWelcome")
 )
 
 function close(): void {
-  void router.push({ name: projectStore.session ? "studio" : "welcome" })
+  void router.push({
+    name: liveStore.isOpen ? "live" : projectStore.session ? "studio" : "welcome"
+  })
 }
 
 async function applyAudio(nextPreferences: AudioPreferences): Promise<void> {

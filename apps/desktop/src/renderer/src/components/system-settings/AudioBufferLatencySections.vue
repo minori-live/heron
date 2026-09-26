@@ -92,3 +92,42 @@ function formatFrames(value: number | null): string {
     />
   </SettingsSection>
 </template>
+
+<style scoped>
+.buffer-field {
+  display: grid;
+  gap: 7px;
+  width: min(220px, 100%);
+  color: var(--text-muted);
+  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  letter-spacing: var(--ui-type-tracking-wide);
+  text-transform: uppercase;
+}
+.latency-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.latency-card {
+  display: grid;
+  gap: 4px;
+  padding: 13px;
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  background: var(--surface-1);
+}
+.latency-card span,
+.latency-card small {
+  color: var(--text-faint);
+  font-size: var(--ui-type-size-caption);
+}
+.latency-card strong {
+  color: var(--signal-cyan);
+  font: var(--ui-type-size-view-title) var(--ui-type-family-data);
+}
+@media (max-width: 1120px) {
+  .latency-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

@@ -7,7 +7,7 @@ import {
 } from "electron"
 import { join } from "node:path"
 import { deferProjectClose } from "./dirty-project-close"
-import type { ProjectService } from "../project"
+import type { LiveDocumentService, ProjectService } from "../project"
 import { applicationIconPath } from "./runtime-paths"
 import { resolveRendererEntrypoints } from "../../shared/renderer-security"
 
@@ -17,9 +17,14 @@ const EXTERNAL_URL_ALLOWLIST = new Set([
 ])
 
 let projectService: ProjectService | null = null
+let liveDocumentService: LiveDocumentService | null = null
 
 export function setWindowProjectService(service: ProjectService | null): void {
   projectService = service
+}
+
+export function setWindowLiveDocumentService(service: LiveDocumentService | null): void {
+  liveDocumentService = service
 }
 
 export let mainWindow: BrowserWindow | null = null
@@ -137,7 +142,7 @@ export function createMainWindow(loadContent = true): BrowserWindow {
     deferProjectClose({
       command: "window.close",
       event,
-      project: projectService?.current ?? null,
+      project: projectService?.current ?? liveDocumentService?.current ?? null,
       window
     })
   })

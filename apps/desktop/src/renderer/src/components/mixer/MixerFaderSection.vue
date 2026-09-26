@@ -1,22 +1,22 @@
 <script setup lang="ts">
+import type { MixerStripChannel } from "./mixer-surface-context"
 import { computed } from "vue"
-import type {
-  MixerChannelMeter,
-  MixerChannelPatch,
-  MixerChannelState,
-  MixerParameterPreview
-} from "@heron/contracts"
+import type { MixerChannelMeter, MixerChannelPatch, MixerParameterPreview } from "@heron/contracts"
 import { UiInlineTextEdit, UiVerticalFader } from "@heron/ui"
 import { FADER_MAX_DB, FADER_MIN_DB, FADER_SCALE_MARKS } from "../../utils/mixerDbScale"
 import MixerChannelControls from "./MixerChannelControls.vue"
 import MixerChannelMeterDisplay from "./MixerChannelMeterDisplay.vue"
 import type { MixerStripDisplayOptions } from "./mixer-strip-display-options"
 
-const props = defineProps<{
-  channel: MixerChannelState
-  meter?: MixerChannelMeter
-  displayOptions?: MixerStripDisplayOptions
-}>()
+const props = withDefaults(
+  defineProps<{
+    channel: MixerStripChannel
+    meter?: MixerChannelMeter
+    displayOptions?: MixerStripDisplayOptions
+    studioControls?: boolean
+  }>(),
+  { studioControls: true, meter: undefined, displayOptions: undefined }
+)
 const emit = defineEmits<{
   preview: [preview: MixerParameterPreview]
   updateChannel: [patch: MixerChannelPatch]
@@ -30,7 +30,7 @@ const gainReadoutLabel = computed(() =>
 )
 const monitoringAvailable = computed(
   () =>
-    (props.channel.kind === "instrument" && props.channel.systemRole === null) ||
+    (props.channel.kind === "instrument" && props.channel.systemRole == null) ||
     ((props.channel.kind === "audio" || props.channel.kind === "aux") &&
       (props.channel.inputSource === "hardware" ||
         (props.channel.inputSource === "application" && props.channel.applicationCapture != null)))
@@ -101,6 +101,7 @@ function commitGainInputValue(raw: string): void {
       :channel="channel"
       :monitoring-available="monitoringAvailable"
       :monitoring-active="monitoringActive"
+      :studio-controls="studioControls"
       @update-channel="updateChannel"
       @bounce-output="emit('bounceOutput')"
     />

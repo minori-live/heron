@@ -1,4 +1,9 @@
-import type { MixerGraphSnapshot, MixerChannelState } from "@heron/contracts"
+import type {
+  MixerGraphSnapshot,
+  MixerChannelState,
+  MixerChannelCoreState,
+  ProjectGraphSnapshot
+} from "@heron/contracts"
 import { pluginLocator, pluginSupportsHostedAudioMode } from "@heron/contracts"
 import { MixerValidationError } from "./validation-error"
 
@@ -8,7 +13,9 @@ export function finiteRange(value: number, minimum: number, maximum: number, lab
   }
 }
 
-export function mixerChannelById(graph: MixerGraphSnapshot, id: string): MixerChannelState {
+export function mixerChannelById(graph: ProjectGraphSnapshot, id: string): MixerChannelState
+export function mixerChannelById(graph: MixerGraphSnapshot, id: string): MixerChannelCoreState
+export function mixerChannelById(graph: MixerGraphSnapshot, id: string): MixerChannelCoreState {
   const channel = graph.channels.find((candidate) => candidate.id === id)
   if (!channel) throw new MixerValidationError(`Mixer channel '${id}' was not found`)
   return channel
@@ -58,7 +65,8 @@ export function validateMixerGraph(graph: MixerGraphSnapshot): void {
     ) {
       throw new MixerValidationError("Only Audio and Aux channels can map audio inputs")
     }
-    const supportsMidiInput = channel.kind === "instrument" && channel.systemRole === null
+    const supportsMidiInput =
+      channel.kind === "instrument" && (!("systemRole" in channel) || channel.systemRole === null)
     const midiInput =
       channel.midiInput === undefined
         ? supportsMidiInput
@@ -83,7 +91,12 @@ export function validateMixerGraph(graph: MixerGraphSnapshot): void {
     } else if (midiInput !== null) {
       throw new MixerValidationError("Only ordinary Instrument channels can map MIDI inputs")
     }
-    if (channel.kind !== "audio" && !supportsMidiInput && channel.recordArmed) {
+    if (
+      channel.kind !== "audio" &&
+      !supportsMidiInput &&
+      "recordArmed" in channel &&
+      channel.recordArmed
+    ) {
       throw new MixerValidationError(
         "Only Audio and ordinary Instrument channels can arm recording"
       )
@@ -101,7 +114,7 @@ export function validateMixerGraph(graph: MixerGraphSnapshot): void {
     if (channel.kind === "master" && channel.soloed) {
       throw new MixerValidationError("Master cannot be soloed")
     }
-    if (channel.systemRole !== null && channel.kind !== "instrument") {
+    if ("systemRole" in channel && channel.systemRole !== null && channel.kind !== "instrument") {
       throw new MixerValidationError("System channels must be Instrument channels")
     }
     if (channel.kind === "output") {
@@ -127,7 +140,7 @@ export function validateMixerGraph(graph: MixerGraphSnapshot): void {
   if (masters.length !== 1)
     throw new MixerValidationError("Mixer graph requires exactly one Master")
   const systemRoles = graph.channels
-    .map((channel) => channel.systemRole)
+    .map((channel) => ("systemRole" in channel ? channel.systemRole : null))
     .filter((role): role is NonNullable<typeof role> => role !== null)
   if (new Set(systemRoles).size !== systemRoles.length) {
     throw new MixerValidationError("Mixer system channel roles must be unique")
@@ -312,8 +325,12 @@ export function validateMixerGraph(graph: MixerGraphSnapshot): void {
       }
       const source = mixerChannelById(graph, route.sourceChannelId)
       const isOrdinaryChannel =
-        source.systemRole === null && (source.kind === "audio" || source.kind === "instrument")
-      if ((!isOrdinaryChannel && source.kind !== "aux") || source.systemRole !== null) {
+        (!("systemRole" in source) || source.systemRole === null) &&
+        (source.kind === "audio" || source.kind === "instrument")
+      if (
+        (!isOrdinaryChannel && source.kind !== "aux") ||
+        ("systemRole" in source && source.systemRole !== null)
+      ) {
         throw new MixerValidationError(
           "Plugin side-chain sources must be ordinary Audio, Instrument, or Aux channels"
         )

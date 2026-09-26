@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm"
-import type { ApplicationCaptureTarget, PluginAudioMode, PluginFormat } from "@heron/contracts"
+import type { PluginAudioMode, PluginFormat } from "@heron/contracts"
 import {
   boolean,
   check,
@@ -7,49 +7,22 @@ import {
   foreignKey,
   index,
   integer,
-  jsonb,
   pgTable,
   primaryKey,
   smallint,
   text,
   uniqueIndex
 } from "drizzle-orm/pg-core"
+import { mixerChannelCoreColumns } from "./mixer-core-schema.ts"
 import { bytea } from "./schema-types.ts"
 
 /** Shared Mixer tables; Studio ownership relations are added by schema.ts. */
 export const mixerChannels = pgTable(
   "mixer_channels",
   {
-    id: text("id").primaryKey(),
-    kind: text("kind").$type<"audio" | "instrument" | "aux" | "master" | "output">().notNull(),
+    ...mixerChannelCoreColumns(),
     systemRole: text("system_role").$type<"metronome">(),
-    name: text("name").notNull(),
-    color: text("color").notNull(),
-    sortOrder: integer("sort_order").notNull(),
-    inputSource: text("input_source").$type<"hardware" | "bus" | "application">(),
-    inputFormat: text("input_format").$type<"mono" | "stereo">(),
-    applicationCapture: jsonb("application_capture").$type<ApplicationCaptureTarget | null>(),
-    midiInputPortId: text("midi_input_port_id"),
-    midiInputPortName: text("midi_input_port_name"),
-    midiInputChannel: smallint("midi_input_channel"),
-    gainDb: doublePrecision("gain_db").notNull().default(0),
-    pan: doublePrecision("pan").notNull().default(0),
-    muted: boolean("muted").notNull().default(false),
-    soloed: boolean("soloed").notNull().default(false),
-    outputChannelId: text("output_channel_id"),
-    outputBus: smallint("output_bus"),
-    recordArmed: boolean("record_armed").notNull().default(false),
-    inputMonitoring: boolean("input_monitoring").notNull().default(false),
-    inputChannels: smallint("input_channels")
-      .array()
-      .$type<number[]>()
-      .notNull()
-      .default(sql`array[]::smallint[]`),
-    hardwareOutputChannels: smallint("hardware_output_channels")
-      .array()
-      .$type<number[]>()
-      .notNull()
-      .default(sql`array[]::smallint[]`)
+    recordArmed: boolean("record_armed").notNull().default(false)
   },
   (table) => [
     foreignKey({

@@ -17,6 +17,7 @@ export default defineConfig({
     ".pnpm-store/",
     "apm_modules/",
     "**/node_modules/",
+    "**/.napi-rs-filesystem-transaction.swp/",
     "**/.vitepress/cache/",
     "**/dist/",
     "**/out/",

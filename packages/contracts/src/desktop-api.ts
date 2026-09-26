@@ -90,6 +90,12 @@ import type {
   AudioHostRuntimePreferences
 } from "./settings"
 import type { ShortcutPreferences } from "./shortcuts"
+import type {
+  DocumentOpenPreparation,
+  LiveDocumentConfiguration,
+  LiveEditCommand,
+  LiveWorkspaceSnapshot
+} from "./live"
 import type { RpcEvent, RpcRequestMeta, RpcResult, RpcWarning } from "./rpc"
 
 export interface ExternalProjectCommandNotification {
@@ -140,6 +146,17 @@ export const IPC_CHANNELS = {
   projectOpen: "project:open",
   projectSave: "project:save",
   projectClose: "project:close",
+  liveCreate: "live:create",
+  documentPrepareOpen: "document:prepare-open",
+  livePrepareOpen: "live:prepare-open",
+  liveOpen: "live:open",
+  liveSave: "live:save",
+  liveClose: "live:close",
+  liveSnapshot: "live:snapshot",
+  liveEdit: "live:edit",
+  liveConfigure: "live:configure",
+  liveUndo: "live:undo",
+  liveRedo: "live:redo",
   projectAssetsList: "project:assets-list",
   projectAudioImport: "project:audio-import",
   projectConfigurationUpdate: "project:configuration-update",
@@ -292,6 +309,40 @@ export interface HeronDesktopApi {
     meta: RpcRequestMeta,
     disposition?: ProjectCloseDisposition
   ): Promise<RpcResult<ProjectCloseResult>>
+  createLiveDocument(
+    meta: RpcRequestMeta,
+    configuration: LiveDocumentConfiguration,
+    path?: string
+  ): Promise<RpcResult<LiveWorkspaceSnapshot>>
+  prepareOpenDocument(
+    meta: RpcRequestMeta,
+    path?: string
+  ): Promise<RpcResult<DocumentOpenPreparation | null>>
+  prepareOpenLiveDocument(
+    meta: RpcRequestMeta,
+    path?: string
+  ): Promise<RpcResult<ProjectOpenPreparation | null>>
+  openLiveDocument(
+    meta: RpcRequestMeta,
+    path: string,
+    recover?: boolean
+  ): Promise<RpcResult<LiveWorkspaceSnapshot>>
+  saveLiveDocument(meta: RpcRequestMeta): Promise<RpcResult<LiveWorkspaceSnapshot>>
+  closeLiveDocument(
+    meta: RpcRequestMeta,
+    disposition: ProjectCloseDisposition
+  ): Promise<RpcResult<boolean>>
+  liveWorkspaceSnapshot(meta: RpcRequestMeta): Promise<RpcResult<LiveWorkspaceSnapshot>>
+  executeLiveEdit(
+    meta: RpcRequestMeta,
+    command: LiveEditCommand
+  ): Promise<RpcResult<LiveWorkspaceSnapshot>>
+  configureLiveDocument(
+    meta: RpcRequestMeta,
+    configuration: LiveDocumentConfiguration
+  ): Promise<RpcResult<LiveWorkspaceSnapshot>>
+  undoLiveEdit(meta: RpcRequestMeta): Promise<RpcResult<LiveWorkspaceSnapshot>>
+  redoLiveEdit(meta: RpcRequestMeta): Promise<RpcResult<LiveWorkspaceSnapshot>>
   listProjectAssets(meta: RpcRequestMeta): Promise<RpcResult<ProjectAssetSummary[]>>
   importProjectAudio(
     meta: RpcRequestMeta,
