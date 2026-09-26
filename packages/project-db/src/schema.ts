@@ -32,12 +32,15 @@ export const PROJECT_SAMPLE_RATES = [44_100, 48_000, 88_200, 96_000, 176_400, 19
 export type ProjectSampleRate = (typeof PROJECT_SAMPLE_RATES)[number]
 
 export const PROJECT_ID = "project"
+export const STUDIO_FORMAT_VERSION = 1
 export const WAVEFORM_CACHE_VERSION = 1
 
 export const project = pgTable(
   "project",
   {
     id: text("id").primaryKey(),
+    kind: text("kind").$type<"studio">().notNull().default("studio"),
+    formatVersion: integer("format_version").notNull().default(STUDIO_FORMAT_VERSION),
     name: text("name").notNull(),
     sampleRate: integer("sample_rate").notNull(),
     waveformDisplayMode: text("waveform_display_mode").$type<"separate" | "aggregate">().notNull(),
@@ -46,6 +49,8 @@ export const project = pgTable(
   },
   (table) => [
     check("project_singleton_id_check", sql`${table.id} = 'project'`),
+    check("project_kind_check", sql`${table.kind} = 'studio'`),
+    check("project_format_version_check", sql`${table.formatVersion} >= 1`),
     check("project_name_check", sql`length(trim(${table.name})) > 0`),
     check(
       "project_sample_rate_check",

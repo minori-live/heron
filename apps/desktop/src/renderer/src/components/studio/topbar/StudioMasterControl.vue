@@ -3,15 +3,16 @@ import { useI18n } from "vue-i18n"
 import type {
   MixerChannelMeter,
   MixerChannelPatch,
-  MixerChannelState,
+  MixerChannelCoreState,
   MixerParameterPreview
 } from "@heron/contracts"
 import { FADER_MIN_DB } from "../../../utils/mixerDbScale"
 import TrackGainControl from "../TrackGainControl.vue"
 
 const props = defineProps<{
-  channel: MixerChannelState | null
+  channel: MixerChannelCoreState | null
   meter?: MixerChannelMeter
+  disabled?: boolean
 }>()
 const emit = defineEmits<{
   preview: [preview: MixerParameterPreview]
@@ -21,7 +22,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 function previewGain(value: number): void {
-  if (!props.channel) return
+  if (!props.channel || props.disabled) return
   emit("preview", {
     target: "channel",
     id: props.channel.id,
@@ -31,7 +32,7 @@ function previewGain(value: number): void {
 }
 
 function commitGain(value: number): void {
-  if (!props.channel) return
+  if (!props.channel || props.disabled) return
   emit("updateChannel", props.channel.id, { gainDb: value })
 }
 </script>
@@ -43,7 +44,7 @@ function commitGain(value: number): void {
       :channel-id="channel?.id ?? 'master'"
       :value="channel?.gainDb ?? FADER_MIN_DB"
       :meter="meter"
-      :disabled="!channel"
+      :disabled="disabled || !channel"
       @preview="previewGain"
       @commit="commitGain"
     />

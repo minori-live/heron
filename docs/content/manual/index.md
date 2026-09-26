@@ -32,7 +32,8 @@ and projects. Project compatibility may change before version 1.0.
 
 The current foundation includes:
 
-- self-contained `.heron` project archives and recovery of unsaved working copies;
+- self-contained Studio `.hrs` and `.heron` archives, independent Live `.hrl`
+  archives, and recovery of unsaved working copies;
 - a native real-time audio engine with configurable devices and buffer sizes;
 - audio and instrument tracks on a musical timeline;
 - audio recording with recoverable swap files;
@@ -44,6 +45,19 @@ The current foundation includes:
 Features shown as **Soon** in the application are placeholders, not completed
 controls. Follow the [public roadmap](https://github.com/minori-live/heron/blob/main/agents/docs/roadmap.md)
 for planned work.
+
+The welcome screen can create a Live document for root Mixer editing. You can
+add Audio, Instrument, Aux, and Output Channels, edit Sends and basic Mixer values,
+store a device/MIDI selection, save, and reopen the `.hrl` file. Live Perform,
+plug-in audition, and Capture are still under development; storing a device
+selection does not start audio.
+
+Live keeps the Studio topbar and bottom statusbar. The document panel is on the
+left, the Mixer is on the right, and the center remains empty for future custom
+performance layouts. Use the Mixer channel strips to rename channels and edit
+their routing, Sends, pan, and gain. Open **Audio & MIDI devices** to edit the
+document's device selection. The Mixer edge supports dragging or arrow keys to
+resize; double-clicking it restores the default width.
 
 ## A note on this manual
 

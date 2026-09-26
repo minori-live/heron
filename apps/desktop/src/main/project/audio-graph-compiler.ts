@@ -1,6 +1,8 @@
 import {
   DEFAULT_PROJECT_END_TICK,
   resolvePluginProcessorAudioMode,
+  type MixerChannelState,
+  type MixerGraphSnapshot,
   type ProjectGraphSnapshot
 } from "@heron/contracts"
 import type { AudioHostGraph } from "../audio-host"
@@ -20,22 +22,24 @@ export interface RuntimeGraphOptions {
 
 export class AudioGraphCompiler {
   compile(
-    graph: ProjectGraphSnapshot,
+    graph: MixerGraphSnapshot,
     assetPaths: ReadonlyMap<string, string>,
     options: RuntimeGraphOptions | boolean
   ): AudioHostGraph {
+    const studio: ProjectGraphSnapshot | null =
+      "tracks" in graph ? (graph as ProjectGraphSnapshot) : null
     const runtimeOptions: RuntimeGraphOptions =
       typeof options === "boolean"
         ? { softwareMonitoringEnabled: options, latencyPolicy: { type: "normal" } }
         : options
     const channelIdForTrack = (trackId: string): string => {
-      const track = graph.tracks.find((candidate) => candidate.id === trackId)
+      const track = studio?.tracks.find((candidate) => candidate.id === trackId)
       if (!track) throw new Error(`Project track '${trackId}' was not found`)
       return track.channelId
     }
     return {
       sample_rate: graph.sampleRate,
-      project_end_tick: graph.projectEndTick ?? DEFAULT_PROJECT_END_TICK,
+      project_end_tick: studio?.projectEndTick ?? DEFAULT_PROJECT_END_TICK,
       latency_policy:
         runtimeOptions.latencyPolicy.type === "normal"
           ? { type: "normal" }
@@ -49,14 +53,18 @@ export class AudioGraphCompiler {
         name: channel.name,
         color: channel.color,
         kind: channel.kind,
-        system_role: channel.systemRole ?? undefined,
+        system_role:
+          "systemRole" in channel
+            ? ((channel as MixerChannelState).systemRole ?? undefined)
+            : undefined,
         gain_db: channel.gainDb,
         pan: channel.pan,
         muted: channel.muted,
         soloed: channel.soloed,
-        record_armed: channel.recordArmed,
+        record_armed: "recordArmed" in channel ? (channel as MixerChannelState).recordArmed : false,
         input_monitoring:
-          channel.kind === "instrument" && channel.systemRole === null
+          channel.kind === "instrument" &&
+          (!("systemRole" in channel) || channel.systemRole === null)
             ? channel.inputMonitoring
             : runtimeOptions.softwareMonitoringEnabled &&
               (channel.kind === "audio" || channel.kind === "aux") &&
@@ -94,7 +102,7 @@ export class AudioGraphCompiler {
         tap: send.tap,
         level_db: send.levelDb
       })),
-      clips: graph.audioClips.map((clip) => ({
+      clips: (studio?.audioClips ?? []).map((clip) => ({
         id: clip.id,
         channel_id: channelIdForTrack(clip.trackId),
         start_frame: clip.startFrame,
@@ -133,7 +141,7 @@ export class AudioGraphCompiler {
         latency_samples: 0,
         tail_samples: 0
       })),
-      midi_clips: graph.midiClips.map((clip) => ({
+      midi_clips: (studio?.midiClips ?? []).map((clip) => ({
         id: clip.id,
         channel_id: channelIdForTrack(clip.trackId),
         start_tick: clip.startTick,
@@ -160,11 +168,15 @@ export class AudioGraphCompiler {
           }))
         }
       })),
-      tempo_events: graph.tempoMap.tempoEvents.map((event) => ({
-        tick: event.tick,
-        beats_per_minute: event.beatsPerMinute
-      })),
-      time_signature_events: graph.tempoMap.timeSignatureEvents.map((event) => ({
+      tempo_events: (studio?.tempoMap.tempoEvents ?? [{ tick: 0, beatsPerMinute: 120 }]).map(
+        (event) => ({
+          tick: event.tick,
+          beats_per_minute: event.beatsPerMinute
+        })
+      ),
+      time_signature_events: (
+        studio?.tempoMap.timeSignatureEvents ?? [{ tick: 0, numerator: 4, denominator: 4 }]
+      ).map((event) => ({
         tick: event.tick,
         numerator: event.numerator,
         denominator: event.denominator

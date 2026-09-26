@@ -228,12 +228,21 @@ The application shell follows one spatial grammar:
 └ engine, device, position, and operation status ───────────────┘
 ```
 
-The left panel contains the contextual track inspector, including track properties and the
+In Studio, the left panel contains the contextual track inspector, including track properties and the
 complete track-specific MIDI input route. Notes and the project Media Browser are mutually
 exclusive views of the resizable right panel. Mixer controls and plug-in selection remain in the
 Mixer.
 
-Only the musical canvas and dock may scroll in two dimensions. Toolbars, inspectors, modal
+Live uses the same workspace grid, topbar chrome and controls, and engine statusbar as Studio.
+Its left column contains the root document navigation, the center is reserved for a future custom
+performance surface, and the resizable right column contains the shared Mixer. The bootstrap does
+not introduce a channel inspector or placeholder Set/Patch navigation. Channel names, routing,
+Sends, plug-in slots, pan and gain use the existing Mixer components and gestures. Device and
+MIDI configuration opens in a shared `UiDialog`; it does not occupy the center. Studio and Live
+controllers provide plain graph data and typed actions to `MixerSurface`, with runtime meters
+resolved only in the meter leaf. Document-specific capabilities disable unavailable controls.
+
+Only the musical canvas, Mixer, and dock may scroll in two dimensions. Toolbars, inspectors, modal
 content, and global status never rely on horizontal page scrolling. Resizers are separators with
 an accessible name and keyboard equivalent; a pointer gesture cannot be the only way to restore
 or close a region.

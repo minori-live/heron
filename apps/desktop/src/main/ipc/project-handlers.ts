@@ -3,7 +3,11 @@ import { IPC_CHANNELS, rpcFailure, rpcSuccess } from "@heron/contracts"
 import type { ProjectCloseDisposition, RpcError, RpcRequestMeta } from "@heron/contracts"
 import type { IpcHandlerContext } from "./context"
 import { t } from "../settings"
-import { AudioImportBatchError, isProjectFilePath, PROJECT_FILE_FILTER_EXTENSION } from "../project"
+import {
+  AudioImportBatchError,
+  isProjectFilePath,
+  PROJECT_FILE_FILTER_EXTENSIONS
+} from "../project"
 import { registerRpcHandler } from "./rpc"
 import { exclusiveOfflineOperationFailure } from "./operation-guard"
 import {
@@ -74,9 +78,12 @@ export function registerProjectHandlers(context: IpcHandlerContext): void {
     if (!path) {
       const result = await dialog.showSaveDialog({
         title: t("dialog.createProject.title"),
-        defaultPath: `${request.name}.heron`,
+        defaultPath: `${request.name}.hrs`,
         filters: [
-          { name: t("dialog.createProject.filter"), extensions: [PROJECT_FILE_FILTER_EXTENSION] }
+          {
+            name: t("dialog.createProject.filter"),
+            extensions: [...PROJECT_FILE_FILTER_EXTENSIONS]
+          }
         ]
       })
       if (result.canceled || !result.filePath) return cancelledFailure(meta)
@@ -100,7 +107,7 @@ export function registerProjectHandlers(context: IpcHandlerContext): void {
         title: t("dialog.openProject.title"),
         properties: ["openFile"],
         filters: [
-          { name: t("dialog.openProject.filter"), extensions: [PROJECT_FILE_FILTER_EXTENSION] }
+          { name: t("dialog.openProject.filter"), extensions: [...PROJECT_FILE_FILTER_EXTENSIONS] }
         ]
       })
       path = result.filePaths[0]

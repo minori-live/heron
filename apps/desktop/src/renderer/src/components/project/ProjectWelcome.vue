@@ -13,6 +13,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   create: [request: CreateProjectRequest]
+  createLive: []
   open: [path?: string]
 }>()
 
@@ -146,10 +147,20 @@ function createProject(): void {
           :disabled="props.busy"
           @click="createProject"
         >
-          <span>{{ props.busy ? t("welcome.creating") : t("welcome.createProject") }}</span>
+          <span>{{ props.busy ? t("welcome.creating") : t("welcome.createStudio") }}</span>
           <svg aria-hidden="true" viewBox="0 0 24 24">
             <path d="M5 12h14M14 7l5 5-5 5" />
           </svg>
+        </UiButton>
+        <UiButton
+          class="project-welcome__create project-welcome__create--live"
+          size="lg"
+          variant="secondary"
+          :disabled="props.busy"
+          @click="emit('createLive')"
+        >
+          <span>{{ t("welcome.createLive") }}</span>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5" /></svg>
         </UiButton>
       </section>
 
@@ -418,6 +429,14 @@ function createProject(): void {
   stroke-linejoin: round;
   stroke-width: 1.6;
   transition: transform var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.project-welcome__create--live {
+  margin-top: 10px;
+  border-color: var(--line-strong);
+  color: var(--text-primary);
+  background: var(--surface-raised);
+  box-shadow: none;
 }
 
 .project-welcome__create:disabled {

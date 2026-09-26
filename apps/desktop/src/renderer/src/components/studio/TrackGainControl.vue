@@ -24,10 +24,18 @@ const valueText = (value: number) => (value <= FADER_MIN_DB ? "−∞ dB" : `${v
 // Keep the 30 Hz telemetry subscription inside this focused display so arrangement rows receive
 // live levels without invalidating their composition surfaces. Tests and previews can still inject
 // a deterministic meter through props.
-const runtimeStore = useMixerRuntimeStore()
+const runtimeStore = props.meter ? null : useMixerRuntimeStore()
 const { settings } = storeToRefs(useApplicationSettingsStore())
 const meter = computed<MixerChannelMeter>(
-  () => props.meter ?? runtimeStore.meterFor(props.channelId ?? "")
+  () =>
+    props.meter ??
+    runtimeStore?.meterFor(props.channelId ?? "") ?? {
+      channelId: props.channelId ?? "",
+      preFaderPeak: [0, 0],
+      postFaderPeak: [0, 0],
+      heldPeak: [0, 0],
+      clipped: false
+    }
 )
 const peakHold = computed<MeterPeakHold>(() => settings.value?.meterPeakHold ?? "800ms")
 const returnRate = computed<MeterReturnRate>(

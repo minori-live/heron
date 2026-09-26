@@ -22,6 +22,7 @@ import { useAudioBenchmarkStore } from "../stores/audioBenchmark"
 import { useCompiledEffectGraphStore } from "../stores/compiledEffectGraph"
 import { useStudioWorkflowStore } from "../stores/studioWorkflow"
 import { useStudioWorkspaceStore } from "../stores/studioWorkspace"
+import { useLiveWorkspaceStore } from "../stores/liveWorkspace"
 import { useMediaBrowserStore } from "../stores/mediaBrowser"
 import { useApplicationWindowStore } from "../stores/applicationWindow"
 import { rpcEvent } from "../test/ipc"
@@ -138,6 +139,7 @@ function createHarness() {
     routes: [
       { path: "/", name: "welcome", component: { template: "<div />" } },
       { path: "/studio", name: "studio", component: { template: "<div />" } },
+      { path: "/live", name: "live", component: { template: "<div />" } },
       {
         path: "/settings/project",
         name: "project-settings",
@@ -574,6 +576,7 @@ describe("useApplicationCommands", () => {
   it("dispatches project, edit, transport, view, recording, and help commands", async () => {
     const { pinia, router } = createHarness()
     const projectStore = useProjectStore(pinia)
+    projectStore.applyDesktopSession(closedBootstrap().desktopSession)
     const mixerStore = useMixerStore(pinia)
     const pianoRollStore = usePianoRollStore(pinia)
     const transportStore = useTransportStore(pinia)
@@ -606,6 +609,12 @@ describe("useApplicationCommands", () => {
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ name: expect.any(String) }))
 
     await router.push({ name: "welcome" })
+    window.heron.prepareOpenDocument = vi.fn().mockResolvedValue({
+      ok: true,
+      requestId: "prepare-open",
+      value: { kind: "studio", path: session.path },
+      warnings: []
+    })
     nativeCommandListener?.(rpcEvent("project.open"))
     await flushPromises()
     expect(open).toHaveBeenCalled()
@@ -645,6 +654,17 @@ describe("useApplicationCommands", () => {
     expect(executeWindowCommand).toHaveBeenCalledWith("view.toggle-full-screen")
     expect(openBenchmark).toHaveBeenCalled()
     expect(openGraph).toHaveBeenCalled()
+
+    const liveWorkspace = useLiveWorkspaceStore()
+    liveWorkspace.mixerWidth = 610
+    await router.push({ name: "live" })
+    nativeCommandListener?.(rpcEvent("view.toggle-mixer-dock"))
+    await flushPromises()
+    expect(liveWorkspace.mixerOpen).toBe(false)
+    nativeCommandListener?.(rpcEvent("view.toggle-mixer-dock"))
+    await flushPromises()
+    expect(liveWorkspace.mixerOpen).toBe(true)
+    expect(liveWorkspace.mixerWidth).toBe(610)
 
     nativeCommandListener?.(rpcEvent("project.close"))
     await flushPromises()

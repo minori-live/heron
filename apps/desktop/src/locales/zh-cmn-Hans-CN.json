@@ -55,6 +55,7 @@
     "saveChanges": "保存更改",
     "changesSaved": "更改已保存",
     "backToStudio": "返回编排界面",
+    "backToLive": "返回 Live",
     "backToWelcome": "返回欢迎页"
   },
   "chrome": {
@@ -115,6 +116,8 @@
     "studioBasics": "Studio 基础教程…"
   },
   "dialog": {
+    "createLive": { "title": "创建 Live 文档", "filter": "Heron Live 文档" },
+    "openLive": { "title": "打开 Live 文档", "filter": "Heron Live 文档" },
     "actions": {
       "ok": "确定",
       "cancel": "取消",
@@ -197,6 +200,8 @@
     "audioDeviceRecoveryUnavailable": "音频设备恢复决策已失效。",
     "audioDeviceRecoveryFailed": "无法应用所选音频设备。",
     "invalidRpcRequest": "请求无效。",
+    "documentFormatMismatch": "文件类型与所选文档类型不匹配。",
+    "unsupportedDocumentVersion": "此文档由更新版本的 Heron 创建。",
     "lowLatencyModeUnavailable": "只能在走带停止且已选择有效 Output 时更改低延迟模式。",
     "protocolMismatch": "此应用组件使用了不兼容的协议版本。",
     "untrustedSender": "请求来自不受信任的应用上下文。",
@@ -347,11 +352,34 @@
     "newProjectTitle": "新建工程",
     "newProjectBody": "打开一条空白时间线，落下第一个声音。",
     "createProject": "开始创作",
+    "createStudio": "新建 Studio",
+    "createLive": "新建 Live",
     "creating": "正在创建…",
     "recentProjects": "继续创作",
+    "recentKindPath": "{kind} · {path}",
     "openAnother": "打开工程",
     "noRecent": "开始创作后，最近打开的工程会出现在这里。",
-    "untitledProject": "未命名工程"
+    "untitledProject": "未命名工程",
+    "untitledLive": "未命名 Live"
+  },
+  "live": {
+    "document": "Live 文档",
+    "editMode": "编辑",
+    "mixer": "调音台",
+    "devices": "音频与 MIDI 设备",
+    "performanceWorkspace": "演出工作区",
+    "resizeMixer": "调整调音台宽度",
+    "unsaved": "未保存的修改",
+    "chooseDevice": "选择设备",
+    "missing": "缺失",
+    "buffer": "缓冲区大小",
+    "saveRig": "保存设备配置",
+    "midiDevices": "MIDI 设备",
+    "noMidiDevices": "未发现 MIDI 设备",
+    "deviceMidiDescription": "选择此 Live 文档可使用的物理 MIDI 输入。",
+    "inputDeviceDescription": "选择保存在此 Live 文档中的物理输入设备。",
+    "outputDeviceDescription": "选择保存在此 Live 文档中的物理输出设备。",
+    "outputLimit": "全部 16 组硬件输出通道均已使用。"
   },
   "settings": {
     "midi": {
@@ -1450,8 +1478,10 @@
       "actions": {
         "ariaLabel": "混音台操作",
         "addAudio": "添加音频轨",
+        "addAudioChannel": "添加音频通道",
         "addAudioLabel": "音频",
         "addInstrument": "添加乐器轨",
+        "addInstrumentChannel": "添加乐器通道",
         "addInstrumentLabel": "乐器",
         "addAux": "添加辅助通道",
         "addAuxLabel": "辅助",

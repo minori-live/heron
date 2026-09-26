@@ -58,6 +58,23 @@ native adapter -> @heron/dsp-node -> embedded runtime -> audio callback
 - `@heron/project-db` is the only project persistence implementation.
 - `@heron/ui` owns shared visual behavior and accessibility, never product state.
 
+Studio and Live use separate document sessions and PGlite workers. The shared
+Mixer graph contract contains Channels, Sends, plug-ins, and side-chain routes;
+Studio composes tracks, clips, media, and recording on top. Live root Channels
+have no placeholder Studio Track. The Live Edit document path currently owns
+create/open/save, recovery, revisioned edits, and the device/MIDI configuration
+record. The Perform runtime adapter and its candidate-generation policy are
+specified in [ADR-0008](adr/0008-root-live-bootstrap-and-capture.md) and remain
+an unfulfilled delivery gate; a stored rig does not imply active audition.
+
+Both document views compose `DocumentWorkspaceShell`, `WorkspaceTopbar`, and
+the existing statusbar. Live puts `MixerSurface` in the resizable right column
+and reserves its center for a future custom performance layout. The Studio
+Mixer adapter and Live Mixer controller share the original strips and controls;
+Live supplies document commands, exact hardware choices, and an isolated meter
+source. Creating a Live channel never calls Studio track creation. Device/MIDI
+configuration uses a draft dialog and does not mutate global audio preferences.
+
 Detailed code and review rules live in
 [Engineering standards](engineering-standards.md).
 

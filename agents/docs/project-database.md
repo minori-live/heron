@@ -10,10 +10,13 @@ reintroduce them as compatibility layers.
 
 ## Source of Truth
 
-`packages/project-db/src/schema.ts` composes the current Studio database schema.
-Shared Mixer tables live in `mixer-schema.ts`; Studio adds tracks, clips, and
-musical timing. These Drizzle declarations are the structural source of truth.
-The shared Mixer reader must work without querying Studio tables.
+`packages/project-db/src/schema.ts` composes the Studio database;
+`packages/project-db/src/live-schema.ts` defines the independent Live database.
+Shared Mixer tables live in `mixer-schema.ts`, with fresh common Channel column
+builders in `mixer-core-schema.ts`. Studio adds recording/system columns, tracks,
+clips, media and musical timing. Live owns only its root Mixer, configuration,
+MIDI bindings and captured plug-in parameter values. These Drizzle declarations
+are the structural source of truth. Shared Mixer readers must not query Studio tables.
 
 - Define every table, column, default, primary key, foreign key, unique
   constraint, check constraint, and index in the Drizzle schema.
@@ -62,12 +65,14 @@ The following rules are mandatory:
   `drizzle-orm/pglite/migrator`; do not loop over SQL strings with PGlite
   `exec`.
 - The Electron main build must copy the committed migration directory to
-  `out/drizzle`, and the project worker must resolve that directory relative to
-  `import.meta.url`. Tests use the same committed migration directory directly.
+  `out/drizzle` for Studio and `out/drizzle-live` for Live. Each worker resolves
+  its own directory relative to `import.meta.url`; tests use the same committed
+  migration directories directly.
 - The Electron main build must also generate
-  `out/project-template.pglite.gz` from those migrations. The template contains
-  the current schema and migration journal but no project instance rows. New
-  projects load this template and do not run the migrator.
+  `out/project-template.pglite.gz` and `out/live-template.pglite.gz` from the
+  respective migrations. Each template contains its schema and migration
+  journal but no document instance rows. New documents load the matching
+  template and do not run the migrator.
 - Migrations describe structure. Deterministic new-project seed data belongs in
   the project creation transaction, not in a data migration.
 - A custom SQL migration requires an explicit review note explaining why

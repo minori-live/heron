@@ -122,4 +122,6 @@ export interface RecentProject {
   path: string
   name: string
   openedAt: number
+  /** Older settings records omit this; their extension determines the kind. */
+  kind?: import("./live").DocumentKind
 }

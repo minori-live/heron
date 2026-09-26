@@ -10,6 +10,7 @@ import type {
   MixerParameterPreview,
   TimeSignatureEventState
 } from "@heron/contracts"
+import DocumentWorkspaceShell from "../components/studio/DocumentWorkspaceShell.vue"
 import StudioStatusbar from "../components/studio/StudioStatusbar.vue"
 import StudioTopbar from "../components/studio/StudioTopbar.vue"
 import StudioWorkspace from "../components/studio/StudioWorkspace.vue"
@@ -213,15 +214,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main
+  <DocumentWorkspaceShell
     v-if="session"
-    :class="[
-      'studio-shell',
-      {
-        'left-panel-open': workspaceStore.activeLeftPanel !== null,
-        'right-panel-open': workspaceStore.activeRightPanel !== null
-      }
-    ]"
+    class="studio-shell"
+    :left-panel-open="workspaceStore.activeLeftPanel !== null"
+    :right-panel-open="workspaceStore.activeRightPanel !== null"
   >
     <StudioTopbar
       :engine-running="audioRuntime.state === 'running'"
@@ -284,40 +281,5 @@ onBeforeUnmount(() => {
       :audio-warnings="audioWarnings"
     />
     <MidiImportDialog />
-  </main>
+  </DocumentWorkspaceShell>
 </template>
-
-<style scoped>
-.studio-shell {
-  display: grid;
-  grid-template: 56px minmax(0, 1fr) 25px / minmax(0, 1fr);
-  width: 100%;
-  height: 100%;
-  color: var(--text-primary);
-  background: var(--canvas);
-  -webkit-user-select: none;
-  user-select: none;
-}
-.studio-shell.left-panel-open {
-  grid-template-columns: 214px minmax(0, 1fr);
-}
-.studio-shell.right-panel-open {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-.studio-shell.left-panel-open.right-panel-open {
-  grid-template-columns: 214px minmax(0, 1fr) auto;
-}
-.studio-shell
-  :deep(:is(input, textarea, select, [contenteditable]:not([contenteditable="false"]))) {
-  -webkit-user-select: text;
-  user-select: text;
-}
-@media (max-width: 1100px) {
-  .studio-shell.left-panel-open {
-    grid-template-columns: 184px minmax(0, 1fr);
-  }
-  .studio-shell.left-panel-open.right-panel-open {
-    grid-template-columns: 184px minmax(0, 1fr) auto;
-  }
-}
-</style>

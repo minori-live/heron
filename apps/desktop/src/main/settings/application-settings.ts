@@ -450,10 +450,14 @@ export class ApplicationSettingsStore {
     return this.write(current)
   }
 
-  async addRecent(path: string, name: string): Promise<ApplicationSettings> {
+  async addRecent(
+    path: string,
+    name: string,
+    kind: "studio" | "live" = "studio"
+  ): Promise<ApplicationSettings> {
     const current = await this.get()
     current.recentProjects = [
-      { path, name, openedAt: Date.now() },
+      { path, name, kind, openedAt: Date.now() },
       ...current.recentProjects.filter((recent) => recent.path !== path)
     ].slice(0, 20)
     return this.write(current)

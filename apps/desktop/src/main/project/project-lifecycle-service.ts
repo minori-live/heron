@@ -154,7 +154,8 @@ export class ProjectLifecycleService {
       audioResources: state.audioResourceSnapshot(),
       recordingResource: state.recordingResourceSnapshot(),
       settings,
-      workspace: state.workspaceSnapshot()
+      workspace: state.workspaceSnapshot(),
+      liveWorkspace: state.liveWorkspaceSnapshot()
     }
   }
 
@@ -196,6 +197,9 @@ export class ProjectLifecycleService {
       this.lifecycle.applicationState.desktopSession
     )
     if (targetFailure) return targetFailure
+    if (this.lifecycle.applicationState.liveWorkspaceSnapshot()) {
+      return rpcFailure(meta, busyError(meta))
+    }
     const begin = this.beginOperation(meta)
     if (!begin.ok) return begin
     if (begin.value) return begin.value as RpcResult<ProjectWorkspaceSnapshot>
@@ -291,7 +295,22 @@ export class ProjectLifecycleService {
       return result
     } catch (error) {
       await this.rollbackOpen(resources, preparedGraph, nativeActivated)
-      const rpcError = unavailableError(meta, "project-worker", nativeActivated)
+      const formatCode = error && typeof error === "object" && "code" in error ? error.code : null
+      const rpcError: RpcError =
+        formatCode === "document-format-mismatch" || formatCode === "unsupported-document-version"
+          ? {
+              code: formatCode,
+              category: "validation",
+              outcome: "not-committed",
+              retry: "never",
+              correlationId: randomUUID(),
+              userMessageKey:
+                formatCode === "document-format-mismatch"
+                  ? "errors.documentFormatMismatch"
+                  : "errors.unsupportedDocumentVersion",
+              details: { type: formatCode, kind: "studio" }
+            }
+          : unavailableError(meta, "project-worker", nativeActivated)
       console.error(`[project-lifecycle] ${rpcError.correlationId} open candidate failed`, error)
       const result = rpcFailure(meta, rpcError)
       this.lifecycle.failProject(rpcError.userMessageKey)

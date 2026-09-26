@@ -23,7 +23,8 @@ describe("ProjectWelcome", () => {
     expect(copy).toContain("From sketch to stage.")
     expect(copy).toContain("Make sound your own.")
     expect(copy).toContain("A free, open-source workspace")
-    expect(copy).toContain("Start creating")
+    expect(copy).toContain("New Studio")
+    expect(copy).toContain("New Live")
     expect(copy).not.toMatch(/PGlite|swap|archive|48 kHz/i)
   })
 

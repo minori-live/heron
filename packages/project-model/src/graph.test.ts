@@ -976,6 +976,25 @@ describe("shared Mixer and Studio validation", () => {
 })
 
 describe("project graph validation and command guards", () => {
+  it("validates a standalone Mixer without requiring Studio tracks or a timeline", () => {
+    const studio = graph()
+    const mixer = {
+      sampleRate: studio.sampleRate,
+      channels: studio.channels.map(
+        ({ systemRole: _systemRole, recordArmed: _recordArmed, ...channel }) => channel
+      ),
+      sends: studio.sends,
+      plugins: studio.plugins
+    }
+    expect(() => validateMixerGraph(mixer)).not.toThrow()
+    expect(() => validateGraph({ ...studio, tracks: [] })).toThrow(
+      "Ordinary Audio and Instrument channels require exactly one project track"
+    )
+    const invalid = structuredClone(mixer)
+    invalid.channels[0]!.outputChannelId = "missing"
+    expect(() => validateMixerGraph(invalid)).toThrow("was not found")
+  })
+
   it("accepts host-provided mono-to-stereo mode for a native mono effect", () => {
     const value = graph()
     value.plugins.push(

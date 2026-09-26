@@ -1,5 +1,5 @@
 import { asc } from "drizzle-orm"
-import type { MixerGraphSnapshot } from "@heron/contracts"
+import type { MixerChannelState, MixerGraphSnapshot } from "@heron/contracts"
 import {
   mixerChannels,
   mixerSends,
@@ -10,11 +10,11 @@ import {
 import type { PgliteDatabase } from "drizzle-orm/pglite"
 import { bytes, pluginDescriptor } from "./serialization"
 
-/** Reads only shared Mixer tables; sample rate belongs to the enclosing document. */
+/** Reads Studio's Mixer tables without querying arrangement or musical timeline tables. */
 export async function readMixerGraphSnapshot(
   db: Pick<PgliteDatabase, "select">,
   sampleRate: number
-): Promise<MixerGraphSnapshot> {
+): Promise<MixerGraphSnapshot & { channels: MixerChannelState[] }> {
   const [channelRows, sendRows, pluginRows, pluginSidechainRouteRows, pluginStateChunkRows] =
     await Promise.all([
       db.select().from(mixerChannels).orderBy(asc(mixerChannels.sortOrder), asc(mixerChannels.id)),

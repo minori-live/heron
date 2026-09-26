@@ -9,6 +9,7 @@ import { useAudioPreferencesStore } from "../stores/audioPreferences"
 import { useMidiInputStore } from "../stores/midiInput"
 import { useMixerStore } from "../stores/mixer"
 import { useProjectStore } from "../stores/project"
+import { useLiveStore } from "../stores/live"
 import ProjectSettingsView from "./ProjectSettingsView.vue"
 import SystemSettingsView from "./SystemSettingsView.vue"
 import WelcomeView from "./WelcomeView.vue"
@@ -59,6 +60,7 @@ function router() {
     routes: [
       { path: "/", name: "welcome", component: EmptyRoute },
       { path: "/studio", name: "studio", component: EmptyRoute },
+      { path: "/live", name: "live", component: EmptyRoute },
       { path: "/system", name: "system-settings", component: EmptyRoute },
       { path: "/project", name: "project-settings", component: EmptyRoute }
     ]
@@ -115,6 +117,50 @@ describe("route views", () => {
     expect(navigation.currentRoute.value.name).toBe("welcome")
   })
 
+  it("returns system settings to the open Live document", async () => {
+    vi.spyOn(useApplicationSettingsStore(), "load").mockResolvedValue()
+    vi.spyOn(
+      useApplicationSettingsStore(),
+      "refreshAudioHostRuntimeDiagnostics"
+    ).mockResolvedValue()
+    vi.spyOn(useMidiInputStore(), "load").mockResolvedValue()
+    const studio = workspace()
+    useLiveStore().applyWorkspace({
+      kind: "live",
+      project: studio.project,
+      projectGraph: studio.projectGraph,
+      revision: 0,
+      mode: "edit",
+      history: { canUndo: false, canRedo: false },
+      session: {
+        ...session,
+        kind: "live",
+        path: "/projects/session.hrl",
+        configuration: { name: "Stage", sampleRate: 48_000, audio: null, enabledMidiDeviceIds: [] }
+      },
+      graph: { sampleRate: 48_000, channels: [], sends: [], plugins: [] },
+      bindings: []
+    })
+    const navigation = router()
+    await navigation.push("/system")
+    const wrapper = mount(SystemSettingsView, {
+      global: {
+        plugins: [navigation],
+        stubs: {
+          SystemSettingsPage: {
+            props: ["backLabel"],
+            emits: ["close"],
+            template: '<button class="close" @click="$emit(\'close\')">{{ backLabel }}</button>'
+          }
+        }
+      }
+    })
+    await wrapper.find(".close").trigger("click")
+    await flushPromises()
+    expect(navigation.currentRoute.value.name).toBe("live")
+    wrapper.unmount()
+  })
+
   it("saves project settings, reports failures, and closes to the studio", async () => {
     const project = useProjectStore()
     project.applyLifecycleState({ status: "open", session, error: null })
@@ -159,6 +205,10 @@ describe("route views", () => {
     vi.spyOn(settings, "load").mockResolvedValue()
     const create = vi.spyOn(project, "create").mockResolvedValue(workspace())
     const open = vi.spyOn(project, "open").mockResolvedValue(workspace())
+    vi.spyOn(project, "prepareDocumentOpen").mockResolvedValue({
+      kind: "studio",
+      path: "/project.heron"
+    })
     const hydrate = vi.spyOn(mixer, "hydrate")
     const navigation = router()
     await navigation.push("/")

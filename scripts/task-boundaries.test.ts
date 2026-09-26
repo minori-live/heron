@@ -10,7 +10,7 @@ import { summarizeSccache } from "./ci-sccache-report.ts"
 
 const workspaceRoot = resolve(import.meta.dirname, "..")
 
-await test("macOS packaging has a single task definition and builds each artifact once", (context) => {
+await test("macOS packaging has a single task definition and builds each artifact once", async (context) => {
   const scratch = mkdtempSync(join(tmpdir(), "heron-task-graph-"))
   context.after(() => rmSync(scratch, { recursive: true, force: true }))
   const env = {
@@ -60,6 +60,11 @@ await test("macOS packaging has a single task definition and builds each artifac
     assert.equal(args[configIndex + 1], config)
     assert.ok(args.includes("--universal"))
   }
+  const packageScript = await readFile(
+    join(workspaceRoot, "apps/desktop/scripts/package-desktop.ts"),
+    "utf8"
+  )
+  assert.equal(packageScript.match(/require\.resolve\("electron-builder\/cli\.js"\)/gu)?.length, 1)
 })
 
 await test("sccache diagnostics report failed writes without exposing authenticated URLs", () => {

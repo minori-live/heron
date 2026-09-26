@@ -23,6 +23,7 @@ import type {
 import {
   PROJECT_ID,
   PROJECT_SAMPLE_RATES,
+  STUDIO_FORMAT_VERSION,
   WAVEFORM_CACHE_VERSION,
   assets,
   keySignatureEvents,
@@ -42,6 +43,7 @@ import { ProjectAssetRepository } from "./internal/assets"
 import { dumpProjectArchive } from "./internal/archive"
 import { importMidiSource, rollbackMidiSource } from "./internal/midi"
 import { migrateProjectDatabase } from "./migrations"
+import { inspectStudioArchive } from "./maintenance"
 
 const DEFAULT_INITIAL_TEMPO = 120
 const PROJECT_TEMPLATE_ARCHIVE = fileURLToPath(
@@ -49,6 +51,26 @@ const PROJECT_TEMPLATE_ARCHIVE = fileURLToPath(
 )
 
 type ProjectDb = PgliteDatabase<typeof schema>
+
+export class StudioArchiveFormatError extends Error {
+  constructor(readonly code: "format-mismatch" | "unsupported-version") {
+    super(
+      code === "format-mismatch"
+        ? "Archive is not a Studio document"
+        : "Studio archive format is newer than this application"
+    )
+  }
+}
+
+async function assertStudioArchive(client: PGlite): Promise<void> {
+  const header = await inspectStudioArchive(client)
+  if (!header.exists || (header.kind !== undefined && header.kind !== "studio")) {
+    throw new StudioArchiveFormatError("format-mismatch")
+  }
+  if ((header.formatVersion ?? 0) > STUDIO_FORMAT_VERSION) {
+    throw new StudioArchiveFormatError("unsupported-version")
+  }
+}
 
 export class ProjectDatabase {
   private readonly db: ProjectDb
@@ -252,6 +274,7 @@ export class ProjectDatabase {
       : new PGlite(dataDir)
     const instance = new ProjectDatabase(client)
     try {
+      await assertStudioArchive(client)
       await instance.migrate()
       return instance
     } catch (error) {

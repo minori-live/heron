@@ -57,6 +57,13 @@
       "when": 1786249381401,
       "tag": "0007_midi-control-alias",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790395200000,
+      "tag": "0008_studio_document_kind",
+      "breakpoints": true
     }
   ]
 }

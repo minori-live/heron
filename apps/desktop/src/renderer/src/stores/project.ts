@@ -3,6 +3,7 @@ import { computed, ref, shallowRef } from "vue"
 import type {
   ApplicationBootstrapSnapshot,
   CreateProjectRequest,
+  DocumentOpenPreparation,
   DesktopSessionRef,
   OfflineWorkerRef,
   ProjectAssetSummary,
@@ -84,6 +85,16 @@ export const useProjectStore = defineStore("project", () => {
     applyDesktopSession(snapshot.desktopSession)
     applyLifecycleState(snapshot.lifecycle.project)
     if (snapshot.workspace) applyWorkspace(snapshot.workspace)
+  }
+
+  async function prepareDocumentOpen(path?: string): Promise<DocumentOpenPreparation | null> {
+    if (!desktopSession.value) return null
+    const result = await window.heron.prepareOpenDocument(readMeta(desktopSession.value), path)
+    if (!result.ok) {
+      rpcError.value = rpcErrorMessage(result.error)
+      return null
+    }
+    return result.value
   }
 
   async function create(request: CreateProjectRequest): Promise<ProjectWorkspaceSnapshot | null> {
@@ -381,6 +392,7 @@ export const useProjectStore = defineStore("project", () => {
     applyDesktopSession,
     applyBootstrap,
     applyWorkspace,
+    prepareDocumentOpen,
     create,
     open,
     save,

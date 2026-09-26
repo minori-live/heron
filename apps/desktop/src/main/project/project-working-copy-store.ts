@@ -2,10 +2,10 @@ import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import type { ProjectConfiguration } from "@heron/contracts"
 
-export interface WorkingCopyMetadata {
+export interface WorkingCopyMetadata<TConfiguration = ProjectConfiguration> {
   id: string
   projectPath: string
-  configuration: ProjectConfiguration
+  configuration: TConfiguration
   dirty: boolean
   archiveMtimeMs: number | null
   updatedAt: number
@@ -20,7 +20,7 @@ async function fileMtime(path: string): Promise<number | null> {
   }
 }
 
-export class ProjectWorkingCopyStore {
+export class ProjectWorkingCopyStore<TConfiguration = ProjectConfiguration> {
   constructor(private readonly userData: string) {}
 
   root(id: string): string {
@@ -32,11 +32,11 @@ export class ProjectWorkingCopyStore {
     await mkdir(workingRoot, { recursive: true })
   }
 
-  async read(workingRoot: string): Promise<WorkingCopyMetadata | null> {
+  async read(workingRoot: string): Promise<WorkingCopyMetadata<TConfiguration> | null> {
     try {
       return JSON.parse(
         await readFile(join(workingRoot, "session.json"), "utf8")
-      ) as WorkingCopyMetadata
+      ) as WorkingCopyMetadata<TConfiguration>
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return null
       throw error
@@ -54,10 +54,10 @@ export class ProjectWorkingCopyStore {
 
   async write(
     workingRoot: string,
-    metadata: Omit<WorkingCopyMetadata, "archiveMtimeMs" | "updatedAt">
+    metadata: Omit<WorkingCopyMetadata<TConfiguration>, "archiveMtimeMs" | "updatedAt">
   ): Promise<void> {
     const path = join(workingRoot, "session.json")
-    const value: WorkingCopyMetadata = {
+    const value: WorkingCopyMetadata<TConfiguration> = {
       ...metadata,
       archiveMtimeMs: await fileMtime(metadata.projectPath),
       updatedAt: Date.now()

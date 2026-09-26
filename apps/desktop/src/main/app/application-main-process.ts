@@ -49,7 +49,8 @@ export function startMainProcess(
     if (
       shutdownPromise ||
       !startedApplicationServices ||
-      startedApplicationServices.projectService.current
+      startedApplicationServices.projectService.current ||
+      startedApplicationServices.liveDocumentService?.current
     )
       return false
     updateShutdown = true
@@ -58,13 +59,14 @@ export function startMainProcess(
     shutdownPromise = (async () => {
       await settleRpcMutations()
       // An already admitted project-open request may have completed while draining.
-      if (services.projectService.current) {
+      if (services.projectService.current || services.liveDocumentService?.current) {
         updateShutdown = false
         return
       }
       await services.audioHostService.stopAudioEngine()
       await services.audioHostService.stop()
       await services.projectService.shutdown(true)
+      await services.liveDocumentService?.shutdown()
       succeeded = true
       shutdownComplete = true
     })().catch((error: unknown) => {
@@ -91,7 +93,8 @@ export function startMainProcess(
         }
         await audioHostService.stop()
       })(),
-      startedApplicationServices?.projectService.shutdown()
+      startedApplicationServices?.projectService.shutdown(),
+      startedApplicationServices?.liveDocumentService?.shutdown()
     ])
   }
 
@@ -122,7 +125,10 @@ export function startMainProcess(
       dependencies.deferProjectClose({
         command: "application.quit",
         event,
-        project: startedApplicationServices?.projectService.current ?? null,
+        project:
+          startedApplicationServices?.projectService.current ??
+          startedApplicationServices?.liveDocumentService?.current ??
+          null,
         window: dependencies.mainWindow()
       })
     ) {

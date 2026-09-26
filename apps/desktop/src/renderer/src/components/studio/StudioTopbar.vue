@@ -28,6 +28,7 @@ import StudioControlButton from "./topbar/StudioControlButton.vue"
 import StudioMasterControl from "./topbar/StudioMasterControl.vue"
 import StudioMusicalDisplay from "./topbar/StudioMusicalDisplay.vue"
 import StudioTransportControls from "./topbar/StudioTransportControls.vue"
+import WorkspaceTopbar from "./WorkspaceTopbar.vue"
 
 defineProps<{
   engineRunning: boolean
@@ -81,9 +82,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <header
-    class="topbar col-span-full flex h-[56px] min-w-0 items-center justify-between gap-[clamp(4px,0.55vw,10px)] border-b border-b-solid px-[12px] py-[5px] [border-bottom-color:var(--line-strong)]"
-  >
+  <WorkspaceTopbar>
     <div
       class="control-group left-panel-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"
       data-topbar-group="left-panel"
@@ -248,21 +247,10 @@ const { t } = useI18n()
         <Library :size="15" />
       </StudioControlButton>
     </div>
-  </header>
+  </WorkspaceTopbar>
 </template>
 
 <style scoped>
-.topbar {
-  background: color-mix(in srgb, var(--surface-1) 96%, transparent);
-  box-shadow:
-    0 1px 0 var(--ui-domain-color-ffffff05) inset,
-    0 8px 22px var(--shadow);
-}
-.control-group {
-  border: 1px solid color-mix(in srgb, var(--line-strong) 72%, transparent);
-  background: color-mix(in srgb, var(--daw-control) 78%, transparent);
-  box-shadow: 0 1px 0 var(--ui-domain-color-ffffff05) inset;
-}
 .letter-control,
 .count-in-control {
   font: var(--ui-type-weight-bold) var(--ui-type-size-body-compact) var(--ui-type-family-data);
@@ -270,18 +258,5 @@ const { t } = useI18n()
 .count-in-control {
   font-size: var(--ui-type-size-caption);
   letter-spacing: var(--ui-type-tracking-tighter);
-}
-@media (max-width: 1279px) {
-  .topbar {
-    gap: 5px;
-    padding-right: 8px;
-    padding-left: 8px;
-  }
-  .placeholder-only {
-    display: none;
-  }
-  .control-group {
-    padding: 1px;
-  }
 }
 </style>

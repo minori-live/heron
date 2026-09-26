@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import type { MixerStripChannel } from "./mixer-surface-context"
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { UiButton } from "@heron/ui"
 import type {
   MixerChannelPatch,
-  MixerChannelState,
   PluginDescriptor,
   PluginInstanceState,
   PluginRuntimeStatus
@@ -13,12 +13,18 @@ import type { PluginSelection } from "../plugins/plugin-audio-mode"
 import MixerInputCapsule from "./MixerInputCapsule.vue"
 import MixerInstrumentInput from "./MixerInstrumentInput.vue"
 
-const props = defineProps<{
-  channel: MixerChannelState
-  instrument: PluginInstanceState | null
-  pluginRuntime: Record<string, PluginRuntimeStatus>
-  instrumentPlugins: PluginDescriptor[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    channel: MixerStripChannel
+    instrument: PluginInstanceState | null
+    pluginRuntime: Record<string, PluginRuntimeStatus>
+    instrumentPlugins: PluginDescriptor[]
+    applicationCaptureEnabled?: boolean
+    pluginEditorsEnabled?: boolean
+    hardwareInputCount?: number
+  }>(),
+  { applicationCaptureEnabled: true, pluginEditorsEnabled: true, hardwareInputCount: 32 }
+)
 
 const emit = defineEmits<{
   updateChannel: [patch: MixerChannelPatch]
@@ -43,6 +49,7 @@ const inputSummary = computed(() => {
       :instrument="instrument"
       :runtime="pluginRuntime"
       :plugins="instrumentPlugins"
+      :editors-enabled="pluginEditorsEnabled"
       @open="emit('openPlugin', $event)"
       @retry="emit('retryPlugin', $event)"
       @remove="emit('removePlugin', $event)"
@@ -55,6 +62,8 @@ const inputSummary = computed(() => {
       :input-format="channel.inputFormat ?? 'stereo'"
       :input-channels="channel.inputChannels"
       :application-capture="channel.applicationCapture"
+      :application-capture-enabled="applicationCaptureEnabled"
+      :hardware-input-count="hardwareInputCount"
       @update="emit('updateChannel', $event)"
     />
     <UiButton v-else class="section-control" size="sm" disabled>

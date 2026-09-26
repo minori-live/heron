@@ -14,6 +14,11 @@ export const router = createRouter({
       component: () => import("../views/StudioView.vue")
     },
     {
+      path: "/live",
+      name: "live",
+      component: () => import("../views/LiveView.vue")
+    },
+    {
       path: "/settings/project",
       name: "project-settings",
       component: () => import("../views/ProjectSettingsView.vue")

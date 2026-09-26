@@ -11,6 +11,11 @@ import type {
 import type { PluginInstanceRole, PluginInstanceState } from "./plugins"
 
 export const MIXER_BUS_COUNT = 256
+export const DEFAULT_LIVE_CHANNEL_COLORS = {
+  audio: "#4F8CFF",
+  instrument: "#73D6A2",
+  aux: "#B889F2"
+} as const
 export const DEFAULT_PROJECT_END_TICK = 61_440
 
 export type MixerChannelKind = "audio" | "instrument" | "aux" | "master" | "output"
@@ -43,6 +48,9 @@ export interface MixerChannelState {
   inputChannels: number[]
   hardwareOutputChannels: number[]
 }
+
+/** Channel state shared by Studio and Live documents. */
+export type MixerChannelCoreState = Omit<MixerChannelState, "systemRole" | "recordArmed">
 
 interface ApplicationCaptureTargetBase {
   executablePath: string
@@ -112,15 +120,15 @@ export interface MixerSendState {
   levelDb: number
 }
 
-/** Shared routing and processing graph, independent of an arrangement or musical timeline. */
 export interface MixerGraphSnapshot {
   sampleRate: number
-  channels: MixerChannelState[]
+  channels: MixerChannelCoreState[]
   sends: MixerSendState[]
   plugins: PluginInstanceState[]
 }
 
 export interface ProjectGraphSnapshot extends MixerGraphSnapshot {
+  channels: MixerChannelState[]
   projectNotes?: string
   projectEndTick?: number
   tracks: TrackState[]

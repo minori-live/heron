@@ -10,6 +10,7 @@ const props = defineProps<{
   options: readonly UiRadioOption[]
   optionCount: number
   discoveryState: string
+  disabled?: boolean
 }>()
 const emit = defineEmits<{ "update:modelValue": [value: string] }>()
 
@@ -28,6 +29,7 @@ const hasAsioOption = computed(() => props.options.some((option) => option.value
         :model-value="modelValue"
         :label="t('settings.audio.backend.ariaLabel')"
         :options="options"
+        :disabled="disabled"
         @update:model-value="emit('update:modelValue', $event)"
       />
       <p v-if="optionCount === 0" class="backend-empty">

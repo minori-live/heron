@@ -1,24 +1,25 @@
 <script setup lang="ts">
+import type { MixerStripChannel } from "./mixer-surface-context"
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { UiButton, UiCascadingSelect, UiIconButton, UiPopover, UiSelect } from "@heron/ui"
 import { Zap } from "@lucide/vue"
-import type {
-  MixerBusState,
-  MixerChannelPatch,
-  MixerChannelState,
-  MixerRouteTarget
-} from "@heron/contracts"
+import type { MixerBusState, MixerChannelPatch, MixerRouteTarget } from "@heron/contracts"
 import { mixerRouteGroups } from "./mixer-route-groups"
 
-const props = defineProps<{
-  channel: MixerChannelState
-  buses: readonly MixerBusState[]
-  outputs: MixerChannelState[]
-  targets: MixerRouteTarget[]
-  lowLatencyTarget?: boolean
-  lowLatencyTargetDisabled?: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    channel: MixerStripChannel
+    buses: readonly MixerBusState[]
+    outputs: MixerStripChannel[]
+    targets: MixerRouteTarget[]
+    lowLatencyTarget?: boolean
+    lowLatencyTargetDisabled?: boolean
+    lowLatencyEnabled?: boolean
+    hardwareOutputCount?: number
+  }>(),
+  { lowLatencyEnabled: true, hardwareOutputCount: 32 }
+)
 
 const emit = defineEmits<{
   updateChannel: [patch: MixerChannelPatch]
@@ -27,7 +28,9 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const hardwareOptions = Array.from({ length: 32 }, (_, index) => index + 1)
+const hardwareOptions = computed(() =>
+  Array.from({ length: props.hardwareOutputCount ?? 32 }, (_, index) => index + 1)
+)
 const hardwareSummary = computed(
   () => `HW ${props.channel.hardwareOutputChannels.join("–") || "—"}`
 )
@@ -51,6 +54,7 @@ function updateRoute(value: string): void {
 }
 
 function updateHardwareOutput(index: number, value: string): void {
+  if (!hardwareOptions.value.includes(Number(value))) return
   const hardwareOutputChannels = [...props.channel.hardwareOutputChannels]
   hardwareOutputChannels[index] = Number(value)
   emit("updateChannel", { hardwareOutputChannels })
@@ -69,7 +73,10 @@ function updateHardwareOutput(index: number, value: string): void {
       :aria-label="t('mixer.outputSection.outputAria', { name: channel.name })"
       @update:model-value="updateRoute"
     />
-    <div v-else-if="channel.kind === 'output'" class="output-controls">
+    <div
+      v-else-if="channel.kind === 'output'"
+      :class="['output-controls', { 'without-low-latency': lowLatencyEnabled === false }]"
+    >
       <UiPopover side="top" :side-offset="7">
         <template #trigger>
           <UiButton
@@ -92,11 +99,23 @@ function updateHardwareOutput(index: number, value: string): void {
             <UiSelect
               :model-value="String(channel.hardwareOutputChannels[index])"
               size="compact"
+              :disabled="hardwareOptions.length === 0"
               :aria-label="
                 t('mixer.outputSection.hardwareOutputN', { name: channel.name, n: index + 1 })
               "
               @update:model-value="updateHardwareOutput(index, $event)"
             >
+              <option
+                v-if="!hardwareOptions.includes(channel.hardwareOutputChannels[index] ?? 0)"
+                :value="String(channel.hardwareOutputChannels[index])"
+                disabled
+              >
+                {{
+                  t("mixer.outputSection.outputN", {
+                    n: channel.hardwareOutputChannels[index] ?? 0
+                  })
+                }}
+              </option>
               <option v-for="output in hardwareOptions" :key="output" :value="String(output)">
                 {{ t("mixer.outputSection.outputN", { n: output }) }}
               </option>
@@ -105,6 +124,7 @@ function updateHardwareOutput(index: number, value: string): void {
         </div>
       </UiPopover>
       <UiIconButton
+        v-if="lowLatencyEnabled !== false"
         size="sm"
         appearance="workspace"
         pressed-tone="success"
@@ -148,6 +168,9 @@ function updateHardwareOutput(index: number, value: string): void {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 28px;
   gap: 4px;
+}
+.output-controls.without-low-latency {
+  grid-template-columns: minmax(0, 1fr);
 }
 .output-control {
 }

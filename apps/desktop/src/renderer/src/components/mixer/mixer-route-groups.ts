@@ -1,12 +1,12 @@
 import type { UiCascadingSelectGroup } from "@heron/ui"
-import type { MixerBusState, MixerChannelState, MixerRouteTarget } from "@heron/contracts"
+import type { MixerBusState, MixerChannelCoreState, MixerRouteTarget } from "@heron/contracts"
 
 export type MixerRouteGroupsTranslator = (key: string, params?: Record<string, unknown>) => string
 
 export function mixerRouteGroups(
   targets: readonly MixerRouteTarget[],
   buses: readonly MixerBusState[],
-  outputs: readonly MixerChannelState[],
+  outputs: readonly MixerChannelCoreState[],
   t: MixerRouteGroupsTranslator
 ): readonly UiCascadingSelectGroup[] {
   return [

@@ -30,7 +30,12 @@ const { t } = useI18n()
         :key="recent.path"
         class="recent-item"
         :label="recent.name"
-        :description="recent.path"
+        :description="
+          t('welcome.recentKindPath', {
+            kind: recent.kind === 'live' ? 'Live' : 'Studio',
+            path: recent.path
+          })
+        "
         :disabled="props.busy"
         @activate="emit('open', recent.path)"
       >

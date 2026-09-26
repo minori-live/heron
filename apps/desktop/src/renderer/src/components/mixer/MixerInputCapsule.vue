@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from "vue"
 import { useI18n } from "vue-i18n"
-import { UiCascadingSelect, UiIconButton, type UiCascadingSelectGroup } from "@heron/ui"
+import {
+  UiCascadingSelect,
+  UiIconButton,
+  type UiCascadingSelectGroup,
+  type UiSelectOption
+} from "@heron/ui"
 import type {
   ApplicationCaptureTarget,
   MixerChannelPatch,
@@ -20,11 +25,13 @@ const props = withDefaults(
     applicationCapture?: ApplicationCaptureTarget | null
     hardwareInputCount?: number
     busCount?: number
+    applicationCaptureEnabled?: boolean
   }>(),
   {
     hardwareInputCount: 32,
     busCount: MIXER_BUS_COUNT,
-    applicationCapture: null
+    applicationCapture: null,
+    applicationCaptureEnabled: true
   }
 )
 
@@ -33,16 +40,18 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const applicationCaptureStore = useApplicationCaptureStore()
+const applicationCaptureStore = props.applicationCaptureEnabled
+  ? useApplicationCaptureStore()
+  : null
 
 const isStereo = computed(() => props.inputFormat === "stereo")
 const selectedApplicationTarget = computed(() => {
   if (!props.applicationCapture) return undefined
-  return applicationCaptureStore.targetFor(props.applicationCapture)
+  return applicationCaptureStore?.targetFor(props.applicationCapture)
 })
 const selectedApplicationSnapshot = computed(() => {
   if (!props.applicationCapture) return undefined
-  return applicationCaptureStore.snapshotFor(props.applicationCapture)
+  return applicationCaptureStore?.snapshotFor(props.applicationCapture)
 })
 
 const captureStatusMessage = computed(() => {
@@ -81,22 +90,19 @@ function adjacentPair(source: MixerInputSource, channel: number): [number, numbe
 
 const selectedInput = computed(() => {
   const channel = props.inputChannels[0] ?? 1
-  const selected = isStereo.value
-    ? adjacentPair(props.inputSource, channel)[0]
-    : clampInput(props.inputSource, channel)
   if (props.inputSource === "application") {
     const runtimeId = selectedApplicationTarget.value?.runtimeId
     return runtimeId ? `application:${runtimeId}` : "application:missing"
   }
-  return `${props.inputSource}:${selected}`
+  return `${props.inputSource}:${channel}`
 })
 
-function sourceOptions(source: MixerInputSource) {
+function sourceOptions(source: MixerInputSource): UiSelectOption[] {
   const count = inputCount(source)
   const prefix =
     source === "hardware" ? t("mixer.inputCapsule.inPrefix") : t("mixer.inputCapsule.busPrefix")
   if (source === "application") {
-    const options = applicationCaptureStore.targets.map((target) => ({
+    const options = (applicationCaptureStore?.targets ?? []).map((target) => ({
       value: `${source}:${target.runtimeId}`,
       label: `${target.displayName} (${target.channelCount > 1 ? t("mixer.inputCapsule.stereo") : t("mixer.inputCapsule.mono")})`
     }))
@@ -109,30 +115,41 @@ function sourceOptions(source: MixerInputSource) {
     }
     return options
   }
-  if (isStereo.value) {
-    return Array.from({ length: Math.floor(count / 2) }, (_, index) => {
-      const first = index * 2 + 1
-      return {
-        value: `${source}:${first}`,
-        label: `${prefix} ${first}–${first + 1}`
-      }
+  const options: UiSelectOption[] = isStereo.value
+    ? Array.from({ length: Math.floor(count / 2) }, (_, index) => {
+        const first = index * 2 + 1
+        return {
+          value: `${source}:${first}`,
+          label: `${prefix} ${first}–${first + 1}`
+        }
+      })
+    : Array.from({ length: count }, (_, index) => {
+        const channel = index + 1
+        return {
+          value: `${source}:${channel}`,
+          label: `${prefix} ${channel}`
+        }
+      })
+  if (
+    source === props.inputSource &&
+    !options.some((option) => option.value === selectedInput.value)
+  ) {
+    options.push({
+      value: selectedInput.value,
+      label: `${prefix} ${props.inputChannels.join("–")}`,
+      disabled: true
     })
   }
-
-  return Array.from({ length: count }, (_, index) => {
-    const channel = index + 1
-    return {
-      value: `${source}:${channel}`,
-      label: `${prefix} ${channel}`
-    }
-  })
+  return options
 }
 
 const inputGroups = computed<readonly UiCascadingSelectGroup[]>(() => {
   return [
     { label: t("mixer.inputCapsule.hardwareInputs"), options: sourceOptions("hardware") },
     { label: t("mixer.inputCapsule.buses"), options: sourceOptions("bus") },
-    { label: t("mixer.inputCapsule.applications"), options: sourceOptions("application") }
+    ...(props.applicationCaptureEnabled
+      ? [{ label: t("mixer.inputCapsule.applications"), options: sourceOptions("application") }]
+      : [])
   ]
 })
 
@@ -141,7 +158,7 @@ function selectInput(value: string): void {
   const sourceValue = separator === -1 ? value : value.slice(0, separator)
   const channelValue = separator === -1 ? "1" : value.slice(separator + 1)
   if (sourceValue === "application") {
-    const target = applicationCaptureStore.targets.find(
+    const target = applicationCaptureStore?.targets.find(
       (candidate) => candidate.runtimeId === channelValue
     )
     if (!target) return
@@ -154,6 +171,12 @@ function selectInput(value: string): void {
     return
   }
   const inputSource: MixerInputSource = sourceValue === "bus" ? "bus" : "hardware"
+  if (
+    inputCount(inputSource) < (isStereo.value ? 2 : 1) ||
+    !Number.isFinite(Number(channelValue))
+  ) {
+    return
+  }
   const channel = clampInput(inputSource, Number(channelValue))
   emit("update", {
     inputSource,
@@ -165,10 +188,11 @@ function selectInput(value: string): void {
   })
 }
 
-onMounted(() => applicationCaptureStore.startPolling())
-onBeforeUnmount(() => applicationCaptureStore.stopPolling())
+onMounted(() => applicationCaptureStore?.startPolling())
+onBeforeUnmount(() => applicationCaptureStore?.stopPolling())
 
 function toggleStereo(): void {
+  if (inputCount(props.inputSource) < (isStereo.value ? 1 : 2)) return
   const channel = props.inputChannels[0] ?? 1
   const nextIsStereo = !isStereo.value
   emit("update", {
@@ -210,6 +234,7 @@ function toggleStereo(): void {
             : t('mixer.inputCapsule.linkStereo', { name: channelName })
         "
         :pressed="isStereo"
+        :disabled="inputCount(inputSource) < (isStereo ? 1 : 2)"
         :title="
           isStereo ? t('mixer.inputCapsule.stereoLinked') : t('mixer.inputCapsule.linkStereoTitle')
         "

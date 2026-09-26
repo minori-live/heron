@@ -8,7 +8,7 @@ import { AudioHostService, ElectronPluginEditorWindows } from "../audio-host"
 import { installApplicationMenu } from "./application-menu"
 import { setMainLocale, t } from "../settings"
 import { PluginCatalogService } from "../plugins"
-import { ProjectService } from "../project"
+import { LiveDocumentService, ProjectService } from "../project"
 import { StartupProgress } from "./startup-progress"
 import { registerIpcHandlers } from "../ipc"
 import { setRpcMutationGuard } from "../ipc"
@@ -26,6 +26,7 @@ import {
   loadMainWindow,
   mainWindow,
   setWindowProjectService,
+  setWindowLiveDocumentService,
   splashWindow
 } from "./windows"
 
@@ -170,7 +171,9 @@ export function startApplication(
         applicationSettings.midiControl
       )
       const projectService = new ProjectService(app.getPath("userData"), settings)
+      const liveDocumentService = new LiveDocumentService(app.getPath("userData"))
       setWindowProjectService(projectService)
+      setWindowLiveDocumentService(liveDocumentService)
       const services = await createApplicationServices({
         userDataPath: app.getPath("userData"),
         sourceEpoch: startupEpoch,
@@ -185,6 +188,7 @@ export function startApplication(
       const ipcContext = {
         settings,
         projects: projectService,
+        liveDocuments: liveDocumentService,
         recordings: services.recordings,
         operations: services.operations,
         waveforms: services.waveforms,
@@ -221,23 +225,28 @@ export function startApplication(
       installApplicationMenu(
         process.platform,
         applicationSettings.shortcuts,
-        projectService.current !== null
+        projectService.current !== null || liveDocumentService.current !== null
       )
+      const refreshApplicationMenu = (): void => {
+        void settings
+          .get()
+          .then((current) => {
+            installApplicationMenu(
+              process.platform,
+              current.shortcuts,
+              projectService.current !== null || liveDocumentService.current !== null
+            )
+          })
+          .catch(() => undefined)
+      }
       const stopApplicationMenuLifecycleSync = services.lifecycle.applicationState.subscribe(
         (event) => {
           if (event.type !== "project") return
-          void settings
-            .get()
-            .then((current) => {
-              installApplicationMenu(
-                process.platform,
-                current.shortcuts,
-                event.state.status === "open"
-              )
-            })
-            .catch(() => undefined)
+          refreshApplicationMenu()
         }
       )
+      const stopLiveMenuSync =
+        services.lifecycle.applicationState.subscribeLiveWorkspace(refreshApplicationMenu)
 
       const handleActivate = (): void => {
         if (!mainWindow || mainWindow.isDestroyed()) {
@@ -249,18 +258,25 @@ export function startApplication(
       }
       app.on("activate", handleActivate)
       onServices(
-        createStartedApplicationServices(audioHostService, projectService, [
-          {
-            dispose(): void {
-              app.removeListener("activate", handleActivate)
-              setWindowProjectService(null)
-              stopApplicationMenuLifecycleSync()
-            }
-          },
-          ipcRegistration,
-          updates,
-          services
-        ])
+        createStartedApplicationServices(
+          audioHostService,
+          projectService,
+          [
+            {
+              dispose(): void {
+                app.removeListener("activate", handleActivate)
+                setWindowProjectService(null)
+                setWindowLiveDocumentService(null)
+                stopApplicationMenuLifecycleSync()
+                stopLiveMenuSync()
+              }
+            },
+            ipcRegistration,
+            updates,
+            services
+          ],
+          liveDocumentService
+        )
       )
     } catch (error) {
       console.error("Heron startup failed:", error)

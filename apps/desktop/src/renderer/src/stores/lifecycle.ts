@@ -5,11 +5,13 @@ import type { DesktopLifecycleEvent, DesktopLifecycleSnapshot, RpcEvent } from "
 import { useAudioRuntimeStore } from "./audioRuntime"
 import { useApplicationSettingsStore } from "./applicationSettings"
 import { useProjectStore } from "./project"
+import { useLiveStore } from "./live"
 import { useRecordingStore } from "./recording"
 import { readMeta, rpcErrorMessage } from "../rpc"
 
 export const useLifecycleStore = defineStore("lifecycle", () => {
   const projectStore = useProjectStore()
+  const liveStore = useLiveStore()
   const settingsStore = useApplicationSettingsStore()
   const audioRuntimeStore = useAudioRuntimeStore()
   const recordingStore = useRecordingStore()
@@ -95,6 +97,7 @@ export const useLifecycleStore = defineStore("lifecycle", () => {
         } else {
           projectStore.applyDesktopSession(result.value.desktopSession)
         }
+        liveStore.applyWorkspace(result.value.liveWorkspace ?? null)
         lastSequence =
           sourceEpoch === result.value.mainEpoch
             ? Math.max(lastSequence, result.value.revision)

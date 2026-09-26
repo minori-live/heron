@@ -30,6 +30,7 @@ import type {
   ProjectLifecycleState,
   ProjectSession,
   ProjectWorkspaceSnapshot,
+  LiveWorkspaceSnapshot,
   RecordingDependencies,
   RecordingLifecycleState,
   RecordingResourceSnapshot,
@@ -93,6 +94,7 @@ export class ApplicationStateStore {
   private recording: RecordingLifecycleState = { status: "idle", error: null }
   private recordingResource: RecordingResourceSnapshot | null = null
   private workspace: ProjectWorkspaceSnapshot | null = null
+  private liveWorkspace: LiveWorkspaceSnapshot | null = null
   private audioEngine: AudioEngineRef | null = null
   private audioRecovery: AudioDeviceRecoveryRef | null = null
   private transport: TransportRef | null = null
@@ -100,6 +102,7 @@ export class ApplicationStateStore {
   private currentMidiRuntime: MidiRuntimeRef
   private readonly pluginInstances = new Map<string, PluginInstanceRef>()
   private readonly listeners = new Set<ApplicationStateListener>()
+  private readonly liveWorkspaceListeners = new Set<(open: boolean) => void>()
 
   private constructor(
     readonly resources: ResourceRegistry,
@@ -278,6 +281,10 @@ export class ApplicationStateStore {
 
   workspaceSnapshot(): ProjectWorkspaceSnapshot | null {
     return this.workspace ? structuredClone(this.workspace) : null
+  }
+
+  liveWorkspaceSnapshot(): LiveWorkspaceSnapshot | null {
+    return this.liveWorkspace ? structuredClone(this.liveWorkspace) : null
   }
 
   async pluginInstanceSnapshot(
@@ -520,7 +527,20 @@ export class ApplicationStateStore {
   }
 
   setWorkspace(workspace: ProjectWorkspaceSnapshot | null): void {
+    if (workspace && this.liveWorkspace) throw new Error("A Live document is already open")
     this.workspace = workspace ? structuredClone(workspace) : null
+  }
+
+  setLiveWorkspace(workspace: LiveWorkspaceSnapshot | null): void {
+    if (workspace && this.workspace) throw new Error("A Studio document is already open")
+    this.liveWorkspace = workspace ? structuredClone(workspace) : null
+    this.revision += 1
+    for (const listener of this.liveWorkspaceListeners) listener(this.liveWorkspace !== null)
+  }
+
+  subscribeLiveWorkspace(listener: (open: boolean) => void): () => void {
+    this.liveWorkspaceListeners.add(listener)
+    return () => this.liveWorkspaceListeners.delete(listener)
   }
 
   snapshot(operations: OperationRegistry): ApplicationStateSnapshot {

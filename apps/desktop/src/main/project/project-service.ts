@@ -54,19 +54,23 @@ interface ProjectContext {
   workingRoot: string
 }
 
-export const PROJECT_FILE_EXTENSION = ".heron"
-export const PROJECT_FILE_FILTER_EXTENSION = "heron"
+export const PROJECT_FILE_EXTENSION = ".hrs"
+export const PROJECT_FILE_FILTER_EXTENSIONS = ["hrs", "heron"] as const
+
+const STUDIO_FILE_EXTENSIONS = new Set<string>(
+  PROJECT_FILE_FILTER_EXTENSIONS.map((extension) => `.${extension}`)
+)
 
 export function isProjectFilePath(path: string): boolean {
-  return extname(path).toLowerCase() === PROJECT_FILE_EXTENSION
+  return STUDIO_FILE_EXTENSIONS.has(extname(path).toLowerCase())
 }
 
 function resolveProjectFilePath(path: string): string {
   const resolved = resolve(path)
   const extension = extname(resolved).toLowerCase()
   if (extension === "") return `${resolved}${PROJECT_FILE_EXTENSION}`
-  if (extension !== PROJECT_FILE_EXTENSION) {
-    throw new TypeError(`Project path must use the ${PROJECT_FILE_EXTENSION} extension`)
+  if (!STUDIO_FILE_EXTENSIONS.has(extension)) {
+    throw new TypeError("Studio project path must use .hrs or .heron")
   }
   return resolved
 }
@@ -209,7 +213,7 @@ export class ProjectService {
 
   async hasRecoverableWorkingCopy(projectPathValue: string): Promise<boolean> {
     if (!isProjectFilePath(projectPathValue)) {
-      throw new TypeError(`Project path must use the ${PROJECT_FILE_EXTENSION} extension`)
+      throw new TypeError("Studio project path must use .hrs or .heron")
     }
     const projectPath = resolve(projectPathValue)
     const id = workspaceId(projectPath)
@@ -222,7 +226,7 @@ export class ProjectService {
     onProgress?: (progress: ProjectLoadProgress) => void
   ): Promise<ProjectSession> {
     if (!isProjectFilePath(projectPathValue)) {
-      throw new TypeError(`Project path must use the ${PROJECT_FILE_EXTENSION} extension`)
+      throw new TypeError("Studio project path must use .hrs or .heron")
     }
     await this.archiveJournal.recover()
     this.assertCanPrepare()

@@ -24,3 +24,11 @@ export {
 
 export { validateMixerGraph } from "./mixer-validation"
 export { ProjectValidationError, MixerValidationError } from "./validation-error"
+export {
+  applyLiveCapture,
+  applyLiveEdit,
+  applyLivePerformanceCommand,
+  captureFieldKey,
+  diffLiveCapture
+} from "./live"
+export type { LiveEditResult } from "./live"

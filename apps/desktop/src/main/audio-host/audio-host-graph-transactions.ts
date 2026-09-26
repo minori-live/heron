@@ -5,7 +5,7 @@ import type {
   AudioEngineRef,
   PluginInstanceState,
   ProjectGraphRef,
-  ProjectGraphSnapshot,
+  MixerGraphSnapshot,
   RpcRequestMeta,
   RpcResult
 } from "@heron/contracts"
@@ -16,7 +16,7 @@ export interface PreparedGraphDeployment {
   projectGraph: ProjectGraphRef
   baseRevision: number
   graphRevision: number
-  project: ProjectGraphSnapshot
+  project: MixerGraphSnapshot
   runtime: AudioHostGraph
 }
 
@@ -41,7 +41,7 @@ export class AudioHostGraphTransactions {
     meta: RpcRequestMeta,
     projectGraph: ProjectGraphRef,
     graphRevision: number,
-    project: ProjectGraphSnapshot,
+    project: MixerGraphSnapshot,
     runtimeInput: AudioHostGraph
   ): Promise<RpcResult<PreparedGraphDeployment>> {
     const client = this.requireClient()
