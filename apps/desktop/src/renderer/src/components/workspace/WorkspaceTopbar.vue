@@ -13,22 +13,11 @@
     0 1px 0 var(--ui-domain-color-ffffff05) inset,
     0 8px 22px var(--shadow);
 }
-.topbar :deep(.control-group) {
-  border: 1px solid color-mix(in srgb, var(--line-strong) 72%, transparent);
-  background: color-mix(in srgb, var(--daw-control) 78%, transparent);
-  box-shadow: 0 1px 0 var(--ui-domain-color-ffffff05) inset;
-}
 @media (max-width: 1279px) {
   .topbar {
     gap: 5px;
     padding-right: 8px;
     padding-left: 8px;
-  }
-  .topbar :deep(.placeholder-only) {
-    display: none;
-  }
-  .topbar :deep(.control-group) {
-    padding: 1px;
   }
 }
 </style>

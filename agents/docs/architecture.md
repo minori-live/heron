@@ -67,13 +67,25 @@ record. The Perform runtime adapter and its candidate-generation policy are
 specified in [ADR-0008](adr/0008-root-live-bootstrap-and-capture.md) and remain
 an unfulfilled delivery gate; a stored rig does not imply active audition.
 
-Both document views compose `DocumentWorkspaceShell`, `WorkspaceTopbar`, and
-the existing statusbar. Live puts `MixerSurface` in the resizable right column
+Both document views compose the presenters in `components/workspace`:
+`DocumentWorkspaceShell`, `WorkspaceTopbar`, `WorkspaceControlGroup`,
+`WorkspaceControlButton`, `WorkspaceMasterControl`, `WorkspaceStatusbar`, and
+`WorkspaceSidePanel`. The side-panel container owns resizing, cancellation,
+keyboard gestures, and width limits; each view supplies its width preference
+and responsive bounds. Studio's leaf adapters provide telemetry and display
+settings to the shared Master/quick-gain presenters, keeping meter updates local.
+File commands use the application menu and shortcuts in both workspaces.
+
+Live puts `MixerSurface` in the resizable right column
 and reserves its center for a future custom performance layout. The Studio
 Mixer adapter and Live Mixer controller share the original strips and controls;
 Live supplies document commands, exact hardware choices, and an isolated meter
 source. Creating a Live channel never calls Studio track creation. Device/MIDI
 configuration uses a draft dialog and does not mutate global audio preferences.
+Audio settings presenters own their layout and styles; document controllers
+retain their distinct device-selection policies. Mixer deletion and instrument
+replacement use shared confirmation decisions; eligibility checks and mutations
+remain with the owning document controller.
 
 Detailed code and review rules live in
 [Engineering standards](engineering-standards.md).

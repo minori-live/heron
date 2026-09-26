@@ -58,6 +58,8 @@ performance layouts. Use the Mixer channel strips to rename channels and edit
 their routing, Sends, pan, and gain. Open **Audio & MIDI devices** to edit the
 document's device selection. The Mixer edge supports dragging or arrow keys to
 resize; double-clicking it restores the default width.
+Use the application **File** menu to open, save, or close documents. Save also
+uses **Ctrl+S** on Windows/Linux or **Command+S** on macOS, as in Studio.
 
 ## A note on this manual
 

@@ -4,7 +4,8 @@ import {
   DropdownMenuContent,
   DropdownMenuPortal,
   DropdownMenuRoot,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
+  Primitive
 } from "reka-ui"
 import type { UiMenuDensity, UiMenuEntry, UiMenuSearchOptions } from "../menu"
 import UiMenuPanel from "./menu/UiMenuPanel.vue"
@@ -64,10 +65,13 @@ function handleOpenAutoFocus(event: Event): void {
 <template>
   <DropdownMenuRoot v-model:open="open" :modal="props.modal">
     <DropdownMenuTrigger as-child>
-      <slot />
+      <Primitive as-child :aria-haspopup="props.searchOptions ? 'dialog' : 'menu'">
+        <slot />
+      </Primitive>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
       <DropdownMenuContent
+        as-child
         class="ui-menu__content ui-menu__root-content"
         align="start"
         :side-offset="4"
@@ -75,19 +79,25 @@ function handleOpenAutoFocus(event: Event): void {
         :aria-label="props.menuLabel"
         @open-auto-focus="handleOpenAutoFocus"
       >
-        <UiMenuPanel
-          ref="panel"
-          :entries="props.entries"
-          variant="dropdown"
-          :query="search"
-          :search="props.searchOptions"
-          :empty-message="props.emptyMessage"
-          :density="props.density"
-          @update:query="search = $event"
-          @select="choose"
-          @toggle="toggle"
-          @close="open = false"
-        />
+        <div
+          :role="props.searchOptions ? 'dialog' : 'menu'"
+          :aria-orientation="props.searchOptions ? undefined : 'vertical'"
+        >
+          <UiMenuPanel
+            ref="panel"
+            :entries="props.entries"
+            variant="dropdown"
+            :query="search"
+            :search="props.searchOptions"
+            :menu-label="props.menuLabel"
+            :empty-message="props.emptyMessage"
+            :density="props.density"
+            @update:query="search = $event"
+            @select="choose"
+            @toggle="toggle"
+            @close="open = false"
+          />
+        </div>
       </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>

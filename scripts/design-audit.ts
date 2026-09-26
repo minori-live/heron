@@ -182,7 +182,14 @@ for (const file of rendererFiles) {
     normalized.includes("/components/studio/") ||
     normalized.includes("/components/plugins/") ||
     normalized.includes("/components/performance/") ||
-    normalized.includes("/components/benchmark/")
+    normalized.includes("/components/benchmark/") ||
+    // These DAW chrome implementations moved from Studio into the shared workspace shell.
+    [
+      "WorkspaceControlButton.vue",
+      "WorkspaceControlGroup.vue",
+      "WorkspaceStatusbar.vue",
+      "WorkspaceTopbar.vue"
+    ].some((name) => normalized.endsWith(`/components/workspace/${name}`))
 
   if (!domainShadow) {
     for (const match of source.matchAll(/box-shadow\s*:\s*([^;]+);/gs)) {

@@ -31,7 +31,7 @@ import { rpcErrorMessage } from "../rpc"
 import { useLiveStore } from "../stores/live"
 import { useLiveDiscoveryStore } from "../stores/liveDiscovery"
 import { useProjectStore } from "../stores/project"
-import { useGlobalDialog } from "./useGlobalDialog"
+import { useMixerConfirmations } from "./useMixerConfirmations"
 
 const EMPTY_GRAPH: MixerGraphSnapshot = { sampleRate: 48_000, channels: [], sends: [], plugins: [] }
 const CHANNEL_COLORS = {
@@ -51,7 +51,7 @@ export function useLiveMixer() {
   const live = useLiveStore()
   const discovery = useLiveDiscoveryStore()
   const projects = useProjectStore()
-  const { confirm } = useGlobalDialog()
+  const { confirmChannelDeletion, confirmInstrumentReplacement } = useMixerConfirmations()
   const selectedChannelId = shallowRef<string | null>(null)
   const catalog = shallowRef<PluginDescriptor[]>([])
   const graph = computed(() => live.workspace?.graph ?? EMPTY_GRAPH)
@@ -184,15 +184,7 @@ export function useLiveMixer() {
   async function deleteChannel(channelId: string): Promise<boolean> {
     const channel = channels.value.find((candidate) => candidate.id === channelId)
     if (!channel || channel.kind === "master") return false
-    const confirmed = await confirm({
-      eyebrow: t("mixer.console.deleteChannel.eyebrow"),
-      tone: "danger",
-      title: t("mixer.console.deleteChannel.title"),
-      description: t("mixer.console.deleteChannel.description", { name: channel.name }),
-      detail: t("mixer.console.deleteChannel.detail"),
-      confirmLabel: t("mixer.console.deleteChannel.confirm"),
-      destructive: true
-    })
+    const confirmed = await confirmChannelDeletion(channel.name)
     return confirmed ? live.edit({ type: "delete-channel", channelId }) : false
   }
 
@@ -289,18 +281,7 @@ export function useLiveMixer() {
     )
     if (
       current &&
-      !(await confirm({
-        eyebrow: t("mixer.console.replaceInstrument.eyebrow"),
-        tone: "warning",
-        title: t("mixer.console.replaceInstrument.title"),
-        description: t("mixer.console.replaceInstrument.description", {
-          current: current.descriptor.name,
-          next: selection.descriptor.name
-        }),
-        detail: t("mixer.console.replaceInstrument.detail"),
-        confirmLabel: t("mixer.console.replaceInstrument.confirm"),
-        destructive: false
-      }))
+      !(await confirmInstrumentReplacement(current.descriptor.name, selection.descriptor.name))
     )
       return false
     const plugin = pluginInstance(channelId, selection, "instrument", 0, current)

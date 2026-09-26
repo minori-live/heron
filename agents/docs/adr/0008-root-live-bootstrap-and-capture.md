@@ -73,6 +73,12 @@ Studio document store. Device/MIDI setup opens in the existing dialog and settin
 primitives. A second set of channel controls and a separate channel inspector
 would duplicate gestures and break the application's spatial grammar.
 
+Workspace chrome, control groups, Master controls, statusbar, and side-panel
+resizing have shared implementations under `components/workspace`. Document
+adapters supply state and handle typed intent; they do not copy presenter markup
+or gesture logic. File operations remain in the existing application menu and
+shortcuts, without separate Live load/save buttons.
+
 ### Persist Perform controls on Save
 
 This would make Save a hidden full Capture and make selective Capture

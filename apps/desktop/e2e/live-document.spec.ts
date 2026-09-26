@@ -1,4 +1,10 @@
-import { test, expect, _electron as electron, type Page } from "@playwright/test"
+import {
+  test,
+  expect,
+  _electron as electron,
+  type ElectronApplication,
+  type Page
+} from "@playwright/test"
 import { mkdtemp, stat } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
@@ -49,6 +55,25 @@ async function expectWorkspaceGeometry(page: Page): Promise<void> {
   expect(geometry.topOverflows).toBe(false)
   await expect(page.locator(".live-inspector, .track-inspector")).toHaveCount(0)
   await expect(page.locator(".live-mixer-panel .mixer-console")).toBeVisible()
+  await expect(
+    page.locator(".topbar").getByRole("button", {
+      name: /^(?:open|save|close)(?: project| document)?(?:…|\.\.\.)?$|^(?:打开|保存|关闭)(?:工程|文档)(?:…)?$/i
+    })
+  ).toHaveCount(0)
+}
+
+async function closeFromFileMenu(application: ElectronApplication, page: Page): Promise<void> {
+  if (process.platform === "darwin") {
+    await application.evaluate(({ Menu }) => {
+      const file = Menu.getApplicationMenu()?.items.find((item) => item.label === "File")
+      const close = file?.submenu?.items.find((item) => item.label === "Close Project")
+      if (!close || !close.enabled) throw new Error("File > Close Project is unavailable")
+      Reflect.apply(close.click, close, [])
+    })
+  } else {
+    await page.getByRole("menubar").getByRole("menuitem", { name: "File", exact: true }).click()
+    await page.getByRole("menuitem", { name: /^Close Project(?:\s|$)/ }).click()
+  }
 }
 
 async function setAppearance(
@@ -221,16 +246,10 @@ test("Live reuses the Studio shell and Mixer through editing, save, reopen and S
       }
     }
     await setAppearance(page, "en-US", "dark")
-    await page
-      .locator(".topbar")
-      .getByRole("button", { name: /^Save project$/i })
-      .click()
+    await page.keyboard.press(process.platform === "darwin" ? "Meta+s" : "Control+s")
     await expect(page.getByLabel("Unsaved changes", { exact: true })).toHaveCount(0)
     await expect.poll(async () => (await stat(path)).size).toBeGreaterThan(0)
-    await page
-      .locator(".topbar")
-      .getByRole("button", { name: /^Close project$/i })
-      .click()
+    await closeFromFileMenu(application, page)
     await expect(page.getByRole("button", { name: "New Live" })).toBeVisible()
     await page.locator(".recent-item").filter({ hasText: "Untitled Live" }).click()
     await expect(mixer.locator(".channel-strip")).toHaveCount(5)
@@ -238,10 +257,7 @@ test("Live reuses the Studio shell and Mixer through editing, save, reopen and S
     await expect(voice.locator(".send-row:not(.empty):not(.alignment-spacer)")).toHaveCount(2)
     await expect(voice.locator(".send-row.disabled")).toHaveCount(1)
     await expectWorkspaceGeometry(page)
-    await page
-      .locator(".topbar")
-      .getByRole("button", { name: /^Close project$/i })
-      .click()
+    await closeFromFileMenu(application, page)
     await page.getByRole("button", { name: "New Studio" }).click()
     await expect(page.locator(".studio-shell.document-workspace-shell")).toBeVisible()
     expect(rendererErrors).toEqual([])

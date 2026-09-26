@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from "pinia"
 import { describe, expect, it } from "vitest"
 import type { MixerChannelCoreState } from "@heron/contracts"
 import LiveTopbar from "./LiveTopbar.vue"
+import { i18n } from "../../i18n"
 
 const master: MixerChannelCoreState = {
   id: "live-master",
@@ -23,6 +24,30 @@ const master: MixerChannelCoreState = {
 }
 
 describe("LiveTopbar", () => {
+  it("reserves the topbar for workspace controls and leaves file actions in the application menu", () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const wrapper = mount(LiveTopbar, {
+      props: {
+        name: "Live",
+        dirty: true,
+        pending: false,
+        leftPanelOpen: true,
+        mixerOpen: true,
+        master
+      },
+      global: { plugins: [pinia] }
+    })
+    expect(wrapper.find(`button[aria-label="${i18n.global.t("menu.saveProject")}"]`).exists()).toBe(
+      false
+    )
+    expect(
+      wrapper.find(`button[aria-label="${i18n.global.t("menu.closeProject")}"]`).exists()
+    ).toBe(false)
+    expect(wrapper.find(`[aria-label="${i18n.global.t("live.unsaved")}"]`).exists()).toBe(true)
+    wrapper.unmount()
+  })
+
   it("keeps the master value while pending and never reads Studio meter state", async () => {
     const pinia = createPinia()
     setActivePinia(pinia)

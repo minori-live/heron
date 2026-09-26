@@ -10,8 +10,8 @@ import type {
   MixerParameterPreview,
   TimeSignatureEventState
 } from "@heron/contracts"
-import DocumentWorkspaceShell from "../components/studio/DocumentWorkspaceShell.vue"
-import StudioStatusbar from "../components/studio/StudioStatusbar.vue"
+import DocumentWorkspaceShell from "../components/workspace/DocumentWorkspaceShell.vue"
+import WorkspaceStatusbar from "../components/workspace/WorkspaceStatusbar.vue"
 import StudioTopbar from "../components/studio/StudioTopbar.vue"
 import StudioWorkspace from "../components/studio/StudioWorkspace.vue"
 import RightPanelHost from "../components/studio/RightPanelHost.vue"
@@ -275,7 +275,7 @@ onBeforeUnmount(() => {
       :recording-error="recordingError"
     />
     <RightPanelHost v-if="workspaceStore.activeRightPanel !== null" />
-    <StudioStatusbar
+    <WorkspaceStatusbar
       :runtime="audioRuntime"
       :statistics="audioStatistics"
       :audio-warnings="audioWarnings"

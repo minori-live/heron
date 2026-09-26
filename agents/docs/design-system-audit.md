@@ -17,7 +17,7 @@ The Desktop renderer and public UI exports fall into three ownership groups:
    `UiField`, `UiIconButton`, `UiLoadingState`, `UiNumberInput`, `UiPopover`, `UiProgress`,
    `UiSectionHeading`, `UiSelect`, `UiSpinner`, `UiStatusNotice`, `UiSurface`, `UiTextInput`,
    `UiToolbar`, and `UiTooltip`. Desktop migration covers `AppChrome`, `AppRouteView`, Splash,
-   the settings containers, `StudioWorkspace`, `StudioTopbar`, `StudioStatusbar`,
+   the settings containers, `StudioWorkspace`, `StudioTopbar`, `WorkspaceStatusbar`,
    `ArrangementWorkspace`, and `MixerConsole`.
 2. **UI-owned domain interaction.** Mixer controls, faders, meters, clips, notes, rulers, global
    lanes, drag/drop, resize, node graphs, and guided tours are Storybook components. Desktop passes
@@ -85,7 +85,7 @@ CSS, and any mismatch between public Vue exports and the Storybook catalog.
 
 - [x] `components/studio/StudioWorkspace.vue` — local two-dimensional workspace.
 - [x] `components/studio/StudioTopbar.vue` — shared tooltips.
-- [x] `components/studio/StudioStatusbar.vue`.
+- [x] `components/workspace/WorkspaceStatusbar.vue`.
 - [x] `components/studio/StudioPlaceholderPanel.vue`.
 - [x] `components/media-browser/MediaBrowserPanel.vue` and
       `components/studio/RightPanelHost.vue` — project asset filtering, local scrolling,

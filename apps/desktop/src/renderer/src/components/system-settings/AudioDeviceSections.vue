@@ -14,6 +14,7 @@ defineProps<{
   disabled?: boolean
   inputDescription?: string
   outputDescription?: string
+  layout?: "columns" | "stacked"
 }>()
 const emit = defineEmits<{
   "update:outputDeviceId": [value: string]
@@ -28,6 +29,7 @@ const { t } = useI18n()
   <SettingsSection
     :title="t('settings.audio.deviceSections.output.title')"
     :description="outputDescription ?? t('settings.audio.deviceSections.output.description')"
+    :layout="layout"
   >
     <UiButton
       class="refresh-button"
@@ -63,6 +65,7 @@ const { t } = useI18n()
   <SettingsSection
     :title="t('settings.audio.deviceSections.input.title')"
     :description="inputDescription ?? t('settings.audio.deviceSections.input.description')"
+    :layout="layout"
   >
     <label class="device-field">
       <span>{{ t("common.device") }}</span>
@@ -82,3 +85,42 @@ const { t } = useI18n()
     </label>
   </SettingsSection>
 </template>
+
+<style scoped>
+.device-field {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  color: var(--text-muted);
+  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  letter-spacing: var(--ui-type-tracking-wide);
+  text-transform: uppercase;
+}
+.refresh-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  color: var(--signal-cyan);
+  background: transparent;
+  font-size: var(--ui-type-size-control);
+}
+.refresh-button:disabled {
+  color: var(--text-faint);
+}
+.spinning {
+  animation: icon-spin 800ms linear infinite;
+}
+.discovery-error {
+  margin: 8px 0 0;
+  color: var(--record);
+  font-size: var(--ui-type-size-control);
+  overflow-wrap: anywhere;
+}
+@keyframes icon-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+</style>

@@ -49,28 +49,36 @@ function toggle(id: string): void {
     <ContextMenuTrigger
       as-child
       :disabled="props.disabled"
+      :aria-haspopup="props.searchOptions ? 'dialog' : 'menu'"
       @contextmenu="emit('openContext', $event)"
     >
       <slot />
     </ContextMenuTrigger>
     <ContextMenuPortal>
       <ContextMenuContent
+        as-child
         class="ui-menu__content ui-menu__root-content"
         :collision-padding="8"
         :aria-label="props.menuLabel"
       >
-        <UiMenuPanel
-          :entries="props.entries"
-          variant="context"
-          :query="search"
-          :search="props.searchOptions"
-          :empty-message="props.emptyMessage"
-          :density="props.density"
-          @update:query="search = $event"
-          @select="choose"
-          @toggle="toggle"
-          @close="open = false"
-        />
+        <div
+          :role="props.searchOptions ? 'dialog' : 'menu'"
+          :aria-orientation="props.searchOptions ? undefined : 'vertical'"
+        >
+          <UiMenuPanel
+            :entries="props.entries"
+            variant="context"
+            :query="search"
+            :search="props.searchOptions"
+            :menu-label="props.menuLabel"
+            :empty-message="props.emptyMessage"
+            :density="props.density"
+            @update:query="search = $event"
+            @select="choose"
+            @toggle="toggle"
+            @close="open = false"
+          />
+        </div>
       </ContextMenuContent>
     </ContextMenuPortal>
   </ContextMenuRoot>

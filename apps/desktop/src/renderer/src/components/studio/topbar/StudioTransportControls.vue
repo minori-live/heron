@@ -12,7 +12,7 @@ import {
   Rewind,
   SkipBack
 } from "@lucide/vue"
-import StudioControlButton from "./StudioControlButton.vue"
+import WorkspaceControlButton from "../../workspace/WorkspaceControlButton.vue"
 import StudioMidiSyncStatus from "./StudioMidiSyncStatus.vue"
 
 const props = defineProps<{
@@ -50,20 +50,20 @@ const cycleTooltip = computed(() =>
 
 <template>
   <div class="transport-controls" :aria-label="t('studio.transport.ariaLabel')">
-    <StudioControlButton :label="t('studio.transport.rewind')" unavailable compact-hidden>
+    <WorkspaceControlButton :label="t('studio.transport.rewind')" unavailable compact-hidden>
       <Rewind :size="15" fill="currentColor" />
-    </StudioControlButton>
-    <StudioControlButton :label="t('studio.transport.fastForward')" unavailable compact-hidden>
+    </WorkspaceControlButton>
+    <WorkspaceControlButton :label="t('studio.transport.fastForward')" unavailable compact-hidden>
       <FastForward :size="15" fill="currentColor" />
-    </StudioControlButton>
-    <StudioControlButton
+    </WorkspaceControlButton>
+    <WorkspaceControlButton
       :label="t('studio.transport.goToBeginning')"
       :tooltip="t('studio.transport.goToBeginningTooltip')"
       @activate="emit('goToStart')"
     >
       <SkipBack :size="15" fill="currentColor" />
-    </StudioControlButton>
-    <StudioControlButton
+    </WorkspaceControlButton>
+    <WorkspaceControlButton
       :label="playLabel"
       :tooltip="playTooltip"
       :pressed="playing"
@@ -74,8 +74,8 @@ const cycleTooltip = computed(() =>
       <LoaderCircle v-if="playLoading" :size="15" class="spin" />
       <Pause v-else-if="playing" :size="15" fill="currentColor" />
       <Play v-else :size="15" fill="currentColor" />
-    </StudioControlButton>
-    <StudioControlButton
+    </WorkspaceControlButton>
+    <WorkspaceControlButton
       :label="t('studio.transport.record')"
       :tooltip="t('studio.transport.recordTooltip')"
       :pressed="recording"
@@ -84,16 +84,16 @@ const cycleTooltip = computed(() =>
       @activate="emit('toggleRecording')"
     >
       <Circle :size="13" fill="currentColor" />
-    </StudioControlButton>
-    <StudioControlButton
+    </WorkspaceControlButton>
+    <WorkspaceControlButton
       :label="t('studio.transport.captureRecording')"
       unavailable
       compact-hidden
       tone="record"
     >
       <CircleDashed :size="16" />
-    </StudioControlButton>
-    <StudioControlButton
+    </WorkspaceControlButton>
+    <WorkspaceControlButton
       :label="t('studio.transport.cycle')"
       :tooltip="cycleTooltip"
       :pressed="cycleEnabled"
@@ -103,7 +103,7 @@ const cycleTooltip = computed(() =>
       @activate="emit('toggleCycle')"
     >
       <Repeat2 :size="15" />
-    </StudioControlButton>
+    </WorkspaceControlButton>
     <StudioMidiSyncStatus />
   </div>
 </template>

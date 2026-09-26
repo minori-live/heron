@@ -11,6 +11,7 @@ const props = defineProps<{
   optionCount: number
   discoveryState: string
   disabled?: boolean
+  layout?: "columns" | "stacked"
 }>()
 const emit = defineEmits<{ "update:modelValue": [value: string] }>()
 
@@ -22,6 +23,7 @@ const hasAsioOption = computed(() => props.options.some((option) => option.value
   <SettingsSection
     :title="t('settings.audio.backend.title')"
     :description="t('settings.audio.backend.description')"
+    :layout="layout"
   >
     <div class="backend-grid">
       <UiRadioGroup
@@ -43,3 +45,21 @@ const hasAsioOption = computed(() => props.options.some((option) => option.value
     <AsioConfigurationNotice v-if="hasAsioOption" />
   </SettingsSection>
 </template>
+
+<style scoped>
+.backend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+}
+.backend-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 7px;
+  color: var(--text-muted);
+  background: var(--surface-1);
+  font-size: var(--ui-type-size-body-compact);
+}
+</style>

@@ -44,6 +44,7 @@ function configure(): void {
 <template>
   <div class="live-device-settings min-w-0">
     <AudioBackendSection
+      layout="stacked"
       :model-value="backend"
       :options="backendOptions"
       :option-count="backendOptions.length"
@@ -52,6 +53,7 @@ function configure(): void {
       @update:model-value="selectBackend"
     />
     <AudioDeviceSections
+      layout="stacked"
       :input-device-id="draft.audio?.inputDeviceId ?? ''"
       :output-device-id="draft.audio?.outputDeviceId ?? ''"
       :input-options="inputOptions"
@@ -66,6 +68,7 @@ function configure(): void {
       @refresh="refresh"
     />
     <SettingsSection
+      layout="stacked"
       :title="t('settings.audio.buffer.title')"
       :description="t('settings.audio.buffer.description')"
     >
@@ -96,7 +99,11 @@ function configure(): void {
         </UiField>
       </div>
     </SettingsSection>
-    <SettingsSection :title="t('live.midiDevices')" :description="t('live.deviceMidiDescription')">
+    <SettingsSection
+      layout="stacked"
+      :title="t('live.midiDevices')"
+      :description="t('live.deviceMidiDescription')"
+    >
       <div class="grid gap-ui-3">
         <UiCheckbox
           v-for="port in midiPorts"
@@ -129,22 +136,3 @@ function configure(): void {
     </div>
   </div>
 </template>
-
-<style scoped>
-.live-device-settings :deep(.settings-section) {
-  grid-template-columns: 1fr;
-  gap: var(--ui-space-3);
-  padding-block: var(--ui-space-4);
-}
-.live-device-settings :deep(.device-field) {
-  display: grid;
-  gap: var(--ui-space-2);
-  margin-top: var(--ui-space-3);
-  color: var(--ui-color-text-muted);
-  font-size: var(--ui-type-size-control);
-}
-.live-device-settings :deep(.backend-grid) {
-  display: grid;
-  gap: var(--ui-space-3);
-}
-</style>

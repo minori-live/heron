@@ -3,6 +3,7 @@ defineProps<{
   eyebrow?: string
   title: string
   description: string
+  layout?: "columns" | "stacked"
 }>()
 
 defineSlots<{
@@ -13,6 +14,7 @@ defineSlots<{
 <template>
   <section
     class="settings-section grid grid-cols-[minmax(170px,230px)_minmax(0,1fr)] gap-[48px] border-b border-b-solid py-[25px] [border-bottom-color:var(--line-soft)]"
+    :class="{ 'settings-section--stacked': layout === 'stacked' }"
   >
     <header class="settings-section-copy">
       <span v-if="eyebrow">{{ eyebrow }}</span>
@@ -26,6 +28,11 @@ defineSlots<{
 </template>
 
 <style scoped>
+.settings-section--stacked {
+  grid-template-columns: 1fr;
+  gap: var(--ui-space-3);
+  padding-block: var(--ui-space-4);
+}
 .settings-section-copy span {
   display: block;
   margin-bottom: 7px;
@@ -50,7 +57,7 @@ defineSlots<{
 }
 
 @media (max-width: 1120px) {
-  .settings-section {
+  .settings-section:not(.settings-section--stacked) {
     grid-template-columns: 1fr;
     gap: 17px;
   }

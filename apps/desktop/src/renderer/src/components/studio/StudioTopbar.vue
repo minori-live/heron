@@ -24,11 +24,12 @@ import type {
   TempoMapSnapshot,
   TimeSignatureEventState
 } from "@heron/contracts"
-import StudioControlButton from "./topbar/StudioControlButton.vue"
+import WorkspaceControlButton from "../workspace/WorkspaceControlButton.vue"
 import StudioMasterControl from "./topbar/StudioMasterControl.vue"
 import StudioMusicalDisplay from "./topbar/StudioMusicalDisplay.vue"
 import StudioTransportControls from "./topbar/StudioTransportControls.vue"
-import WorkspaceTopbar from "./WorkspaceTopbar.vue"
+import WorkspaceTopbar from "../workspace/WorkspaceTopbar.vue"
+import WorkspaceControlGroup from "../workspace/WorkspaceControlGroup.vue"
 
 defineProps<{
   engineRunning: boolean
@@ -83,11 +84,8 @@ const { t } = useI18n()
 
 <template>
   <WorkspaceTopbar>
-    <div
-      class="control-group left-panel-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"
-      data-topbar-group="left-panel"
-    >
-      <StudioControlButton
+    <WorkspaceControlGroup class="left-panel-group" data-topbar-group="left-panel">
+      <WorkspaceControlButton
         :label="t('studio.topbar.inspector')"
         :pressed="inspectorOpen"
         tutorial-target="studio-inspector"
@@ -96,29 +94,33 @@ const { t } = useI18n()
         @activate="emit('toggleInspector')"
       >
         <SlidersHorizontal :size="15" />
-      </StudioControlButton>
-      <StudioControlButton :label="t('studio.topbar.downloadManager')" unavailable compact-hidden>
+      </WorkspaceControlButton>
+      <WorkspaceControlButton
+        :label="t('studio.topbar.downloadManager')"
+        unavailable
+        compact-hidden
+      >
         <Download :size="15" />
-      </StudioControlButton>
-    </div>
+      </WorkspaceControlButton>
+    </WorkspaceControlGroup>
 
-    <div
-      class="control-group bottom-panel-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"
+    <WorkspaceControlGroup
+      class="bottom-panel-group"
       data-topbar-group="bottom-panel"
       data-tutorial="studio-lower-editors"
     >
-      <StudioControlButton :label="t('studio.topbar.smartControls')" unavailable compact-hidden>
+      <WorkspaceControlButton :label="t('studio.topbar.smartControls')" unavailable compact-hidden>
         <Gauge :size="15" />
-      </StudioControlButton>
-      <StudioControlButton
+      </WorkspaceControlButton>
+      <WorkspaceControlButton
         :label="t('studio.topbar.mixer')"
         :pressed="mixerDockOpen"
         tone="accent"
         @activate="emit('toggleMixerDock')"
       >
         <PanelBottom :size="15" />
-      </StudioControlButton>
-      <StudioControlButton
+      </WorkspaceControlButton>
+      <WorkspaceControlButton
         :label="t('studio.topbar.pianoRoll')"
         :pressed="pianoRollDockOpen"
         :disabled="!pianoRollAvailable"
@@ -126,11 +128,11 @@ const { t } = useI18n()
         @activate="emit('togglePianoRollDock')"
       >
         <Pencil :size="15" />
-      </StudioControlButton>
-    </div>
+      </WorkspaceControlButton>
+    </WorkspaceControlGroup>
 
-    <div
-      class="control-group transport-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"
+    <WorkspaceControlGroup
+      class="transport-group"
       data-topbar-group="transport"
       data-tutorial="studio-transport"
     >
@@ -148,7 +150,7 @@ const { t } = useI18n()
         @toggle-recording="emit('toggleRecording')"
         @toggle-cycle="emit('toggleCycle')"
       />
-    </div>
+    </WorkspaceControlGroup>
 
     <StudioMusicalDisplay
       data-topbar-group="musical-display"
@@ -162,11 +164,8 @@ const { t } = useI18n()
       @update-key="emit('updateKey', $event)"
     />
 
-    <div
-      class="control-group tools-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"
-      data-topbar-group="tools"
-    >
-      <StudioControlButton
+    <WorkspaceControlGroup class="tools-group" data-topbar-group="tools">
+      <WorkspaceControlButton
         :label="t('studio.topbar.lowLatencyMode')"
         :tooltip="lowLatencyModeTooltip"
         :pressed="lowLatencyModeEnabled"
@@ -175,23 +174,20 @@ const { t } = useI18n()
         @activate="emit('toggleLowLatencyMode')"
       >
         <Zap :size="15" />
-      </StudioControlButton>
-      <StudioControlButton :label="t('studio.topbar.varispeed')" unavailable compact-hidden>
+      </WorkspaceControlButton>
+      <WorkspaceControlButton :label="t('studio.topbar.varispeed')" unavailable compact-hidden>
         <Gauge :size="15" />
-      </StudioControlButton>
-      <StudioControlButton :label="t('studio.topbar.tuner')" unavailable compact-hidden>
+      </WorkspaceControlButton>
+      <WorkspaceControlButton :label="t('studio.topbar.tuner')" unavailable compact-hidden>
         <AudioLines :size="15" />
-      </StudioControlButton>
-      <StudioControlButton :label="t('studio.topbar.solo')" unavailable compact-hidden>
+      </WorkspaceControlButton>
+      <WorkspaceControlButton :label="t('studio.topbar.solo')" unavailable compact-hidden>
         <span class="letter-control">S</span>
-      </StudioControlButton>
-    </div>
+      </WorkspaceControlButton>
+    </WorkspaceControlGroup>
 
-    <div
-      class="control-group metronome-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"
-      data-topbar-group="metronome"
-    >
-      <StudioControlButton
+    <WorkspaceControlGroup class="metronome-group" data-topbar-group="metronome">
+      <WorkspaceControlButton
         :label="t('studio.topbar.countIn')"
         :pressed="countInEnabled"
         compact-hidden
@@ -199,8 +195,8 @@ const { t } = useI18n()
         @activate="emit('toggleCountIn')"
       >
         <span class="count-in-control">1234</span>
-      </StudioControlButton>
-      <StudioControlButton
+      </WorkspaceControlButton>
+      <WorkspaceControlButton
         :label="t('studio.topbar.metronome')"
         :pressed="metronomeChannel ? !metronomeChannel.muted : false"
         :disabled="metronomeChannel === null"
@@ -208,8 +204,8 @@ const { t } = useI18n()
         @activate="emit('toggleMetronome')"
       >
         <BellRing :size="15" />
-      </StudioControlButton>
-    </div>
+      </WorkspaceControlButton>
+    </WorkspaceControlGroup>
 
     <StudioMasterControl
       data-topbar-group="master"
@@ -219,34 +215,34 @@ const { t } = useI18n()
       @update-channel="(channelId, patch) => emit('updateMaster', channelId, patch)"
     />
 
-    <div
-      class="control-group right-panel-group flex flex-none items-center gap-[1px] rounded-ui-md p-[2px]"
+    <WorkspaceControlGroup
+      class="right-panel-group"
       data-topbar-group="right-panel"
       data-tutorial="studio-right-panels"
     >
-      <StudioControlButton :label="t('studio.topbar.listEditors')" unavailable compact-hidden>
+      <WorkspaceControlButton :label="t('studio.topbar.listEditors')" unavailable compact-hidden>
         <List :size="15" />
-      </StudioControlButton>
-      <StudioControlButton
+      </WorkspaceControlButton>
+      <WorkspaceControlButton
         :label="t('studio.topbar.notes')"
         :pressed="notesPanelOpen"
         tone="accent"
         @activate="emit('toggleNotesPanel')"
       >
         <NotebookTabs :size="15" />
-      </StudioControlButton>
-      <StudioControlButton :label="t('studio.topbar.loopBrowser')" unavailable compact-hidden>
+      </WorkspaceControlButton>
+      <WorkspaceControlButton :label="t('studio.topbar.loopBrowser')" unavailable compact-hidden>
         <ListMusic :size="15" />
-      </StudioControlButton>
-      <StudioControlButton
+      </WorkspaceControlButton>
+      <WorkspaceControlButton
         :label="t('studio.topbar.mediaBrowser')"
         :pressed="mediaBrowserOpen"
         tone="accent"
         @activate="emit('toggleMediaBrowser')"
       >
         <Library :size="15" />
-      </StudioControlButton>
-    </div>
+      </WorkspaceControlButton>
+    </WorkspaceControlGroup>
   </WorkspaceTopbar>
 </template>
 

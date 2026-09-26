@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, shallowRef, watch } from "vue"
 import { storeToRefs } from "pinia"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
+import { useWindowSize } from "@vueuse/core"
 import { UiDialog } from "@heron/ui"
 import type { AudioDeviceList, LiveDocumentConfiguration } from "@heron/contracts"
 import { DEFAULT_METER_RETURN_RATE } from "@heron/contracts"
@@ -11,12 +12,12 @@ import { useLiveStore } from "../stores/live"
 import { useLiveWorkspaceStore } from "../stores/liveWorkspace"
 import { useAudioRuntimeStore } from "../stores/audioRuntime"
 import { useLiveMixer } from "../composables/useLiveMixer"
-import DocumentWorkspaceShell from "../components/studio/DocumentWorkspaceShell.vue"
-import StudioStatusbar from "../components/studio/StudioStatusbar.vue"
+import DocumentWorkspaceShell from "../components/workspace/DocumentWorkspaceShell.vue"
+import WorkspaceStatusbar from "../components/workspace/WorkspaceStatusbar.vue"
 import MixerSurface from "../components/mixer/MixerSurface.vue"
 import LiveTopbar from "../components/live/LiveTopbar.vue"
 import LiveProjectPanel from "../components/live/LiveProjectPanel.vue"
-import LiveMixerPanel from "../components/live/LiveMixerPanel.vue"
+import WorkspaceSidePanel from "../components/workspace/WorkspaceSidePanel.vue"
 import LiveDeviceSettings from "../components/live/LiveDeviceSettings.vue"
 
 const { t } = useI18n()
@@ -33,6 +34,8 @@ const { graph, master, selectedChannelId, effectPlugins, instrumentPlugins, plug
 const { workspace, pending, error } = storeToRefs(live)
 const { runtime, statistics, warnings } = storeToRefs(audio)
 const { leftPanelOpen, mixerOpen, mixerWidth } = storeToRefs(useLiveWorkspaceStore())
+const { width: windowWidth } = useWindowSize()
+const maximumMixerWidth = computed(() => Math.max(360, windowWidth.value - 414))
 watch(
   [error, pending],
   ([value, busy]) => {
@@ -89,9 +92,6 @@ onMounted(() => {
 async function configure(configuration: LiveDocumentConfiguration): Promise<void> {
   if (await live.configure(configuration)) devicesOpen.value = false
 }
-async function close(): Promise<void> {
-  if (await live.close()) await router.push({ name: "welcome" })
-}
 function silentMeter(): undefined {
   return undefined
 }
@@ -114,8 +114,6 @@ function silentMeter(): undefined {
       @toggle-left-panel="leftPanelOpen = !leftPanelOpen"
       @toggle-mixer="mixerOpen = !mixerOpen"
       @configure="openDevices"
-      @save="live.save()"
-      @close="close"
       @preview="mixer.preview"
       @update-channel="mixer.updateChannel"
     />
@@ -129,7 +127,16 @@ function silentMeter(): undefined {
       class="live-performance-workspace min-h-0 min-w-0 overflow-hidden bg-[var(--daw-workspace)]"
       :aria-label="t('live.performanceWorkspace')"
     />
-    <LiveMixerPanel v-if="mixerOpen" v-model="mixerWidth">
+    <WorkspaceSidePanel
+      v-if="mixerOpen"
+      v-model="mixerWidth"
+      class="live-mixer-panel"
+      :label="t('live.mixer')"
+      :resize-label="t('live.resizeMixer')"
+      :minimum="360"
+      :maximum="maximumMixerWidth"
+      :default-width="520"
+    >
       <MixerSurface
         :graph="graph"
         :selected-channel-id="selectedChannelId"
@@ -163,8 +170,8 @@ function silentMeter(): undefined {
         @move-plugin="mixer.movePlugin"
         @assign-instrument="mixer.assignInstrument"
       />
-    </LiveMixerPanel>
-    <StudioStatusbar :runtime="runtime" :statistics="statistics" :audio-warnings="warnings" />
+    </WorkspaceSidePanel>
+    <WorkspaceStatusbar :runtime="runtime" :statistics="statistics" :audio-warnings="warnings" />
     <UiDialog
       v-model="devicesOpen"
       :title="t('live.devices')"

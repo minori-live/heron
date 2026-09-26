@@ -4,6 +4,10 @@ import MixerConsoleSource from "./MixerConsole.vue?raw"
 import MixerSurfaceSource from "./MixerSurface.vue?raw"
 import ArrangementWorkspaceSource from "../studio/ArrangementWorkspace.vue?raw"
 import TrackGainControlSource from "../studio/TrackGainControl.vue?raw"
+import StudioMasterControlSource from "../studio/topbar/StudioMasterControl.vue?raw"
+import StudioChannelMeterSource from "../../composables/useStudioChannelMeter.ts?raw"
+import MixerQuickGainControlSource from "./MixerQuickGainControl.vue?raw"
+import WorkspaceMasterControlSource from "../workspace/WorkspaceMasterControl.vue?raw"
 import StudioViewSource from "../../views/StudioView.vue?raw"
 
 describe("mixer runtime render boundary", () => {
@@ -18,8 +22,13 @@ describe("mixer runtime render boundary", () => {
     expect(MixerChannelMeterDisplaySource).toContain("useMixerRuntimeStore")
     expect(MixerChannelMeterDisplaySource).toContain("runtimeStore?.meterFor(props.channelId)")
     expect(MixerChannelMeterDisplaySource).toContain("meterSource?.(props.channelId)")
-    expect(TrackGainControlSource).toContain("usePeakMeterDisplay")
-    expect(TrackGainControlSource).toContain("useMixerRuntimeStore")
-    expect(TrackGainControlSource).toContain('runtimeStore?.meterFor(props.channelId ?? "")')
+    expect(TrackGainControlSource).toContain("useStudioChannelMeter")
+    expect(StudioMasterControlSource).toContain("useStudioChannelMeter")
+    expect(StudioChannelMeterSource).toContain("useMixerRuntimeStore")
+    expect(StudioChannelMeterSource).toContain('runtimeStore?.meterFor(channelId() ?? "")')
+    expect(MixerQuickGainControlSource).toContain("usePeakMeterDisplay")
+    expect(MixerQuickGainControlSource).not.toContain("stores/")
+    expect(WorkspaceMasterControlSource).not.toContain("stores/")
+    expect(WorkspaceMasterControlSource).not.toContain("../studio/")
   })
 })

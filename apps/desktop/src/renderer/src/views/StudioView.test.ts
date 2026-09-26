@@ -91,7 +91,7 @@ function mountStudio(
         TrackInspector: true,
         StudioWorkspace: true,
         NotesPanel: true,
-        StudioStatusbar: true,
+        WorkspaceStatusbar: true,
         MidiImportDialog: true
       }
     }

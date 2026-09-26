@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { useI18n } from "vue-i18n"
-import { useGlobalDialog } from "../../composables/useGlobalDialog"
+import { useMixerConfirmations } from "../../composables/useMixerConfirmations"
 import { useMixerStore } from "../../stores/mixer"
 import { usePluginStore } from "../../stores/plugins"
 import { useLowLatencyModeStore } from "../../stores/lowLatencyMode"
@@ -13,8 +12,7 @@ const mixerStore = useMixerStore()
 const pluginStore = usePluginStore()
 const lowLatencyModeStore = useLowLatencyModeStore()
 const bounceStore = useBounceStore()
-const { confirm } = useGlobalDialog()
-const { t } = useI18n()
+const { confirmChannelDeletion, confirmInstrumentReplacement } = useMixerConfirmations()
 
 function togglePlugin(instanceId: string, enabled: boolean): void {
   void mixerStore.setPluginEnabled(instanceId, enabled)
@@ -37,18 +35,10 @@ async function assignInstrument(channelId: string, selection: PluginSelection): 
     (plugin) => plugin.channelId === channelId && plugin.role === "instrument"
   )
   if (current) {
-    const confirmed = await confirm({
-      eyebrow: t("mixer.console.replaceInstrument.eyebrow"),
-      tone: "warning",
-      title: t("mixer.console.replaceInstrument.title"),
-      description: t("mixer.console.replaceInstrument.description", {
-        current: current.descriptor.name,
-        next: selection.descriptor.name
-      }),
-      detail: t("mixer.console.replaceInstrument.detail"),
-      confirmLabel: t("mixer.console.replaceInstrument.confirm"),
-      destructive: false
-    })
+    const confirmed = await confirmInstrumentReplacement(
+      current.descriptor.name,
+      selection.descriptor.name
+    )
     if (!confirmed) return
   }
   await pluginStore.assignInstrument(selection, channelId)
@@ -57,15 +47,7 @@ async function assignInstrument(channelId: string, selection: PluginSelection): 
 async function deleteChannel(channelId: string): Promise<void> {
   const channel = mixerStore.channels.find((candidate) => candidate.id === channelId)
   if (!channel || channel.kind === "master" || channel.systemRole !== null) return
-  const confirmed = await confirm({
-    eyebrow: t("mixer.console.deleteChannel.eyebrow"),
-    tone: "danger",
-    title: t("mixer.console.deleteChannel.title"),
-    description: t("mixer.console.deleteChannel.description", { name: channel.name }),
-    detail: t("mixer.console.deleteChannel.detail"),
-    confirmLabel: t("mixer.console.deleteChannel.confirm"),
-    destructive: true
-  })
+  const confirmed = await confirmChannelDeletion(channel.name)
   if (confirmed) void mixerStore.deleteChannel(channel.id)
 }
 function createChannel(kind: "audio" | "instrument" | "aux" | "output"): void {

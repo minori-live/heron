@@ -1,77 +1,34 @@
 <script setup lang="ts">
-import { shallowRef } from "vue"
-import { UiResizeHandle, type UiGestureIntent } from "@heron/ui"
+import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { useStudioWorkspaceStore } from "../../stores/studioWorkspace"
 import MediaBrowserPanel from "../media-browser/MediaBrowserPanel.vue"
 import NotesPanel from "../notes/NotesPanel.vue"
+import WorkspaceSidePanel from "../workspace/WorkspaceSidePanel.vue"
 
 const { t } = useI18n()
 const workspaceStore = useStudioWorkspaceStore()
-const DEFAULT_PANEL_WIDTH = 320
-const startWidth = shallowRef(workspaceStore.rightPanelWidth)
-const resizing = shallowRef(false)
-function resize(intent: UiGestureIntent): void {
-  if (intent.phase === "start") {
-    startWidth.value = workspaceStore.rightPanelWidth
-    resizing.value = true
-  } else if (intent.phase === "update") {
-    workspaceStore.setRightPanelWidth(startWidth.value - intent.delta.x)
-  } else if (intent.phase === "commit") {
-    workspaceStore.setRightPanelWidth(
-      resizing.value
-        ? startWidth.value - intent.delta.x
-        : workspaceStore.rightPanelWidth - intent.delta.x
-    )
-    resizing.value = false
-  } else {
-    workspaceStore.setRightPanelWidth(startWidth.value)
-    resizing.value = false
-  }
-}
+const panelWidth = computed({
+  get: () => workspaceStore.rightPanelWidth,
+  set: (value: number) => workspaceStore.setRightPanelWidth(value)
+})
 </script>
 
 <template>
-  <div class="right-panel-host" :style="{ width: `${workspaceStore.rightPanelWidth}px` }">
-    <UiResizeHandle
-      class="right-panel-resizer"
-      axis="horizontal"
-      :label="t('studio.mediaBrowser.resizeAria')"
-      :keyboard-step="10"
-      :value="workspaceStore.rightPanelWidth"
-      :minimum="260"
-      :maximum="480"
-      reset-on-double-click
-      @gesture="resize"
-      @reset="workspaceStore.setRightPanelWidth(DEFAULT_PANEL_WIDTH)"
-    />
+  <WorkspaceSidePanel
+    v-model="panelWidth"
+    class="right-panel-host"
+    :label="
+      workspaceStore.activeRightPanel === 'notes'
+        ? t('studio.notes.title')
+        : t('studio.mediaBrowser.title')
+    "
+    :resize-label="t('studio.mediaBrowser.resizeAria')"
+    :minimum="260"
+    :maximum="480"
+    :default-width="320"
+  >
     <NotesPanel v-if="workspaceStore.activeRightPanel === 'notes'" />
     <MediaBrowserPanel v-else />
-  </div>
+  </WorkspaceSidePanel>
 </template>
-
-<style scoped>
-.right-panel-host {
-  position: relative;
-  min-width: 260px;
-  max-width: 480px;
-  min-height: 0;
-}
-.right-panel-resizer {
-  position: absolute;
-  z-index: var(--ui-z-local-controls);
-  top: 0;
-  bottom: 0;
-  left: -3px;
-  width: 6px;
-}
-.right-panel-resizer::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 2px;
-  width: 1px;
-  background: var(--line-strong);
-}
-</style>

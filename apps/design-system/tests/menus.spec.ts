@@ -8,6 +8,8 @@ test("search flattens nested menu results and keeps their category path", async 
   await expect(page.getByText("effect:ott", { exact: true })).toBeVisible()
 
   await page.getByRole("button", { name: "Add audio effect" }).click()
+  const popup = page.getByRole("dialog", { name: "Add audio effect" })
+  await expect(popup.getByRole("menu", { name: "Add audio effect" })).toBeVisible()
   const search = page.getByRole("textbox", { name: "Search effects" })
   await expect(search).toBeFocused()
   await search.fill("pro")
@@ -77,6 +79,45 @@ test("searchable dropdown accepts typed characters from an open submenu", async 
   await expect(search).toHaveValue("pro")
   await expect(search).toBeFocused()
   await expect(page.getByRole("menuitem", { name: "Pro-C 2" })).toBeVisible()
+})
+
+test("searchable popup keeps search outside its menu and restores focus after Escape", async ({
+  page
+}) => {
+  await page.goto(
+    "/iframe.html?id=components-menus--open-searchable-taxonomy&viewMode=story&globals=theme:dark;motion:disabled"
+  )
+  const popup = page.getByRole("dialog", { name: "Add audio effect" })
+  const search = popup.getByRole("textbox", { name: "Search effects" })
+  const menu = popup.getByRole("menu", { name: "Add audio effect" })
+  const trigger = page.getByRole("button", { name: "Add audio effect" })
+  await expect(search).toBeFocused()
+  await expect(trigger).toHaveAttribute("aria-haspopup", "dialog")
+  await expect(menu.getByRole("textbox")).toHaveCount(0)
+
+  await search.press("ArrowDown")
+  await expect(
+    menu.getByRole("menuitem", { name: "Compressor Built-in", exact: true })
+  ).toBeFocused()
+  await page.keyboard.press("ArrowDown")
+  await expect(menu.getByRole("menuitem", { name: "Dynamics", exact: true })).toBeFocused()
+  await page.keyboard.press("End")
+  await expect(menu.getByRole("menuitem", { name: "Delay and echo", exact: true })).toBeFocused()
+  await page.keyboard.press("Home")
+  await expect(
+    menu.getByRole("menuitem", { name: "Compressor Built-in", exact: true })
+  ).toBeFocused()
+  await page.keyboard.press("ArrowUp")
+  await expect(search).toBeFocused()
+  await search.fill("missing")
+  await expect(popup.getByText("No effects match this search.")).toBeVisible()
+  await expect(menu).toHaveCount(0)
+  await search.press("Escape")
+  await expect(search).toHaveValue("")
+  await expect(menu).toBeVisible()
+  await search.press("Escape")
+  await expect(popup).toHaveCount(0)
+  await expect(trigger).toBeFocused()
 })
 
 test("long context menus contain overflow and remain wheel-scrollable", async ({ page }) => {

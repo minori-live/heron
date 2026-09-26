@@ -55,11 +55,15 @@ describe("menu components", () => {
     )
     expect(search).not.toBeNull()
     expect(document.activeElement).toBe(search)
+    expect(wrapper.get("button").attributes("aria-haspopup")).toBe("dialog")
+    expect(search?.closest('[role="dialog"]')?.getAttribute("aria-label")).toBe("Add audio effect")
+    expect(search?.closest('[role="menu"]')).toBeNull()
 
     await new DOMWrapper(search).setValue("comp")
     const result = document.body.querySelector<HTMLElement>('[role="menuitem"]')
     expect(result?.textContent).toContain("Compressor")
     expect(result?.textContent).toContain("Dynamics")
+    expect(result?.closest('[role="menu"]')?.getAttribute("aria-label")).toBe("Add audio effect")
     expect(document.body.querySelector('[data-state="open"] .ui-menu__sub-content')).toBeNull()
 
     await new DOMWrapper(result).trigger("click")
@@ -121,6 +125,7 @@ describe("menu components", () => {
     expect(document.body.querySelector(".ui-menu__empty")?.textContent).toBe(
       "No compatible effects found."
     )
+    expect(document.body.querySelector('[role="menu"]')).toBeNull()
   })
 
   it("opens from a native contextmenu event and emits the selected action", async () => {

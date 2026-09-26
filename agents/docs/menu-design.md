@@ -177,7 +177,8 @@ loading or unavailable menu must not leave the user with no response.
 
 ### Dropdown menus
 
-- The trigger is a semantic button with an accessible name and `aria-haspopup="menu"`.
+- The trigger is a semantic button with an accessible name and `aria-haspopup="menu"` for an
+  ordinary menu, or `aria-haspopup="dialog"` for a searchable popup.
 - Use a downward chevron for disclosure. Use an ellipsis only for a collection of secondary
   commands, not as a generic menu affordance.
 - Reopening starts at the first enabled row for actions and at the current value for selections.
@@ -346,6 +347,10 @@ label, placeholder, empty copy, and optional declared keywords.
 
 - Use `menu`, `menuitem`, `menuitemcheckbox`, and `menuitemradio` only for desktop-like
   application commands and choices. Use listbox or combobox semantics for editable form entry.
+- A searchable popup uses a named dialog container. Its search field and result status sit
+  alongside the named `menu` that owns the command items; text inputs must not be descendants of
+  `role="menu"`. With no matches, keep search and status available and omit the empty command menu.
+  This containment preserves the same floating surface, search gestures, and Reka focus handling.
 - A trigger exposes expanded state. A context menu has a name associated with its target or
   selection.
 - Roving focus keeps one highlighted item per open panel and skips disabled rows.
