@@ -182,44 +182,50 @@ checksum = "sha256:cf02f5d0c06c794b84f277177d5cf3743d0924ca49f6641cd435dd7cb6ee9
 url = "https://nodejs.org/dist/v26.8.2/node-v26.8.2-win-x64.zip"
 
 [[tools.pnpm]]
-version = "12.4.1"
+version = "12.6.0"
 backend = "aqua:pnpm/pnpm"
 specifiers = ["latest"]
 
 [tools.pnpm."platforms.linux-arm64"]
-checksum = "sha256:14f7a3e67d658d4ca8002c2aa0567f27dc5fe056a9f29f98ba7d2bfd6c81591b"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.4.1/pnpm-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/555427209"
+checksum = "sha256:973af2b3eb9509416cf889a7336705062c936407d5fda07298814e7532f5dea1"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.6.0/pnpm-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/581813240"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.linux-arm64-musl"]
-checksum = "sha256:26eba6156b6b47d8c589e2ed76af9b3d3a001d9d87dd4769754a1d09f07505bb"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.4.1/pnpm-linux-arm64-musl.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/555427211"
+checksum = "sha256:61e5a2b9aa8c1ebb73ea22203021531f88b8aff9499b68be03f695d9377928c1"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.6.0/pnpm-linux-arm64-musl.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/581813242"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.linux-x64"]
-checksum = "sha256:66e9886299085dade56e203ae0e3586f35787f8801a68d33ec07ac17b0de2001"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.4.1/pnpm-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/555427214"
+checksum = "sha256:3f4c66f668d0e84219679982d095b30da68325e1fac9284e7f5dc1584bd3d13e"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.6.0/pnpm-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/581813243"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.linux-x64-musl"]
-checksum = "sha256:b72cfc2140e2f3380e26555a474f8e091a4431374face630a50b00e4db992ddb"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.4.1/pnpm-linux-x64-musl.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/555427217"
+checksum = "sha256:bf23d242a6c7a4d42b21bf1d93bff9d6a473cf8b6a7a990c6ed3094228513048"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.6.0/pnpm-linux-x64-musl.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/581813234"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.macos-arm64"]
-checksum = "sha256:432fd151c10477630cf5c9f41209c2a7b75ac6dce7b2533a459519daf8954c52"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.4.1/pnpm-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/555427216"
+checksum = "sha256:1030f38e14fa2e6c87fe6ab0313a3bf3b794a961504f4439bad2ca2110d3583e"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.6.0/pnpm-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/581813250"
+provenance = "github-attestations"
+
+[tools.pnpm."platforms.macos-x64"]
+checksum = "sha256:baee033929fd76bdf0193ea35aad6efa7ac2931b96f2780328d244c70174306a"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.6.0/pnpm-darwin-x64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/581813241"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.windows-x64"]
-checksum = "sha256:356092adbd4f69670945ed24c7fca994ba4dd9fbaf23b028bb9708afd7bc676e"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.4.1/pnpm-win32-x64.zip"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/555427213"
+checksum = "sha256:8152a1c9d14d38fb1cd98a211bcc48e4ae0c921ad918c52ffce19c222268f8b8"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.6.0/pnpm-win32-x64.zip"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/581813237"
 provenance = "github-attestations"
 
 [[tools.rust]]
