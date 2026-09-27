@@ -141,31 +141,52 @@ database work:
   prepared token always means the command has not committed. Main acknowledges
   the worker's committed result only after retaining its own terminal response;
   see ADR-0001 for delivery reconciliation and acknowledgement ownership.
+- Reuse unchanged MIDI content and plug-in state rows only within their owning
+  database instance. Metadata and descriptor decoding remain inside the command
+  transaction. Serialize cache reads/writes, invalidate affected payloads, and
+  publish tentative cache content only after commit. See ADR-0009.
+- Bound MIDI parameter batches inside one transaction. Adjacent equal note
+  patches may be grouped; preserve different patches' order and failure behavior.
+- Asset summaries must not fetch MIDI source bytes to compute their length.
+  Import deduplication uses named, indexed content-hash lookups.
 
 ## Raw SQL Policy
 
 Raw SQL is forbidden for normal CRUD, joins, ordering, filtering, migrations,
 or transaction orchestration.
 
-There are only four allowed production exceptions:
+There are six narrowly owned production exceptions:
 
 1. Drizzle `sql` expressions inside schema declarations for constraints,
    partial indexes, and typed defaults that cannot be expressed by the column
    builder alone.
 2. A single project-database infrastructure module for PostgreSQL large-object
    primitives such as `lo_create`, `lo_open`, `lowrite`, `lo_close`, `lo_get`,
-   and `lo_unlink`.
+   `lo_export`, `pg_read_binary_file`, and `lo_unlink`.
 3. A single save-time maintenance module for reading PostgreSQL's large-object
    catalog and executing `VACUUM (ANALYZE)`, which Drizzle cannot express as an
    ORM operation.
 4. A single waveform infrastructure module for selecting one cached waveform
    level and returning a parameterized `substring(bytea)` window without
    materializing every complete level in JavaScript.
+5. `internal/midi-rebase.ts` may use parameterized column-plus-delta expressions
+   inside typed Drizzle updates; it may not orchestrate transactions or build
+   complete SQL statements.
+6. `internal/asset-metadata.ts` may use `octet_length(bytea)` inside typed Drizzle
+   selects so summaries and hash lookups never retrieve MIDI source payloads.
 
 Large-object calls must be parameterized and run inside the same Drizzle
 transaction as their asset-row changes. Asset deletion selects the stored OID,
 deletes the asset, and unlinks the large object transactionally. Do not restore
 the handwritten unlink trigger or spread large-object SQL into services.
+
+Audio large objects use PGlite's public binary file APIs and unique temporary
+paths outside PGDATA, not bytea text serialization. Import keeps bounded chunks
+and the enclosing asset transaction. Temporary files are cleaned up on success
+and failure; cache seeding after a known import commit is best-effort and cannot
+change the database outcome. Remaining bytea columns use the validated Node
+Buffer codecs. No private serializer casts or raw-wire transaction bypasses are
+permitted. See [ADR-0009](adr/0009-pglite-data-transfer-and-read-reuse.md).
 
 Waveform slicing SQL must be parameterized, isolated to the documented module,
 and preserve the typed `StoredWaveformWindow` interface. Ordinary waveform
@@ -179,6 +200,9 @@ physical data directory, and the rewrite can add enough WAL to make the
 immediate archive larger. The final data-directory dump is uncompressed:
 project large objects are predominantly already-compressed or high-entropy
 audio, so gzip adds CPU and save latency without a reliable size benefit.
+Stream the resulting Blob to the archive file while retaining file/directory
+sync; do not allocate an additional archive-sized ArrayBuffer. Opening uses a
+file-backed Blob. PGlite itself still materializes its physical archive.
 
 Generated migration `.sql` files are generated artifacts and are excluded from
 the production-source raw SQL rule.
