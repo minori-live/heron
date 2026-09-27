@@ -5,7 +5,11 @@ import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 import { useWindowSize } from "@vueuse/core"
 import { UiDialog } from "@heron/ui"
-import type { AudioDeviceList, LiveDocumentConfiguration } from "@heron/contracts"
+import type {
+  AudioDeviceList,
+  LiveDocumentConfiguration,
+  MixerChannelPatch
+} from "@heron/contracts"
 import { DEFAULT_METER_RETURN_RATE } from "@heron/contracts"
 import type { MixerStripDisplayOptions } from "../components/mixer/mixer-strip-display-options"
 import { useLiveStore } from "../stores/live"
@@ -95,6 +99,16 @@ async function configure(configuration: LiveDocumentConfiguration): Promise<void
 function silentMeter(): undefined {
   return undefined
 }
+function updateMixerChannel(
+  channelId: string,
+  patch: MixerChannelPatch,
+  settle?: () => void
+): void {
+  void mixer.updateChannel(channelId, patch).then(
+    () => settle?.(),
+    () => settle?.()
+  )
+}
 </script>
 
 <template>
@@ -159,7 +173,7 @@ function silentMeter(): undefined {
         @redo="live.edit('redo')"
         @select="selectedChannelId = $event"
         @preview="mixer.preview"
-        @update-channel="mixer.updateChannel"
+        @update-channel="updateMixerChannel"
         @update-send="mixer.updateSend"
         @add-send="mixer.addSend"
         @delete-send="mixer.deleteSend"

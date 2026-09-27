@@ -66,7 +66,7 @@ Equivalent continuous parameters share a gesture grammar:
 - pointer drag changes the value continuously and commits once at gesture end;
 - keyboard arrows expose useful fine control and a documented larger step;
 - a numeric value remains readable while adjusting;
-- double-click restores the defined default;
+- double-click restores the defined default, except pan knobs open numeric editing;
 - preview and commit use the project command/revision contract; and
 - cancellation or stale revision never leaves the displayed value pretending
   to be committed.

@@ -153,21 +153,21 @@ describe("MixerChannelStrip", () => {
       parameter: "pan",
       value: -0.5
     })
-    expect(wrapper.emitted("updateChannel")?.at(-1)).toEqual(["audio", { pan: -0.5 }])
+    expect(wrapper.emitted("updateChannel")?.at(-1)?.slice(0, 2)).toEqual(["audio", { pan: -0.5 }])
 
     await pan.setValue("63")
-    expect(wrapper.emitted("updateChannel")?.at(-1)).toEqual(["audio", { pan: 1 }])
+    expect(wrapper.emitted("updateChannel")?.at(-1)?.slice(0, 2)).toEqual(["audio", { pan: 1 }])
 
     await wrapper.setProps({ channel: { ...channel, pan: 1 } })
     expect(wrapper.find(".pan-readout").exists()).toBe(false)
+    const commitsBeforePanEdit = wrapper.emitted("updateChannel")?.length ?? 0
     await pan.trigger("dblclick")
-    expect(wrapper.emitted("updateChannel")?.at(-1)).toEqual(["audio", { pan: 0 }])
-    await pan.trigger("keydown", { key: "F2" })
+    expect(wrapper.emitted("updateChannel")?.length).toBe(commitsBeforePanEdit)
     const panEditor = wrapper.get('input[aria-label="Vocal pan value"]')
     expect((panEditor.element as HTMLInputElement).value).toBe("63")
     await panEditor.setValue("-64")
     await panEditor.trigger("blur")
-    expect(wrapper.emitted("updateChannel")?.at(-1)).toEqual(["audio", { pan: -1 }])
+    expect(wrapper.emitted("updateChannel")?.at(-1)?.slice(0, 2)).toEqual(["audio", { pan: -1 }])
 
     await wrapper.get('button[aria-label="Mute Vocal"]').trigger("click")
     expect(wrapper.emitted("updateChannel")?.at(-1)).toEqual(["audio", { muted: true }])

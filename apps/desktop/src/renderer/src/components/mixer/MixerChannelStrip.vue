@@ -67,7 +67,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   select: [channelId: string]
   preview: [preview: MixerParameterPreview]
-  updateChannel: [channelId: string, patch: MixerChannelPatch]
+  updateChannel: [channelId: string, patch: MixerChannelPatch, settle?: () => void]
   updateSend: [sendId: string, patch: MixerSendPatch]
   addSend: [sourceChannelId: string, target: MixerRouteTarget]
   deleteSend: [sendId: string]
@@ -191,7 +191,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       :channel-name="channel.name"
       :value="channel.pan"
       @preview="preview('pan', $event)"
-      @commit="emit('updateChannel', channel.id, { pan: $event })"
+      @commit="(value, settle) => emit('updateChannel', channel.id, { pan: value }, settle)"
     />
 
     <MixerFaderSection
@@ -231,10 +231,11 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   display: grid;
   grid-template-rows:
     54px var(--plugin-section-height) var(--send-section-height) 44px 34px 34px 78px
-    282px 40px;
+    minmax(282px, 1fr) 40px;
   flex: 0 0 112px;
   min-width: 112px;
-  height: max-content;
+  height: 100%;
+  min-height: calc(566px + var(--plugin-section-height) + var(--send-section-height));
   overflow: hidden;
   border-right: 1px solid var(--ui-domain-color-303030);
   background: var(--ui-domain-color-575757);

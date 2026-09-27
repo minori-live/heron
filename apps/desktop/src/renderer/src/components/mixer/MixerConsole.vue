@@ -4,6 +4,7 @@ import { useMixerStore } from "../../stores/mixer"
 import { usePluginStore } from "../../stores/plugins"
 import { useLowLatencyModeStore } from "../../stores/lowLatencyMode"
 import { useBounceStore } from "../../stores/bounce"
+import type { MixerChannelPatch } from "@heron/contracts"
 import type { PluginSelection } from "../plugins/plugin-audio-mode"
 import MixerSurface from "./MixerSurface.vue"
 import BounceOutputDialog from "../bounce/BounceOutputDialog.vue"
@@ -13,6 +14,13 @@ const pluginStore = usePluginStore()
 const lowLatencyModeStore = useLowLatencyModeStore()
 const bounceStore = useBounceStore()
 const { confirmChannelDeletion, confirmInstrumentReplacement } = useMixerConfirmations()
+
+function updateChannel(channelId: string, patch: MixerChannelPatch, settle?: () => void): void {
+  void mixerStore.updateChannel(channelId, patch).then(
+    () => settle?.(),
+    () => settle?.()
+  )
+}
 
 function togglePlugin(instanceId: string, enabled: boolean): void {
   void mixerStore.setPluginEnabled(instanceId, enabled)
@@ -80,7 +88,7 @@ function bounceOutput(channel: { id: string }): void {
     @redo="mixerStore.redo"
     @select="mixerStore.selectedChannelId = $event"
     @preview="mixerStore.preview"
-    @update-channel="mixerStore.updateChannel"
+    @update-channel="updateChannel"
     @update-send="mixerStore.updateSend"
     @add-send="mixerStore.addSend"
     @delete-send="mixerStore.deleteSend"
