@@ -129,8 +129,8 @@ jobs:
           else
             result=$?
             if [[ "$result" -ne 2 ]]; then exit "$result"; fi
+            # --orphan already removes tracked files from the index and worktree.
             git switch --orphan update-manifests
-            git rm -rf .
           fi
           mkdir -p "versions/$TAG_NAME"
           cp "$RUNNER_TEMP/update-manifests/"*.yml "versions/$TAG_NAME/"
