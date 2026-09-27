@@ -6,28 +6,21 @@
     "security:minimumReleaseAgeNpm",
     "schedule:weekly"
   ],
-  "prConcurrentLimit": 5,
+  "prConcurrentLimit": 2,
+  "separateMajorMinor": false,
+  "groupSingleUpdates": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "groupName": "lock"
+  },
   "packageRules": [
     {
-      "matchManagers": ["npm"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "JavaScript dependencies"
-    },
-    {
-      "matchManagers": ["cargo"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "Rust dependencies"
-    },
-    {
       "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "GitHub Actions",
       "schedule": ["* * 1 * *"]
     },
     {
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["major"],
-      "schedule": ["* * 1 * *"]
+      "matchPackageNames": ["*"],
+      "groupName": "update"
     }
   ]
 }
