@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import { mount } from "@vue/test-utils"
+import { nextTick } from "vue"
 
 import UiRotaryControl from "./UiRotaryControl.vue"
 
@@ -45,6 +46,132 @@ describe("UiRotaryControl", () => {
 
     input.element.dispatchEvent(pointer("pointerup", { clientY: 90 }))
     expect(wrapper.emitted("commit")).toEqual([[5]])
+    wrapper.unmount()
+  })
+
+  it("keeps the released value visible until the parent settles a commit", async () => {
+    const wrapper = mount(UiRotaryControl, {
+      props: {
+        value: 0,
+        min: -64,
+        max: 63,
+        step: 1,
+        defaultValue: 0,
+        dragRangePixels: 254,
+        label: "Pan",
+        awaitCommit: true
+      }
+    })
+    const input = wrapper.get('input[type="range"]')
+    ;(input.element as HTMLInputElement).setPointerCapture = vi.fn()
+    ;(input.element as HTMLInputElement).releasePointerCapture = vi.fn()
+
+    input.element.dispatchEvent(pointer("pointerdown", { clientY: 100 }))
+    input.element.dispatchEvent(pointer("pointermove", { clientY: 80 }))
+    input.element.dispatchEvent(pointer("pointerup", { clientY: 80 }))
+    await nextTick()
+    expect(wrapper.emitted("commit")?.at(-1)?.[0]).toBe(10)
+    expect(input.attributes("aria-valuetext")).toBe("10")
+    expect((input.element as HTMLInputElement).value).toBe("10")
+
+    input.element.dispatchEvent(pointer("pointerdown", { clientY: 100 }))
+    input.element.dispatchEvent(pointer("pointerup", { clientY: 100 }))
+    await nextTick()
+    expect(wrapper.emitted("commit")).toHaveLength(1)
+    expect(input.attributes("aria-valuetext")).toBe("10")
+
+    const settle = wrapper.emitted("commit")?.at(-1)?.[1] as () => void
+    await wrapper.setProps({ value: 10 })
+    settle()
+    await nextTick()
+    await nextTick()
+    expect(input.attributes("aria-valuetext")).toBe("10")
+
+    input.element.dispatchEvent(pointer("pointerdown", { clientY: 100 }))
+    input.element.dispatchEvent(pointer("pointermove", { clientY: 120 }))
+    input.element.dispatchEvent(pointer("pointerup", { clientY: 120 }))
+    await nextTick()
+    expect(input.attributes("aria-valuetext")).toBe("0")
+    const rejected = wrapper.emitted("commit")?.at(-1)?.[1] as () => void
+    rejected()
+    await nextTick()
+    await nextTick()
+    expect(input.attributes("aria-valuetext")).toBe("10")
+
+    input.element.dispatchEvent(pointer("pointerdown", { clientY: 100 }))
+    input.element.dispatchEvent(pointer("pointermove", { clientY: 80 }))
+    input.element.dispatchEvent(pointer("pointerup", { clientY: 80 }))
+    const earlierCommit = wrapper.emitted("commit")?.at(-1)?.[1] as () => void
+    input.element.dispatchEvent(pointer("pointerdown", { clientY: 100 }))
+    input.element.dispatchEvent(pointer("pointermove", { clientY: 80 }))
+    input.element.dispatchEvent(pointer("pointerup", { clientY: 80 }))
+    earlierCommit()
+    await nextTick()
+    await nextTick()
+    expect(input.attributes("aria-valuetext")).toBe("30")
+    const latestCommit = wrapper.emitted("commit")?.at(-1)?.[1] as () => void
+    await wrapper.setProps({ value: 30 })
+    latestCommit()
+    await nextTick()
+    await nextTick()
+    expect(input.attributes("aria-valuetext")).toBe("30")
+  })
+
+  it("does not submit a value when a click releases without changing it", () => {
+    const wrapper = mount(UiRotaryControl, {
+      props: {
+        value: 0,
+        min: -64,
+        max: 63,
+        step: 1,
+        defaultValue: 0,
+        label: "Pan",
+        awaitCommit: true
+      }
+    })
+    const input = wrapper.get('input[type="range"]')
+    ;(input.element as HTMLInputElement).setPointerCapture = vi.fn()
+    ;(input.element as HTMLInputElement).releasePointerCapture = vi.fn()
+
+    input.element.dispatchEvent(pointer("pointerdown", { clientY: 100 }))
+    input.element.dispatchEvent(pointer("pointerup", { clientY: 100 }))
+    expect(wrapper.emitted("commit")).toBeUndefined()
+  })
+
+  it("keeps a settled commit from changing an active pointer gesture", async () => {
+    const wrapper = mount(UiRotaryControl, {
+      props: {
+        value: 0,
+        min: -64,
+        max: 63,
+        step: 1,
+        defaultValue: 0,
+        dragRangePixels: 254,
+        label: "Pan",
+        awaitCommit: true
+      }
+    })
+    const input = wrapper.get('input[type="range"]')
+    ;(input.element as HTMLInputElement).setPointerCapture = vi.fn()
+    ;(input.element as HTMLInputElement).releasePointerCapture = vi.fn()
+
+    input.element.dispatchEvent(pointer("pointerdown", { clientY: 100 }))
+    input.element.dispatchEvent(pointer("pointermove", { clientY: 80 }))
+    input.element.dispatchEvent(pointer("pointerup", { clientY: 80 }))
+    await nextTick()
+    expect(input.attributes("aria-valuetext")).toBe("10")
+
+    const settle = wrapper.emitted("commit")?.[0]?.[1] as () => void
+    input.element.dispatchEvent(pointer("pointerdown", { clientY: 100 }))
+    settle() // The parent rejected the earlier edit and kept value at zero.
+    await nextTick()
+    await nextTick()
+    expect(input.attributes("aria-valuetext")).toBe("10")
+
+    input.element.dispatchEvent(pointer("pointerup", { clientY: 100 }))
+    await nextTick()
+    expect(wrapper.emitted("commit")).toHaveLength(1)
+    expect(input.attributes("aria-valuetext")).toBe("0")
     wrapper.unmount()
   })
 

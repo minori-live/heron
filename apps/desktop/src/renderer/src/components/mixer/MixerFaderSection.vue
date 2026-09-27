@@ -111,7 +111,7 @@ function commitGainInputValue(raw: string): void {
 <style scoped>
 .volume-section {
   display: grid;
-  grid-template-rows: 221px 61px;
+  grid-template-rows: minmax(0, 1fr) 61px;
   min-height: 0;
   border-bottom: 1px solid var(--ui-domain-color-444);
   background: var(--ui-domain-color-555);

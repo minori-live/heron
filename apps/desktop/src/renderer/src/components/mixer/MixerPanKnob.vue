@@ -15,7 +15,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   preview: [value: number]
-  commit: [value: number]
+  commit: [value: number, settle: () => void]
 }>()
 
 const panUnits = computed(() => normalizedToPanUnits(props.value))
@@ -37,9 +37,11 @@ function panValueText(value: number): string {
       :label="`${channelName} pan`"
       :value-label="`${channelName} pan value`"
       :value-text="panValueText"
+      double-click-action="edit"
+      await-commit
       accent="var(--mixer-pan)"
       @preview="emit('preview', panUnitsToNormalized($event))"
-      @commit="emit('commit', panUnitsToNormalized($event))"
+      @commit="(value, settle) => emit('commit', panUnitsToNormalized(value), settle!)"
     />
   </div>
 </template>

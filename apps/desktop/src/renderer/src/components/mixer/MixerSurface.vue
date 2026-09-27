@@ -71,7 +71,7 @@ const emit = defineEmits<{
   redo: []
   select: [channelId: string]
   preview: [preview: MixerParameterPreview]
-  updateChannel: [channelId: string, patch: MixerChannelPatch]
+  updateChannel: [channelId: string, patch: MixerChannelPatch, settle?: () => void]
   updateSend: [sendId: string, patch: MixerSendPatch]
   addSend: [sourceChannelId: string, target: MixerRouteTarget]
   deleteSend: [sendId: string]
@@ -262,7 +262,10 @@ const sectionStyle = computed(() => ({
         :low-latency-target-disabled="lowLatencyTargetDisabled"
         @select="emit('select', $event)"
         @preview="emit('preview', $event)"
-        @update-channel="(id, patch) => emit('updateChannel', id, patch)"
+        @update-channel="
+          (id, patch, settle) =>
+            settle ? emit('updateChannel', id, patch, settle) : emit('updateChannel', id, patch)
+        "
         @update-send="(id, patch) => emit('updateSend', id, patch)"
         @add-send="(id, target) => emit('addSend', id, target)"
         @delete-send="emit('deleteSend', $event)"

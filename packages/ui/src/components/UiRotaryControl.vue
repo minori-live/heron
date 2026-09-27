@@ -22,6 +22,7 @@ const props = withDefaults(
     disabled?: boolean
     meterLevelPercent?: number
     doubleClickAction?: "reset" | "edit"
+    awaitCommit?: boolean
   }>(),
   {
     valueLabel: undefined,
@@ -33,19 +34,21 @@ const props = withDefaults(
     ringWeight: "standard",
     disabled: false,
     meterLevelPercent: undefined,
-    doubleClickAction: "reset"
+    doubleClickAction: "reset",
+    awaitCommit: false
   }
 )
 
 const emit = defineEmits<{
   preview: [value: number]
-  commit: [value: number]
+  commit: [value: number, settle?: () => void]
 }>()
 
 const editing = shallowRef(false)
 const editValue = shallowRef("")
 const dragging = shallowRef(false)
 const keyboardActive = shallowRef(false)
+const commitPending = shallowRef(false)
 const dragValue = shallowRef(props.value)
 const tooltipVisible = shallowRef(false)
 const editInput = useTemplateRef<HTMLInputElement>("editInput")
@@ -54,13 +57,15 @@ let pointerId: number | null = null
 let pointerStartY = 0
 let gestureStartValue: number | null = null
 let keyboardCancelled = false
+let commitVersion = 0
+let deferredSettleVersion: number | null = null
 
 const precision = computed(() => {
   const decimal = String(props.step).split(".")[1]
   return decimal?.length ?? 0
 })
 const displayedValue = computed(() =>
-  dragging.value || keyboardActive.value ? dragValue.value : props.value
+  dragging.value || keyboardActive.value || commitPending.value ? dragValue.value : props.value
 )
 const displayText = computed(() => formatValue(displayedValue.value))
 const controlStyle = computed(() => {
@@ -85,9 +90,42 @@ const controlStyle = computed(() => {
 watch(
   () => props.value,
   (value) => {
-    if (!dragging.value && !keyboardActive.value) dragValue.value = value
+    if (!dragging.value && !keyboardActive.value && !commitPending.value) dragValue.value = value
   }
 )
+
+function cancelPendingCommit(): void {
+  commitVersion += 1
+  deferredSettleVersion = null
+  commitPending.value = false
+}
+
+function settleCommit(version: number): void {
+  if (version !== commitVersion) return
+  if (dragging.value) {
+    deferredSettleVersion = version
+    return
+  }
+  deferredSettleVersion = null
+  commitPending.value = false
+  dragValue.value = props.value
+}
+
+function commitValue(value: number): void {
+  if (!props.awaitCommit) {
+    emit("commit", value)
+    return
+  }
+  const version = ++commitVersion
+  deferredSettleVersion = null
+  dragValue.value = value
+  commitPending.value = true
+  emit("commit", value, () => {
+    if (version !== commitVersion) return
+    // Reveal the authoritative prop after the parent's settled update has rendered.
+    void nextTick(() => settleCommit(version))
+  })
+}
 
 function formatValue(value: number): string {
   return props.valueText?.(value) ?? value.toFixed(precision.value)
@@ -102,12 +140,13 @@ function snapValue(value: number): number {
 function beginPointerGesture(event: PointerEvent): void {
   if (props.disabled || event.button !== 0) return
   event.preventDefault()
+  const startValue = displayedValue.value
   const target = event.currentTarget as HTMLElement
   target.focus()
   pointerId = event.pointerId
   pointerStartY = event.clientY
-  gestureStartValue = props.value
-  dragValue.value = props.value
+  gestureStartValue = startValue
+  dragValue.value = startValue
   dragging.value = true
   keyboardActive.value = false
   tooltipVisible.value = true
@@ -122,6 +161,7 @@ function movePointerGesture(event: PointerEvent): void {
   const valueDelta = ((pointerStartY - event.clientY) / dragDistance) * range
   const value = snapValue(gestureStartValue + valueDelta)
   if (value === dragValue.value) return
+  if (commitPending.value) cancelPendingCommit()
   dragValue.value = value
   emit("preview", value)
 }
@@ -131,10 +171,11 @@ function endPointerGesture(event: PointerEvent): void {
   event.preventDefault()
   ;(event.currentTarget as HTMLElement).releasePointerCapture?.(event.pointerId)
   pointerId = null
+  if (dragValue.value !== gestureStartValue) commitValue(dragValue.value)
   dragging.value = false
   tooltipVisible.value = false
   gestureStartValue = null
-  emit("commit", dragValue.value)
+  if (deferredSettleVersion !== null) settleCommit(deferredSettleVersion)
 }
 
 function cancelPointerGesture(event: PointerEvent): void {
@@ -148,10 +189,12 @@ function cancelPointerGesture(event: PointerEvent): void {
     emit("preview", gestureStartValue)
   }
   gestureStartValue = null
+  if (deferredSettleVersion !== null) settleCommit(deferredSettleVersion)
 }
 
 function previewKeyboardGesture(event: Event): void {
-  gestureStartValue ??= props.value
+  gestureStartValue ??= displayedValue.value
+  if (!keyboardActive.value) cancelPendingCommit()
   keyboardCancelled = false
   dragValue.value = snapValue(Number((event.currentTarget as HTMLInputElement).value))
   keyboardActive.value = true
@@ -170,7 +213,7 @@ function commitKeyboardGesture(event: Event): void {
     tooltipVisible.value = false
     return
   }
-  emit("commit", dragValue.value)
+  commitValue(dragValue.value)
   gestureStartValue = null
   keyboardActive.value = false
   tooltipVisible.value = false
@@ -199,13 +242,14 @@ function resetToDefault(): void {
   gestureStartValue = null
   keyboardCancelled = false
   keyboardActive.value = false
-  emit("commit", snapValue(props.defaultValue))
+  commitValue(snapValue(props.defaultValue))
 }
 
 async function beginEditing(): Promise<void> {
   if (props.disabled) return
   tooltipVisible.value = false
-  editValue.value = String(props.value)
+  editValue.value = String(displayedValue.value)
+  cancelPendingCommit()
   editing.value = true
   await nextTick()
   editInput.value?.focus()
@@ -217,7 +261,7 @@ function commitEditing(): void {
   const rawValue = String(editValue.value)
   const parsed = Number(rawValue)
   if (rawValue.trim() !== "" && Number.isFinite(parsed)) {
-    emit("commit", snapValue(parsed))
+    commitValue(snapValue(parsed))
   }
   editing.value = false
 }

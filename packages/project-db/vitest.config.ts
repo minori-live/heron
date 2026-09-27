@@ -6,6 +6,8 @@ export default defineConfig({
   test: {
     testTimeout: 15_000,
     hookTimeout: 15_000,
+    // PGlite databases contend for CPU and filesystem access when test files run together.
+    fileParallelism: false,
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],

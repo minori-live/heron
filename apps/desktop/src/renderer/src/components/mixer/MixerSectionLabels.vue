@@ -26,9 +26,11 @@ const { t } = useI18n()
   display: grid;
   grid-template-rows:
     54px var(--plugin-section-height) var(--send-section-height) 44px 34px 34px 78px
-    282px 40px;
+    minmax(282px, 1fr) 40px;
   flex: 0 0 52px;
   min-width: 52px;
+  height: 100%;
+  min-height: calc(566px + var(--plugin-section-height) + var(--send-section-height));
   color: var(--ui-domain-color-d0d0d0);
   background: var(--ui-domain-color-555);
   box-shadow:

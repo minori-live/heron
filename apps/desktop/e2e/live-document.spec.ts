@@ -62,6 +62,43 @@ async function expectWorkspaceGeometry(page: Page): Promise<void> {
   ).toHaveCount(0)
 }
 
+async function expectMixerStripSizing(page: Page): Promise<void> {
+  const scroller = page.locator(".live-mixer-panel .channel-scroll")
+  const expanded = await scroller.evaluate((element) => {
+    const strip = element.querySelector(".channel-strip")!
+    const labels = element.querySelector(".mixer-section-labels")!
+    const volume = strip.querySelector('[data-section="volume"]')!
+    const volumeLabel = labels.children[7]
+    return {
+      viewportHeight: element.clientHeight,
+      stripHeight: strip.getBoundingClientRect().height,
+      labelHeight: labels.getBoundingClientRect().height,
+      volumeHeight: volume.getBoundingClientRect().height,
+      faderHeight: strip.querySelector(".fader")!.getBoundingClientRect().height,
+      volumeTop: volume.getBoundingClientRect().top,
+      labelTop: volumeLabel.getBoundingClientRect().top
+    }
+  })
+  expect(expanded.stripHeight).toBe(expanded.viewportHeight)
+  expect(expanded.labelHeight).toBe(expanded.stripHeight)
+  expect(expanded.volumeHeight).toBeGreaterThan(282)
+  expect(expanded.volumeTop).toBe(expanded.labelTop)
+
+  await page.setViewportSize({ width: 1440, height: 600 })
+  const compact = await scroller.evaluate((element) => ({
+    viewportHeight: element.clientHeight,
+    contentHeight: element.scrollHeight,
+    stripHeight: element.querySelector(".channel-strip")!.getBoundingClientRect().height,
+    volumeHeight: element.querySelector('[data-section="volume"]')!.getBoundingClientRect().height,
+    faderHeight: element.querySelector(".fader")!.getBoundingClientRect().height
+  }))
+  expect(compact.contentHeight).toBeGreaterThan(compact.viewportHeight)
+  expect(compact.stripHeight).toBeGreaterThan(compact.viewportHeight)
+  expect(compact.volumeHeight).toBe(282)
+  expect(expanded.faderHeight).toBeGreaterThan(compact.faderHeight)
+  await page.setViewportSize({ width: 1440, height: 900 })
+}
+
 async function closeFromFileMenu(application: ElectronApplication, page: Page): Promise<void> {
   if (process.platform === "darwin") {
     await application.evaluate(({ Menu }) => {
@@ -156,6 +193,7 @@ test("Live reuses the Studio shell and Mixer through editing, save, reopen and S
     await expect(mixer.getByRole("button", { name: "Undo mixer change" })).toBeDisabled()
     await expect(mixer.getByRole("button", { name: "Redo mixer change" })).toBeDisabled()
     await expectWorkspaceGeometry(page)
+    await expectMixerStripSizing(page)
     await expect(mixer.getByRole("button", { name: /^Arm / })).toHaveCount(0)
     await expect(mixer.getByRole("button", { name: /^Bounce / })).toHaveCount(0)
 
@@ -168,6 +206,12 @@ test("Live reuses the Studio shell and Mixer through editing, save, reopen and S
     await mixer.getByRole("textbox", { name: "Rename Audio 1" }).press("Enter")
     const voice = mixer.getByRole("article", { name: "Voice audio channel", exact: true })
     await expect(voice).toBeVisible()
+    const pan = voice.getByRole("slider", { name: "Voice pan", exact: true })
+    await pan.dblclick()
+    const panValue = voice.getByRole("spinbutton", { name: "Voice pan value", exact: true })
+    await panValue.fill("24")
+    await panValue.press("Enter")
+    await expect(pan).toHaveAttribute("aria-valuetext", "R24")
     await mixer.getByRole("button", { name: "Add aux channel" }).click()
     await expect(mixer.locator(".channel-strip")).toHaveCount(4)
     await mixer.getByRole("button", { name: "Add instrument channel" }).click()
