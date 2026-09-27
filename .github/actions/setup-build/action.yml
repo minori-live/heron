@@ -125,7 +125,7 @@ runs:
     - name: Restore Cargo downloads
       # rust-cache already caches the registry and git databases.
       if: inputs.cache-rust-build != 'true'
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ${{ steps.cache-paths.outputs.cargo-home }}/registry/index
@@ -136,7 +136,7 @@ runs:
           cargo-downloads-${{ runner.os }}-${{ runner.arch }}-
 
     - name: Restore pnpm store
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ${{ steps.cache-paths.outputs.pnpm-store }}
         key: pnpm-store-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -144,7 +144,7 @@ runs:
           pnpm-store-${{ runner.os }}-${{ runner.arch }}-
 
     - name: Restore Electron downloads
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ~/.cache/electron
