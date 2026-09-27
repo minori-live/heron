@@ -8,6 +8,7 @@ import { useLiveStore } from "../stores/live"
 import { useAudioRuntimeStore } from "../stores/audioRuntime"
 import { useLiveWorkspaceStore } from "../stores/liveWorkspace"
 import { i18n } from "../i18n"
+import MixerSurface from "../components/mixer/MixerSurface.vue"
 
 function workspace(): LiveWorkspaceSnapshot {
   return {
@@ -63,7 +64,7 @@ async function fixture(open = true) {
         WorkspaceStatusbar: true,
         MixerSurface: {
           props: ["hardwareInputCount", "hardwareOutputCount", "error", "meterSource"],
-          emits: ["undo", "redo", "select"],
+          emits: ["undo", "redo", "select", "updateChannel"],
           template:
             '<div role="region" aria-label="Mixer controls"><output>{{ hardwareInputCount }}/{{ hardwareOutputCount }}</output><p role="alert">{{ error }}</p><button @click="$emit(\'undo\')">Undo</button><button @click="$emit(\'redo\')">Redo</button><button @click="$emit(\'select\', \'audio\')">Select Audio</button><span>{{ meterSource(\'audio\') }}</span></div>'
         },
@@ -84,6 +85,35 @@ const label = (key: string) => `[aria-label="${i18n.global.t(key)}"]`
 beforeEach(() => setActivePinia(createPinia()))
 
 describe("Live workspace composition", () => {
+  it("settles Live pan edits after the document command completes or fails", async () => {
+    const { wrapper, live } = await fixture()
+    let complete!: (value: boolean) => void
+    const edit = vi.spyOn(live, "edit").mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        complete = resolve
+      })
+    )
+    const surface = wrapper.getComponent(MixerSurface)
+    const accepted = vi.fn()
+    surface.vm.$emit("updateChannel", "audio", { pan: 0.5 }, accepted)
+    expect(edit).toHaveBeenCalledWith({
+      type: "update-channel",
+      channelId: "audio",
+      patch: { pan: 0.5 }
+    })
+    expect(accepted).not.toHaveBeenCalled()
+    complete(true)
+    await flushPromises()
+    expect(accepted).toHaveBeenCalledOnce()
+
+    edit.mockRejectedValueOnce(new Error("edit rejected"))
+    const rejected = vi.fn()
+    surface.vm.$emit("updateChannel", "audio", { pan: -0.5 }, rejected)
+    await flushPromises()
+    expect(rejected).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
   it("redirects when the document is closed", async () => {
     const { wrapper, router } = await fixture(false)
     expect(router.currentRoute.value.name).toBe("welcome")

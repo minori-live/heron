@@ -1,10 +1,11 @@
 import { nextTick } from "vue"
-import { describe, expect, it } from "vitest"
-import { mount } from "@vue/test-utils"
+import { describe, expect, it, vi } from "vitest"
+import { flushPromises, mount } from "@vue/test-utils"
 import { createPinia, setActivePinia } from "pinia"
 import type { MixerChannelState, PluginDescriptor } from "@heron/contracts"
 import { useMixerStore } from "../../stores/mixer"
 import MixerConsole from "./MixerConsole.vue"
+import MixerSurface from "./MixerSurface.vue"
 
 const descriptor: PluginDescriptor = {
   source: { kind: "external" },
@@ -45,6 +46,29 @@ function channel(id: string, kind: MixerChannelState["kind"]): MixerChannelState
 }
 
 describe("MixerConsole", () => {
+  it("settles pan edits after the store accepts or rejects them", async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const mixerStore = useMixerStore()
+    const updateChannel = vi
+      .spyOn(mixerStore, "updateChannel")
+      .mockResolvedValueOnce(true)
+      .mockRejectedValueOnce(new Error("edit rejected"))
+    const wrapper = mount(MixerConsole, { global: { plugins: [pinia] } })
+    const surface = wrapper.getComponent(MixerSurface)
+    const accepted = vi.fn()
+    surface.vm.$emit("updateChannel", "audio", { pan: 0.5 }, accepted)
+    expect(updateChannel).toHaveBeenCalledWith("audio", { pan: 0.5 })
+    await flushPromises()
+    expect(accepted).toHaveBeenCalledOnce()
+
+    const rejected = vi.fn()
+    surface.vm.$emit("updateChannel", "audio", { pan: -0.5 }, rejected)
+    await flushPromises()
+    expect(rejected).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
   it("keeps one trailing plugin/send slot and grows shared heights with new entries", async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
