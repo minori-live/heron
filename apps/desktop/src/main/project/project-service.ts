@@ -312,6 +312,13 @@ export class ProjectService {
     return this.requireActive().worker.listAssets()
   }
 
+  findAssetByContentHash(
+    kind: ProjectAssetSummary["kind"],
+    contentHash: string
+  ): Promise<ProjectAssetSummary | null> {
+    return this.requireActive().worker.findAssetByContentHash(kind, contentHash)
+  }
+
   async updateConfiguration(configuration: ProjectConfiguration): Promise<ProjectSession> {
     const context = this.requireActive()
     context.session.configuration = await context.worker.updateConfiguration(

@@ -74,7 +74,11 @@ export async function createApplicationServices(
   )
   const mixerRuntime = new MixerRuntimeService(audioHost)
   const transport = new TransportService(projectService, audioHost)
-  const audioImport = new AudioImportService(options.userDataPath, projectService)
+  const audioImport = new AudioImportService(
+    options.userDataPath,
+    projectService,
+    assetMaterializer
+  )
   const assetAudition = new AssetAuditionService(
     projectService,
     projectGraph,

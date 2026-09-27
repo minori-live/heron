@@ -153,6 +153,13 @@ export class ProjectWorkerClient {
     return this.call({ type: "list-assets" })
   }
 
+  findAssetByContentHash(
+    kind: ProjectAssetSummary["kind"],
+    contentHash: string
+  ): Promise<ProjectAssetSummary | null> {
+    return this.call({ type: "find-asset-by-content-hash", kind, contentHash })
+  }
+
   mixerSnapshot(): Promise<ProjectGraphSnapshot> {
     return this.call({ type: "mixer-snapshot" })
   }

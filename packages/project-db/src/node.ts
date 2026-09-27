@@ -2,7 +2,7 @@ import { openAsBlob } from "node:fs"
 import { rm } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 import { PGlite } from "@electric-sql/pglite"
-import { asc, eq } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 import type { PgliteDatabase } from "drizzle-orm/pglite"
 import type {
@@ -26,7 +26,6 @@ import {
   PROJECT_SAMPLE_RATES,
   STUDIO_FORMAT_VERSION,
   WAVEFORM_CACHE_VERSION,
-  assets,
   keySignatureEvents,
   midiSources,
   mixerChannels,
@@ -41,6 +40,7 @@ import * as schema from "./schema"
 import { applyProjectCommand, assertProjectCommandAllowed } from "./internal/command-persistence"
 import { readProjectGraphSnapshot } from "./internal/project-reads"
 import { ProjectAssetRepository } from "./internal/assets"
+import { findAssetByContentHash, listAssetMetadata } from "./internal/asset-metadata"
 import { dumpProjectArchive } from "./internal/archive"
 import { importMidiSource, rollbackMidiSource } from "./internal/midi"
 import { migrateProjectDatabase } from "./migrations"
@@ -346,36 +346,14 @@ export class ProjectDatabase {
   }
 
   listAssets(): Promise<ProjectAssetSummary[]> {
-    return Promise.all([
-      this.db
-        .select({
-          id: assets.id,
-          name: assets.name,
-          contentHash: assets.contentHash,
-          sampleRate: assets.sampleRate,
-          channels: assets.channels,
-          bitDepth: assets.bitDepth,
-          frameCount: assets.frameCount
-        })
-        .from(assets)
-        .orderBy(asc(assets.createdAt), asc(assets.id)),
-      this.db
-        .select({
-          id: midiSources.id,
-          name: midiSources.name,
-          contentHash: midiSources.contentHash,
-          rawBytes: midiSources.rawBytes
-        })
-        .from(midiSources)
-        .orderBy(asc(midiSources.name), asc(midiSources.id))
-    ]).then(([audioRows, midiRows]) => [
-      ...audioRows.map((asset) => ({ ...asset, kind: "audio" as const })),
-      ...midiRows.map(({ rawBytes, ...asset }) => ({
-        ...asset,
-        kind: "midi" as const,
-        byteLength: rawBytes.byteLength
-      }))
-    ])
+    return listAssetMetadata(this.db)
+  }
+
+  findAssetByContentHash(
+    kind: ProjectAssetSummary["kind"],
+    contentHash: string
+  ): Promise<ProjectAssetSummary | null> {
+    return findAssetByContentHash(this.db, kind, contentHash)
   }
 
   readMidiSource(sourceId: string): Promise<MidiSourceInput | null> {

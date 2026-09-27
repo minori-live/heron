@@ -113,6 +113,7 @@ export interface WorkerRequestMap {
   "get-configuration": Record<never, never>
   "update-configuration": { configuration: ProjectConfiguration }
   "list-assets": Record<never, never>
+  "find-asset-by-content-hash": { kind: ProjectAssetSummary["kind"]; contentHash: string }
   "mixer-snapshot": Record<never, never>
   "prepare-project-command": {
     operationId: string
@@ -165,6 +166,7 @@ export interface WorkerResultMap {
   "get-configuration": ProjectConfiguration
   "update-configuration": ProjectConfiguration
   "list-assets": ProjectAssetSummary[]
+  "find-asset-by-content-hash": ProjectAssetSummary | null
   "mixer-snapshot": ProjectGraphSnapshot
   "prepare-project-command": PreparedProjectCommand
   "commit-project-command": CommittedProjectCommand

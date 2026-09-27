@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto"
 import { mkdir, rm } from "node:fs/promises"
 import { basename, join } from "node:path"
 import { importAudioFile } from "@heron/dsp-node"
-import type { ProjectAudioAssetSummary } from "@heron/contracts"
+import type { AssetMaterializer } from "./asset-materializer"
 import type { ProjectService } from "./project-service"
 
 export interface AudioImportBatchResult {
@@ -27,7 +27,8 @@ export class AudioImportService {
 
   constructor(
     userDataPath: string,
-    private readonly projects: ProjectService
+    private readonly projects: ProjectService,
+    private readonly assets: Pick<AssetMaterializer, "adoptImportedAsset">
   ) {
     this.stagingDirectory = join(userDataPath, "media-import")
   }
@@ -51,9 +52,9 @@ export class AudioImportService {
             originationDate: now.slice(0, 10),
             originationTime: now.slice(11, 19)
           })
-          const existing = (await this.projects.listAssets()).find(
-            (asset): asset is ProjectAudioAssetSummary =>
-              asset.kind === "audio" && asset.contentHash === converted.contentHash
+          const existing = await this.projects.findAssetByContentHash(
+            "audio",
+            converted.contentHash
           )
           if (existing) {
             selectedAssetIds.push(existing.id)
@@ -84,6 +85,11 @@ export class AudioImportService {
           selectedAssetIds.push(assetId)
           importedAssetIds.push(assetId)
           databaseWriteDispatched = false
+          // Persistence has committed. Cache publication is optional and must not
+          // turn a known successful write into an ambiguous import outcome.
+          await this.assets
+            .adoptImportedAsset({ id: assetId, contentHash: converted.contentHash }, outputPath)
+            .catch(() => undefined)
         } finally {
           await rm(outputPath, { force: true })
         }

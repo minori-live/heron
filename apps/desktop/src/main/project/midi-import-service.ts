@@ -59,9 +59,9 @@ export class MidiImportService {
     private readonly graphs: ProjectGraphService,
     private readonly commands: ProjectCommandService,
     private readonly plugins: PluginCatalogService,
-    private readonly projects: Pick<ProjectService, "readMidiSource" | "listAssets"> = {
+    private readonly projects: Pick<ProjectService, "readMidiSource" | "findAssetByContentHash"> = {
       readMidiSource: async () => null,
-      listAssets: async () => []
+      findAssetByContentHash: async () => null
     }
   ) {}
 
@@ -160,9 +160,7 @@ export class MidiImportService {
     const defaultOutput = graph.channels.find((channel) => channel.kind === "output")
     if (!defaultOutput) throw new Error("Project has no hardware Output")
     const contentHash = createHash("sha256").update(prepared.rawBytes).digest("hex")
-    const existingSource = (await this.projects.listAssets()).find(
-      (asset) => asset.kind === "midi" && asset.contentHash === contentHash
-    )
+    const existingSource = await this.projects.findAssetByContentHash("midi", contentHash)
     const sourceId = existingSource?.id ?? randomUUID()
     const commands: ProjectCommand[] = []
     if (plan.importTempoMap) {
