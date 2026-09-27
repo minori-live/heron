@@ -33,6 +33,11 @@ the minimatch 3 override on brace-expansion 1, whose CommonJS export is callable
 Restrict these specific Renovate edges so automatic updates cannot recreate the
 incompatible combinations. Other consumers retain their newer dependency versions.
 
+Lock pnpm to 12.7.0 to include the [Unix process cleanup fix](https://github.com/pnpm/pnpm/pull/15564).
+In pnpm 12.6.0, a non-interactive child runs in a separate process group and can
+survive Playwright's shutdown signal. Storybook then keeps its output pipes open,
+leaving the Linux design-system test command waiting after its tests finish.
+
 ## Alternatives rejected
 
 - Reverting the entire update discards compatible upgrades and the native
@@ -54,6 +59,7 @@ Run the repository's full `mise run check`, JavaScript coverage, documentation
 build, project-database benchmark, and platform CI. Confirm plain `tsc` reports
 version 7, `vue-tsc` uses the compatibility compiler, the UI boundary audit retains
 its AST checks, and Storybook tests use their package-local Vitest 4 installation.
+Confirm the Linux design-system test command exits after Storybook teardown.
 Windows builds must continue to include ASIO.
 
 ## Reconsider when
