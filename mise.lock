@@ -48,7 +48,7 @@ backend = "cargo:cargo-llvm-cov"
 specifiers = ["0.8"]
 
 [[tools."cargo:cargo-shear"]]
-version = "1.13.4"
+version = "1.13.5"
 backend = "cargo:cargo-shear"
 specifiers = ["1.13"]
 
