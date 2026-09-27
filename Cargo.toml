@@ -37,7 +37,7 @@ ara2-bridge-sys = "=0.3.0"
 bwavfile = "2.0.1"
 ebur128 = { version = "0.1.10", features = ["precision-true-peak"] }
 flac-bound = { version = "0.5.0", default-features = false, features = ["libflac-noogg"] }
-bindgen = "0.72.1"
+bindgen = "0.73.0"
 cc = "1"
 clap = { version = "4.6.6", features = ["derive"] }
 cpal = "0.18.2"
