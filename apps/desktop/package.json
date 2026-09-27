@@ -53,7 +53,7 @@
     "@vitejs/plugin-vue": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vue/test-utils": "catalog:",
-    "@vueuse/core": "^14.4.0",
+    "@vueuse/core": "^15.0.0",
     "electron": "^43.6.0",
     "electron-builder": "^26.16.1",
     "happy-dom": "catalog:",
