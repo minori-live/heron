@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { performance } from "node:perf_hooks"
 import type { ProjectCommand } from "@heron/contracts"
-import { afterAll, beforeAll, bench, describe, expect } from "vitest"
+import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { PROJECT_MIGRATIONS_FOLDER } from "../migrations"
 import { ProjectDatabase } from "../node"
 import type { LargeObjectAssetInput } from "../protocol"
@@ -68,15 +68,13 @@ function notes(clipId: string, count: number) {
 function measure(name: string, operation: () => Promise<unknown>, iterations = 5): void {
   const durations: number[] = []
   samples.set(name, durations)
-  bench(
-    name,
-    async () => {
+  test(name, async ({ bench }) => {
+    await bench(name, async () => {
       const start = performance.now()
       await operation()
       durations.push(performance.now() - start)
-    },
-    { iterations, time: 0, warmupIterations: 0, warmupTime: 0 }
-  )
+    }).run({ iterations, time: 0, warmupIterations: 0, warmupTime: 0 })
+  })
 }
 
 function percentile(sorted: number[], ratio: number): number {

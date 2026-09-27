@@ -21,6 +21,23 @@
     {
       "matchPackageNames": ["*"],
       "groupName": "update"
+    },
+    {
+      "description": "Storybook 10's Vitest addon requires Vitest 4; other tests use the default catalog.",
+      "matchDepTypes": ["pnpm.catalog.storybook"],
+      "matchPackageNames": ["vitest", "@vitest/browser-playwright"],
+      "allowedVersions": "<5"
+    },
+    {
+      "description": "minimatch 3 requires brace-expansion's legacy CommonJS function export.",
+      "matchDepNames": ["minimatch@3.1.5>brace-expansion"],
+      "allowedVersions": "<2"
+    },
+    {
+      "description": "windows-core must match windows 0.62's generated COM traits and implement macro.",
+      "matchManagers": ["cargo"],
+      "matchPackageNames": ["windows-core"],
+      "allowedVersions": "<0.63"
     }
   ]
 }

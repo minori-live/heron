@@ -1144,6 +1144,8 @@ describe("ProjectDatabase", () => {
     expect((await database.mixerSnapshot()).midiClips).toContainEqual(clip)
   })
 
+  // This case creates, flushes, closes and reopens a physical PostgreSQL data
+  // directory; the complete round-trip exceeded the suite's 15s test timeout on Windows CI.
   it("restores non-destructive audio and MIDI clip edits after reopening", async () => {
     const resource = await createDatabase("disk")
     const audioPath = join(resource.directory, "editable-audio.wav")
@@ -1307,7 +1309,7 @@ describe("ProjectDatabase", () => {
         sourceLengthTicks: 7_680
       })
     )
-  })
+  }, 30_000)
 
   it("round-trips atomic piano-roll note edits at 1/3840-note resolution", async () => {
     const { database } = await createDatabase()

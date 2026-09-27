@@ -49,7 +49,7 @@ runs:
     - name: Install locked toolchain
       uses: jdx/mise-action@v4
       with:
-        version: 2026.7.13
+        version: 2026.9.15
         cache: true
         github_token: ${{ inputs.github-token }}
 
@@ -104,11 +104,11 @@ runs:
         echo "SCCACHE_LOG=warn" >> "$GITHUB_ENV"
 
     - name: Install sccache
-      uses: mozilla-actions/sccache-action@v0.0.10
+      uses: mozilla-actions/sccache-action@v0.0.11
       with:
         # The sccache version participates in the GHA cache version. Avoid an
         # unplanned cold cache across every job when upstream publishes a release.
-        version: v0.17.0
+        version: v0.18.0
 
     - name: Enable sccache for subsequent build steps
       shell: bash
@@ -125,7 +125,7 @@ runs:
     - name: Restore Cargo downloads
       # rust-cache already caches the registry and git databases.
       if: inputs.cache-rust-build != 'true'
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ${{ steps.cache-paths.outputs.cargo-home }}/registry/index
@@ -136,7 +136,7 @@ runs:
           cargo-downloads-${{ runner.os }}-${{ runner.arch }}-
 
     - name: Restore pnpm store
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ${{ steps.cache-paths.outputs.pnpm-store }}
         key: pnpm-store-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -144,7 +144,7 @@ runs:
           pnpm-store-${{ runner.os }}-${{ runner.arch }}-
 
     - name: Restore Electron downloads
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ~/.cache/electron

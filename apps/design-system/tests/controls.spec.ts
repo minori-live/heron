@@ -52,6 +52,8 @@ test("workspace tool modes use roving focus and persistent pressed state", async
   await page.goto(
     "/iframe.html?id=components-workspace-command-surfaces--editor-toolbar&viewMode=story&globals=theme:dark;motion:disabled"
   )
+  // The story's play restores Select and finishes by focusing the Verse clip.
+  await expect(page.getByRole("button", { name: "Verse", exact: true })).toBeFocused()
 
   const select = page.getByRole("button", { name: "Select" })
   const draw = page.getByRole("button", { name: "Draw" })

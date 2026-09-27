@@ -11,9 +11,9 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "gray-matter": "^4.0.3",
-    "mermaid": "^11.17.2",
+    "mermaid": "^12.0.0",
     "unplugin-fonts": "catalog:",
-    "vitepress": "2.0.0-alpha.18",
+    "vitepress": "2.0.0-alpha.20",
     "vue": "catalog:"
   },
   "dependencies": {
