@@ -1,6 +1,7 @@
 import type { Results } from "@electric-sql/pglite"
 import { sql } from "drizzle-orm"
 import type { SQL } from "drizzle-orm"
+import type { PgliteBinaryFiles } from "./internal/binary-files"
 
 export interface LargeObjectExecutor {
   execute(query: SQL): PromiseLike<Results<Record<string, unknown>>>
@@ -27,9 +28,17 @@ export async function openLargeObject(executor: LargeObjectExecutor, oid: number
 export async function writeLargeObject(
   executor: LargeObjectExecutor,
   descriptor: number,
-  chunk: Uint8Array
+  chunk: Uint8Array,
+  files: PgliteBinaryFiles
 ): Promise<void> {
-  await executor.execute(sql`select lowrite(${descriptor}, ${chunk})`)
+  await files.withBytes(chunk, async (path) => {
+    const result = await executor.execute(
+      sql`select lowrite(${descriptor}, pg_read_binary_file(${path})) as written`
+    )
+    if (requiredNumber(result.rows[0]?.written, "write", 0) !== chunk.byteLength) {
+      throw new Error("PostgreSQL large-object write was incomplete")
+    }
+  })
 }
 
 export async function closeLargeObject(
@@ -41,17 +50,15 @@ export async function closeLargeObject(
 
 export async function readLargeObject(
   executor: LargeObjectExecutor,
-  oid: number
+  oid: number,
+  files: PgliteBinaryFiles
 ): Promise<Uint8Array> {
-  const result = await executor.execute(sql`select lo_get(${oid}) as data`)
-  const data = result.rows[0]?.data
-  if (!data) throw new Error(`PostgreSQL large object '${oid}' was not found`)
-  if (data instanceof Uint8Array) return data
-  if (data instanceof ArrayBuffer) return new Uint8Array(data)
-  if (ArrayBuffer.isView(data)) {
-    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
-  }
-  throw new Error(`PostgreSQL large object '${oid}' returned invalid data`)
+  return files.readFrom(async (path) => {
+    const result = await executor.execute(sql`select lo_export(${oid}, ${path}) as exported`)
+    if (requiredNumber(result.rows[0]?.exported, "export") !== 1) {
+      throw new Error(`PostgreSQL large object '${oid}' was not exported`)
+    }
+  })
 }
 
 export async function unlinkLargeObject(executor: LargeObjectExecutor, oid: number): Promise<void> {

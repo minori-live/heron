@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises"
+import { openAsBlob } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { PGlite } from "@electric-sql/pglite"
 import { and, asc, eq } from "drizzle-orm"
@@ -13,6 +13,7 @@ import type {
 import { AUDIO_BACKENDS, PROJECT_SAMPLE_RATES } from "@heron/contracts"
 import { validateMixerGraph } from "@heron/project-model"
 import { dumpDataDirectory } from "./internal/archive"
+import { pgliteByteaOptions } from "./internal/bytea-codecs"
 import { bytes, pluginDescriptor } from "./internal/serialization"
 import { migrateLiveDatabase } from "./live-migrations"
 import { clearLiveMixer, inspectLiveArchive } from "./maintenance"
@@ -105,8 +106,9 @@ export class LiveDatabase {
     validateConfiguration(configuration)
     const instance = new LiveDatabase(
       await PGlite.create({
+        ...pgliteByteaOptions,
         dataDir,
-        loadDataDir: new Blob([await readFile(templateArchivePath)])
+        loadDataDir: await openAsBlob(templateArchivePath)
       })
     )
     try {
@@ -175,8 +177,12 @@ export class LiveDatabase {
 
   static async open(dataDir: string, archivePath?: string): Promise<LiveDatabase> {
     const client = archivePath
-      ? await PGlite.create({ dataDir, loadDataDir: new Blob([await readFile(archivePath)]) })
-      : new PGlite(dataDir)
+      ? await PGlite.create({
+          ...pgliteByteaOptions,
+          dataDir,
+          loadDataDir: await openAsBlob(archivePath)
+        })
+      : new PGlite(dataDir, pgliteByteaOptions)
     const instance = new LiveDatabase(client)
     try {
       // Read the kind before applying Live migrations to an untrusted archive.

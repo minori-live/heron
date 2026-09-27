@@ -1,4 +1,5 @@
-import { readFile, rm } from "node:fs/promises"
+import { openAsBlob } from "node:fs"
+import { rm } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 import { PGlite } from "@electric-sql/pglite"
 import { asc, eq } from "drizzle-orm"
@@ -44,6 +45,8 @@ import { dumpProjectArchive } from "./internal/archive"
 import { importMidiSource, rollbackMidiSource } from "./internal/midi"
 import { migrateProjectDatabase } from "./migrations"
 import { inspectStudioArchive } from "./maintenance"
+import { PgliteBinaryFiles } from "./internal/binary-files"
+import { pgliteByteaOptions } from "./internal/bytea-codecs"
 
 const DEFAULT_INITIAL_TEMPO = 120
 const PROJECT_TEMPLATE_ARCHIVE = fileURLToPath(
@@ -78,7 +81,7 @@ export class ProjectDatabase {
 
   private constructor(private readonly client: PGlite) {
     this.db = drizzle(client, { schema })
-    this.assetRepository = new ProjectAssetRepository(this.db)
+    this.assetRepository = new ProjectAssetRepository(this.db, new PgliteBinaryFiles(client))
   }
 
   static async create(
@@ -101,8 +104,9 @@ export class ProjectDatabase {
     }
     const instance = new ProjectDatabase(
       await PGlite.create({
+        ...pgliteByteaOptions,
         dataDir,
-        loadDataDir: new Blob([await readFile(templateArchivePath)])
+        loadDataDir: await openAsBlob(templateArchivePath)
       })
     )
     try {
@@ -268,10 +272,11 @@ export class ProjectDatabase {
   static async open(dataDir: string, archivePath?: string): Promise<ProjectDatabase> {
     const client = archivePath
       ? await PGlite.create({
+          ...pgliteByteaOptions,
           dataDir,
-          loadDataDir: new Blob([await readFile(archivePath)])
+          loadDataDir: await openAsBlob(archivePath)
         })
-      : new PGlite(dataDir)
+      : new PGlite(dataDir, pgliteByteaOptions)
     const instance = new ProjectDatabase(client)
     try {
       await assertStudioArchive(client)
