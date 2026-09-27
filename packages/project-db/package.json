@@ -28,12 +28,12 @@
     "@electric-sql/pglite": "catalog:",
     "@heron/contracts": "workspace:*",
     "@heron/project-model": "workspace:*",
-    "drizzle-orm": "0.45.2"
+    "drizzle-orm": "0.45.3"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
-    "drizzle-kit": "0.31.10",
+    "drizzle-kit": "0.31.11",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
