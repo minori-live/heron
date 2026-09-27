@@ -153,6 +153,11 @@ describe("ProjectWorkerClient", () => {
         value: {}
       },
       { type: "list-assets", call: () => client.listAssets(), value: [] },
+      {
+        type: "find-asset-by-content-hash",
+        call: () => client.findAssetByContentHash("midi", "hash"),
+        value: null
+      },
       { type: "mixer-snapshot", call: () => client.mixerSnapshot(), value: {} },
       {
         type: "prepare-project-command",

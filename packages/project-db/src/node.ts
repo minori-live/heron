@@ -1,7 +1,8 @@
-import { readFile, rm } from "node:fs/promises"
+import { openAsBlob } from "node:fs"
+import { rm } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 import { PGlite } from "@electric-sql/pglite"
-import { asc, eq } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 import type { PgliteDatabase } from "drizzle-orm/pglite"
 import type {
@@ -25,7 +26,6 @@ import {
   PROJECT_SAMPLE_RATES,
   STUDIO_FORMAT_VERSION,
   WAVEFORM_CACHE_VERSION,
-  assets,
   keySignatureEvents,
   midiSources,
   mixerChannels,
@@ -40,10 +40,14 @@ import * as schema from "./schema"
 import { applyProjectCommand, assertProjectCommandAllowed } from "./internal/command-persistence"
 import { readProjectGraphSnapshot } from "./internal/project-reads"
 import { ProjectAssetRepository } from "./internal/assets"
+import { findAssetByContentHash, listAssetMetadata } from "./internal/asset-metadata"
 import { dumpProjectArchive } from "./internal/archive"
 import { importMidiSource, rollbackMidiSource } from "./internal/midi"
 import { migrateProjectDatabase } from "./migrations"
 import { inspectStudioArchive } from "./maintenance"
+import { SnapshotPayloadCache } from "./internal/snapshot-payload-cache"
+import { PgliteBinaryFiles } from "./internal/binary-files"
+import { pgliteByteaOptions } from "./internal/bytea-codecs"
 
 const DEFAULT_INITIAL_TEMPO = 120
 const PROJECT_TEMPLATE_ARCHIVE = fileURLToPath(
@@ -75,10 +79,28 @@ async function assertStudioArchive(client: PGlite): Promise<void> {
 export class ProjectDatabase {
   private readonly db: ProjectDb
   private readonly assetRepository: ProjectAssetRepository
+  private snapshotPayloads = new SnapshotPayloadCache()
+  private snapshotOperations: Promise<void> = Promise.resolve()
+
+  private withSnapshotPayloads<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.snapshotOperations.then(operation)
+    this.snapshotOperations = result.then(
+      () => undefined,
+      () => undefined
+    )
+    return result
+  }
+
+  private mutateSnapshotPayloads<T>(operation: () => Promise<T>): Promise<T> {
+    return this.withSnapshotPayloads(async () => {
+      this.snapshotPayloads = new SnapshotPayloadCache()
+      return operation()
+    })
+  }
 
   private constructor(private readonly client: PGlite) {
     this.db = drizzle(client, { schema })
-    this.assetRepository = new ProjectAssetRepository(this.db)
+    this.assetRepository = new ProjectAssetRepository(this.db, new PgliteBinaryFiles(client))
   }
 
   static async create(
@@ -101,8 +123,9 @@ export class ProjectDatabase {
     }
     const instance = new ProjectDatabase(
       await PGlite.create({
+        ...pgliteByteaOptions,
         dataDir,
-        loadDataDir: new Blob([await readFile(templateArchivePath)])
+        loadDataDir: await openAsBlob(templateArchivePath)
       })
     )
     try {
@@ -268,10 +291,11 @@ export class ProjectDatabase {
   static async open(dataDir: string, archivePath?: string): Promise<ProjectDatabase> {
     const client = archivePath
       ? await PGlite.create({
+          ...pgliteByteaOptions,
           dataDir,
-          loadDataDir: new Blob([await readFile(archivePath)])
+          loadDataDir: await openAsBlob(archivePath)
         })
-      : new PGlite(dataDir)
+      : new PGlite(dataDir, pgliteByteaOptions)
     const instance = new ProjectDatabase(client)
     try {
       await assertStudioArchive(client)
@@ -284,7 +308,7 @@ export class ProjectDatabase {
   }
 
   async migrate(): Promise<void> {
-    await migrateProjectDatabase(this.db)
+    await this.mutateSnapshotPayloads(() => migrateProjectDatabase(this.db))
   }
 
   async getConfiguration(): Promise<ProjectConfiguration> {
@@ -341,36 +365,14 @@ export class ProjectDatabase {
   }
 
   listAssets(): Promise<ProjectAssetSummary[]> {
-    return Promise.all([
-      this.db
-        .select({
-          id: assets.id,
-          name: assets.name,
-          contentHash: assets.contentHash,
-          sampleRate: assets.sampleRate,
-          channels: assets.channels,
-          bitDepth: assets.bitDepth,
-          frameCount: assets.frameCount
-        })
-        .from(assets)
-        .orderBy(asc(assets.createdAt), asc(assets.id)),
-      this.db
-        .select({
-          id: midiSources.id,
-          name: midiSources.name,
-          contentHash: midiSources.contentHash,
-          rawBytes: midiSources.rawBytes
-        })
-        .from(midiSources)
-        .orderBy(asc(midiSources.name), asc(midiSources.id))
-    ]).then(([audioRows, midiRows]) => [
-      ...audioRows.map((asset) => ({ ...asset, kind: "audio" as const })),
-      ...midiRows.map(({ rawBytes, ...asset }) => ({
-        ...asset,
-        kind: "midi" as const,
-        byteLength: rawBytes.byteLength
-      }))
-    ])
+    return listAssetMetadata(this.db)
+  }
+
+  findAssetByContentHash(
+    kind: ProjectAssetSummary["kind"],
+    contentHash: string
+  ): Promise<ProjectAssetSummary | null> {
+    return findAssetByContentHash(this.db, kind, contentHash)
   }
 
   readMidiSource(sourceId: string): Promise<MidiSourceInput | null> {
@@ -383,15 +385,28 @@ export class ProjectDatabase {
   }
 
   async mixerSnapshot(): Promise<ProjectGraphSnapshot> {
-    return readProjectGraphSnapshot(this.db)
+    return this.withSnapshotPayloads(async () => {
+      const payloads = this.snapshotPayloads.fork()
+      const graph = await readProjectGraphSnapshot(this.db, payloads)
+      this.snapshotPayloads = payloads
+      return graph
+    })
   }
 
-  applyCommand(command: ProjectCommand, fallbackOutputId: string): Promise<ProjectGraphSnapshot> {
-    return this.db.transaction(async (tx) => {
-      await assertProjectCommandAllowed(tx, command)
-      await applyProjectCommand(tx, command, fallbackOutputId)
-      // Read before commit so snapshot/decoding failures roll back the mutation.
-      return readProjectGraphSnapshot(tx)
+  async applyCommand(
+    command: ProjectCommand,
+    fallbackOutputId: string
+  ): Promise<ProjectGraphSnapshot> {
+    return this.withSnapshotPayloads(async () => {
+      const tentative = this.snapshotPayloads.fork(command)
+      const graph = await this.db.transaction(async (tx) => {
+        await assertProjectCommandAllowed(tx, command)
+        await applyProjectCommand(tx, command, fallbackOutputId)
+        // Read before commit so snapshot/decoding failures roll back the mutation.
+        return readProjectGraphSnapshot(tx, tentative)
+      })
+      this.snapshotPayloads = tentative
+      return graph
     })
   }
 
@@ -400,55 +415,63 @@ export class ProjectDatabase {
     command: ProjectCommand,
     fallbackOutputId: string
   ): Promise<void> {
-    return importMidiSource(this.db, source, command, fallbackOutputId)
+    return this.mutateSnapshotPayloads(() =>
+      importMidiSource(this.db, source, command, fallbackOutputId)
+    )
   }
 
   rollbackMidi(sourceId: string, command: ProjectCommand, fallbackOutputId: string): Promise<void> {
-    return rollbackMidiSource(this.db, sourceId, command, fallbackOutputId)
+    return this.mutateSnapshotPayloads(() =>
+      rollbackMidiSource(this.db, sourceId, command, fallbackOutputId)
+    )
   }
 
   savePluginStates(states: PluginStateInput[]): Promise<void> {
     if (states.length === 0) return Promise.resolve()
-    return this.db.transaction(async (tx) => {
-      for (const state of states) {
-        await tx.delete(pluginStateChunks).where(eq(pluginStateChunks.pluginId, state.id))
-        if (state.state.chunks.length > 0) {
-          await tx.insert(pluginStateChunks).values(
-            state.state.chunks.map((chunk) => ({
-              pluginId: state.id,
-              chunkKey: chunk.key,
-              bytes: chunk.bytes
-            }))
-          )
+    return this.mutateSnapshotPayloads(() =>
+      this.db.transaction(async (tx) => {
+        for (const state of states) {
+          await tx.delete(pluginStateChunks).where(eq(pluginStateChunks.pluginId, state.id))
+          if (state.state.chunks.length > 0) {
+            await tx.insert(pluginStateChunks).values(
+              state.state.chunks.map((chunk) => ({
+                pluginId: state.id,
+                chunkKey: chunk.key,
+                bytes: chunk.bytes
+              }))
+            )
+          }
         }
-      }
-    })
+      })
+    )
   }
 
   saveControlState(states: PluginStateInput[], mixer: MixerControlOverlayInput[]): Promise<void> {
     if (states.length === 0 && mixer.length === 0) return Promise.resolve()
-    return this.db.transaction(async (tx) => {
-      for (const control of mixer) {
-        const patch: Partial<typeof mixerChannels.$inferInsert> = {}
-        if (control.gainDb !== undefined) patch.gainDb = control.gainDb
-        if (control.pan !== undefined) patch.pan = control.pan
-        if (control.muted !== undefined) patch.muted = control.muted
-        if (control.soloed !== undefined) patch.soloed = control.soloed
-        await tx.update(mixerChannels).set(patch).where(eq(mixerChannels.id, control.id))
-      }
-      for (const state of states) {
-        await tx.delete(pluginStateChunks).where(eq(pluginStateChunks.pluginId, state.id))
-        if (state.state.chunks.length > 0) {
-          await tx.insert(pluginStateChunks).values(
-            state.state.chunks.map((chunk) => ({
-              pluginId: state.id,
-              chunkKey: chunk.key,
-              bytes: chunk.bytes
-            }))
-          )
+    return this.mutateSnapshotPayloads(() =>
+      this.db.transaction(async (tx) => {
+        for (const control of mixer) {
+          const patch: Partial<typeof mixerChannels.$inferInsert> = {}
+          if (control.gainDb !== undefined) patch.gainDb = control.gainDb
+          if (control.pan !== undefined) patch.pan = control.pan
+          if (control.muted !== undefined) patch.muted = control.muted
+          if (control.soloed !== undefined) patch.soloed = control.soloed
+          await tx.update(mixerChannels).set(patch).where(eq(mixerChannels.id, control.id))
         }
-      }
-    })
+        for (const state of states) {
+          await tx.delete(pluginStateChunks).where(eq(pluginStateChunks.pluginId, state.id))
+          if (state.state.chunks.length > 0) {
+            await tx.insert(pluginStateChunks).values(
+              state.state.chunks.map((chunk) => ({
+                pluginId: state.id,
+                chunkKey: chunk.key,
+                bytes: chunk.bytes
+              }))
+            )
+          }
+        }
+      })
+    )
   }
 
   assetContentHashes(ids: string[]): Promise<AssetContentHash[]> {
@@ -494,11 +517,11 @@ export class ProjectDatabase {
   }
 
   dumpTo(outputPath: string): Promise<void> {
-    return dumpProjectArchive(this.db, this.client, outputPath)
+    return this.withSnapshotPayloads(() => dumpProjectArchive(this.db, this.client, outputPath))
   }
 
   close(): Promise<void> {
-    return this.client.close()
+    return this.withSnapshotPayloads(() => this.client.close())
   }
 
   static async discardWorkingCopy(dataDir: string): Promise<void> {

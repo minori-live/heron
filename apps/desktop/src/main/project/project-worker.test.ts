@@ -26,6 +26,7 @@ const database = vi.hoisted(() => ({
   getConfiguration: vi.fn(async () => ({ name: "Project" })),
   updateConfiguration: vi.fn(async (value) => value),
   listAssets: vi.fn(async () => []),
+  findAssetByContentHash: vi.fn(async () => ({ id: "matched-asset", kind: "audio" })),
   mixerSnapshot: vi.fn(async () => structuredClone(graph)),
   applyCommand: vi.fn(async () => structuredClone(graph)),
   importMidi: vi.fn(async () => undefined),
@@ -185,6 +186,7 @@ describe("project worker", () => {
       { id: 3, type: "get-configuration" },
       { id: 4, type: "update-configuration", configuration: { name: "Renamed" } },
       { id: 5, type: "list-assets" },
+      { id: 50, type: "find-asset-by-content-hash", kind: "audio", contentHash: "audio-hash" },
       { id: 6, type: "mixer-snapshot" },
       { id: 7, type: "import-midi", source: {}, command: {}, fallbackOutputId: "master" },
       { id: 8, type: "rollback-midi", sourceId: "source", command: {}, fallbackOutputId: "master" },
@@ -212,6 +214,7 @@ describe("project worker", () => {
         ok: true
       })
     }
+    expect(database.findAssetByContentHash).toHaveBeenCalledWith("audio", "audio-hash")
 
     const prepared = await send({
       id: 18,

@@ -31,6 +31,7 @@
     "drizzle-orm": "0.45.2"
   },
   "devDependencies": {
+    "@types/emscripten": "1.41.6",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "drizzle-kit": "0.31.10",

@@ -33,10 +33,17 @@ export async function dumpProjectArchive(
 export async function dumpDataDirectory(client: PGlite, outputPath: string): Promise<void> {
   const dump = await client.dumpDataDir("none")
   const handle = await open(outputPath, "w")
+  const reader = dump.stream().getReader()
   try {
-    await handle.writeFile(Buffer.from(await dump.arrayBuffer()))
+    // PGlite owns the archive Blob. Avoid another archive-sized ArrayBuffer.
+    while (true) {
+      const chunk = await reader.read()
+      if (chunk.done) break
+      await handle.writeFile(chunk.value)
+    }
     await handle.sync()
   } finally {
+    reader.releaseLock()
     await handle.close()
   }
   try {

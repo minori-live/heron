@@ -83,12 +83,14 @@ function encodePeaks(values: number[]): Uint8Array {
   return bytes
 }
 
-async function createDatabase(name = "Test project"): Promise<TestDatabase> {
+// Each case still gets an independent PostgreSQL instance and real transactions.
+// Only reopen/archive tests need PGlite's physical data-directory lifecycle.
+async function createDatabase(storage: "memory" | "disk" = "memory"): Promise<TestDatabase> {
   const directory = await mkdtemp(join(tmpdir(), "heron-project-db-"))
   const database = await ProjectDatabase.create(
-    join(directory, "pgdata"),
+    storage === "disk" ? join(directory, "pgdata") : "memory://",
     {
-      name,
+      name: "Test project",
       sampleRate: 48_000,
       numerator: 4,
       denominator: 4,
@@ -448,7 +450,7 @@ describe("ProjectDatabase", () => {
   })
 
   it.skip("does not support the pre-baseline track migration level", async () => {
-    const resource = await createDatabase()
+    const resource = await createDatabase("disk")
     const instrument: MixerChannelState = {
       id: "instrument-migrated",
       kind: "instrument",
@@ -652,7 +654,7 @@ describe("ProjectDatabase", () => {
   })
 
   it.skip("does not backfill pre-baseline input monitoring state", async () => {
-    const resource = await createDatabase()
+    const resource = await createDatabase("disk")
     await resource.database.close()
     databases.splice(databases.indexOf(resource), 1)
 
@@ -755,7 +757,7 @@ describe("ProjectDatabase", () => {
   })
 
   it.skip("does not migrate legacy bus channels into aux routing", async () => {
-    const resource = await createDatabase()
+    const resource = await createDatabase("disk")
     await resource.database.applyCommand(
       {
         type: "create-channel",
@@ -1143,7 +1145,7 @@ describe("ProjectDatabase", () => {
   })
 
   it("restores non-destructive audio and MIDI clip edits after reopening", async () => {
-    const resource = await createDatabase()
+    const resource = await createDatabase("disk")
     const audioPath = join(resource.directory, "editable-audio.wav")
     await writeFile(audioPath, new Uint8Array())
     await resource.database.importLargeObject(audioPath, {
@@ -1472,7 +1474,7 @@ describe("ProjectDatabase", () => {
   })
 
   it.skip("does not seed metronome state into pre-baseline projects", async () => {
-    const resource = await createDatabase()
+    const resource = await createDatabase("disk")
     await resource.database.close()
     databases.splice(databases.indexOf(resource), 1)
 
@@ -1529,7 +1531,7 @@ describe("ProjectDatabase", () => {
   })
 
   it.skip("does not convert pre-baseline pitch-class key events", async () => {
-    const resource = await createDatabase()
+    const resource = await createDatabase("disk")
     await resource.database.close()
     databases.splice(databases.indexOf(resource), 1)
 
@@ -1576,7 +1578,7 @@ describe("ProjectDatabase", () => {
   })
 
   it("persists assets, waveform caches, and large objects through an archive", async () => {
-    const { database, directory } = await createDatabase()
+    const { database, directory } = await createDatabase("disk")
     const audioPath = join(directory, "audio.bwf")
     const archivePath = join(directory, "project.dump")
     const audio = new Uint8Array([1, 3, 5, 7, 9, 11])
@@ -1719,7 +1721,7 @@ describe("ProjectDatabase", () => {
   }, 15_000)
 
   it("reclaims orphaned large objects before writing the archive", async () => {
-    const resource = await createDatabase()
+    const resource = await createDatabase("disk")
     await resource.database.close()
     databases.splice(databases.indexOf(resource), 1)
 

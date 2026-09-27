@@ -1,4 +1,4 @@
-import { access, mkdtemp, readFile, rm } from "node:fs/promises"
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -63,7 +63,7 @@ describe("AssetMaterializer", () => {
       assetContentHashes: vi.fn(async () => [{ id: "asset/one", contentHash: "hash1" }]),
       readAssetAudio: vi.fn(async () => new Uint8Array([1, 2, 3, 4]))
     }
-    const materializer = new AssetMaterializer(userData, source as never)
+    const materializer = new AssetMaterializer(userData, source)
 
     const paths = await materializer.materialize(graph, source)
 
@@ -80,7 +80,7 @@ describe("AssetMaterializer", () => {
       assetContentHashes: vi.fn(async () => [{ id: "asset/one", contentHash: "hash1" }]),
       readAssetAudio: vi.fn(async () => new Uint8Array([9]))
     }
-    const materializer = new AssetMaterializer(userData, source as never)
+    const materializer = new AssetMaterializer(userData, source)
 
     const first = await materializer.materialize(graph, source)
     const second = await materializer.materialize(graph, source)
@@ -96,10 +96,33 @@ describe("AssetMaterializer", () => {
       assetContentHashes: vi.fn(async () => []),
       readAssetAudio: vi.fn(async () => new Uint8Array([7]))
     }
-    const materializer = new AssetMaterializer(userData, source as never)
+    const materializer = new AssetMaterializer(userData, source)
 
     const paths = await materializer.materialize(graph, source)
 
     expect(paths.get("asset/one")).toMatch(/asset_one-unknown\.bwf$/)
+  })
+
+  it("reuses imported bytes only while the persisted content hash matches", async () => {
+    userData = await mkdtemp(join(tmpdir(), "asset-materializer-"))
+    const stagedPath = join(userData, "converted.bwf")
+    await writeFile(stagedPath, new Uint8Array([1, 2, 3]))
+    const source = {
+      assetContentHashes: vi.fn(async () => [{ id: "asset/one", contentHash: "hash1" }]),
+      readAssetAudio: vi.fn(async () => new Uint8Array([9, 8, 7]))
+    }
+    const materializer = new AssetMaterializer(userData, source)
+
+    await materializer.adoptImportedAsset({ id: "asset/one", contentHash: "hash1" }, stagedPath)
+    const importedPath = await materializer.materializeAsset("asset/one")
+    await expect(readFile(importedPath)).resolves.toEqual(Buffer.from([1, 2, 3]))
+    await expect(access(stagedPath)).rejects.toMatchObject({ code: "ENOENT" })
+    expect(source.readAssetAudio).not.toHaveBeenCalled()
+
+    source.assetContentHashes.mockResolvedValue([{ id: "asset/one", contentHash: "hash2" }])
+    const updatedPath = await materializer.materializeAsset("asset/one")
+    expect(updatedPath).not.toBe(importedPath)
+    await expect(readFile(updatedPath)).resolves.toEqual(Buffer.from([9, 8, 7]))
+    expect(source.readAssetAudio).toHaveBeenCalledExactlyOnceWith("asset/one")
   })
 })

@@ -2,7 +2,6 @@ import { access, mkdir, rename, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import type { ProjectGraphSnapshot } from "@heron/contracts"
 import type { AssetContentHash } from "@heron/project-db/protocol"
-import type { ProjectService } from "./project-service"
 
 export interface ProjectAssetReader {
   assetContentHashes(ids: string[]): Promise<AssetContentHash[]>
@@ -14,9 +13,20 @@ export class AssetMaterializer {
 
   constructor(
     userData: string,
-    private readonly projects: ProjectService
+    private readonly projects: ProjectAssetReader
   ) {
     this.cacheDirectory = join(userData, "mixer-cache")
+  }
+
+  /** Publish the already-persisted import without reading its large object back. */
+  async adoptImportedAsset(asset: AssetContentHash, stagedPath: string): Promise<void> {
+    await mkdir(this.cacheDirectory, { recursive: true })
+    await rename(stagedPath, this.assetPath(asset.id, asset.contentHash))
+  }
+
+  private assetPath(id: string, contentHash: string): string {
+    const safeId = id.replace(/[^a-zA-Z0-9_-]/g, "_")
+    return join(this.cacheDirectory, `${safeId}-${contentHash}.bwf`)
   }
 
   async materialize(
@@ -48,8 +58,7 @@ export class AssetMaterializer {
     const result = new Map<string, string>()
     for (const id of ids) {
       const contentHash = contentHashes.get(id) ?? "unknown"
-      const safeId = id.replace(/[^a-zA-Z0-9_-]/g, "_")
-      const path = join(this.cacheDirectory, `${safeId}-${contentHash}.bwf`)
+      const path = this.assetPath(id, contentHash)
       try {
         await access(path)
       } catch {

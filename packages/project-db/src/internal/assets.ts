@@ -20,11 +20,15 @@ import type {
 import { WAVEFORM_CACHE_VERSION, assets, assetWaveformLevels, mixerChannels } from "../schema"
 import * as schema from "../schema"
 import { readWaveformWindow } from "../waveform"
+import type { PgliteBinaryFiles } from "./binary-files"
 
 type ProjectDb = PgliteDatabase<typeof schema>
 
 export class ProjectAssetRepository {
-  constructor(private readonly db: ProjectDb) {}
+  constructor(
+    private readonly db: ProjectDb,
+    private readonly binaryFiles: PgliteBinaryFiles
+  ) {}
 
   async assetContentHashes(ids: string[]): Promise<AssetContentHash[]> {
     if (ids.length === 0) return []
@@ -118,7 +122,7 @@ export class ProjectAssetRepository {
       for await (const value of createReadStream(filePath, { highWaterMark: 1024 * 1024 })) {
         if (isCancelled?.()) throw new Error("Operation cancelled")
         const chunk = value as Buffer
-        await writeLargeObject(tx, descriptor, chunk)
+        await writeLargeObject(tx, descriptor, chunk, this.binaryFiles)
         completed += chunk.byteLength
         onProgress?.(completed, file.size)
       }
@@ -166,7 +170,7 @@ export class ProjectAssetRepository {
       .limit(1)
     const row = rows[0]
     if (!row) throw new Error(`Audio asset '${assetId}' was not found`)
-    return readLargeObjectData(this.db, row.oid)
+    return readLargeObjectData(this.db, row.oid, this.binaryFiles)
   }
 
   async storeWaveform(assetId: string, waveform: WaveformAssetInput): Promise<void> {

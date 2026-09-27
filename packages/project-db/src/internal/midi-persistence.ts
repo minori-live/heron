@@ -2,6 +2,8 @@ import { and, eq, inArray } from "drizzle-orm"
 import type { MidiClipRangePatch, MidiNotePatch, ProjectCommand } from "@heron/contracts"
 import { midiClips, midiEvents, midiNotes, midiSources } from "../schema"
 import type { ProjectTransaction } from "./database-types"
+import { MIDI_QUERY_PARAMETER_BUDGET, midiBatches } from "./midi-batches"
+import { rebaseMidiClipContent } from "./midi-rebase"
 
 type MidiCommand = Extract<
   ProjectCommand,
@@ -40,6 +42,65 @@ function notePatch(patch: MidiNotePatch): Partial<typeof midiNotes.$inferInsert>
   return result
 }
 
+async function insertNotes(
+  tx: ProjectTransaction,
+  clipId: string,
+  notes: Extract<ProjectCommand, { type: "create-midi-notes" }>["notes"]
+): Promise<void> {
+  for (const batch of midiBatches(notes, 8)) {
+    await tx.insert(midiNotes).values(
+      batch.map((note) => ({
+        id: note.id,
+        clipId,
+        startTick: note.startTick,
+        durationTicks: note.durationTicks,
+        channel: note.channel,
+        key: note.key,
+        velocity: note.velocity,
+        releaseVelocity: note.releaseVelocity
+      }))
+    )
+  }
+}
+
+async function updateNotes(
+  tx: ProjectTransaction,
+  clipId: string,
+  updates: Extract<ProjectCommand, { type: "update-midi-notes" }>["updates"]
+): Promise<void> {
+  let pendingPatch: ReturnType<typeof notePatch> | null = null
+  let pendingIds: string[] = []
+  const flush = async (): Promise<void> => {
+    if (!pendingPatch) return
+    await tx
+      .update(midiNotes)
+      .set(pendingPatch)
+      .where(and(eq(midiNotes.clipId, clipId), inArray(midiNotes.id, pendingIds)))
+    pendingPatch = null
+    pendingIds = []
+  }
+
+  for (const update of updates) {
+    const patch = notePatch(update.patch)
+    const keys = Object.keys(patch) as Array<keyof typeof patch>
+    if (keys.length === 0) continue
+    const previousPatch = pendingPatch
+    if (
+      previousPatch &&
+      (keys.length !== Object.keys(previousPatch).length ||
+        keys.some((key) => !Object.is(patch[key], previousPatch[key])) ||
+        pendingIds.length >= MIDI_QUERY_PARAMETER_BUDGET - keys.length - 1)
+    ) {
+      await flush()
+    }
+    // Only adjacent equal patches are merged. Reordering or collapsing different
+    // patches can change repeated-note-ID semantics, including constraint failures.
+    pendingPatch = patch
+    pendingIds.push(update.noteId)
+  }
+  await flush()
+}
+
 async function insertClip(
   tx: ProjectTransaction,
   clip: Extract<ProjectCommand, { type: "create-midi-clip" }>["clip"]
@@ -54,23 +115,10 @@ async function insertClip(
     sourceOffsetTicks: clip.sourceOffsetTicks,
     sourceLengthTicks: clip.sourceLengthTicks
   })
-  if (clip.notes.length > 0) {
-    await tx.insert(midiNotes).values(
-      clip.notes.map((note) => ({
-        id: note.id,
-        clipId: clip.id,
-        startTick: note.startTick,
-        durationTicks: note.durationTicks,
-        channel: note.channel,
-        key: note.key,
-        velocity: note.velocity,
-        releaseVelocity: note.releaseVelocity
-      }))
-    )
-  }
-  if (clip.events.length > 0) {
+  await insertNotes(tx, clip.id, clip.notes)
+  for (const batch of midiBatches(clip.events, 6)) {
     await tx.insert(midiEvents).values(
-      clip.events.map((event) => ({
+      batch.map((event) => ({
         id: event.id,
         clipId: clip.id,
         tick: event.tick,
@@ -128,62 +176,19 @@ export async function persistMidiCommand(
       return
     }
     case "create-midi-notes":
-      if (command.notes.length > 0) {
-        await tx.insert(midiNotes).values(
-          command.notes.map((note) => ({
-            id: note.id,
-            clipId: command.clipId,
-            startTick: note.startTick,
-            durationTicks: note.durationTicks,
-            channel: note.channel,
-            key: note.key,
-            velocity: note.velocity,
-            releaseVelocity: note.releaseVelocity
-          }))
-        )
-      }
+      await insertNotes(tx, command.clipId, command.notes)
       return
     case "delete-midi-notes":
-      if (command.noteIds.length > 0) {
+      for (const ids of midiBatches(command.noteIds, 1, 1)) {
         await tx
           .delete(midiNotes)
-          .where(and(eq(midiNotes.clipId, command.clipId), inArray(midiNotes.id, command.noteIds)))
+          .where(and(eq(midiNotes.clipId, command.clipId), inArray(midiNotes.id, ids)))
       }
       return
     case "update-midi-notes":
-      for (const update of command.updates) {
-        const patch = notePatch(update.patch)
-        if (Object.keys(patch).length > 0) {
-          await tx
-            .update(midiNotes)
-            .set(patch)
-            .where(and(eq(midiNotes.clipId, command.clipId), eq(midiNotes.id, update.noteId)))
-        }
-      }
+      await updateNotes(tx, command.clipId, command.updates)
       return
-    case "rebase-midi-clip-content": {
-      const [notes, events] = await Promise.all([
-        tx
-          .select({ id: midiNotes.id, startTick: midiNotes.startTick })
-          .from(midiNotes)
-          .where(eq(midiNotes.clipId, command.clipId)),
-        tx
-          .select({ id: midiEvents.id, tick: midiEvents.tick })
-          .from(midiEvents)
-          .where(eq(midiEvents.clipId, command.clipId))
-      ])
-      for (const note of notes) {
-        await tx
-          .update(midiNotes)
-          .set({ startTick: note.startTick + command.deltaTicks })
-          .where(eq(midiNotes.id, note.id))
-      }
-      for (const event of events) {
-        await tx
-          .update(midiEvents)
-          .set({ tick: event.tick + command.deltaTicks })
-          .where(eq(midiEvents.id, event.id))
-      }
-    }
+    case "rebase-midi-clip-content":
+      await rebaseMidiClipContent(tx, command.clipId, command.deltaTicks)
   }
 }

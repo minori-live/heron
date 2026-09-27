@@ -120,9 +120,9 @@ describe("Live database lineage", () => {
   })
 
   it("commits a revisioned Mixer baseline atomically and rolls back invalid edits", async () => {
-    const { root, template } = await fixture()
+    // Transaction semantics use a fresh real engine without unrelated disk setup.
     const database = await LiveDatabase.create(
-      join(root, "working"),
+      "memory://",
       { name: "Stage", sampleRate: 48_000, audio: null, enabledMidiDeviceIds: [] },
       template
     )
@@ -341,14 +341,13 @@ describe("Live rig persistence", () => {
   }, 30000)
 
   it("rejects invalid rig configuration before replacing the persisted choice", async () => {
-    const { root, template } = await fixture()
     const configuration = {
       name: "Stage",
       sampleRate: 48000,
       audio: null,
       enabledMidiDeviceIds: []
     }
-    const database = await LiveDatabase.create(join(root, "rig"), configuration, template)
+    const database = await LiveDatabase.create("memory://", configuration, template)
     try {
       for (const invalid of [
         { ...configuration, name: " " },

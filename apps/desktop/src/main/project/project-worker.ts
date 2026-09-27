@@ -75,6 +75,8 @@ async function handle(request: WorkerRequest): Promise<WorkerResult> {
       return requireDatabase().updateConfiguration(request.configuration)
     case "list-assets":
       return requireDatabase().listAssets()
+    case "find-asset-by-content-hash":
+      return requireDatabase().findAssetByContentHash(request.kind, request.contentHash)
     case "mixer-snapshot":
       return requireDatabase().mixerSnapshot()
     case "prepare-project-command": {
