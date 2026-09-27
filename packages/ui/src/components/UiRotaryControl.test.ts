@@ -138,6 +138,43 @@ describe("UiRotaryControl", () => {
     expect(wrapper.emitted("commit")).toBeUndefined()
   })
 
+  it("keeps a settled commit from changing an active pointer gesture", async () => {
+    const wrapper = mount(UiRotaryControl, {
+      props: {
+        value: 0,
+        min: -64,
+        max: 63,
+        step: 1,
+        defaultValue: 0,
+        dragRangePixels: 254,
+        label: "Pan",
+        awaitCommit: true
+      }
+    })
+    const input = wrapper.get('input[type="range"]')
+    ;(input.element as HTMLInputElement).setPointerCapture = vi.fn()
+    ;(input.element as HTMLInputElement).releasePointerCapture = vi.fn()
+
+    input.element.dispatchEvent(pointer("pointerdown", { clientY: 100 }))
+    input.element.dispatchEvent(pointer("pointermove", { clientY: 80 }))
+    input.element.dispatchEvent(pointer("pointerup", { clientY: 80 }))
+    await nextTick()
+    expect(input.attributes("aria-valuetext")).toBe("10")
+
+    const settle = wrapper.emitted("commit")?.[0]?.[1] as () => void
+    input.element.dispatchEvent(pointer("pointerdown", { clientY: 100 }))
+    settle() // The parent rejected the earlier edit and kept value at zero.
+    await nextTick()
+    await nextTick()
+    expect(input.attributes("aria-valuetext")).toBe("10")
+
+    input.element.dispatchEvent(pointer("pointerup", { clientY: 100 }))
+    await nextTick()
+    expect(wrapper.emitted("commit")).toHaveLength(1)
+    expect(input.attributes("aria-valuetext")).toBe("0")
+    wrapper.unmount()
+  })
+
   it("scales fractional parameters by their full range instead of their step count", () => {
     const wrapper = mount(UiRotaryControl, {
       props: {

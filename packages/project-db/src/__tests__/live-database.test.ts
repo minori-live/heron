@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { PGlite } from "@electric-sql/pglite"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { LiveArchiveFormatError, LiveDatabase } from "../live-node"
 import { buildLiveTemplateArchive } from "../live-template"
 import { ProjectDatabase, StudioArchiveFormatError } from "../node"
@@ -12,6 +12,14 @@ import { buildProjectTemplateArchive } from "../template"
 const migrations = fileURLToPath(new URL("../../drizzle-live", import.meta.url))
 const studioMigrations = fileURLToPath(new URL("../../drizzle", import.meta.url))
 const temporaryDirectories: string[] = []
+let templateDirectory: string
+let template: string
+
+beforeAll(async () => {
+  templateDirectory = await mkdtemp(join(tmpdir(), "heron-live-template-test-"))
+  template = join(templateDirectory, "live-template.pglite.gz")
+  await buildLiveTemplateArchive(template, migrations)
+}, 60_000)
 
 afterEach(async () => {
   await Promise.all(
@@ -19,11 +27,13 @@ afterEach(async () => {
   )
 })
 
+afterAll(async () => {
+  await rm(templateDirectory, { recursive: true, force: true })
+})
+
 async function fixture(): Promise<{ root: string; template: string }> {
   const root = await mkdtemp(join(tmpdir(), "heron-live-db-"))
   temporaryDirectories.push(root)
-  const template = join(root, "live-template.pglite.gz")
-  await buildLiveTemplateArchive(template, migrations)
   return { root, template }
 }
 

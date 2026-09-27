@@ -58,6 +58,7 @@ let pointerStartY = 0
 let gestureStartValue: number | null = null
 let keyboardCancelled = false
 let commitVersion = 0
+let deferredSettleVersion: number | null = null
 
 const precision = computed(() => {
   const decimal = String(props.step).split(".")[1]
@@ -95,7 +96,19 @@ watch(
 
 function cancelPendingCommit(): void {
   commitVersion += 1
+  deferredSettleVersion = null
   commitPending.value = false
+}
+
+function settleCommit(version: number): void {
+  if (version !== commitVersion) return
+  if (dragging.value) {
+    deferredSettleVersion = version
+    return
+  }
+  deferredSettleVersion = null
+  commitPending.value = false
+  dragValue.value = props.value
 }
 
 function commitValue(value: number): void {
@@ -104,16 +117,13 @@ function commitValue(value: number): void {
     return
   }
   const version = ++commitVersion
+  deferredSettleVersion = null
   dragValue.value = value
   commitPending.value = true
   emit("commit", value, () => {
     if (version !== commitVersion) return
     // Reveal the authoritative prop after the parent's settled update has rendered.
-    void nextTick(() => {
-      if (version !== commitVersion) return
-      commitPending.value = false
-      dragValue.value = props.value
-    })
+    void nextTick(() => settleCommit(version))
   })
 }
 
@@ -165,6 +175,7 @@ function endPointerGesture(event: PointerEvent): void {
   dragging.value = false
   tooltipVisible.value = false
   gestureStartValue = null
+  if (deferredSettleVersion !== null) settleCommit(deferredSettleVersion)
 }
 
 function cancelPointerGesture(event: PointerEvent): void {
@@ -178,6 +189,7 @@ function cancelPointerGesture(event: PointerEvent): void {
     emit("preview", gestureStartValue)
   }
   gestureStartValue = null
+  if (deferredSettleVersion !== null) settleCommit(deferredSettleVersion)
 }
 
 function previewKeyboardGesture(event: Event): void {
