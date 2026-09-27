@@ -28,7 +28,7 @@ test("ordinary builds expose disabled updates through the real preload boundary"
         predicate: (candidate) => !candidate.url().includes("splash.html")
       }))
     await page.waitForLoadState("domcontentloaded")
-    await expect(page.getByRole("button", { name: "Start creating", exact: true })).toBeVisible()
+    await expect(page.getByRole("button", { name: "New Studio", exact: true })).toBeVisible()
     await page.evaluate(() => {
       window.location.hash = "/settings/system"
     })

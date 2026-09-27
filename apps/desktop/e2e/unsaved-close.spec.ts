@@ -35,7 +35,7 @@ test("prompts before closing a project with a committed mutation", async () => {
     await page.waitForLoadState("domcontentloaded")
     await expect(page.getByRole("heading", { name: /Make sound/ })).toBeVisible()
 
-    await page.getByRole("button", { name: "Start creating" }).click()
+    await page.getByRole("button", { name: "New Studio", exact: true }).click()
     await expect(page.locator(".studio-shell")).toBeVisible({ timeout: 40_000 })
     await dismissAutomaticTutorial(page)
     await page.getByRole("button", { name: "Add audio track" }).click()

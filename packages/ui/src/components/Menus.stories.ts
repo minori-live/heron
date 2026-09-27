@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/vue3-vite"
 import { shallowRef } from "vue"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 import type { UiMenuEntry } from "../menu"
 import UiButton from "./UiButton.vue"
 import UiCascadingMenu from "./UiCascadingMenu.vue"
@@ -177,7 +177,7 @@ export const FilteredSearchableTaxonomy: Story = {
     await userEvent.click(within(canvasElement).getByRole("button", { name: "Add audio effect" }))
     const page = within(document.body)
     await userEvent.type(await page.findByRole("textbox", { name: "Search effects" }), "pro")
-    await expect(await page.findByRole("menuitem", { name: /Pro-C 2/ })).toBeVisible()
+    await waitFor(() => expect(page.getByRole("menuitem", { name: /Pro-C 2/ })).toBeVisible())
   }
 }
 

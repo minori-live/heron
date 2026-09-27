@@ -170,7 +170,7 @@ test("records into a Large Object and reopens the PGlite project archive", async
     }
 
     await expect(page.getByRole("heading", { name: /Make sound/ })).toBeVisible()
-    await page.getByRole("button", { name: "Start creating" }).click()
+    await page.getByRole("button", { name: "New Studio", exact: true }).click()
     await expect(page.locator(".studio-shell")).toBeVisible()
     await dismissAutomaticTutorial(page)
     await expectStudioTopbarToFit()
