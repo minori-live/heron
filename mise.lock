@@ -3,44 +3,44 @@
 lockfile_version = 1
 
 [[tools.apm]]
-version = "0.30.0"
+version = "0.32.0"
 backend = "github:microsoft/apm"
 specifiers = ["latest"]
 
 [tools.apm."platforms.linux-arm64"]
-checksum = "sha256:5d40fce0bb4beb6f59d35949b6ce5dcb6eb1e8493f4a55fc5d91d764077f82df"
-url = "https://github.com/microsoft/apm/releases/download/v0.30.0/apm-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/548560606"
+checksum = "sha256:d994ed49dba2c32ee33bddcc1fd956b6f32b576b51aaa3948dda94630a585cb8"
+url = "https://github.com/microsoft/apm/releases/download/v0.32.0/apm-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/588884265"
 
 [tools.apm."platforms.linux-arm64-musl"]
-checksum = "sha256:5d40fce0bb4beb6f59d35949b6ce5dcb6eb1e8493f4a55fc5d91d764077f82df"
-url = "https://github.com/microsoft/apm/releases/download/v0.30.0/apm-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/548560606"
+checksum = "sha256:d994ed49dba2c32ee33bddcc1fd956b6f32b576b51aaa3948dda94630a585cb8"
+url = "https://github.com/microsoft/apm/releases/download/v0.32.0/apm-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/588884265"
 
 [tools.apm."platforms.linux-x64"]
-checksum = "sha256:8b84bebf19c350faf36d21aebb350dc656d04c0b7a1c2bf8ea35c0caa0e44bb9"
-url = "https://github.com/microsoft/apm/releases/download/v0.30.0/apm-linux-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/548560609"
+checksum = "sha256:85b9c57d252168c7efaee75cdfe552c17bf84bead8d14ba7bfb02844c5693aee"
+url = "https://github.com/microsoft/apm/releases/download/v0.32.0/apm-linux-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/588884266"
 
 [tools.apm."platforms.linux-x64-musl"]
-checksum = "sha256:8b84bebf19c350faf36d21aebb350dc656d04c0b7a1c2bf8ea35c0caa0e44bb9"
-url = "https://github.com/microsoft/apm/releases/download/v0.30.0/apm-linux-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/548560609"
+checksum = "sha256:85b9c57d252168c7efaee75cdfe552c17bf84bead8d14ba7bfb02844c5693aee"
+url = "https://github.com/microsoft/apm/releases/download/v0.32.0/apm-linux-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/588884266"
 
 [tools.apm."platforms.macos-arm64"]
-checksum = "sha256:1cbd8fefbb5f74fd0e05f196bb81cff3cec2876f8f8e1a2e45d4b78fa127a37c"
-url = "https://github.com/microsoft/apm/releases/download/v0.30.0/apm-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/548560612"
+checksum = "sha256:22e30ef3d9ee495d798f467bd30627dcb2f17a64a60ecfcaa15ca6ceaa238c56"
+url = "https://github.com/microsoft/apm/releases/download/v0.32.0/apm-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/588884270"
 
 [tools.apm."platforms.macos-x64"]
-checksum = "sha256:648ea29ef54d234c10495dc139d70a535e107b1e1e848c815197ca2b7b6f8515"
-url = "https://github.com/microsoft/apm/releases/download/v0.30.0/apm-darwin-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/548560607"
+checksum = "sha256:f2832a271db6ed23ca65e516acf9afb778875f4b818538cd0202cbf155dc2ea2"
+url = "https://github.com/microsoft/apm/releases/download/v0.32.0/apm-darwin-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/588884260"
 
 [tools.apm."platforms.windows-x64"]
-checksum = "sha256:54ca29eb9db47779ec4b421d47570567d5b48ce1e52ab9809e84a9db86be8828"
-url = "https://github.com/microsoft/apm/releases/download/v0.30.0/apm-windows-x86_64.zip"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/548560611"
+checksum = "sha256:8b4be7c8bac40d1847dbf34bc702ed4006a4654a7abed8bcaa276fb2c40a3dea"
+url = "https://github.com/microsoft/apm/releases/download/v0.32.0/apm-windows-x86_64.zip"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/588884263"
 
 [[tools."cargo:cargo-llvm-cov"]]
 version = "0.8.7"
