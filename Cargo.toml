@@ -59,7 +59,7 @@ objc2-core-audio-types = { version = "0.3.2", default-features = false }
 objc2-core-foundation = { version = "0.3.2", default-features = false }
 objc2-foundation = { version = "0.3.2", default-features = false }
 ringbuf = "0.5"
-rubato = "4.0.0"
+rubato = "5.0.0"
 sha2 = "0.11"
 symphonia = { version = "0.6.0", default-features = false, features = ["flac", "mp3", "pcm", "wav"] }
 midly = "=0.5.3"
