@@ -39,7 +39,9 @@ windows = { workspace = true, features = [
   "Win32_System_Threading",
   "Win32_System_WinRT"
 ] }
-windows-core = "0.100.0"
+# `windows::core::implement` expands to this crate's types, so its version must
+# remain compatible with the `windows` dependency's own windows-core version.
+windows-core = "0.62.2"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 cpal = { workspace = true, features = ["custom"] }

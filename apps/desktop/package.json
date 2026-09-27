@@ -58,6 +58,7 @@
     "electron-builder": "^26.16.1",
     "happy-dom": "catalog:",
     "pinia": "catalog:",
+    "@typescript/native": "catalog:",
     "typescript": "catalog:",
     "unocss": "catalog:",
     "unplugin-fonts": "catalog:",
