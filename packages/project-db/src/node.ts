@@ -45,6 +45,7 @@ import { dumpProjectArchive } from "./internal/archive"
 import { importMidiSource, rollbackMidiSource } from "./internal/midi"
 import { migrateProjectDatabase } from "./migrations"
 import { inspectStudioArchive } from "./maintenance"
+import { SnapshotPayloadCache } from "./internal/snapshot-payload-cache"
 import { PgliteBinaryFiles } from "./internal/binary-files"
 import { pgliteByteaOptions } from "./internal/bytea-codecs"
 
@@ -78,6 +79,24 @@ async function assertStudioArchive(client: PGlite): Promise<void> {
 export class ProjectDatabase {
   private readonly db: ProjectDb
   private readonly assetRepository: ProjectAssetRepository
+  private snapshotPayloads = new SnapshotPayloadCache()
+  private snapshotOperations: Promise<void> = Promise.resolve()
+
+  private withSnapshotPayloads<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.snapshotOperations.then(operation)
+    this.snapshotOperations = result.then(
+      () => undefined,
+      () => undefined
+    )
+    return result
+  }
+
+  private mutateSnapshotPayloads<T>(operation: () => Promise<T>): Promise<T> {
+    return this.withSnapshotPayloads(async () => {
+      this.snapshotPayloads = new SnapshotPayloadCache()
+      return operation()
+    })
+  }
 
   private constructor(private readonly client: PGlite) {
     this.db = drizzle(client, { schema })
@@ -289,7 +308,7 @@ export class ProjectDatabase {
   }
 
   async migrate(): Promise<void> {
-    await migrateProjectDatabase(this.db)
+    await this.mutateSnapshotPayloads(() => migrateProjectDatabase(this.db))
   }
 
   async getConfiguration(): Promise<ProjectConfiguration> {
@@ -366,15 +385,28 @@ export class ProjectDatabase {
   }
 
   async mixerSnapshot(): Promise<ProjectGraphSnapshot> {
-    return readProjectGraphSnapshot(this.db)
+    return this.withSnapshotPayloads(async () => {
+      const payloads = this.snapshotPayloads.fork()
+      const graph = await readProjectGraphSnapshot(this.db, payloads)
+      this.snapshotPayloads = payloads
+      return graph
+    })
   }
 
-  applyCommand(command: ProjectCommand, fallbackOutputId: string): Promise<ProjectGraphSnapshot> {
-    return this.db.transaction(async (tx) => {
-      await assertProjectCommandAllowed(tx, command)
-      await applyProjectCommand(tx, command, fallbackOutputId)
-      // Read before commit so snapshot/decoding failures roll back the mutation.
-      return readProjectGraphSnapshot(tx)
+  async applyCommand(
+    command: ProjectCommand,
+    fallbackOutputId: string
+  ): Promise<ProjectGraphSnapshot> {
+    return this.withSnapshotPayloads(async () => {
+      const tentative = this.snapshotPayloads.fork(command)
+      const graph = await this.db.transaction(async (tx) => {
+        await assertProjectCommandAllowed(tx, command)
+        await applyProjectCommand(tx, command, fallbackOutputId)
+        // Read before commit so snapshot/decoding failures roll back the mutation.
+        return readProjectGraphSnapshot(tx, tentative)
+      })
+      this.snapshotPayloads = tentative
+      return graph
     })
   }
 
@@ -383,55 +415,63 @@ export class ProjectDatabase {
     command: ProjectCommand,
     fallbackOutputId: string
   ): Promise<void> {
-    return importMidiSource(this.db, source, command, fallbackOutputId)
+    return this.mutateSnapshotPayloads(() =>
+      importMidiSource(this.db, source, command, fallbackOutputId)
+    )
   }
 
   rollbackMidi(sourceId: string, command: ProjectCommand, fallbackOutputId: string): Promise<void> {
-    return rollbackMidiSource(this.db, sourceId, command, fallbackOutputId)
+    return this.mutateSnapshotPayloads(() =>
+      rollbackMidiSource(this.db, sourceId, command, fallbackOutputId)
+    )
   }
 
   savePluginStates(states: PluginStateInput[]): Promise<void> {
     if (states.length === 0) return Promise.resolve()
-    return this.db.transaction(async (tx) => {
-      for (const state of states) {
-        await tx.delete(pluginStateChunks).where(eq(pluginStateChunks.pluginId, state.id))
-        if (state.state.chunks.length > 0) {
-          await tx.insert(pluginStateChunks).values(
-            state.state.chunks.map((chunk) => ({
-              pluginId: state.id,
-              chunkKey: chunk.key,
-              bytes: chunk.bytes
-            }))
-          )
+    return this.mutateSnapshotPayloads(() =>
+      this.db.transaction(async (tx) => {
+        for (const state of states) {
+          await tx.delete(pluginStateChunks).where(eq(pluginStateChunks.pluginId, state.id))
+          if (state.state.chunks.length > 0) {
+            await tx.insert(pluginStateChunks).values(
+              state.state.chunks.map((chunk) => ({
+                pluginId: state.id,
+                chunkKey: chunk.key,
+                bytes: chunk.bytes
+              }))
+            )
+          }
         }
-      }
-    })
+      })
+    )
   }
 
   saveControlState(states: PluginStateInput[], mixer: MixerControlOverlayInput[]): Promise<void> {
     if (states.length === 0 && mixer.length === 0) return Promise.resolve()
-    return this.db.transaction(async (tx) => {
-      for (const control of mixer) {
-        const patch: Partial<typeof mixerChannels.$inferInsert> = {}
-        if (control.gainDb !== undefined) patch.gainDb = control.gainDb
-        if (control.pan !== undefined) patch.pan = control.pan
-        if (control.muted !== undefined) patch.muted = control.muted
-        if (control.soloed !== undefined) patch.soloed = control.soloed
-        await tx.update(mixerChannels).set(patch).where(eq(mixerChannels.id, control.id))
-      }
-      for (const state of states) {
-        await tx.delete(pluginStateChunks).where(eq(pluginStateChunks.pluginId, state.id))
-        if (state.state.chunks.length > 0) {
-          await tx.insert(pluginStateChunks).values(
-            state.state.chunks.map((chunk) => ({
-              pluginId: state.id,
-              chunkKey: chunk.key,
-              bytes: chunk.bytes
-            }))
-          )
+    return this.mutateSnapshotPayloads(() =>
+      this.db.transaction(async (tx) => {
+        for (const control of mixer) {
+          const patch: Partial<typeof mixerChannels.$inferInsert> = {}
+          if (control.gainDb !== undefined) patch.gainDb = control.gainDb
+          if (control.pan !== undefined) patch.pan = control.pan
+          if (control.muted !== undefined) patch.muted = control.muted
+          if (control.soloed !== undefined) patch.soloed = control.soloed
+          await tx.update(mixerChannels).set(patch).where(eq(mixerChannels.id, control.id))
         }
-      }
-    })
+        for (const state of states) {
+          await tx.delete(pluginStateChunks).where(eq(pluginStateChunks.pluginId, state.id))
+          if (state.state.chunks.length > 0) {
+            await tx.insert(pluginStateChunks).values(
+              state.state.chunks.map((chunk) => ({
+                pluginId: state.id,
+                chunkKey: chunk.key,
+                bytes: chunk.bytes
+              }))
+            )
+          }
+        }
+      })
+    )
   }
 
   assetContentHashes(ids: string[]): Promise<AssetContentHash[]> {
@@ -477,11 +517,11 @@ export class ProjectDatabase {
   }
 
   dumpTo(outputPath: string): Promise<void> {
-    return dumpProjectArchive(this.db, this.client, outputPath)
+    return this.withSnapshotPayloads(() => dumpProjectArchive(this.db, this.client, outputPath))
   }
 
   close(): Promise<void> {
-    return this.client.close()
+    return this.withSnapshotPayloads(() => this.client.close())
   }
 
   static async discardWorkingCopy(dataDir: string): Promise<void> {

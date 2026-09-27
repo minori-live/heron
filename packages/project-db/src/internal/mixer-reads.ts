@@ -9,11 +9,13 @@ import {
 } from "../mixer-schema"
 import type { PgliteDatabase } from "drizzle-orm/pglite"
 import { bytes, pluginDescriptor } from "./serialization"
+import type { SnapshotPayloadCache } from "./snapshot-payload-cache"
 
 /** Reads Studio's Mixer tables without querying arrangement or musical timeline tables. */
 export async function readMixerGraphSnapshot(
   db: Pick<PgliteDatabase, "select">,
-  sampleRate: number
+  sampleRate: number,
+  payloads?: SnapshotPayloadCache
 ): Promise<MixerGraphSnapshot & { channels: MixerChannelState[] }> {
   const [channelRows, sendRows, pluginRows, pluginSidechainRouteRows, pluginStateChunkRows] =
     await Promise.all([
@@ -35,12 +37,14 @@ export async function readMixerGraphSnapshot(
         .select()
         .from(pluginSidechainRoutes)
         .orderBy(asc(pluginSidechainRoutes.pluginId), asc(pluginSidechainRoutes.inputPortKey)),
-      db
-        .select()
-        .from(pluginStateChunks)
-        .orderBy(asc(pluginStateChunks.pluginId), asc(pluginStateChunks.chunkKey))
+      payloads?.pluginChunks ??
+        db
+          .select()
+          .from(pluginStateChunks)
+          .orderBy(asc(pluginStateChunks.pluginId), asc(pluginStateChunks.chunkKey))
     ])
 
+  if (payloads) payloads.pluginChunks = pluginStateChunkRows
   const kindOrder = new Map([
     ["audio", 0],
     ["instrument", 1],
@@ -62,7 +66,7 @@ export async function readMixerGraphSnapshot(
   const stateChunksByPlugin = new Map<string, Array<{ key: string; bytes: Uint8Array }>>()
   for (const chunk of pluginStateChunkRows) {
     const chunks = stateChunksByPlugin.get(chunk.pluginId) ?? []
-    chunks.push({ key: chunk.chunkKey, bytes: bytes(chunk.bytes) })
+    chunks.push({ key: chunk.chunkKey, bytes: new Uint8Array(bytes(chunk.bytes)) })
     stateChunksByPlugin.set(chunk.pluginId, chunks)
   }
   for (const route of pluginSidechainRouteRows) {

@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm"
+import { asc, eq, inArray } from "drizzle-orm"
 import type { ProjectGraphSnapshot } from "@heron/contracts"
 import {
   audioClips,
@@ -16,9 +16,27 @@ import {
 import { bytes } from "./serialization"
 import { readMixerGraphSnapshot } from "./mixer-reads"
 import type { ProjectDb } from "./database-types"
+import type { SnapshotPayloadCache } from "./snapshot-payload-cache"
+import { MIDI_QUERY_PARAMETER_BUDGET } from "./midi-batches"
+
+async function refreshClipRows<T extends { clipId: string }>(
+  cached: T[] | undefined,
+  dirtyClipIds: ReadonlySet<string> | undefined,
+  select: (clipIds?: string[]) => PromiseLike<T[]>
+): Promise<T[]> {
+  // A very wide batch is cheaper to refresh once than to build an unbounded IN
+  // list, and must never exceed PostgreSQL's bind parameter limit.
+  if (!cached || !dirtyClipIds || dirtyClipIds.size > MIDI_QUERY_PARAMETER_BUDGET) return select()
+  if (dirtyClipIds.size === 0) return cached
+  const refreshed = await select([...dirtyClipIds])
+  // Each clip's rows remain ordered. The graph groups by clip below, so cache
+  // storage does not need a full-project sort after refreshing a few clips.
+  return [...cached.filter((row) => !dirtyClipIds.has(row.clipId)), ...refreshed]
+}
 
 export async function readProjectGraphSnapshot(
-  db: Pick<ProjectDb, "select">
+  db: Pick<ProjectDb, "select">,
+  payloads?: SnapshotPayloadCache
 ): Promise<ProjectGraphSnapshot> {
   const [
     trackRows,
@@ -51,14 +69,20 @@ export async function readProjectGraphSnapshot(
       .innerJoin(assets, eq(assets.id, audioClips.assetId))
       .orderBy(asc(audioClips.startFrame), asc(audioClips.id)),
     db.select().from(midiClips).orderBy(asc(midiClips.startTick), asc(midiClips.id)),
-    db
-      .select()
-      .from(midiNotes)
-      .orderBy(asc(midiNotes.clipId), asc(midiNotes.startTick), asc(midiNotes.id)),
-    db
-      .select()
-      .from(midiEvents)
-      .orderBy(asc(midiEvents.clipId), asc(midiEvents.tick), asc(midiEvents.id)),
+    refreshClipRows(payloads?.notes, payloads?.dirtyNoteClipIds, (clipIds) =>
+      db
+        .select()
+        .from(midiNotes)
+        .where(clipIds ? inArray(midiNotes.clipId, clipIds) : undefined)
+        .orderBy(asc(midiNotes.clipId), asc(midiNotes.startTick), asc(midiNotes.id))
+    ),
+    refreshClipRows(payloads?.events, payloads?.dirtyEventClipIds, (clipIds) =>
+      db
+        .select()
+        .from(midiEvents)
+        .where(clipIds ? inArray(midiEvents.clipId, clipIds) : undefined)
+        .orderBy(asc(midiEvents.clipId), asc(midiEvents.tick), asc(midiEvents.id))
+    ),
     db.select().from(tempoEvents).orderBy(asc(tempoEvents.tick)),
     db.select().from(timeSignatureEvents).orderBy(asc(timeSignatureEvents.tick)),
     db.select().from(keySignatureEvents).orderBy(asc(keySignatureEvents.tick)),
@@ -75,7 +99,13 @@ export async function readProjectGraphSnapshot(
 
   const projectRow = projectRows[0]
   if (!projectRow) throw new Error("Project configuration is missing")
-  const mixer = await readMixerGraphSnapshot(db, projectRow.sampleRate)
+  const mixer = await readMixerGraphSnapshot(db, projectRow.sampleRate, payloads)
+  if (payloads) {
+    payloads.notes = midiNoteRows
+    payloads.events = midiEventRows
+    payloads.dirtyNoteClipIds.clear()
+    payloads.dirtyEventClipIds.clear()
+  }
 
   const notesByClip = new Map<string, ProjectGraphSnapshot["midiClips"][number]["notes"]>()
   for (const note of midiNoteRows) {
@@ -99,7 +129,7 @@ export async function readProjectGraphSnapshot(
       tick: event.tick,
       channel: event.channel,
       kind: event.kind,
-      data: bytes(event.data)
+      data: new Uint8Array(bytes(event.data))
     })
     eventsByClip.set(event.clipId, events)
   }
