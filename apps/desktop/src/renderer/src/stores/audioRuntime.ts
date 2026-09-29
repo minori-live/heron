@@ -18,12 +18,8 @@ import type {
   RoundTripLatencyMeasurementRequest,
   TransportRef
 } from "@heron/contracts"
-import { i18n, intlLocale } from "../i18n"
+import { i18n, intlLocale, t } from "../i18n"
 import { mutationMeta, readMeta, rpcErrorMessage } from "../rpc"
-
-function t(key: string, params?: Record<string, string | number>): string {
-  return i18n.global.t(key, params ?? {})
-}
 
 const POLLING_INTERVAL_MS = 500
 const TELEMETRY_HISTORY_LIMIT = 240

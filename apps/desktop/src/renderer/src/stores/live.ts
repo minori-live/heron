@@ -6,13 +6,9 @@ import type {
   LiveWorkspaceSnapshot
 } from "@heron/contracts"
 import { useGlobalDialog } from "../composables/useGlobalDialog"
-import { i18n } from "../i18n"
+import { t } from "../i18n"
 import { mutationMeta, readMeta, rpcErrorMessage } from "../rpc"
 import { useProjectStore } from "./project"
-
-function t(key: string, params?: Record<string, string | number>): string {
-  return i18n.global.t(key, params ?? {})
-}
 
 export const useLiveStore = defineStore("live", () => {
   const projects = useProjectStore()

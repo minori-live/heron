@@ -5,11 +5,7 @@ import type { StorageSpaceSnapshot, SystemPerformanceSnapshot } from "@heron/con
 import { readMeta, rpcErrorMessage } from "../rpc"
 import { useProjectStore } from "./project"
 
-import { i18n } from "../i18n"
-
-function t(key: string, params?: Record<string, string | number>): string {
-  return i18n.global.t(key, params ?? {})
-}
+import { t } from "../i18n"
 
 const POLLING_INTERVAL_MS = 1_000
 const GIBIBYTE = 1024 ** 3

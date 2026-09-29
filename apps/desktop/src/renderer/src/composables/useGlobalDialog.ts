@@ -1,9 +1,5 @@
 import { readonly, shallowRef } from "vue"
-import { i18n } from "../i18n"
-
-function t(key: string): string {
-  return i18n.global.t(key)
-}
+import { t } from "../i18n"
 
 export type GlobalDialogTone = "default" | "warning" | "danger"
 export type GlobalDialogActionKind = "primary" | "secondary" | "danger" | "cancel"

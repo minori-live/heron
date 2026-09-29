@@ -18,13 +18,9 @@ import type {
   TutorialPreferences,
   ThemePreference
 } from "@heron/contracts"
-import { i18n } from "../i18n"
+import { t } from "../i18n"
 
 import { mutationMeta, readMeta, rpcErrorMessage } from "../rpc"
-function t(key: string): string {
-  return i18n.global.t(key)
-}
-
 export const useApplicationSettingsStore = defineStore("application-settings", () => {
   const settings = shallowRef<ApplicationSettings | null>(null)
   const loading = shallowRef(false)

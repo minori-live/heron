@@ -19,3 +19,12 @@ export const i18n = createI18n({
 export function setAppLocale(locale: AppLocale): void {
   i18n.global.locale.value = locale
 }
+
+/**
+ * Translate one message key from outside a component's setup scope. Stores,
+ * composables and the dialog host share this so the global scope and the
+ * parameter default are named once.
+ */
+export function t(key: string, params?: Record<string, string | number>): string {
+  return i18n.global.t(key, params ?? {})
+}
