@@ -1,7 +1,7 @@
 // Owned by the protocol crate; this module keeps the engine-facing path stable.
 pub use heron_dsp_runtime::protocol::{
-    ApplicationCaptureLogicalTarget, AudioEngineConfig, AudioRuntime, RoundTripLatencyMeasurement,
-    RoundTripLatencyMeasurementRequest,
+    ApplicationCaptureLogicalTarget, AudioEngineConfig, AudioRuntime, MixerChannelMeter,
+    MixerParameterPreview, RoundTripLatencyMeasurement, RoundTripLatencyMeasurementRequest,
 };
 
 use super::{
@@ -11,7 +11,7 @@ use super::{
 };
 
 #[derive(Clone)]
-pub struct NativeMixerChannel {
+pub struct ResolvedMixerChannel {
     pub id: String,
     pub name: String,
     pub color: String,
@@ -34,7 +34,7 @@ pub struct NativeMixerChannel {
 }
 
 #[derive(Clone)]
-pub struct NativePluginAuxInputBus {
+pub struct ResolvedPluginAuxInputBus {
     pub input_port_key: String,
     pub input_port_token: u32,
     pub name: String,
@@ -43,7 +43,7 @@ pub struct NativePluginAuxInputBus {
 }
 
 #[derive(Clone)]
-pub struct NativeMixerSend {
+pub struct ResolvedMixerSend {
     pub id: String,
     pub source_index: u32,
     pub target_output_index: Option<u32>,
@@ -54,7 +54,7 @@ pub struct NativeMixerSend {
 }
 
 #[derive(Clone)]
-pub struct NativeMixerClip {
+pub struct ResolvedMixerClip {
     pub id: String,
     pub channel_index: u32,
     pub start_frame: i64,
@@ -66,7 +66,7 @@ pub struct NativeMixerClip {
 }
 
 #[derive(Clone)]
-pub struct NativePluginInstance {
+pub struct ResolvedPluginInstance {
     pub instance_id: String,
     pub instance_generation: u32,
     pub channel_index: u32,
@@ -74,14 +74,14 @@ pub struct NativePluginInstance {
     pub slot_order: u32,
     pub audio_mode: PluginAudioMode,
     pub enabled: bool,
-    pub aux_input_buses: Vec<NativePluginAuxInputBus>,
+    pub aux_input_buses: Vec<ResolvedPluginAuxInputBus>,
     pub latency_samples: u32,
     pub tail_samples: Option<u32>,
     pub processor: Option<AudioPluginProcessorHandle>,
 }
 
 #[derive(Clone)]
-pub struct NativeMidiNote {
+pub struct DecodedMidiNote {
     pub start_tick: u64,
     pub duration_ticks: u64,
     pub channel: u8,
@@ -91,7 +91,7 @@ pub struct NativeMidiNote {
 }
 
 #[derive(Clone)]
-pub enum NativeMidiEventKind {
+pub enum DecodedMidiEventKind {
     ControlChange { controller: u8, value: u8 },
     PitchBend { value: u16 },
     ProgramChange { program: u8 },
@@ -101,40 +101,40 @@ pub enum NativeMidiEventKind {
 }
 
 #[derive(Clone)]
-pub struct NativeMidiEvent {
+pub struct DecodedMidiEvent {
     pub tick: u64,
     pub channel: u8,
-    pub kind: NativeMidiEventKind,
+    pub kind: DecodedMidiEventKind,
 }
 
 #[derive(Clone)]
-pub struct NativeMidiClip {
+pub struct DecodedMidiClip {
     pub id: String,
     pub channel_index: u32,
     pub start_tick: u64,
     pub source_offset_ticks: u64,
     pub length_ticks: u64,
-    pub notes: Vec<NativeMidiNote>,
-    pub events: Vec<NativeMidiEvent>,
+    pub notes: Vec<DecodedMidiNote>,
+    pub events: Vec<DecodedMidiEvent>,
 }
 
 #[derive(Clone)]
-pub struct NativeMixerGraph {
+pub struct ResolvedMixerGraph {
     pub generation: u64,
     pub sample_rate: u32,
     pub project_end_tick: u64,
-    pub latency_policy: NativeLatencyPolicy,
-    pub channels: Vec<NativeMixerChannel>,
-    pub sends: Vec<NativeMixerSend>,
-    pub clips: Vec<NativeMixerClip>,
-    pub plugins: Vec<NativePluginInstance>,
-    pub midi_clips: Vec<NativeMidiClip>,
+    pub latency_policy: ResolvedLatencyPolicy,
+    pub channels: Vec<ResolvedMixerChannel>,
+    pub sends: Vec<ResolvedMixerSend>,
+    pub clips: Vec<ResolvedMixerClip>,
+    pub plugins: Vec<ResolvedPluginInstance>,
+    pub midi_clips: Vec<DecodedMidiClip>,
     pub tempo_events: Vec<TempoEvent>,
     pub time_signature_events: Vec<TimeSignatureEvent>,
 }
 
 #[derive(Clone, Default)]
-pub enum NativeLatencyPolicy {
+pub enum ResolvedLatencyPolicy {
     #[default]
     Normal,
     LowLatency {
@@ -143,8 +143,8 @@ pub enum NativeLatencyPolicy {
     },
 }
 
-pub(super) fn plan_native_low_latency(native: &NativeMixerGraph) -> LowLatencyPlan {
-    let NativeLatencyPolicy::LowLatency {
+pub(super) fn plan_native_low_latency(native: &ResolvedMixerGraph) -> LowLatencyPlan {
+    let ResolvedLatencyPolicy::LowLatency {
         target_output_index,
         plugin_budget_samples,
     } = &native.latency_policy
@@ -188,29 +188,11 @@ pub(super) fn plan_native_low_latency(native: &NativeMixerGraph) -> LowLatencyPl
     )
 }
 
-pub struct NativeMixerParameterPreview {
-    pub target: String,
-    pub id: String,
-    pub parameter: String,
-    pub value: f64,
+pub struct MixerSnapshot {
+    pub meters: Vec<MixerChannelMeter>,
 }
 
-pub struct NativeMixerChannelMeter {
-    pub channel_id: String,
-    pub pre_left: f64,
-    pub pre_right: f64,
-    pub post_left: f64,
-    pub post_right: f64,
-    pub held_left: f64,
-    pub held_right: f64,
-    pub clipped: bool,
-}
-
-pub struct NativeMixerSnapshot {
-    pub meters: Vec<NativeMixerChannelMeter>,
-}
-
-pub struct NativeTransportSnapshot {
+pub struct TransportSnapshot {
     pub state: String,
     pub position_frames: i64,
     pub position_ticks: i64,

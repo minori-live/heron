@@ -13,19 +13,19 @@ use super::resampling::{AdaptiveResampler, SessionOutputConverter, stage_command
 use super::{
     AtomicBool, AtomicU32, AtomicU64, AudioDeviceFaultKind, AudioDeviceRecoveryPhase, AudioEngine,
     AudioEngineConfig, AudioEngineKey, AudioStreamDirection, AuditionPlayback, BufferSize,
-    ClipSamples, ClipStoragePolicy, EngineCommand, GRAPH_TEST_LOCK, InputPeakBank, LOOPBACK_PROBE,
-    LivePlugin, LoadedClip, MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS, MAX_PLUGIN_BLOCK_FRAMES,
+    ClipSamples, ClipStoragePolicy, DecodedMidiClip, DecodedMidiEvent, DecodedMidiEventKind,
+    DecodedMidiNote, EngineCommand, GRAPH_TEST_LOCK, InputPeakBank, LOOPBACK_PROBE, LivePlugin,
+    LoadedClip, MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS, MAX_PLUGIN_BLOCK_FRAMES,
     MEMORY_DECODE_LIMIT_BYTES, METRONOME_ACCENT_NOTE, METRONOME_BEAT_NOTE, MeterAtomics, MeterBank,
-    MetronomeScheduler, NativeLatencyPolicy, NativeMidiClip, NativeMidiEvent, NativeMidiEventKind,
-    NativeMidiNote, NativeMixerChannel, NativeMixerGraph, NativeMixerParameterPreview,
-    NativeMixerRuntime, NativeMixerSend, NativePluginAuxInputBus, NativePluginInstance,
-    OUTPUT_RESAMPLER_FRAMES, Ordering, PublishOutcome, RealtimeParameter, RealtimeParameterCommand,
-    RoundTripInputDetector, RoundTripLatencyMeasurementRequest, RoundTripLatencyState,
-    RoundTripOutputProbe, ScheduledMidiEvent, ScheduledMidiEventKind, SignalWidth, StereoDelayLine,
-    SupportedBufferSize, TRANSPORT_COUNTING_IN, TRANSPORT_PLAYING, TRANSPORT_RECORDING,
-    TRANSPORT_STOPPED, TRANSPORT_WAITING, TransportAction, TransportShared, build_mixer_runtime,
-    clip_storage_policy, compile_graph_build, compiled_graph_snapshot, frames_to_nanos,
-    parse_channel_kind, resolve_stream_devices, spawn_streaming_clip,
+    MetronomeScheduler, MixerParameterPreview, MixerRuntime, OUTPUT_RESAMPLER_FRAMES, Ordering,
+    PublishOutcome, RealtimeParameter, RealtimeParameterCommand, ResolvedLatencyPolicy,
+    ResolvedMixerChannel, ResolvedMixerGraph, ResolvedMixerSend, ResolvedPluginAuxInputBus,
+    ResolvedPluginInstance, RoundTripInputDetector, RoundTripLatencyMeasurementRequest,
+    RoundTripLatencyState, RoundTripOutputProbe, ScheduledMidiEvent, ScheduledMidiEventKind,
+    SignalWidth, StereoDelayLine, SupportedBufferSize, TRANSPORT_COUNTING_IN, TRANSPORT_PLAYING,
+    TRANSPORT_RECORDING, TRANSPORT_STOPPED, TRANSPORT_WAITING, TransportAction, TransportShared,
+    build_mixer_runtime, clip_storage_policy, compile_graph_build, compiled_graph_snapshot,
+    frames_to_nanos, parse_channel_kind, resolve_stream_devices, spawn_streaming_clip,
 };
 use crate::midi_input::GLOBAL_MIDI_TEST_LOCK;
 use crate::recording::{RecordingStartConfig, StereoFrame, write_deterministic_test_recording};
@@ -122,7 +122,7 @@ fn transport_test_runtime(
     content_end_frame: u64,
     position_frames: u64,
     state: u32,
-) -> Box<NativeMixerRuntime> {
+) -> Box<MixerRuntime> {
     let channels = vec![
         ChannelSpec {
             id: "audio-0".to_owned(),
@@ -164,7 +164,7 @@ fn transport_test_runtime(
         RenderRuntime::from_mixer_graph(sample_rate, graph, TempoMap::default_120_bpm());
     graph.prepare_block_processing(MAX_PLUGIN_BLOCK_FRAMES);
     let length_frames = content_end_frame.max(1) as usize;
-    Box::new(NativeMixerRuntime {
+    Box::new(MixerRuntime {
         generation: 1,
         build_generation: 1,
         peak_scratch: vec![
@@ -262,8 +262,8 @@ fn mixer_channel(
     input_source: Option<&str>,
     input_channels: Vec<u32>,
     hardware_output_channels: Vec<u32>,
-) -> NativeMixerChannel {
-    NativeMixerChannel {
+) -> ResolvedMixerChannel {
+    ResolvedMixerChannel {
         id: id.to_owned(),
         name: id.to_owned(),
         color: "#000000".to_owned(),
@@ -286,12 +286,12 @@ fn mixer_channel(
     }
 }
 
-fn simple_native_graph() -> NativeMixerGraph {
-    NativeMixerGraph {
+fn simple_native_graph() -> ResolvedMixerGraph {
+    ResolvedMixerGraph {
         generation: 3,
         sample_rate: 48_000,
         project_end_tick: 61_440,
-        latency_policy: NativeLatencyPolicy::Normal,
+        latency_policy: ResolvedLatencyPolicy::Normal,
         channels: vec![
             mixer_channel(
                 "audio-0",
@@ -321,10 +321,7 @@ fn simple_native_graph() -> NativeMixerGraph {
     }
 }
 
-fn assert_build_err(
-    result: std::result::Result<NativeMixerRuntime, crate::HostError>,
-    needle: &str,
-) {
+fn assert_build_err(result: std::result::Result<MixerRuntime, crate::HostError>, needle: &str) {
     match result {
         Ok(_) => panic!("expected build_mixer_runtime to fail containing {needle:?}"),
         Err(error) => assert!(

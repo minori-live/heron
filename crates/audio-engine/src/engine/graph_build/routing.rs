@@ -1,5 +1,5 @@
 use super::{
-    ChannelSpec, LiveMidiRoute, LiveMixerSendTap, NativeMixerChannel, NativeMixerSend, Result,
+    ChannelSpec, LiveMidiRoute, LiveMixerSendTap, ResolvedMixerChannel, ResolvedMixerSend, Result,
     RouteTarget, SendSpec, SendTap, SignalWidth, invalid_config, parse_channel_kind,
 };
 
@@ -11,8 +11,8 @@ pub(super) struct RoutingBuild {
 }
 
 pub(super) fn build_routing(
-    native_channels: &[NativeMixerChannel],
-    native_sends: &[NativeMixerSend],
+    native_channels: &[ResolvedMixerChannel],
+    native_sends: &[ResolvedMixerSend],
 ) -> Result<RoutingBuild> {
     let channel_input_widths = native_channels
         .iter()

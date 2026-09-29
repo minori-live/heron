@@ -5,8 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use heron_audio_engine::{
-    NativeBounceChannelMode, NativeBounceDither, NativeBounceFormat, NativeBounceNormalization,
-    NativeBounceProgress, NativeBounceRequest, NativeMixerGraph, render_bounce_output,
+    BounceFormat, BounceProgress, BounceRequest, ResolvedMixerGraph, render_bounce_output,
 };
 use heron_dsp_runtime::protocol::{
     BounceChannelMode, BounceDither, BounceEncoding, BounceJobPhase, BounceJobState,
@@ -23,43 +22,40 @@ pub(in crate::runtime) struct BounceJobRegistry {
     jobs: Mutex<HashMap<String, BounceJob>>,
 }
 
-fn dither(value: BounceDither) -> NativeBounceDither {
-    match value {
-        BounceDither::Off => NativeBounceDither::Off,
-        BounceDither::Tpdf => NativeBounceDither::Tpdf,
-    }
+fn dither(value: BounceDither) -> BounceDither {
+    value
 }
 
-fn encoding(value: BounceEncoding) -> NativeBounceFormat {
+fn encoding(value: BounceEncoding) -> BounceFormat {
     match value {
         BounceEncoding::WavPcm {
             bits,
             dither: value,
-        } => NativeBounceFormat::WavPcm {
+        } => BounceFormat::WavPcm {
             bits,
             dither: dither(value),
         },
-        BounceEncoding::WavFloat => NativeBounceFormat::WavFloat,
+        BounceEncoding::WavFloat => BounceFormat::WavFloat,
         BounceEncoding::Flac {
             bits,
             compression,
             dither: value,
-        } => NativeBounceFormat::Flac {
+        } => BounceFormat::Flac {
             bits,
             compression,
             dither: dither(value),
         },
-        BounceEncoding::Mp3Cbr { kbps } => NativeBounceFormat::Mp3Cbr { kbps },
-        BounceEncoding::Mp3Vbr { quality } => NativeBounceFormat::Mp3Vbr { quality },
+        BounceEncoding::Mp3Cbr { kbps } => BounceFormat::Mp3Cbr { kbps },
+        BounceEncoding::Mp3Vbr { quality } => BounceFormat::Mp3Vbr { quality },
     }
 }
 
-fn normalization(value: BounceNormalization) -> NativeBounceNormalization {
+fn normalization(value: BounceNormalization) -> BounceNormalization {
     match value {
-        BounceNormalization::Off => NativeBounceNormalization::Off,
-        BounceNormalization::OverloadProtection => NativeBounceNormalization::OverloadProtection,
+        BounceNormalization::Off => BounceNormalization::Off,
+        BounceNormalization::OverloadProtection => BounceNormalization::OverloadProtection,
         BounceNormalization::TruePeak { target_dbtp } => {
-            NativeBounceNormalization::TruePeak { target_dbtp }
+            BounceNormalization::TruePeak { target_dbtp }
         }
     }
 }
@@ -68,7 +64,7 @@ impl BounceJobRegistry {
     pub(super) fn start(
         &self,
         request: BounceOutputRenderRequest,
-        graph: NativeMixerGraph,
+        graph: ResolvedMixerGraph,
     ) -> Result<BounceJobStatus, String> {
         let operation_id = request.operation_id.clone();
         let mut jobs = self
@@ -127,15 +123,15 @@ impl BounceJobRegistry {
         let spawn_result = thread::Builder::new()
             .name(format!("heron-bounce-{operation_id}"))
             .spawn(move || {
-                let native = NativeBounceRequest {
+                let native = BounceRequest {
                     graph,
                     output_channel_id: request.output_channel_id,
                     start_frame: request.start_frame,
                     end_frame: request.end_frame,
                     target_sample_rate: request.target_sample_rate,
                     channel_mode: match request.channel_mode {
-                        BounceChannelMode::Stereo => NativeBounceChannelMode::Stereo,
-                        BounceChannelMode::Mono => NativeBounceChannelMode::Mono,
+                        BounceChannelMode::Stereo => BounceChannelMode::Stereo,
+                        BounceChannelMode::Mono => BounceChannelMode::Mono,
                     },
                     include_tail: request.include_tail,
                     format: encoding(request.encoding),
@@ -146,12 +142,12 @@ impl BounceJobRegistry {
                 let result = render_bounce_output(native, &cancel, |progress| {
                     if let Ok(mut status) = shared_status.lock() {
                         match progress {
-                            NativeBounceProgress::Preparing => {
+                            BounceProgress::Preparing => {
                                 status.phase = BounceJobPhase::Preparing;
                                 status.completed_units = 0;
                                 status.total_units = 0;
                             }
-                            NativeBounceProgress::Rendering {
+                            BounceProgress::Rendering {
                                 completed_frames,
                                 total_frames,
                             } => {
@@ -159,12 +155,12 @@ impl BounceJobRegistry {
                                 status.completed_units = completed_frames;
                                 status.total_units = total_frames;
                             }
-                            NativeBounceProgress::Analyzing => {
+                            BounceProgress::Analyzing => {
                                 status.phase = BounceJobPhase::Analyzing;
                                 status.completed_units = 0;
                                 status.total_units = 0;
                             }
-                            NativeBounceProgress::Encoding {
+                            BounceProgress::Encoding {
                                 completed_frames,
                                 total_frames,
                             } => {
@@ -244,13 +240,13 @@ impl BounceJobRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use heron_audio_engine::{NativeLatencyPolicy, NativeMixerChannel};
+    use heron_audio_engine::{ResolvedLatencyPolicy, ResolvedMixerChannel};
     use heron_dsp_runtime::protocol::{LiveLatencyPolicy, LiveMixerGraph};
     use heron_dsp_runtime::tempo::{TempoEvent, TimeSignatureEvent};
     use std::time::Duration;
 
-    fn channel(id: &str, kind: &str, hardware_output_channels: Vec<u32>) -> NativeMixerChannel {
-        NativeMixerChannel {
+    fn channel(id: &str, kind: &str, hardware_output_channels: Vec<u32>) -> ResolvedMixerChannel {
+        ResolvedMixerChannel {
             id: id.to_owned(),
             name: id.to_owned(),
             color: "#000000".to_owned(),
@@ -273,12 +269,12 @@ mod tests {
         }
     }
 
-    fn native_graph() -> NativeMixerGraph {
-        NativeMixerGraph {
+    fn native_graph() -> ResolvedMixerGraph {
+        ResolvedMixerGraph {
             generation: 1,
             sample_rate: 48_000,
             project_end_tick: 3_840,
-            latency_policy: NativeLatencyPolicy::Normal,
+            latency_policy: ResolvedLatencyPolicy::Normal,
             channels: vec![
                 channel("master", "master", Vec::new()),
                 channel("output", "output", vec![1, 2]),
@@ -355,53 +351,50 @@ mod tests {
 
     #[test]
     fn protocol_settings_map_to_every_native_encoding_mode() {
-        assert_eq!(dither(BounceDither::Off), NativeBounceDither::Off);
-        assert_eq!(dither(BounceDither::Tpdf), NativeBounceDither::Tpdf);
+        assert_eq!(dither(BounceDither::Off), BounceDither::Off);
+        assert_eq!(dither(BounceDither::Tpdf), BounceDither::Tpdf);
         assert_eq!(
             encoding(BounceEncoding::WavPcm {
                 bits: 24,
                 dither: BounceDither::Tpdf,
             }),
-            NativeBounceFormat::WavPcm {
+            BounceFormat::WavPcm {
                 bits: 24,
-                dither: NativeBounceDither::Tpdf,
+                dither: BounceDither::Tpdf,
             }
         );
-        assert_eq!(
-            encoding(BounceEncoding::WavFloat),
-            NativeBounceFormat::WavFloat
-        );
+        assert_eq!(encoding(BounceEncoding::WavFloat), BounceFormat::WavFloat);
         assert_eq!(
             encoding(BounceEncoding::Flac {
                 bits: 16,
                 compression: 8,
                 dither: BounceDither::Off,
             }),
-            NativeBounceFormat::Flac {
+            BounceFormat::Flac {
                 bits: 16,
                 compression: 8,
-                dither: NativeBounceDither::Off,
+                dither: BounceDither::Off,
             }
         );
         assert_eq!(
             encoding(BounceEncoding::Mp3Cbr { kbps: 192 }),
-            NativeBounceFormat::Mp3Cbr { kbps: 192 }
+            BounceFormat::Mp3Cbr { kbps: 192 }
         );
         assert_eq!(
             encoding(BounceEncoding::Mp3Vbr { quality: 2 }),
-            NativeBounceFormat::Mp3Vbr { quality: 2 }
+            BounceFormat::Mp3Vbr { quality: 2 }
         );
         assert_eq!(
             normalization(BounceNormalization::Off),
-            NativeBounceNormalization::Off
+            BounceNormalization::Off
         );
         assert_eq!(
             normalization(BounceNormalization::OverloadProtection),
-            NativeBounceNormalization::OverloadProtection
+            BounceNormalization::OverloadProtection
         );
         assert_eq!(
             normalization(BounceNormalization::TruePeak { target_dbtp: -1.0 }),
-            NativeBounceNormalization::TruePeak { target_dbtp: -1.0 }
+            BounceNormalization::TruePeak { target_dbtp: -1.0 }
         );
     }
 

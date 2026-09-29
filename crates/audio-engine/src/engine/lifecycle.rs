@@ -3,7 +3,7 @@ use super::{
     Arc, AtomicBool, AtomicU32, AtomicU64, AudioEngine, AudioEngineConfig, AudioEngineKey,
     AudioRuntime, AuditionPlayback, DeviceRecoveryAttempt, DeviceTrait, ENGINE_COMMAND_CAPACITY,
     EngineCommand, HeapRb, InputFrame, InputPeakBank, MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS,
-    MeterBank, NativeMixerRuntime, Ordering, OutputMixerControl, OutputStreamContext, Producer,
+    MeterBank, MixerRuntime, Ordering, OutputMixerControl, OutputStreamContext, Producer,
     RING_BUFFER_BLOCKS, RecorderController, Result, RoundTripLatencyMeasurement,
     RoundTripLatencyMeasurementRequest, RoundTripLatencyState, RunningAudioEngine, RuntimeMetrics,
     SampleFormat, Split, StreamTrait, TRANSPORT_RECORDING, TRANSPORT_STOPPED, TransportShared,
@@ -212,7 +212,7 @@ impl AudioEngine {
         );
         let command_ring = HeapRb::<EngineCommand>::new(ENGINE_COMMAND_CAPACITY);
         let (commands, command_consumer) = command_ring.split();
-        let retirement_ring = HeapRb::<Box<NativeMixerRuntime>>::new(ENGINE_COMMAND_CAPACITY);
+        let retirement_ring = HeapRb::<Box<MixerRuntime>>::new(ENGINE_COMMAND_CAPACITY);
         let (retirement_producer, retired_mixers) = retirement_ring.split();
         let audition_retirement_ring =
             HeapRb::<Box<AuditionPlayback>>::new(ENGINE_COMMAND_CAPACITY);

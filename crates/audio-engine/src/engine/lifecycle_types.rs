@@ -1,7 +1,7 @@
 use super::{
     Arc, AudioEngine, AuditionPlayback, Consumer, EngineCommand, Error, HeapCons, HeapProd,
-    InputPeakBank, MeterBank, NativeMixerRuntime, Ordering, RecorderController, RecordingTap,
-    Result, RoundTripLatencyState, RuntimeMetrics, Status, Stream, TransportShared,
+    InputPeakBank, MeterBank, MixerRuntime, Ordering, RecorderController, RecordingTap, Result,
+    RoundTripLatencyState, RuntimeMetrics, Status, Stream, TransportShared,
 };
 
 pub(super) struct RunningAudioEngine {
@@ -11,7 +11,7 @@ pub(super) struct RunningAudioEngine {
     pub(super) key: AudioEngineKey,
     pub(super) recorder: RecorderController,
     pub(super) commands: HeapProd<EngineCommand>,
-    pub(super) retired_mixers: HeapCons<Box<NativeMixerRuntime>>,
+    pub(super) retired_mixers: HeapCons<Box<MixerRuntime>>,
     pub(super) retired_auditions: HeapCons<Box<AuditionPlayback>>,
     pub(super) meter_bank: Arc<MeterBank>,
     pub(super) transport: Arc<TransportShared>,
@@ -21,8 +21,8 @@ pub(super) struct RunningAudioEngine {
 
 pub(super) struct OutputMixerControl {
     pub(super) commands: HeapCons<EngineCommand>,
-    pub(super) mixer: Option<Box<NativeMixerRuntime>>,
-    pub(super) retired_mixers: HeapProd<Box<NativeMixerRuntime>>,
+    pub(super) mixer: Option<Box<MixerRuntime>>,
+    pub(super) retired_mixers: HeapProd<Box<MixerRuntime>>,
     pub(super) retired_auditions: HeapProd<Box<AuditionPlayback>>,
 }
 
@@ -76,7 +76,7 @@ impl RunningAudioEngine {
 pub(super) fn take_pending_mixer(
     owner: &AudioEngine,
     sample_rate: u32,
-) -> Result<Option<Box<NativeMixerRuntime>>> {
+) -> Result<Option<Box<MixerRuntime>>> {
     let mut pending = owner
         .pending_mixer
         .lock()

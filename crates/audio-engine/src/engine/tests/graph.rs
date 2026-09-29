@@ -140,8 +140,8 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
         id: &str,
         output_index: Option<u32>,
         input_channels: Vec<u32>,
-    ) -> NativeMixerChannel {
-        NativeMixerChannel {
+    ) -> ResolvedMixerChannel {
+        ResolvedMixerChannel {
             id: id.to_owned(),
             name: id.to_owned(),
             color: "#000000".to_owned(),
@@ -163,18 +163,18 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
             midi_input_channel: None,
         }
     }
-    let graph = NativeMixerGraph {
+    let graph = ResolvedMixerGraph {
         generation: 17,
         sample_rate: 48_000,
         project_end_tick: 61_440,
-        latency_policy: NativeLatencyPolicy::Normal,
+        latency_policy: ResolvedLatencyPolicy::Normal,
         channels: vec![
             channel("wet", Some(3), vec![1]),
             channel("send-source", None, vec![2, 3]),
             channel("dry", Some(3), vec![4, 5]),
             channel("output", None, Vec::new()),
         ],
-        sends: vec![NativeMixerSend {
+        sends: vec![ResolvedMixerSend {
             id: "parallel".to_owned(),
             source_index: 1,
             target_output_index: Some(3),
@@ -185,7 +185,7 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
         }],
         clips: Vec::new(),
         plugins: vec![
-            NativePluginInstance {
+            ResolvedPluginInstance {
                 instance_id: "missing".to_owned(),
                 instance_generation: 1,
                 channel_index: 0,
@@ -198,7 +198,7 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
                 tail_samples: Some(0),
                 processor: None,
             },
-            NativePluginInstance {
+            ResolvedPluginInstance {
                 instance_id: "bypassed".to_owned(),
                 instance_generation: 1,
                 channel_index: 1,
@@ -314,7 +314,7 @@ fn build_mixer_runtime_rejects_dual_output_targets() {
 #[test]
 fn build_mixer_runtime_rejects_instrument_plugin_on_audio_track() {
     let mut graph = simple_native_graph();
-    graph.plugins.push(NativePluginInstance {
+    graph.plugins.push(ResolvedPluginInstance {
         instance_id: "synth".into(),
         instance_generation: 1,
         channel_index: 0,
@@ -342,7 +342,7 @@ fn build_mixer_runtime_rejects_instrument_plugin_on_audio_track() {
 fn build_mixer_runtime_compiles_a_simple_graph_with_monitoring_and_pdc() {
     let mut graph = simple_native_graph();
     graph.channels[0].input_monitoring = true;
-    graph.plugins.push(NativePluginInstance {
+    graph.plugins.push(ResolvedPluginInstance {
         instance_id: "fx".into(),
         instance_generation: 1,
         channel_index: 0,
@@ -426,7 +426,7 @@ fn sidechain_pdc_aligns_at_the_target_plugin_slot() {
     );
     graph.channels[0].output_index = Some(3);
     graph.plugins = vec![
-        NativePluginInstance {
+        ResolvedPluginInstance {
             instance_id: "source-latency".into(),
             instance_generation: 1,
             channel_index: 0,
@@ -439,7 +439,7 @@ fn sidechain_pdc_aligns_at_the_target_plugin_slot() {
             tail_samples: Some(0),
             processor: None,
         },
-        NativePluginInstance {
+        ResolvedPluginInstance {
             instance_id: "sidechain-target".into(),
             instance_generation: 1,
             channel_index: 1,
@@ -447,7 +447,7 @@ fn sidechain_pdc_aligns_at_the_target_plugin_slot() {
             slot_order: 0,
             audio_mode: PluginAudioMode::Stereo,
             enabled: true,
-            aux_input_buses: vec![NativePluginAuxInputBus {
+            aux_input_buses: vec![ResolvedPluginAuxInputBus {
                 input_port_key: "test:audio:input:1".into(),
                 input_port_token: 1,
                 name: "Side-chain".into(),
@@ -507,7 +507,7 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
     );
     graph.channels[0].output_index = Some(3);
     graph.plugins = vec![
-        NativePluginInstance {
+        ResolvedPluginInstance {
             instance_id: "target-latency".into(),
             instance_generation: 1,
             channel_index: 1,
@@ -520,7 +520,7 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
             tail_samples: Some(0),
             processor: None,
         },
-        NativePluginInstance {
+        ResolvedPluginInstance {
             instance_id: "sidechain-target".into(),
             instance_generation: 1,
             channel_index: 1,
@@ -528,7 +528,7 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
             slot_order: 1,
             audio_mode: PluginAudioMode::Stereo,
             enabled: true,
-            aux_input_buses: vec![NativePluginAuxInputBus {
+            aux_input_buses: vec![ResolvedPluginAuxInputBus {
                 input_port_key: "test:audio:input:2".into(),
                 input_port_token: 2,
                 name: "Key".into(),
@@ -573,7 +573,7 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
 fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
     for (target, source, channels) in [(3, 0, 2), (0, 3, 2), (0, 0, 2), (1, 0, 3)] {
         let mut graph = simple_native_graph();
-        graph.plugins.push(NativePluginInstance {
+        graph.plugins.push(ResolvedPluginInstance {
             instance_id: "invalid-sidechain".into(),
             instance_generation: 1,
             channel_index: target,
@@ -581,7 +581,7 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
             slot_order: 0,
             audio_mode: PluginAudioMode::Stereo,
             enabled: true,
-            aux_input_buses: vec![NativePluginAuxInputBus {
+            aux_input_buses: vec![ResolvedPluginAuxInputBus {
                 input_port_key: "test:audio:input:1".into(),
                 input_port_token: 1,
                 name: "Invalid".into(),
@@ -606,7 +606,7 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
     }
 
     let mut disconnected = simple_native_graph();
-    disconnected.plugins.push(NativePluginInstance {
+    disconnected.plugins.push(ResolvedPluginInstance {
         instance_id: "disconnected-sidechain".into(),
         instance_generation: 1,
         channel_index: 0,
@@ -614,7 +614,7 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
         slot_order: 0,
         audio_mode: PluginAudioMode::Stereo,
         enabled: true,
-        aux_input_buses: vec![NativePluginAuxInputBus {
+        aux_input_buses: vec![ResolvedPluginAuxInputBus {
             input_port_key: "test:audio:input:1".into(),
             input_port_token: 1,
             name: "Disconnected".into(),
@@ -652,13 +652,13 @@ fn build_mixer_runtime_schedules_midi_notes_and_controller_events() {
     );
     // Remap audio/master/output after inserting the instrument track.
     graph.channels[1].output_index = Some(3);
-    graph.midi_clips.push(NativeMidiClip {
+    graph.midi_clips.push(DecodedMidiClip {
         id: "clip".into(),
         channel_index: 0,
         start_tick: 0,
         source_offset_ticks: 0,
         length_ticks: 1_920,
-        notes: vec![NativeMidiNote {
+        notes: vec![DecodedMidiNote {
             start_tick: 0,
             duration_ticks: 480,
             channel: 0,
@@ -667,41 +667,41 @@ fn build_mixer_runtime_schedules_midi_notes_and_controller_events() {
             release_velocity: 0,
         }],
         events: vec![
-            NativeMidiEvent {
+            DecodedMidiEvent {
                 tick: 240,
                 channel: 0,
-                kind: NativeMidiEventKind::ControlChange {
+                kind: DecodedMidiEventKind::ControlChange {
                     controller: 1,
                     value: 64,
                 },
             },
-            NativeMidiEvent {
+            DecodedMidiEvent {
                 tick: 480,
                 channel: 0,
-                kind: NativeMidiEventKind::PitchBend { value: 8_192 },
+                kind: DecodedMidiEventKind::PitchBend { value: 8_192 },
             },
-            NativeMidiEvent {
+            DecodedMidiEvent {
                 tick: 720,
                 channel: 0,
-                kind: NativeMidiEventKind::ProgramChange { program: 12 },
+                kind: DecodedMidiEventKind::ProgramChange { program: 12 },
             },
-            NativeMidiEvent {
+            DecodedMidiEvent {
                 tick: 960,
                 channel: 0,
-                kind: NativeMidiEventKind::ChannelPressure { pressure: 40 },
+                kind: DecodedMidiEventKind::ChannelPressure { pressure: 40 },
             },
-            NativeMidiEvent {
+            DecodedMidiEvent {
                 tick: 1_200,
                 channel: 0,
-                kind: NativeMidiEventKind::PolyPressure {
+                kind: DecodedMidiEventKind::PolyPressure {
                     key: 61,
                     pressure: 50,
                 },
             },
-            NativeMidiEvent {
+            DecodedMidiEvent {
                 tick: 1_440,
                 channel: 0,
-                kind: NativeMidiEventKind::SysEx {
+                kind: DecodedMidiEventKind::SysEx {
                     data: vec![0xF0, 0x7E, 0xF7],
                 },
             },
@@ -733,11 +733,11 @@ fn build_mixer_runtime_schedules_midi_notes_and_controller_events() {
 
 #[test]
 fn build_mixer_runtime_routes_bus_sends_and_metronome_channels() {
-    let graph = NativeMixerGraph {
+    let graph = ResolvedMixerGraph {
         generation: 5,
         sample_rate: 48_000,
         project_end_tick: 61_440,
-        latency_policy: NativeLatencyPolicy::Normal,
+        latency_policy: ResolvedLatencyPolicy::Normal,
         channels: vec![
             {
                 let mut channel = mixer_channel(
@@ -777,7 +777,7 @@ fn build_mixer_runtime_routes_bus_sends_and_metronome_channels() {
             mixer_channel("master", "master", None, None, None, Vec::new(), Vec::new()),
             mixer_channel("output", "output", None, None, None, Vec::new(), vec![1, 2]),
         ],
-        sends: vec![NativeMixerSend {
+        sends: vec![ResolvedMixerSend {
             id: "to-aux".into(),
             source_index: 0,
             target_output_index: None,
@@ -814,11 +814,11 @@ fn build_mixer_runtime_routes_bus_sends_and_metronome_channels() {
 
 #[test]
 fn compiled_snapshot_covers_instrument_bus_master_and_active_plugin_paths() {
-    let graph = NativeMixerGraph {
+    let graph = ResolvedMixerGraph {
         generation: 11,
         sample_rate: 48_000,
         project_end_tick: 61_440,
-        latency_policy: NativeLatencyPolicy::Normal,
+        latency_policy: ResolvedLatencyPolicy::Normal,
         channels: vec![
             mixer_channel(
                 "instrument-0",
@@ -849,7 +849,7 @@ fn compiled_snapshot_covers_instrument_bus_master_and_active_plugin_paths() {
             ),
             mixer_channel("output", "output", None, None, None, Vec::new(), vec![1, 2]),
         ],
-        sends: vec![NativeMixerSend {
+        sends: vec![ResolvedMixerSend {
             id: "bus-send".into(),
             source_index: 0,
             target_output_index: None,
@@ -859,7 +859,7 @@ fn compiled_snapshot_covers_instrument_bus_master_and_active_plugin_paths() {
             level_db: -3.0,
         }],
         clips: Vec::new(),
-        plugins: vec![NativePluginInstance {
+        plugins: vec![ResolvedPluginInstance {
             instance_id: "active".into(),
             instance_generation: 1,
             channel_index: 0,

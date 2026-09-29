@@ -11,9 +11,9 @@ use ringbuf::{
 use super::resampling::{AdaptiveResampler, SessionOutputConverter};
 use super::{
     ClipSamples, EngineCommand, InputPeakBank, LivePlugin, LoadedClip, MAX_PLUGIN_BLOCK_FRAMES,
-    MeterAtomics, MeterBank, MetronomeScheduler, NativeMixerRuntime, ProcessContext,
-    RealtimeParameter, RealtimeParameterCommand, SignalWidth, StereoDelayLine, StreamingClip,
-    TRANSPORT_PLAYING, TransportShared, decode_clip_audio, spawn_streaming_clip,
+    MeterAtomics, MeterBank, MetronomeScheduler, MixerRuntime, ProcessContext, RealtimeParameter,
+    RealtimeParameterCommand, SignalWidth, StereoDelayLine, StreamingClip, TRANSPORT_PLAYING,
+    TransportShared, decode_clip_audio, spawn_streaming_clip,
 };
 
 pub struct ApplicationCaptureHarness {
@@ -44,7 +44,7 @@ pub struct RenderScenario {
     pub clip_frames: usize,
 }
 
-fn runtime_for(scenario: RenderScenario) -> Box<NativeMixerRuntime> {
+fn runtime_for(scenario: RenderScenario) -> Box<MixerRuntime> {
     assert!(scenario.sample_rate > 0);
     assert!(scenario.tracks > 0);
     assert!(scenario.active_clips <= scenario.total_clips);
@@ -133,7 +133,7 @@ fn runtime_for(scenario: RenderScenario) -> Box<NativeMixerRuntime> {
             }
         })
         .collect();
-    Box::new(NativeMixerRuntime {
+    Box::new(MixerRuntime {
         generation: 1,
         build_generation: 1,
         peak_scratch: vec![
@@ -192,7 +192,7 @@ fn runtime_for(scenario: RenderScenario) -> Box<NativeMixerRuntime> {
 }
 
 pub struct RenderHarness {
-    runtime: Box<NativeMixerRuntime>,
+    runtime: Box<MixerRuntime>,
     inputs: Vec<super::InputFrame>,
     outputs: Vec<super::HardwareOutputFrame>,
 }
@@ -337,7 +337,7 @@ fn missing_effect(audio_mode: PluginAudioMode) -> LivePlugin {
 }
 
 pub struct ParameterQueueHarness {
-    runtime: Box<NativeMixerRuntime>,
+    runtime: Box<MixerRuntime>,
     producer: HeapProd<EngineCommand>,
     consumer: HeapCons<EngineCommand>,
     command: RealtimeParameterCommand,
@@ -391,8 +391,8 @@ impl Default for ParameterQueueHarness {
 }
 
 pub struct GraphSwapHarness {
-    current: Option<Box<NativeMixerRuntime>>,
-    replacement: Option<Box<NativeMixerRuntime>>,
+    current: Option<Box<MixerRuntime>>,
+    replacement: Option<Box<MixerRuntime>>,
 }
 
 impl GraphSwapHarness {

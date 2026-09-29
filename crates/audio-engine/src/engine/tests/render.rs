@@ -282,7 +282,7 @@ fn preview_plugin_enabled_switches_the_live_graph_without_rebuilding() {
         dry_block: vec![[0.0, 0.0]; MAX_PLUGIN_BLOCK_FRAMES],
         aux_inputs: Vec::new(),
     });
-    let command = RealtimeParameterCommand::from_preview(NativeMixerParameterPreview {
+    let command = RealtimeParameterCommand::from_preview(MixerParameterPreview {
         target: "plugin".to_owned(),
         id: "effect".to_owned(),
         parameter: "enabled".to_owned(),

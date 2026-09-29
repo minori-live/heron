@@ -1,9 +1,9 @@
 use super::{
-    BlockMidiEvent, NativeMixerRuntime, Ordering, ScheduledMidiEvent, ScheduledMidiEventKind,
+    BlockMidiEvent, MixerRuntime, Ordering, ScheduledMidiEvent, ScheduledMidiEventKind,
     TRANSPORT_PLAYING, TRANSPORT_RECORDING, TRANSPORT_STOPPED,
 };
 
-impl NativeMixerRuntime {
+impl MixerRuntime {
     pub(super) fn dispatch_midi_event(&mut self, event: ScheduledMidiEvent, sample_offset: usize) {
         let sysex = match event.kind {
             ScheduledMidiEventKind::SysEx { offset, length } => {

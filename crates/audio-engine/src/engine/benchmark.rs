@@ -2,9 +2,9 @@ use std::hint::black_box;
 
 use super::{
     Arc, AtomicBool, AtomicU32, AtomicU64, AudioPluginProcessorHandle, Duration, InputPeakBank,
-    Instant, LiveMixerSendTap, MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS, NativeLatencyPolicy,
-    NativeMixerChannel, NativeMixerGraph, NativeMixerRuntime, NativeMixerSend,
-    NativePluginInstance, PluginAudioMode, TRANSPORT_STOPPED, TempoEvent, TimeSignatureEvent,
+    Instant, LiveMixerSendTap, MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS, MixerRuntime,
+    PluginAudioMode, ResolvedLatencyPolicy, ResolvedMixerChannel, ResolvedMixerGraph,
+    ResolvedMixerSend, ResolvedPluginInstance, TRANSPORT_STOPPED, TempoEvent, TimeSignatureEvent,
     TransportShared, build_mixer_runtime,
 };
 
@@ -70,13 +70,13 @@ fn percentile(sorted: &[f64], fraction: f64) -> f64 {
 fn benchmark_graph(
     spec: AudioBenchmarkSpec,
     processors: &[(String, AudioPluginProcessorHandle)],
-) -> NativeMixerGraph {
+) -> ResolvedMixerGraph {
     let master = spec.tracks + spec.buses;
     let output = master + 1;
     let mut channels = Vec::with_capacity(master + 2);
 
     for index in 0..spec.tracks {
-        channels.push(NativeMixerChannel {
+        channels.push(ResolvedMixerChannel {
             name: format!("Audio {index}"),
             color: String::new(),
             id: format!("benchmark-track-{index}"),
@@ -100,7 +100,7 @@ fn benchmark_graph(
     }
 
     for index in 0..spec.buses {
-        channels.push(NativeMixerChannel {
+        channels.push(ResolvedMixerChannel {
             name: format!("Aux {index}"),
             color: String::new(),
             id: format!("benchmark-aux-{index}"),
@@ -123,7 +123,7 @@ fn benchmark_graph(
         });
     }
 
-    channels.push(NativeMixerChannel {
+    channels.push(ResolvedMixerChannel {
         name: "Master".into(),
         color: String::new(),
         id: "benchmark-master".into(),
@@ -144,7 +144,7 @@ fn benchmark_graph(
         midi_input_port_id: None,
         midi_input_channel: None,
     });
-    channels.push(NativeMixerChannel {
+    channels.push(ResolvedMixerChannel {
         name: "Output".into(),
         color: String::new(),
         id: "benchmark-output".into(),
@@ -167,7 +167,7 @@ fn benchmark_graph(
     });
 
     let sends = (0..spec.sends)
-        .map(|index| NativeMixerSend {
+        .map(|index| ResolvedMixerSend {
             id: format!("benchmark-send-{index}"),
             source_index: (index % spec.tracks) as u32,
             target_output_index: None,
@@ -186,7 +186,7 @@ fn benchmark_graph(
         .iter()
         .take(spec.plugins)
         .enumerate()
-        .map(|(index, (instance_id, processor))| NativePluginInstance {
+        .map(|(index, (instance_id, processor))| ResolvedPluginInstance {
             instance_id: instance_id.clone(),
             instance_generation: 1,
             channel_index: (index % spec.tracks) as u32,
@@ -201,11 +201,11 @@ fn benchmark_graph(
         })
         .collect();
 
-    NativeMixerGraph {
+    ResolvedMixerGraph {
         generation: 1,
         sample_rate: BENCHMARK_SAMPLE_RATE,
         project_end_tick: 61_440,
-        latency_policy: NativeLatencyPolicy::Normal,
+        latency_policy: ResolvedLatencyPolicy::Normal,
         channels,
         sends,
         clips: Vec::new(),
@@ -226,7 +226,7 @@ fn benchmark_graph(
 fn benchmark_runtime(
     spec: AudioBenchmarkSpec,
     processors: &[(String, AudioPluginProcessorHandle)],
-) -> std::result::Result<NativeMixerRuntime, String> {
+) -> std::result::Result<MixerRuntime, String> {
     let transport = Arc::new(TransportShared {
         state: Arc::new(AtomicU32::new(TRANSPORT_STOPPED)),
         position_frames: Arc::new(AtomicU64::new(0)),

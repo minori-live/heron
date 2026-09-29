@@ -1,16 +1,16 @@
 use super::{
     Arc, AtomicBool, AtomicU32, AtomicU64, AudioEngine, AuditionPlayback,
     CompiledAudioGraphSnapshot, EngineCommand, InputPeakBank, MAX_OUTPUT_CHANNELS, MeterAtomics,
-    NativeMixerGraph, NativeMixerParameterPreview, NativeMixerRuntime, NativeMixerSnapshot,
-    NativeTransportSnapshot, Ordering, Producer, RealtimeParameterCommand, Result,
-    RunningAudioEngine, TRANSPORT_RECORDING, TRANSPORT_STOPPED, TransportAction,
-    TransportClockHandle, TransportShared, TryLockError, audio_error, build_mixer_runtime,
-    compiled_graph_snapshot, decode_clip_audio, invalid_config,
+    MixerParameterPreview, MixerRuntime, MixerSnapshot, Ordering, Producer,
+    RealtimeParameterCommand, ResolvedMixerGraph, Result, RunningAudioEngine, TRANSPORT_RECORDING,
+    TRANSPORT_STOPPED, TransportAction, TransportClockHandle, TransportShared, TransportSnapshot,
+    TryLockError, audio_error, build_mixer_runtime, compiled_graph_snapshot, decode_clip_audio,
+    invalid_config,
 };
 
 /// Immutable input for a supervised graph-worker compile.
 pub struct GraphBuildInput {
-    pub(super) graph: NativeMixerGraph,
+    pub(super) graph: ResolvedMixerGraph,
     pub(super) build_generation: u64,
     pub(super) transport: Arc<TransportShared>,
     pub(super) input_peaks: Arc<InputPeakBank>,
@@ -24,9 +24,9 @@ impl GraphBuildInput {
 
 /// Preallocated runtime + diagnostic snapshot produced by a graph worker.
 pub struct CompiledGraphBuild {
-    pub(super) runtime: Box<NativeMixerRuntime>,
+    pub(super) runtime: Box<MixerRuntime>,
     pub(super) snapshot: CompiledAudioGraphSnapshot,
-    pub(super) source_graph: NativeMixerGraph,
+    pub(super) source_graph: ResolvedMixerGraph,
 }
 
 impl CompiledGraphBuild {
@@ -96,7 +96,7 @@ impl AudioEngine {
     /// Allocate a build generation and capture transport handles. Heavy compile
     /// work must run on a supervised graph worker via
     /// [`compile_graph_build`].
-    pub fn begin_graph_build(&self, graph: NativeMixerGraph) -> Result<GraphBuildInput> {
+    pub fn begin_graph_build(&self, graph: ResolvedMixerGraph) -> Result<GraphBuildInput> {
         let build_generation = self.next_build_generation.fetch_add(1, Ordering::Relaxed);
         let (transport, input_peaks) = self.engine_transport_handles(graph.sample_rate)?;
         Ok(GraphBuildInput {
@@ -215,7 +215,7 @@ impl AudioEngine {
     }
 
     /// Synchronous build+publish helper for the MessagePack compatibility path.
-    pub fn load_mixer_graph(&self, graph: NativeMixerGraph) -> Result<()> {
+    pub fn load_mixer_graph(&self, graph: ResolvedMixerGraph) -> Result<()> {
         let input = self.begin_graph_build(graph)?;
         let built = compile_graph_build(input)?;
         match self.publish_mixer_runtime(built)? {
@@ -230,7 +230,7 @@ impl AudioEngine {
         instance_id: &str,
         latency_samples: u32,
         tail_samples: Option<u32>,
-    ) -> Result<Option<NativeMixerGraph>> {
+    ) -> Result<Option<ResolvedMixerGraph>> {
         let mut guard = self
             .last_native_graph
             .lock()
@@ -259,7 +259,7 @@ impl AudioEngine {
         &self,
         instance_id: &str,
         processor: Option<heron_audio_plugin::AudioPluginProcessorHandle>,
-    ) -> Result<Option<NativeMixerGraph>> {
+    ) -> Result<Option<ResolvedMixerGraph>> {
         let mut guard = self
             .last_native_graph
             .lock()
@@ -294,7 +294,7 @@ impl AudioEngine {
         Ok(true)
     }
 
-    pub fn preview_mixer_parameter(&self, preview: NativeMixerParameterPreview) -> Result<()> {
+    pub fn preview_mixer_parameter(&self, preview: MixerParameterPreview) -> Result<()> {
         let plugin_enabled = (preview.target == "plugin" && preview.parameter == "enabled")
             .then_some(preview.value >= 0.5);
         let command = RealtimeParameterCommand::from_preview(preview)?;
@@ -380,12 +380,12 @@ impl AudioEngine {
         Ok(())
     }
 
-    pub fn mixer_snapshot(&self) -> Result<NativeMixerSnapshot> {
+    pub fn mixer_snapshot(&self) -> Result<MixerSnapshot> {
         let guard = self
             .running
             .lock()
             .map_err(|_| audio_error("audio engine lock", "poisoned"))?;
-        Ok(NativeMixerSnapshot {
+        Ok(MixerSnapshot {
             meters: guard.as_ref().map_or_else(Vec::new, |engine| {
                 engine
                     .meter_bank
@@ -404,7 +404,7 @@ impl AudioEngine {
         loop_enabled: Option<bool>,
         loop_start_tick: Option<i64>,
         loop_end_tick: Option<i64>,
-    ) -> Result<NativeTransportSnapshot> {
+    ) -> Result<TransportSnapshot> {
         let mut guard = self
             .running
             .lock()
@@ -488,13 +488,13 @@ impl AudioEngine {
         })
     }
 
-    pub fn transport_snapshot(&self) -> Result<NativeTransportSnapshot> {
+    pub fn transport_snapshot(&self) -> Result<TransportSnapshot> {
         let guard = self
             .running
             .lock()
             .map_err(|_| audio_error("audio engine lock", "poisoned"))?;
         Ok(guard.as_ref().map_or(
-            NativeTransportSnapshot {
+            TransportSnapshot {
                 state: "stopped".to_owned(),
                 position_frames: 0,
                 position_ticks: 0,
@@ -542,7 +542,7 @@ impl AudioEngine {
     }
 
     #[cfg(any(test, feature = "bench-internals", feature = "test-support"))]
-    pub fn set_last_native_graph_for_test(&self, graph: Option<NativeMixerGraph>) {
+    pub fn set_last_native_graph_for_test(&self, graph: Option<ResolvedMixerGraph>) {
         *self
             .last_native_graph
             .lock()

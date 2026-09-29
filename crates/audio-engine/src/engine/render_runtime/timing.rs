@@ -1,9 +1,9 @@
 use super::{
-    MUSICAL_TICKS_PER_QUARTER, NativeMixerRuntime, Ordering, ProcessContext, TRANSPORT_PLAYING,
+    MUSICAL_TICKS_PER_QUARTER, MixerRuntime, Ordering, ProcessContext, TRANSPORT_PLAYING,
     TRANSPORT_RECORDING, TimeSignatureEvent,
 };
 
-impl NativeMixerRuntime {
+impl MixerRuntime {
     pub(in crate::runtime) fn frames_until_timing_boundary(
         &self,
         position: u64,

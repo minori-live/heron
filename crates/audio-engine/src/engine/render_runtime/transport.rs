@@ -1,6 +1,6 @@
-use super::{NativeMixerRuntime, Ordering, TRANSPORT_PLAYING};
+use super::{MixerRuntime, Ordering, TRANSPORT_PLAYING};
 
-impl NativeMixerRuntime {
+impl MixerRuntime {
     pub(super) fn playback_loop_frames(&self, state: u32) -> Option<(u64, u64)> {
         if state != TRANSPORT_PLAYING || self.transport.clock_source.load(Ordering::Relaxed) != 0 {
             return None;

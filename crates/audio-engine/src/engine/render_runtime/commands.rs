@@ -1,11 +1,11 @@
 use super::{
-    AuditionPlayback, CountInState, EngineCommand, HeapProd, NativeMixerRuntime, Ordering,
+    AuditionPlayback, CountInState, EngineCommand, HeapProd, MixerRuntime, Ordering,
     RealtimeParameter, TRANSPORT_COUNTING_IN, TRANSPORT_PLAYING, TRANSPORT_RECORDING,
     TRANSPORT_STOPPED, TRANSPORT_WAITING, TransportAction,
 };
 use ringbuf::traits::Producer;
 
-impl NativeMixerRuntime {
+impl MixerRuntime {
     pub(in crate::runtime) fn activate_application_captures(&self) {
         for capture in self.application_captures.iter().flatten() {
             capture.activate();
@@ -40,7 +40,7 @@ impl NativeMixerRuntime {
     pub(in crate::runtime) fn handle_command(
         &mut self,
         command: EngineCommand,
-    ) -> Option<Box<NativeMixerRuntime>> {
+    ) -> Option<Box<MixerRuntime>> {
         self.handle_command_inner(command, None)
     }
 
@@ -48,7 +48,7 @@ impl NativeMixerRuntime {
         &mut self,
         command: EngineCommand,
         retired_auditions: &mut HeapProd<Box<AuditionPlayback>>,
-    ) -> Option<Box<NativeMixerRuntime>> {
+    ) -> Option<Box<MixerRuntime>> {
         self.handle_command_inner(command, Some(retired_auditions))
     }
 
@@ -56,7 +56,7 @@ impl NativeMixerRuntime {
         &mut self,
         command: EngineCommand,
         retired_auditions: Option<&mut HeapProd<Box<AuditionPlayback>>>,
-    ) -> Option<Box<NativeMixerRuntime>> {
+    ) -> Option<Box<MixerRuntime>> {
         match command {
             EngineCommand::LoadMixer(mut runtime) => {
                 self.all_notes_off();

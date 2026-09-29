@@ -1,13 +1,13 @@
 use super::{
     AuditionPlayback, BlockMidiEvent, ChannelPeak, ClipSamples, CountInState, EngineCommand,
     HardwareOutputFrame, HeapProd, InputFrame, MAX_OUTPUT_CHANNELS, MAX_PLUGIN_BLOCK_FRAMES,
-    MUSICAL_TICKS_PER_QUARTER, NativeMixerRuntime, Ordering, ProcessContext, RealtimeParameter,
+    MUSICAL_TICKS_PER_QUARTER, MixerRuntime, Ordering, ProcessContext, RealtimeParameter,
     RecordingTap, ScheduledMidiEvent, ScheduledMidiEventKind, SignalWidth, StereoFrame,
     TRANSPORT_COUNTING_IN, TRANSPORT_PLAYING, TRANSPORT_RECORDING, TRANSPORT_STOPPED,
     TRANSPORT_WAITING, TimeSignatureEvent, TransportAction,
 };
 
-impl NativeMixerRuntime {
+impl MixerRuntime {
     pub(super) fn render_block(
         &mut self,
         inputs: &[InputFrame],

@@ -1,6 +1,8 @@
+pub use heron_dsp_runtime::protocol::{BounceChannelMode, BounceDither, BounceNormalization};
+
 use super::{
-    AudioEngine, EngineCommand, MAX_OUTPUT_CHANNELS, MAX_PLUGIN_BLOCK_FRAMES, NativeLatencyPolicy,
-    NativeMixerGraph, TransportAction, compile_graph_build,
+    AudioEngine, EngineCommand, MAX_OUTPUT_CHANNELS, MAX_PLUGIN_BLOCK_FRAMES,
+    ResolvedLatencyPolicy, ResolvedMixerGraph, TransportAction, compile_graph_build,
 };
 use crate::{EngineError, EngineResult};
 use bwavfile::{WAVE_TAG_FLOAT, WaveFmt, WaveWriter};
@@ -20,35 +22,16 @@ const MONO_FOLD_GAIN: f32 = 0.501_187_2;
 const MAX_TAIL_SECONDS: u64 = 30;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NativeBounceChannelMode {
-    Stereo,
-    Mono,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NativeBounceDither {
-    Off,
-    Tpdf,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum NativeBounceNormalization {
-    Off,
-    OverloadProtection,
-    TruePeak { target_dbtp: f64 },
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NativeBounceFormat {
+pub enum BounceFormat {
     WavPcm {
         bits: u16,
-        dither: NativeBounceDither,
+        dither: BounceDither,
     },
     WavFloat,
     Flac {
         bits: u16,
         compression: u32,
-        dither: NativeBounceDither,
+        dither: BounceDither,
     },
     Mp3Cbr {
         kbps: u16,
@@ -58,22 +41,22 @@ pub enum NativeBounceFormat {
     },
 }
 
-pub struct NativeBounceRequest {
-    pub graph: NativeMixerGraph,
+pub struct BounceRequest {
+    pub graph: ResolvedMixerGraph,
     pub output_channel_id: String,
     pub start_frame: u64,
     pub end_frame: u64,
     pub target_sample_rate: u32,
-    pub channel_mode: NativeBounceChannelMode,
+    pub channel_mode: BounceChannelMode,
     pub include_tail: bool,
-    pub format: NativeBounceFormat,
-    pub normalization: NativeBounceNormalization,
+    pub format: BounceFormat,
+    pub normalization: BounceNormalization,
     pub scratch_path: PathBuf,
     pub encoded_path: PathBuf,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NativeBounceProgress {
+pub enum BounceProgress {
     Preparing,
     Rendering {
         completed_frames: u64,
@@ -87,7 +70,7 @@ pub enum NativeBounceProgress {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct NativeBounceResult {
+pub struct BounceResult {
     pub rendered_frames: u64,
     pub sample_peak: f64,
     pub true_peak: f64,
@@ -100,11 +83,11 @@ fn bounce_error(context: &str, error: impl std::fmt::Display) -> EngineError {
 }
 
 fn prepare_graph(
-    mut graph: NativeMixerGraph,
+    mut graph: ResolvedMixerGraph,
     output_channel_id: &str,
-) -> EngineResult<NativeMixerGraph> {
+) -> EngineResult<ResolvedMixerGraph> {
     let mut found = false;
-    graph.latency_policy = NativeLatencyPolicy::Normal;
+    graph.latency_policy = ResolvedLatencyPolicy::Normal;
     for channel in &mut graph.channels {
         channel.record_armed = false;
         channel.input_monitoring = false;
@@ -184,10 +167,10 @@ impl LinearResampler {
 fn write_scratch_frames(
     writer: &mut BufWriter<File>,
     frames: &[[f32; 2]],
-    mode: NativeBounceChannelMode,
+    mode: BounceChannelMode,
 ) -> EngineResult<()> {
     for frame in frames {
-        if mode == NativeBounceChannelMode::Mono {
+        if mode == BounceChannelMode::Mono {
             let mono = (frame[0] + frame[1]) * MONO_FOLD_GAIN;
             writer
                 .write_all(&mono.to_le_bytes())
@@ -237,7 +220,7 @@ fn read_scratch_block(
     Ok(read / (channels * 4))
 }
 
-fn analyze(request: &NativeBounceRequest, channels: usize) -> EngineResult<(u64, f64, f64)> {
+fn analyze(request: &BounceRequest, channels: usize) -> EngineResult<(u64, f64, f64)> {
     let file = File::open(&request.scratch_path)
         .map_err(|error| bounce_error("open bounce scratch", error))?;
     let mut reader = BufReader::new(file);
@@ -274,17 +257,17 @@ fn analyze(request: &NativeBounceRequest, channels: usize) -> EngineResult<(u64,
     Ok((frames, sample_peak, true_peak))
 }
 
-fn normalization_gain(mode: NativeBounceNormalization, sample_peak: f64, true_peak: f64) -> f64 {
+fn normalization_gain(mode: BounceNormalization, sample_peak: f64, true_peak: f64) -> f64 {
     match mode {
-        NativeBounceNormalization::Off => 1.0,
-        NativeBounceNormalization::OverloadProtection => {
+        BounceNormalization::Off => 1.0,
+        BounceNormalization::OverloadProtection => {
             if sample_peak > 1.0 {
                 1.0 / sample_peak
             } else {
                 1.0
             }
         }
-        NativeBounceNormalization::TruePeak { target_dbtp } => {
+        BounceNormalization::TruePeak { target_dbtp } => {
             if true_peak <= f64::EPSILON {
                 1.0
             } else {
@@ -304,8 +287,8 @@ impl Dither {
         self.state ^= self.state << 17;
         (self.state as u32) as f32 / u32::MAX as f32
     }
-    fn apply(&mut self, sample: f32, bits: u16, enabled: NativeBounceDither) -> f32 {
-        if enabled == NativeBounceDither::Off {
+    fn apply(&mut self, sample: f32, bits: u16, enabled: BounceDither) -> f32 {
+        if enabled == BounceDither::Off {
             return sample;
         }
         let lsb = 1.0 / ((1_u64 << (bits - 1)) - 1) as f32;
@@ -313,9 +296,9 @@ impl Dither {
     }
 }
 
-fn wave_format(rate: u32, channels: usize, format: NativeBounceFormat) -> WaveFmt {
+fn wave_format(rate: u32, channels: usize, format: BounceFormat) -> WaveFmt {
     match format {
-        NativeBounceFormat::WavFloat => WaveFmt {
+        BounceFormat::WavFloat => WaveFmt {
             tag: WAVE_TAG_FLOAT,
             channel_count: channels as u16,
             sample_rate: rate,
@@ -324,7 +307,7 @@ fn wave_format(rate: u32, channels: usize, format: NativeBounceFormat) -> WaveFm
             bits_per_sample: 32,
             extended_format: None,
         },
-        NativeBounceFormat::WavPcm { bits, .. } => {
+        BounceFormat::WavPcm { bits, .. } => {
             if channels == 1 {
                 WaveFmt::new_pcm_mono(rate, bits)
             } else {
@@ -336,11 +319,11 @@ fn wave_format(rate: u32, channels: usize, format: NativeBounceFormat) -> WaveFm
 }
 
 fn encode_wav(
-    request: &NativeBounceRequest,
+    request: &BounceRequest,
     channels: usize,
     gain: f64,
     frames: u64,
-    progress: &mut impl FnMut(NativeBounceProgress),
+    progress: &mut impl FnMut(BounceProgress),
     cancel: &AtomicBool,
 ) -> EngineResult<()> {
     let writer = WaveWriter::create(
@@ -369,8 +352,8 @@ fn encode_wav(
             break;
         }
         let (bits, enabled) = match request.format {
-            NativeBounceFormat::WavPcm { bits, dither } => (bits, dither),
-            NativeBounceFormat::WavFloat => (32, NativeBounceDither::Off),
+            BounceFormat::WavPcm { bits, dither } => (bits, dither),
+            BounceFormat::WavFloat => (32, BounceDither::Off),
             _ => unreachable!(),
         };
         for sample in &mut block {
@@ -382,7 +365,7 @@ fn encode_wav(
             .write_frames(&block)
             .map_err(|error| bounce_error("write WAV", error))?;
         done += count as u64;
-        progress(NativeBounceProgress::Encoding {
+        progress(BounceProgress::Encoding {
             completed_frames: done,
             total_frames: frames,
         });
@@ -394,14 +377,14 @@ fn encode_wav(
 }
 
 fn encode_flac(
-    request: &NativeBounceRequest,
+    request: &BounceRequest,
     channels: usize,
     gain: f64,
     frames: u64,
-    progress: &mut impl FnMut(NativeBounceProgress),
+    progress: &mut impl FnMut(BounceProgress),
     cancel: &AtomicBool,
 ) -> EngineResult<()> {
-    let NativeBounceFormat::Flac {
+    let BounceFormat::Flac {
         bits,
         compression,
         dither,
@@ -454,7 +437,7 @@ fn encode_flac(
             .process_interleaved(&quantized, count as u32)
             .map_err(|()| EngineError::State("FLAC encoder rejected audio".to_owned()))?;
         done += count as u64;
-        progress(NativeBounceProgress::Encoding {
+        progress(BounceProgress::Encoding {
             completed_frames: done,
             total_frames: frames,
         });
@@ -502,11 +485,11 @@ fn tail_render_limits(
 }
 
 fn encode_mp3(
-    request: &NativeBounceRequest,
+    request: &BounceRequest,
     channels: usize,
     gain: f64,
     frames: u64,
-    progress: &mut impl FnMut(NativeBounceProgress),
+    progress: &mut impl FnMut(BounceProgress),
     cancel: &AtomicBool,
 ) -> EngineResult<()> {
     let mut builder = Mp3Builder::new()
@@ -524,11 +507,11 @@ fn encode_mp3(
         .with_to_write_vbr_tag(false)
         .map_err(|error| bounce_error("configure MP3 tag", error))?;
     builder = match request.format {
-        NativeBounceFormat::Mp3Cbr { kbps } => builder
+        BounceFormat::Mp3Cbr { kbps } => builder
             .with_vbr_mode(VbrMode::Off)
             .and_then(|value| value.with_brate(bitrate(kbps)))
             .map_err(|error| bounce_error("configure MP3 CBR", error))?,
-        NativeBounceFormat::Mp3Vbr { quality: value } => builder
+        BounceFormat::Mp3Vbr { quality: value } => builder
             .with_vbr_mode(VbrMode::Mtrh)
             .and_then(|builder| builder.with_vbr_quality(quality(value)))
             .map_err(|error| bounce_error("configure MP3 VBR", error))?,
@@ -569,7 +552,7 @@ fn encode_mp3(
         file.write_all(&encoded)
             .map_err(|error| bounce_error("write MP3", error))?;
         done += count as u64;
-        progress(NativeBounceProgress::Encoding {
+        progress(BounceProgress::Encoding {
             completed_frames: done,
             total_frames: frames,
         });
@@ -585,16 +568,16 @@ fn encode_mp3(
 }
 
 pub fn render_bounce_output(
-    mut request: NativeBounceRequest,
+    mut request: BounceRequest,
     cancel: &AtomicBool,
-    mut progress: impl FnMut(NativeBounceProgress),
-) -> EngineResult<NativeBounceResult> {
+    mut progress: impl FnMut(BounceProgress),
+) -> EngineResult<BounceResult> {
     if request.start_frame >= request.end_frame || request.target_sample_rate == 0 {
         return Err(EngineError::InvalidConfiguration(
             "invalid bounce range or sample rate".to_owned(),
         ));
     }
-    progress(NativeBounceProgress::Preparing);
+    progress(BounceProgress::Preparing);
     let source_rate = request.graph.sample_rate;
     request.graph = prepare_graph(request.graph, &request.output_channel_id)?;
     let engine = AudioEngine::new();
@@ -642,7 +625,7 @@ pub fn render_bounce_output(
         resampler.push(&stereo, &mut resampled);
         write_scratch_frames(&mut scratch, &resampled, request.channel_mode)?;
         rendered_source += count as u64;
-        progress(NativeBounceProgress::Rendering {
+        progress(BounceProgress::Rendering {
             completed_frames: rendered_source,
             total_frames: range_frames.saturating_add(known_tail.unwrap_or(maximum_tail)),
         });
@@ -682,7 +665,7 @@ pub fn render_bounce_output(
         resampler.push(&stereo, &mut resampled);
         write_scratch_frames(&mut scratch, &resampled, request.channel_mode)?;
         tail_rendered += count as u64;
-        progress(NativeBounceProgress::Rendering {
+        progress(BounceProgress::Rendering {
             completed_frames: range_frames + tail_rendered,
             total_frames: range_frames + tail_limit,
         });
@@ -696,30 +679,30 @@ pub fn render_bounce_output(
     scratch
         .flush()
         .map_err(|error| bounce_error("flush bounce scratch", error))?;
-    progress(NativeBounceProgress::Analyzing);
-    let channels = if request.channel_mode == NativeBounceChannelMode::Mono {
+    progress(BounceProgress::Analyzing);
+    let channels = if request.channel_mode == BounceChannelMode::Mono {
         1
     } else {
         2
     };
     let (frames, sample_peak, true_peak) = analyze(&request, channels)?;
     let gain = normalization_gain(request.normalization, sample_peak, true_peak);
-    progress(NativeBounceProgress::Encoding {
+    progress(BounceProgress::Encoding {
         completed_frames: 0,
         total_frames: frames,
     });
     match request.format {
-        NativeBounceFormat::WavPcm { .. } | NativeBounceFormat::WavFloat => {
+        BounceFormat::WavPcm { .. } | BounceFormat::WavFloat => {
             encode_wav(&request, channels, gain, frames, &mut progress, cancel)?
         }
-        NativeBounceFormat::Flac { .. } => {
+        BounceFormat::Flac { .. } => {
             encode_flac(&request, channels, gain, frames, &mut progress, cancel)?
         }
-        NativeBounceFormat::Mp3Cbr { .. } | NativeBounceFormat::Mp3Vbr { .. } => {
+        BounceFormat::Mp3Cbr { .. } | BounceFormat::Mp3Vbr { .. } => {
             encode_mp3(&request, channels, gain, frames, &mut progress, cancel)?
         }
     }
-    Ok(NativeBounceResult {
+    Ok(BounceResult {
         rendered_frames: frames,
         sample_peak,
         true_peak,
@@ -731,16 +714,16 @@ pub fn render_bounce_output(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::NativeMixerChannel;
+    use crate::ResolvedMixerChannel;
     use heron_dsp_runtime::protocol::LiveMixerSystemRole;
     use heron_dsp_runtime::tempo::{TempoEvent, TimeSignatureEvent};
 
-    fn empty_graph() -> NativeMixerGraph {
-        NativeMixerGraph {
+    fn empty_graph() -> ResolvedMixerGraph {
+        ResolvedMixerGraph {
             generation: 0,
             sample_rate: 48_000,
             project_end_tick: 0,
-            latency_policy: NativeLatencyPolicy::Normal,
+            latency_policy: ResolvedLatencyPolicy::Normal,
             channels: Vec::new(),
             sends: Vec::new(),
             clips: Vec::new(),
@@ -754,25 +737,25 @@ mod tests {
     fn encoder_request(
         scratch_path: PathBuf,
         encoded_path: PathBuf,
-        format: NativeBounceFormat,
-    ) -> NativeBounceRequest {
-        NativeBounceRequest {
+        format: BounceFormat,
+    ) -> BounceRequest {
+        BounceRequest {
             graph: empty_graph(),
             output_channel_id: "output".to_owned(),
             start_frame: 0,
             end_frame: 4_608,
             target_sample_rate: 48_000,
-            channel_mode: NativeBounceChannelMode::Mono,
+            channel_mode: BounceChannelMode::Mono,
             include_tail: true,
             format,
-            normalization: NativeBounceNormalization::Off,
+            normalization: BounceNormalization::Off,
             scratch_path,
             encoded_path,
         }
     }
 
-    fn channel(id: &str, kind: &str, hardware_output_channels: Vec<u32>) -> NativeMixerChannel {
-        NativeMixerChannel {
+    fn channel(id: &str, kind: &str, hardware_output_channels: Vec<u32>) -> ResolvedMixerChannel {
+        ResolvedMixerChannel {
             id: id.to_owned(),
             name: id.to_owned(),
             color: "#000000".to_owned(),
@@ -811,12 +794,11 @@ mod tests {
     #[test]
     fn overload_protection_never_raises_level() {
         assert_eq!(
-            normalization_gain(NativeBounceNormalization::OverloadProtection, 0.5, 0.5),
+            normalization_gain(BounceNormalization::OverloadProtection, 0.5, 0.5),
             1.0
         );
         assert!(
-            (normalization_gain(NativeBounceNormalization::OverloadProtection, 2.0, 2.0) - 0.5)
-                .abs()
+            (normalization_gain(BounceNormalization::OverloadProtection, 2.0, 2.0) - 0.5).abs()
                 < f64::EPSILON
         );
     }
@@ -825,14 +807,14 @@ mod tests {
     fn true_peak_normalization_targets_requested_level_and_preserves_silence() {
         assert_eq!(
             normalization_gain(
-                NativeBounceNormalization::TruePeak { target_dbtp: -1.0 },
+                BounceNormalization::TruePeak { target_dbtp: -1.0 },
                 0.0,
                 0.0
             ),
             1.0
         );
         let gain = normalization_gain(
-            NativeBounceNormalization::TruePeak { target_dbtp: -1.0 },
+            BounceNormalization::TruePeak { target_dbtp: -1.0 },
             0.5,
             0.5,
         );
@@ -885,8 +867,8 @@ mod tests {
         let other = channel("other", "output", vec![3, 4]);
         let mut metronome = channel("metronome", "aux", Vec::new());
         metronome.system_role = Some(LiveMixerSystemRole::Metronome);
-        let graph = NativeMixerGraph {
-            latency_policy: NativeLatencyPolicy::LowLatency {
+        let graph = ResolvedMixerGraph {
+            latency_policy: ResolvedLatencyPolicy::LowLatency {
                 target_output_index: 0,
                 plugin_budget_samples: 128,
             },
@@ -898,7 +880,7 @@ mod tests {
 
         assert!(matches!(
             prepared.latency_policy,
-            NativeLatencyPolicy::Normal
+            ResolvedLatencyPolicy::Normal
         ));
         assert_eq!(prepared.channels[0].hardware_output_channels, vec![1, 2]);
         assert!(!prepared.channels[0].record_armed);
@@ -920,7 +902,7 @@ mod tests {
         write_scratch_frames(
             &mut writer,
             &[[0.25, -0.5], [1.25, -1.5]],
-            NativeBounceChannelMode::Stereo,
+            BounceChannelMode::Stereo,
         )
         .expect("write stereo scratch");
         writer.flush().expect("flush scratch fixture");
@@ -931,11 +913,7 @@ mod tests {
         assert_eq!(read_scratch_block(&mut reader, 2, &mut block).unwrap(), 0);
         assert!(block.is_empty());
         drop(reader);
-        let request = encoder_request(
-            scratch_path.clone(),
-            encoded_path,
-            NativeBounceFormat::WavFloat,
-        );
+        let request = encoder_request(scratch_path.clone(), encoded_path, BounceFormat::WavFloat);
         let (frames, sample_peak, true_peak) = analyze(&request, 2).expect("analyze scratch");
         assert_eq!(frames, 2);
         assert_eq!(sample_peak, 1.5);
@@ -953,11 +931,8 @@ mod tests {
 
     #[test]
     fn format_helpers_cover_float_pcm_dither_and_mp3_presets() {
-        assert_eq!(
-            normalization_gain(NativeBounceNormalization::Off, 2.0, 2.0),
-            1.0
-        );
-        let float = wave_format(96_000, 2, NativeBounceFormat::WavFloat);
+        assert_eq!(normalization_gain(BounceNormalization::Off, 2.0, 2.0), 1.0);
+        let float = wave_format(96_000, 2, BounceFormat::WavFloat);
         assert_eq!(float.tag, WAVE_TAG_FLOAT);
         assert_eq!(float.channel_count, 2);
         assert_eq!(float.sample_rate, 96_000);
@@ -966,17 +941,17 @@ mod tests {
             wave_format(
                 48_000,
                 1,
-                NativeBounceFormat::WavPcm {
+                BounceFormat::WavPcm {
                     bits: 16,
-                    dither: NativeBounceDither::Off,
+                    dither: BounceDither::Off,
                 },
             )
             .channel_count,
             1
         );
         let mut dither = Dither { state: 1 };
-        assert_eq!(dither.apply(0.25, 16, NativeBounceDither::Off), 0.25);
-        assert_ne!(dither.apply(0.25, 16, NativeBounceDither::Tpdf), 0.25);
+        assert_eq!(dither.apply(0.25, 16, BounceDither::Off), 0.25);
+        assert_ne!(dither.apply(0.25, 16, BounceDither::Tpdf), 0.25);
         assert!((0..=9).all(|value| quality(value) as u8 == value));
         assert_eq!(bitrate(128) as u16, 128);
         assert_eq!(bitrate(192) as u16, 192);
@@ -1002,16 +977,16 @@ mod tests {
             numerator: 4,
             denominator: 4,
         }];
-        let request = NativeBounceRequest {
+        let request = BounceRequest {
             graph,
             output_channel_id: "output".to_owned(),
             start_frame: 0,
             end_frame: 512,
             target_sample_rate: 48_000,
-            channel_mode: NativeBounceChannelMode::Stereo,
+            channel_mode: BounceChannelMode::Stereo,
             include_tail: false,
-            format: NativeBounceFormat::WavFloat,
-            normalization: NativeBounceNormalization::Off,
+            format: BounceFormat::WavFloat,
+            normalization: BounceNormalization::Off,
             scratch_path: scratch_path.clone(),
             encoded_path: encoded_path.clone(),
         };
@@ -1030,19 +1005,16 @@ mod tests {
             &std::fs::read(&encoded_path).expect("read rendered WAV")[..4],
             b"RIFF"
         );
-        assert!(matches!(
-            phases.first(),
-            Some(NativeBounceProgress::Preparing)
-        ));
+        assert!(matches!(phases.first(), Some(BounceProgress::Preparing)));
         assert!(
             phases
                 .iter()
-                .any(|phase| matches!(phase, NativeBounceProgress::Analyzing))
+                .any(|phase| matches!(phase, BounceProgress::Analyzing))
         );
         assert!(
             phases
                 .iter()
-                .any(|phase| matches!(phase, NativeBounceProgress::Encoding { .. }))
+                .any(|phase| matches!(phase, BounceProgress::Encoding { .. }))
         );
         std::fs::remove_file(scratch_path).expect("remove rendered scratch");
         std::fs::remove_file(encoded_path).expect("remove rendered WAV");
@@ -1054,9 +1026,9 @@ mod tests {
         let request = encoder_request(
             scratch_path.clone(),
             encoded_path.clone(),
-            NativeBounceFormat::WavFloat,
+            BounceFormat::WavFloat,
         );
-        let invalid_range = NativeBounceRequest {
+        let invalid_range = BounceRequest {
             start_frame: request.end_frame,
             ..request
         };
@@ -1089,35 +1061,35 @@ mod tests {
         let formats = [
             (
                 "pcm.wav",
-                NativeBounceFormat::WavPcm {
+                BounceFormat::WavPcm {
                     bits: 24,
-                    dither: NativeBounceDither::Tpdf,
+                    dither: BounceDither::Tpdf,
                 },
             ),
-            ("float.wav", NativeBounceFormat::WavFloat),
+            ("float.wav", BounceFormat::WavFloat),
             (
                 "flac",
-                NativeBounceFormat::Flac {
+                BounceFormat::Flac {
                     bits: 24,
                     compression: 5,
-                    dither: NativeBounceDither::Tpdf,
+                    dither: BounceDither::Tpdf,
                 },
             ),
-            ("cbr.mp3", NativeBounceFormat::Mp3Cbr { kbps: 192 }),
-            ("vbr.mp3", NativeBounceFormat::Mp3Vbr { quality: 0 }),
+            ("cbr.mp3", BounceFormat::Mp3Cbr { kbps: 192 }),
+            ("vbr.mp3", BounceFormat::Mp3Vbr { quality: 0 }),
         ];
         for (extension, format) in formats {
             let encoded_path = directory.join(format!("{unique}.{extension}"));
             let request = encoder_request(scratch_path.clone(), encoded_path.clone(), format);
             let mut progress = |_| {};
             match format {
-                NativeBounceFormat::WavPcm { .. } | NativeBounceFormat::WavFloat => {
+                BounceFormat::WavPcm { .. } | BounceFormat::WavFloat => {
                     encode_wav(&request, 1, 1.0, 4_608, &mut progress, &cancel)
                 }
-                NativeBounceFormat::Flac { .. } => {
+                BounceFormat::Flac { .. } => {
                     encode_flac(&request, 1, 1.0, 4_608, &mut progress, &cancel)
                 }
-                NativeBounceFormat::Mp3Cbr { .. } | NativeBounceFormat::Mp3Vbr { .. } => {
+                BounceFormat::Mp3Cbr { .. } | BounceFormat::Mp3Vbr { .. } => {
                     encode_mp3(&request, 1, 1.0, 4_608, &mut progress, &cancel)
                 }
             }

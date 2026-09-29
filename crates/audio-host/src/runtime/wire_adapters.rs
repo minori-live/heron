@@ -9,7 +9,7 @@ pub(super) fn live_graph(
     generation: u64,
     value: &LiveMixerGraph,
     processors: Option<&HashMap<String, vst3::AudioPluginProcessorHandle>>,
-) -> Result<engine::NativeMixerGraph, String> {
+) -> Result<engine::ResolvedMixerGraph, String> {
     let channel_indexes = value
         .channels
         .iter()
@@ -42,7 +42,7 @@ pub(super) fn live_graph(
                     channel.id
                 ));
             }
-            Ok(engine::NativeMixerChannel {
+            Ok(engine::ResolvedMixerChannel {
                 id: channel.id.clone(),
                 name: channel.name.clone(),
                 color: channel.color.clone(),
@@ -81,7 +81,7 @@ pub(super) fn live_graph(
         .sends
         .iter()
         .map(|send| {
-            Ok(engine::NativeMixerSend {
+            Ok(engine::ResolvedMixerSend {
                 id: send.id.clone(),
                 source_index: channel_index(&send.source_channel_id)?,
                 target_output_index: send
@@ -100,7 +100,7 @@ pub(super) fn live_graph(
         .clips
         .iter()
         .map(|clip| {
-            Ok(engine::NativeMixerClip {
+            Ok(engine::ResolvedMixerClip {
                 id: clip.id.clone(),
                 channel_index: channel_index(&clip.channel_id)?,
                 start_frame: clip.start_frame,
@@ -126,7 +126,7 @@ pub(super) fn live_graph(
                         processor
                     }
                 });
-            Ok(engine::NativePluginInstance {
+            Ok(engine::ResolvedPluginInstance {
                 processor,
                 instance_id: plugin.instance_id.clone(),
                 instance_generation: plugin.instance_generation,
@@ -139,7 +139,7 @@ pub(super) fn live_graph(
                     .aux_input_buses
                     .iter()
                     .map(|bus| {
-                        Ok(engine::NativePluginAuxInputBus {
+                        Ok(engine::ResolvedPluginAuxInputBus {
                             input_port_key: bus.input_port_key.clone(),
                             input_port_token: bus
                                 .input_port_key
@@ -174,7 +174,7 @@ pub(super) fn live_graph(
             let native_notes = match &clip.notes {
                 MidiNoteBatch::Inline { notes } => {
                     let mut native_notes = Vec::with_capacity(notes.len());
-                    native_notes.extend(notes.iter().map(|note| engine::NativeMidiNote {
+                    native_notes.extend(notes.iter().map(|note| engine::DecodedMidiNote {
                         start_tick: note.start_tick,
                         duration_ticks: note.duration_ticks,
                         channel: note.channel,
@@ -204,7 +204,7 @@ pub(super) fn live_graph(
                     .ok_or_else(|| "MIDI event payload must be materialized".to_owned())?;
                 let kind = match event.kind.as_str() {
                     "control-change" if data.len() == 2 && data[0] <= 127 && data[1] <= 127 => {
-                        engine::NativeMidiEventKind::ControlChange {
+                        engine::DecodedMidiEventKind::ControlChange {
                             controller: data[0],
                             value: data[1],
                         }
@@ -214,39 +214,39 @@ pub(super) fn live_graph(
                         if value > 16_383 {
                             return Err("MIDI pitch bend must be in 0..16383".to_owned());
                         }
-                        engine::NativeMidiEventKind::PitchBend { value }
+                        engine::DecodedMidiEventKind::PitchBend { value }
                     }
                     "program-change" if data.len() == 1 && data[0] <= 127 => {
-                        engine::NativeMidiEventKind::ProgramChange { program: data[0] }
+                        engine::DecodedMidiEventKind::ProgramChange { program: data[0] }
                     }
                     "channel-pressure" if data.len() == 1 && data[0] <= 127 => {
-                        engine::NativeMidiEventKind::ChannelPressure { pressure: data[0] }
+                        engine::DecodedMidiEventKind::ChannelPressure { pressure: data[0] }
                     }
                     "poly-pressure" if data.len() == 2 && data[0] <= 127 && data[1] <= 127 => {
-                        engine::NativeMidiEventKind::PolyPressure {
+                        engine::DecodedMidiEventKind::PolyPressure {
                             key: data[0],
                             pressure: data[1],
                         }
                     }
                     "sysex" if event.channel.is_none() && data.len() <= 1024 * 1024 => {
-                        engine::NativeMidiEventKind::SysEx {
+                        engine::DecodedMidiEventKind::SysEx {
                             data: data.to_vec(),
                         }
                     }
                     _ => return Err(format!("invalid MIDI event {}", event.kind)),
                 };
-                if !matches!(kind, engine::NativeMidiEventKind::SysEx { .. })
+                if !matches!(kind, engine::DecodedMidiEventKind::SysEx { .. })
                     && event.channel.is_none()
                 {
                     return Err(format!("MIDI event {} requires a channel", event.kind));
                 }
-                native_events.push(engine::NativeMidiEvent {
+                native_events.push(engine::DecodedMidiEvent {
                     tick: event.tick,
                     channel,
                     kind,
                 });
             }
-            Ok(engine::NativeMidiClip {
+            Ok(engine::DecodedMidiClip {
                 id: clip.id.clone(),
                 channel_index: channel_index(&clip.channel_id)?,
                 start_tick: clip.start_tick,
@@ -257,16 +257,16 @@ pub(super) fn live_graph(
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
-    Ok(engine::NativeMixerGraph {
+    Ok(engine::ResolvedMixerGraph {
         generation,
         sample_rate: value.sample_rate,
         project_end_tick: value.project_end_tick,
         latency_policy: match &value.latency_policy {
-            LiveLatencyPolicy::Normal => engine::NativeLatencyPolicy::Normal,
+            LiveLatencyPolicy::Normal => engine::ResolvedLatencyPolicy::Normal,
             LiveLatencyPolicy::LowLatency {
                 target_output_channel_id,
                 plugin_budget_samples,
-            } => engine::NativeLatencyPolicy::LowLatency {
+            } => engine::ResolvedLatencyPolicy::LowLatency {
                 target_output_index: channel_index(target_output_channel_id)?,
                 plugin_budget_samples: *plugin_budget_samples,
             },
@@ -448,7 +448,7 @@ pub(super) fn engine_command(
             }
         }
         ControlCommand::PreviewMixerParameter { preview } => {
-            match audio_engine.preview_mixer_parameter(engine::NativeMixerParameterPreview {
+            match audio_engine.preview_mixer_parameter(engine::MixerParameterPreview {
                 target: preview.target,
                 id: preview.id,
                 parameter: preview.parameter,

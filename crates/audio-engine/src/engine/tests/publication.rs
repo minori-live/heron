@@ -232,7 +232,7 @@ fn same_revision_rebuild_preserves_a_newer_plugin_bypass_preview() {
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     let engine = AudioEngine::new();
     let mut stale_graph = simple_native_graph();
-    stale_graph.plugins.push(NativePluginInstance {
+    stale_graph.plugins.push(ResolvedPluginInstance {
         instance_id: "fx".to_owned(),
         instance_generation: 1,
         channel_index: 0,
@@ -249,7 +249,7 @@ fn same_revision_rebuild_preserves_a_newer_plugin_bypass_preview() {
         .load_mixer_graph(stale_graph.clone())
         .expect("publish initial graph");
     engine
-        .preview_mixer_parameter(NativeMixerParameterPreview {
+        .preview_mixer_parameter(MixerParameterPreview {
             target: "plugin".to_owned(),
             id: "fx".to_owned(),
             parameter: "enabled".to_owned(),
@@ -281,15 +281,15 @@ fn apply_plugin_timing_returns_replacement_only_when_values_change() {
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     let engine = AudioEngine::new();
-    engine.set_last_native_graph_for_test(Some(NativeMixerGraph {
+    engine.set_last_native_graph_for_test(Some(ResolvedMixerGraph {
         generation: 1,
         sample_rate: 48_000,
         project_end_tick: 61_440,
-        latency_policy: NativeLatencyPolicy::Normal,
+        latency_policy: ResolvedLatencyPolicy::Normal,
         channels: Vec::new(),
         sends: Vec::new(),
         clips: Vec::new(),
-        plugins: vec![NativePluginInstance {
+        plugins: vec![ResolvedPluginInstance {
             instance_id: "session-fx".to_owned(),
             instance_generation: 1,
             channel_index: 0,

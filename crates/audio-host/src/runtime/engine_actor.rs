@@ -59,7 +59,7 @@ pub(super) enum ActorCommand {
     },
     /// Immutable mixer graph compile+publish owned by `BackgroundIoActor`.
     BuildGraph {
-        graph: engine::NativeMixerGraph,
+        graph: engine::ResolvedMixerGraph,
     },
     /// Generation-checked SPSC publication owned by `EngineActor`.
     PublishBuiltGraph {
@@ -155,7 +155,7 @@ pub(super) fn mixer_parameter_command(
             };
         }
     };
-    match audio_engine.preview_mixer_parameter(engine::NativeMixerParameterPreview {
+    match audio_engine.preview_mixer_parameter(engine::MixerParameterPreview {
         target: target.into(),
         id,
         parameter: parameter.into(),
@@ -229,7 +229,7 @@ pub(super) async fn publish_built_graph(
 
 async fn build_graph_on_worker(
     engine_sender: &mpsc::Sender<ActorRequest>,
-    graph: engine::NativeMixerGraph,
+    graph: engine::ResolvedMixerGraph,
     audio_engine: &engine::AudioEngine,
 ) -> ControlResult {
     let revision = graph.generation;
@@ -260,7 +260,7 @@ pub(super) async fn background_io_actor(
     audio_engine: Arc<engine::AudioEngine>,
     graph_build_gate: Arc<tokio::sync::Mutex<()>>,
 ) {
-    let mut pending_refresh: Option<(engine::NativeMixerGraph, oneshot::Sender<ControlResult>)> =
+    let mut pending_refresh: Option<(engine::ResolvedMixerGraph, oneshot::Sender<ControlResult>)> =
         None;
     loop {
         let message = tokio::select! {
@@ -338,7 +338,7 @@ pub(super) async fn dispatch_actor_command(
 
 pub(super) fn queue_background_graph_build(
     background_sender: &mpsc::Sender<ActorRequest>,
-    graph: engine::NativeMixerGraph,
+    graph: engine::ResolvedMixerGraph,
 ) {
     let (reply, _response) = oneshot::channel();
     let _ = background_sender.try_send(ActorRequest {

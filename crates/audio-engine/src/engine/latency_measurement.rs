@@ -6,14 +6,14 @@ use super::{
     LOOPBACK_MEASUREMENT_SIGNAL_NOT_DETECTED, LOOPBACK_MEASUREMENT_TIMEOUT_NS,
     LOOPBACK_MINIMUM_SIGNAL_ENERGY, LOOPBACK_PROBE, LOOPBACK_PROBE_AMPLITUDE,
     LOOPBACK_QUIET_DURATION_MS, LOOPBACK_QUIET_THRESHOLD, LiveMidiRoute, LivePlugin, LoadedClip,
-    MAX_INPUT_CHANNELS, MeterBank, MetronomeScheduler, NativeMixerParameterPreview, Ordering,
+    MAX_INPUT_CHANNELS, MeterBank, MetronomeScheduler, MixerParameterPreview, Ordering,
     RenderMeter, RenderRuntime, Result, RoundTripLatencyMeasurement,
     RoundTripLatencyMeasurementRequest, ScheduledMidiEvent, SignalWidth, StereoFrame, TempoMap,
     TransportShared, frames_to_ms, frames_to_nanos, invalid_config, optional_latency,
 };
 use crate::application_capture::PreparedApplicationCapture;
 
-pub(super) struct NativeMixerRuntime {
+pub(super) struct MixerRuntime {
     pub(super) generation: u64,
     pub(super) build_generation: u64,
     pub(super) graph: RenderRuntime,
@@ -89,7 +89,7 @@ pub(super) struct RealtimeParameterCommand {
 }
 
 impl RealtimeParameterCommand {
-    pub(super) fn from_preview(preview: NativeMixerParameterPreview) -> Result<Self> {
+    pub(super) fn from_preview(preview: MixerParameterPreview) -> Result<Self> {
         let parameter = match (preview.target.as_str(), preview.parameter.as_str()) {
             ("channel", "gainDb") => RealtimeParameter::ChannelGain,
             ("channel", "pan") => RealtimeParameter::ChannelPan,
@@ -126,7 +126,7 @@ pub(super) enum TransportAction {
 }
 
 pub(super) enum EngineCommand {
-    LoadMixer(Box<NativeMixerRuntime>),
+    LoadMixer(Box<MixerRuntime>),
     Preview(RealtimeParameterCommand),
     Transport(TransportAction, u64),
     ClearMeterClips,

@@ -15,18 +15,18 @@ pub(crate) async fn compile(input: GraphBuildInput) -> Result<CompiledGraphBuild
 mod tests {
     use super::*;
     use crate::engine::{
-        AudioEngine, GRAPH_TEST_LOCK, NativeMixerChannel, NativeMixerGraph, PublishOutcome,
+        AudioEngine, GRAPH_TEST_LOCK, PublishOutcome, ResolvedMixerChannel, ResolvedMixerGraph,
     };
     use heron_dsp_runtime::tempo::{TempoEvent, TimeSignatureEvent};
 
-    fn minimal_graph(generation: u64) -> NativeMixerGraph {
-        NativeMixerGraph {
+    fn minimal_graph(generation: u64) -> ResolvedMixerGraph {
+        ResolvedMixerGraph {
             generation,
             sample_rate: 48_000,
             project_end_tick: 61_440,
-            latency_policy: heron_audio_engine::NativeLatencyPolicy::Normal,
+            latency_policy: heron_audio_engine::ResolvedLatencyPolicy::Normal,
             channels: vec![
-                NativeMixerChannel {
+                ResolvedMixerChannel {
                     id: "audio".into(),
                     name: "Audio".into(),
                     color: String::new(),
@@ -47,7 +47,7 @@ mod tests {
                     midi_input_port_id: None,
                     midi_input_channel: None,
                 },
-                NativeMixerChannel {
+                ResolvedMixerChannel {
                     id: "master".into(),
                     name: "Master".into(),
                     color: String::new(),
@@ -68,7 +68,7 @@ mod tests {
                     midi_input_port_id: None,
                     midi_input_channel: None,
                 },
-                NativeMixerChannel {
+                ResolvedMixerChannel {
                     id: "output".into(),
                     name: "Output".into(),
                     color: String::new(),

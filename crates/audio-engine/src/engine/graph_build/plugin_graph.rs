@@ -1,6 +1,6 @@
 use super::{
     ChannelKind, ChannelSpec, LivePlugin, LivePluginAuxInput, LowLatencyPlan,
-    MAX_PLUGIN_BLOCK_FRAMES, MixerGraph, NativeMixerSend, NativePluginInstance, RenderRuntime,
+    MAX_PLUGIN_BLOCK_FRAMES, MixerGraph, RenderRuntime, ResolvedMixerSend, ResolvedPluginInstance,
     Result, RouteTarget, SendSpec, StereoDelayLine, TempoMap, invalid_config,
 };
 
@@ -14,8 +14,8 @@ pub(super) struct PluginGraphBuild {
 pub(super) struct PluginGraphInput<'a> {
     pub(super) graph_revision: u64,
     pub(super) sample_rate: u32,
-    pub(super) native_plugins: Vec<NativePluginInstance>,
-    pub(super) native_sends: &'a [NativeMixerSend],
+    pub(super) native_plugins: Vec<ResolvedPluginInstance>,
+    pub(super) native_sends: &'a [ResolvedMixerSend],
     pub(super) channels: &'a [ChannelSpec],
     pub(super) sends: Vec<SendSpec>,
     pub(super) low_latency_plan: &'a LowLatencyPlan,

@@ -1,8 +1,8 @@
 use super::{
-    ChannelKind, ChannelSpec, ClipSamples, ClipStoragePolicy, LoadedClip, NativeMidiClip,
-    NativeMidiEventKind, NativeMixerClip, Result, ScheduledMidiEvent, ScheduledMidiEventKind,
-    TempoMap, audio_error, clip_storage_policy, decode_clip_audio, fs, invalid_config,
-    spawn_streaming_clip,
+    ChannelKind, ChannelSpec, ClipSamples, ClipStoragePolicy, DecodedMidiClip,
+    DecodedMidiEventKind, LoadedClip, ResolvedMixerClip, Result, ScheduledMidiEvent,
+    ScheduledMidiEventKind, TempoMap, audio_error, clip_storage_policy, decode_clip_audio, fs,
+    invalid_config, spawn_streaming_clip,
 };
 
 pub(super) struct MidiBuild {
@@ -13,7 +13,7 @@ pub(super) struct MidiBuild {
 }
 
 pub(super) fn load_audio_clips(
-    native_clips: Vec<NativeMixerClip>,
+    native_clips: Vec<ResolvedMixerClip>,
     channels: &[ChannelSpec],
     sample_rate: u32,
 ) -> Result<(Vec<LoadedClip>, u64)> {
@@ -70,7 +70,7 @@ pub(super) fn load_audio_clips(
 }
 
 pub(super) fn build_midi_events(
-    native_clips: Vec<NativeMidiClip>,
+    native_clips: Vec<DecodedMidiClip>,
     channels: &[ChannelSpec],
     tempo_map: &TempoMap,
     sample_rate: u32,
@@ -144,22 +144,22 @@ pub(super) fn build_midi_events(
                 .map_err(|error| invalid_config(error.to_string()))?;
             content_end_frame = content_end_frame.max(frame);
             let kind = match event.kind {
-                NativeMidiEventKind::ControlChange { controller, value } => {
+                DecodedMidiEventKind::ControlChange { controller, value } => {
                     ScheduledMidiEventKind::ControlChange { controller, value }
                 }
-                NativeMidiEventKind::PitchBend { value } => {
+                DecodedMidiEventKind::PitchBend { value } => {
                     ScheduledMidiEventKind::PitchBend { value }
                 }
-                NativeMidiEventKind::ProgramChange { program } => {
+                DecodedMidiEventKind::ProgramChange { program } => {
                     ScheduledMidiEventKind::ProgramChange { program }
                 }
-                NativeMidiEventKind::ChannelPressure { pressure } => {
+                DecodedMidiEventKind::ChannelPressure { pressure } => {
                     ScheduledMidiEventKind::ChannelPressure { pressure }
                 }
-                NativeMidiEventKind::PolyPressure { key, pressure } => {
+                DecodedMidiEventKind::PolyPressure { key, pressure } => {
                     ScheduledMidiEventKind::PolyPressure { key, pressure }
                 }
-                NativeMidiEventKind::SysEx { data } => {
+                DecodedMidiEventKind::SysEx { data } => {
                     let offset = u32::try_from(event_data.len())
                         .map_err(|_| invalid_config("MIDI event data exceeds 4 GiB"))?;
                     let length = u32::try_from(data.len())
