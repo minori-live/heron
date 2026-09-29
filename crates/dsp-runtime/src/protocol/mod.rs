@@ -16,7 +16,7 @@ mod events;
 mod graph;
 mod midi_input;
 mod plugin;
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 pub mod plugin_failure_fixture;
 mod recording;
 mod responses;

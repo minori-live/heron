@@ -1,6 +1,5 @@
 import {
   MIN_MIDI_NOTE_DURATION_TICKS,
-  MUSICAL_TICKS_PER_WHOLE_NOTE,
   type MidiCenterCStandard,
   type MidiClipState,
   type MidiNotePatch,
@@ -8,7 +7,6 @@ import {
   type ProjectCommand
 } from "@heron/contracts"
 
-export const WHOLE_NOTE_TICKS = MUSICAL_TICKS_PER_WHOLE_NOTE
 export const MIN_NOTE_TICKS = MIN_MIDI_NOTE_DURATION_TICKS
 
 export const PIANO_ROLL_SNAP_OPTIONS = [
