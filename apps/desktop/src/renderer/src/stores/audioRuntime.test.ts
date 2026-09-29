@@ -7,7 +7,7 @@ import type {
   AudioResourceSnapshot,
   AudioRuntimeSnapshot
 } from "@heron/contracts"
-import { rpcFailure, rpcSuccess } from "../test/ipc"
+import { rpcFailure, rpcSuccess, stubApi } from "../test/ipc"
 import { useAudioRuntimeStore } from "./audioRuntime"
 
 const runtime: AudioRuntimeSnapshot = {
@@ -86,10 +86,6 @@ function recovery(): AudioDeviceRecoverySnapshot {
 function recoverySession(): AudioEngineSessionSnapshot {
   const active = resources(false)
   return { ...active, engine: active.engine!, transport: active.transport!, runtime }
-}
-
-function stubApi(overrides: Record<string, unknown>): void {
-  Object.assign(window.heron as unknown as Record<string, unknown>, overrides)
 }
 
 beforeEach(() => {

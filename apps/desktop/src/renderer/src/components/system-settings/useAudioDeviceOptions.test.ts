@@ -10,7 +10,7 @@ import type {
   AudioPreferences,
   AudioRuntimeSnapshot
 } from "@heron/contracts"
-import { rpcFailure, rpcSuccess, testBootstrap } from "../../test/ipc"
+import { rpcFailure, rpcSuccess, stubApi, testBootstrap } from "../../test/ipc"
 import { useAudioRuntimeStore } from "../../stores/audioRuntime"
 import { useAudioDeviceOptions } from "./useAudioDeviceOptions"
 
@@ -27,10 +27,6 @@ function device(id: string, overrides: Partial<AudioDeviceDescriptor> = {}): Aud
     channelCount: 2,
     ...overrides
   }
-}
-
-function stubApi(overrides: Record<string, unknown>): void {
-  Object.assign(window.heron as unknown as Record<string, unknown>, overrides)
 }
 
 interface Harness {

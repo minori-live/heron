@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { RpcEvent, StartupProgressSnapshot } from "@heron/contracts"
 import { useStartupStore } from "./startup"
 import { rpcEvent } from "../test/ipc"
+import { stubApi } from "../test/ipc"
 
 function progress(overrides: Partial<StartupProgressSnapshot> = {}): StartupProgressSnapshot {
   return {
@@ -24,7 +25,7 @@ beforeEach(() => {
 describe("useStartupStore", () => {
   it("ignores backwards progress except for terminal phases", () => {
     const listeners: Array<(event: RpcEvent<StartupProgressSnapshot>) => void> = []
-    stubApi({
+    stubApiForSplash({
       subscribeStartupProgress: (callback: (event: RpcEvent<StartupProgressSnapshot>) => void) => {
         listeners.push(callback)
         return () => {
@@ -46,7 +47,7 @@ describe("useStartupStore", () => {
 
   it("deduplicates out-of-order startup events by source epoch and sequence", () => {
     const listeners: Array<(event: RpcEvent<StartupProgressSnapshot>) => void> = []
-    stubApi({
+    stubApiForSplash({
       subscribeStartupProgress: (callback: (event: RpcEvent<StartupProgressSnapshot>) => void) => {
         listeners.push(callback)
         return () => undefined
@@ -69,7 +70,7 @@ describe("useStartupStore", () => {
   it("subscribes once and disposes the startup progress listener", () => {
     const unsubscribe = vi.fn()
     const subscribeStartupProgress = vi.fn(() => unsubscribe)
-    stubApi({ subscribeStartupProgress })
+    stubApiForSplash({ subscribeStartupProgress })
     const store = useStartupStore()
 
     store.load()
@@ -81,6 +82,6 @@ describe("useStartupStore", () => {
   })
 })
 
-function stubApi(overrides: Record<string, unknown>): void {
-  Object.assign(window.heronSplash as unknown as Record<string, unknown>, overrides)
+function stubApiForSplash(overrides: Record<string, unknown>): void {
+  stubApi(overrides, window.heronSplash as unknown as Record<string, unknown>)
 }
