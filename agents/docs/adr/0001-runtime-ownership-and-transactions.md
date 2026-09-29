@@ -4,7 +4,7 @@
 - Date: 2026-09-06
 - Owners: project maintainers
 - Scope: current runtime and transaction contract; release evidence belongs in the roadmap
-- Related: [Architecture](../architecture.md), [Native boundary](../native-call-boundary.md), [Resource and error contract](../cross-process-error-contract.md)
+- Related: [Architecture](../architecture.md), [Native boundary](../native-call-boundary.md)
 
 ## Context
 

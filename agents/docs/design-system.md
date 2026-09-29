@@ -350,5 +350,6 @@ in Desktop or product-example templates.
 - Confirm 320 px reflow and 200% text zoom for non-canvas UI.
 - Run `pnpm lint:design`, `pnpm lint:ui-boundary`, UI tests, Storybook tests, and the static Storybook build.
 
-The completed renderer inventory is recorded in
-[design-system-audit.md](design-system-audit.md).
+The renderer inventory is enforced by `pnpm lint:ui-boundary`, which
+cross-checks the public UI exports against the Storybook catalog rather than
+relying on a written list.

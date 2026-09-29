@@ -4,7 +4,7 @@
 - Date: 2026-09-26
 - Owners: project maintainers
 - Related: [ADR-0004](0004-layered-live-documents.md),
-  `agents/docs/roadmap.md`, `agents/docs/cross-process-error-contract.md`
+  `agents/docs/roadmap.md`
 
 ## Context
 

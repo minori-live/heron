@@ -12,7 +12,7 @@ JavaScript and Rust workspaces:
 - Node.js
 - pnpm
 - Rust, including Cargo
-- CMake 3.31 for building the pinned VST3 SDK test fixtures
+- CMake 4.3 for building the pinned VST3 SDK test fixtures
 
 The requested versions and version policies are defined in the repository-root
 `mise.toml`. `mise.lock` resolves those policies to concrete tool versions and
@@ -174,7 +174,7 @@ As a general rule, use stable dependency and runtime releases. Avoid
 prerelease, nightly, canary, or unpublished versions unless a specific task
 requires one and the tradeoff has been discussed.
 
-`mise.toml` may express a release line, such as Node.js 26 or Rust 1.97, while
+`mise.toml` may express a release line, such as Node.js 26 or Rust 1.98, while
 `mise.lock` records the concrete resolved patch release. Do not hand-edit
 `mise.lock`. After changing a tool declaration in `mise.toml`, or when
 intentionally refreshing a resolved runtime, run:
