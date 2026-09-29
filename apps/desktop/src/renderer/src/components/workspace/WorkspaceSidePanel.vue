@@ -64,7 +64,7 @@ function resize(intent: UiGestureIntent): void {
   display: grid;
   min-width: 0;
   min-height: 0;
-  border-left: 1px solid var(--ui-color-border-strong);
+  border-left: 1px solid var(--line-strong);
 }
 .workspace-side-panel-resizer {
   position: absolute;

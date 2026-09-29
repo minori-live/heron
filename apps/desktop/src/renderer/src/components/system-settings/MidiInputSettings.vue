@@ -158,9 +158,9 @@ function apply(): void {
   display: grid;
   gap: 16px;
   padding: 12px;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 7px;
-  background: var(--ui-color-surface-raised);
+  background: var(--surface-1);
 }
 
 .source-row {
@@ -169,7 +169,7 @@ function apply(): void {
   align-items: center;
   gap: 14px;
   padding-top: 12px;
-  border-top: 1px solid var(--ui-color-border);
+  border-top: 1px solid var(--line-soft);
 }
 
 .source-row[data-disabled="true"] {
@@ -187,7 +187,7 @@ function apply(): void {
 
 .source-copy small,
 .page-actions span {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font-size: var(--ui-type-size-caption);
   line-height: var(--ui-type-leading-normal);
 }

@@ -39,7 +39,7 @@ function panValueText(value: number): string {
       :value-text="panValueText"
       double-click-action="edit"
       await-commit
-      accent="var(--ui-signal-mixer-pan)"
+      accent="var(--mixer-pan)"
       @preview="emit('preview', panUnitsToNormalized($event))"
       @commit="(value, settle) => emit('commit', panUnitsToNormalized(value), settle!)"
     />

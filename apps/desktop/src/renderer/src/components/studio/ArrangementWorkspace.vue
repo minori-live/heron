@@ -438,12 +438,12 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
 
 <template>
   <section
-    class="arrangement relative grid min-h-0 min-w-0 grid-rows-[43px_minmax(0,1fr)] overflow-hidden bg-[var(--ui-daw-workspace)]"
+    class="arrangement relative grid min-h-0 min-w-0 grid-rows-[43px_minmax(0,1fr)] overflow-hidden bg-[var(--daw-workspace)]"
     data-tutorial="studio-arrangement"
     :aria-label="t('studio.arrangement.ariaLabel')"
   >
     <div
-      class="arrangement-toolbar flex items-center justify-end border-b border-b-solid bg-[var(--ui-color-surface-raised)] py-0 pe-[14px] ps-[15px] [border-bottom-color:var(--ui-color-border)]"
+      class="arrangement-toolbar flex items-center justify-end border-b border-b-solid bg-[var(--surface-1)] py-0 pe-[14px] ps-[15px] [border-bottom-color:var(--line-soft)]"
     >
       <GlobalTracksToggle :expanded="globalTracksExpanded" @toggle="viewStore.toggleGlobalTracks" />
       <ArrangementZoomControls
@@ -462,7 +462,7 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
 
     <div class="timeline-grid min-h-0 min-w-0">
       <UiArrangementViewport
-        class="timeline-viewport h-full w-full min-h-0 min-w-0 overflow-auto bg-[var(--ui-daw-lane)]"
+        class="timeline-viewport h-full w-full min-h-0 min-w-0 overflow-auto bg-[var(--daw-lane)]"
         data-testid="timeline-viewport"
         :label="t('studio.arrangement.ariaLabel')"
         :mime-types="[
@@ -484,7 +484,7 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
         >
           <div
             ref="rail"
-            class="timeline-rail sticky left-0 z-[var(--ui-z-local-sticky)] grid min-h-0 border-r border-r-solid bg-[var(--ui-daw-track-header)] [border-right-color:var(--ui-color-border)]"
+            class="timeline-rail sticky left-0 z-[var(--ui-z-local-sticky)] grid min-h-0 border-r border-r-solid bg-[var(--daw-track-header)] [border-right-color:var(--line-soft)]"
             data-ui-arrangement-rail
             data-testid="timeline-rail"
             :style="railStyle"
@@ -702,9 +702,9 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
   display: flex;
   align-items: center;
   padding: 0 12px;
-  border-bottom: 1px solid var(--ui-color-border-strong);
-  color: var(--ui-color-text-subtle);
-  background: var(--ui-daw-ruler);
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--text-faint);
+  background: var(--daw-ruler);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
 }
@@ -714,8 +714,8 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
   top: 43px;
   bottom: 0;
   width: 1px;
-  background: var(--ui-signal-record);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--ui-signal-record) 55%, transparent);
+  background: var(--record);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--record) 55%, transparent);
   pointer-events: none;
 }
 .timeline-playhead span {
@@ -724,11 +724,11 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
   left: -4px;
   width: 9px;
   height: 7px;
-  background: var(--ui-signal-record);
+  background: var(--record);
   clip-path: polygon(0 0, 100% 0, 50% 100%);
 }
 .empty-lane {
-  background: var(--ui-daw-lane);
+  background: var(--daw-lane);
 }
 .playback-error {
   position: absolute;
@@ -736,10 +736,10 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
   bottom: 12px;
   margin: 0;
   padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 55%, var(--ui-color-border-strong));
+  border: 1px solid color-mix(in srgb, var(--record) 55%, var(--line-strong));
   border-radius: 5px;
-  color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 14%, var(--ui-color-surface-raised));
+  color: var(--record);
+  background: color-mix(in srgb, var(--record) 14%, var(--surface-1));
   font-size: var(--ui-type-size-control);
 }
 @media (max-width: 1100px) {

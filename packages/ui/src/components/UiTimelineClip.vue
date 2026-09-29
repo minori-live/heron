@@ -372,7 +372,7 @@ function keydown(event: KeyboardEvent): void {
   );
   box-shadow:
     0 1px 0 var(--ui-domain-color-ffffff24) inset,
-    0 7px 18px var(--ui-color-shadow);
+    0 7px 18px var(--shadow);
   text-align: left;
 }
 .ui-timeline-clip--audio:hover {

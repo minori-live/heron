@@ -171,21 +171,17 @@ function relayFade(clipId: string, edge: AudioFadeEdge, frames: number): void {
   position: relative;
   min-width: 100%;
   overflow: hidden;
-  border-bottom: 1px solid var(--ui-color-border-strong);
-  background-color: var(--ui-daw-lane);
+  border-bottom: 1px solid var(--line-strong);
+  background-color: var(--daw-lane);
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 24px,
-    var(--ui-daw-lane-stripe) 25px
+    var(--daw-lane-stripe) 25px
   );
 }
 .track-lane.drag-target {
-  background-color: color-mix(
-    in srgb,
-    var(--clip-color, var(--ui-color-action)) 8%,
-    var(--ui-daw-lane)
-  );
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ui-color-action) 50%, transparent) inset;
+  background-color: color-mix(in srgb, var(--clip-color, var(--accent)) 8%, var(--daw-lane));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent) inset;
 }
 .bar-line {
   position: absolute;
@@ -193,7 +189,7 @@ function relayFade(clipId: string, edge: AudioFadeEdge, frames: number): void {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: var(--ui-daw-grid-line);
+  background: var(--daw-grid-line);
   pointer-events: none;
 }
 .beat-line {
@@ -202,11 +198,11 @@ function relayFade(clipId: string, edge: AudioFadeEdge, frames: number): void {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: color-mix(in srgb, var(--ui-daw-grid-line) 32%, transparent);
+  background: color-mix(in srgb, var(--daw-grid-line) 32%, transparent);
   pointer-events: none;
 }
 .clip-drop-preview {
-  --clip-color: var(--ui-color-action);
+  --clip-color: var(--accent);
   position: absolute;
   z-index: var(--ui-z-local-sticky);
   top: 9px;

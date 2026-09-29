@@ -162,12 +162,12 @@ const sectionStyle = computed(() => ({
 </script>
 <template>
   <section
-    class="mixer-console relative grid min-h-0 min-w-0 grid-rows-[minmax(43px,auto)_minmax(0,1fr)] overflow-hidden bg-[var(--ui-daw-workspace)]"
+    class="mixer-console relative grid min-h-0 min-w-0 grid-rows-[minmax(43px,auto)_minmax(0,1fr)] overflow-hidden bg-[var(--daw-workspace)]"
     :aria-label="t('mixer.console.ariaLabel')"
     :aria-busy="busy || undefined"
   >
     <header
-      class="mixer-toolbar flex flex-wrap items-center justify-between gap-ui-2 border-b border-b-solid bg-[var(--ui-color-surface-raised)] py-ui-1 pe-[11px] ps-[14px] [border-bottom-color:var(--ui-color-border-strong)]"
+      class="mixer-toolbar flex flex-wrap items-center justify-between gap-ui-2 border-b border-b-solid bg-[var(--surface-1)] py-ui-1 pe-[11px] ps-[14px] [border-bottom-color:var(--line-strong)]"
     >
       <span>{{ t("mixer.console.title") }}</span>
       <nav :aria-label="t('mixer.console.actions.ariaLabel')">
@@ -289,7 +289,7 @@ const sectionStyle = computed(() => ({
 
 <style scoped>
 .mixer-toolbar > span {
-  color: var(--ui-color-action);
+  color: var(--accent);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-widest);
 }
@@ -302,7 +302,7 @@ const sectionStyle = computed(() => ({
   background-color: var(--ui-domain-color-4f4f4f);
   background-image: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--ui-color-text) 3%, transparent) 1px,
+    color-mix(in srgb, var(--text-primary) 3%, transparent) 1px,
     transparent 1px
   );
   background-size: 112px 100%;
@@ -313,10 +313,10 @@ const sectionStyle = computed(() => ({
   bottom: 8px;
   margin: 0;
   padding: 6px 9px;
-  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 55%, var(--ui-color-border-strong));
+  border: 1px solid color-mix(in srgb, var(--record) 55%, var(--line-strong));
   border-radius: 4px;
-  color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 14%, var(--ui-color-surface-raised));
+  color: var(--record);
+  background: color-mix(in srgb, var(--record) 14%, var(--surface-1));
   font-size: var(--ui-type-size-control);
 }
 </style>

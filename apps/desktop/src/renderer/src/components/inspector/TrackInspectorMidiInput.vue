@@ -107,7 +107,7 @@ function updateChannel(value: string): void {
 
 .midi-port-control.missing {
   padding: 2px;
-  border: 1px solid var(--ui-signal-record);
+  border: 1px solid var(--mixer-record);
   border-radius: 5px;
 }
 </style>

@@ -190,18 +190,18 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .media-browser {
-  --ui-color-action: var(--ui-color-action);
+  --ui-color-action: var(--accent);
   --ui-color-surface-hover: var(--surface-hover);
-  --ui-color-border-strong: var(--ui-color-border-strong);
-  --ui-color-focus: var(--ui-color-focus);
+  --ui-color-border-strong: var(--line-strong);
+  --ui-color-focus: var(--focus);
 
   display: flex;
   min-width: 0;
   min-height: 0;
   height: 100%;
   flex-direction: column;
-  border-left: 1px solid var(--ui-color-border-strong);
-  background: var(--ui-color-surface-raised);
+  border-left: 1px solid var(--line-strong);
+  background: var(--surface-1);
 }
 .browser-header {
   display: flex;
@@ -209,10 +209,10 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   min-height: 51px;
   padding: 8px 10px 7px 12px;
-  border-bottom: 1px solid var(--ui-color-border-strong);
+  border-bottom: 1px solid var(--line-strong);
 }
 .browser-header span {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
   text-transform: uppercase;
@@ -225,9 +225,9 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--ui-color-border-strong);
-  color: var(--ui-color-text-muted);
-  background: var(--ui-daw-control);
+  border: 1px solid var(--line-strong);
+  color: var(--text-secondary);
+  background: var(--daw-control);
 }
 .import-row {
   display: grid;
@@ -248,7 +248,7 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 2px;
   padding: 0 10px 8px;
-  border-bottom: 1px solid var(--ui-color-border);
+  border-bottom: 1px solid var(--line-soft);
 }
 .asset-list {
   min-height: 0;
@@ -269,12 +269,12 @@ onBeforeUnmount(() => {
   height: 27px;
   place-items: center;
   border-radius: 4px;
-  color: var(--ui-signal-audio);
-  background: color-mix(in srgb, var(--ui-signal-audio) 13%, var(--ui-color-surface-hover));
+  color: var(--signal-cyan);
+  background: color-mix(in srgb, var(--signal-cyan) 13%, var(--surface-3));
 }
 .kind-mark[data-kind="midi"] {
   color: var(--signal-green);
-  background: color-mix(in srgb, var(--signal-green) 13%, var(--ui-color-surface-hover));
+  background: color-mix(in srgb, var(--signal-green) 13%, var(--surface-3));
 }
 .empty-state {
   display: flex;
@@ -282,11 +282,11 @@ onBeforeUnmount(() => {
   padding: 36px 20px;
   flex-direction: column;
   gap: 5px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   text-align: center;
 }
 .empty-state strong {
-  color: var(--ui-color-text-muted);
+  color: var(--text-secondary);
   font-size: var(--ui-type-size-body-compact);
 }
 .empty-state span {
@@ -296,10 +296,10 @@ onBeforeUnmount(() => {
 .browser-error {
   margin: 0;
   padding: 7px 10px;
-  border-top: 1px solid var(--ui-color-danger);
-  color: var(--ui-color-danger);
+  border-top: 1px solid var(--danger);
+  color: var(--danger);
   font-size: var(--ui-type-size-caption);
-  background: color-mix(in srgb, var(--ui-color-danger) 8%, var(--ui-color-surface-raised));
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface-1));
 }
 button:disabled {
   opacity: 0.55;

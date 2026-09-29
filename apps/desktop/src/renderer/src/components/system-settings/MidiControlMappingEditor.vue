@@ -347,9 +347,9 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
   display: grid;
   gap: 16px;
   padding: 14px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 7px;
-  background: var(--ui-color-surface-raised);
+  background: var(--surface-1);
   box-shadow: var(--ui-shadow-highlight-inset);
 }
 
@@ -359,14 +359,14 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
   align-items: center;
   gap: 10px;
   padding: 10px;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
-  background: var(--ui-color-surface-sunken);
+  background: var(--surface-sunken);
 }
 
 .learn-strip[data-learning="true"] {
-  border-color: color-mix(in srgb, var(--ui-color-action) 52%, var(--ui-color-border-strong));
-  background: color-mix(in srgb, var(--ui-color-action) 7%, var(--ui-color-surface-sunken));
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--line-strong));
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface-sunken));
 }
 
 .learn-indicator {
@@ -375,12 +375,12 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
   height: 32px;
   place-items: center;
   border-radius: 50%;
-  color: var(--ui-color-text-subtle);
-  background: var(--ui-color-surface-raised);
+  color: var(--text-faint);
+  background: var(--surface-2);
 }
 
 .learn-strip[data-learning="true"] .learn-indicator {
-  color: var(--ui-color-action);
+  color: var(--accent);
   box-shadow: var(--ui-focus-ring);
 }
 
@@ -395,12 +395,12 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
 
 .learn-copy small,
 .listening-label {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 
 .listening-label {
-  color: var(--ui-color-action);
+  color: var(--accent);
   font-weight: var(--ui-type-weight-bold);
   letter-spacing: var(--ui-type-tracking-wider);
   text-transform: uppercase;
@@ -410,9 +410,9 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   overflow: hidden;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
-  background: var(--ui-color-border);
+  background: var(--line-soft);
   gap: 1px;
 }
 
@@ -420,16 +420,16 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
   display: grid;
   gap: 4px;
   padding: 9px 10px;
-  background: var(--ui-color-surface-raised);
+  background: var(--surface-2);
 }
 
 .monitor-grid small {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font-size: var(--ui-type-size-caption);
 }
 
 .monitor-grid strong {
-  color: var(--ui-color-text-muted);
+  color: var(--text-secondary);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
 }
 
@@ -444,8 +444,8 @@ function updateAddress(patch: Partial<MidiControlAddress>): void {
   width: 100%;
   margin-bottom: 12px;
   padding: 0 0 7px;
-  border-bottom: 1px solid var(--ui-color-border);
-  color: var(--ui-color-text-muted);
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--text-secondary);
   font: var(--ui-type-weight-semibold) var(--ui-type-size-body-compact)
     var(--ui-type-family-display);
 }

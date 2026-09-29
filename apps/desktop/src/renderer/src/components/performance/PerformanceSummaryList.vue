@@ -105,7 +105,7 @@ function formatLatency(value: number | null): string {
 
 .performance-summary h3 {
   margin: 0 0 6px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   text-transform: uppercase;
   letter-spacing: var(--ui-type-tracking-widest);
@@ -114,10 +114,10 @@ function formatLatency(value: number | null): string {
 .performance-summary-list {
   display: grid;
   margin: 0;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
   overflow: hidden;
-  background: var(--ui-color-surface-raised);
+  background: var(--surface-1);
 }
 
 .summary-row {
@@ -126,7 +126,7 @@ function formatLatency(value: number | null): string {
   justify-content: space-between;
   min-height: 30px;
   padding: 0 9px;
-  border-bottom: 1px solid var(--ui-color-border);
+  border-bottom: 1px solid var(--line-soft);
   gap: 16px;
 }
 
@@ -135,22 +135,22 @@ function formatLatency(value: number | null): string {
 }
 
 .summary-row dt {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font-size: var(--ui-type-size-control);
 }
 
 .summary-row dd {
   margin: 0;
-  color: var(--ui-signal-audio);
+  color: var(--signal-cyan);
   font: var(--ui-type-weight-semibold) var(--ui-type-size-body-compact) var(--ui-type-family-data);
   white-space: nowrap;
 }
 
 .summary-row.warning dd {
-  color: var(--ui-color-warning);
+  color: var(--warning);
 }
 
 .summary-row.critical dd {
-  color: var(--ui-signal-record);
+  color: var(--record);
 }
 </style>

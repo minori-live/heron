@@ -135,7 +135,7 @@ export const OrdinaryControls: Story = {
       UiTextarea
     },
     data: () => ({
-      color: "var(--ui-signal-audio)",
+      color: "var(--signal-cyan)",
       note: "Verse automation notes",
       tab: "project",
       submitted: false,

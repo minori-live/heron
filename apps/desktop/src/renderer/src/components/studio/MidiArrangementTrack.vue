@@ -194,17 +194,17 @@ function relayDragStart(clipId: string, offsetPixels: number): void {
 .midi-track {
   position: relative;
   overflow: hidden;
-  border-bottom: 1px solid var(--ui-color-border-strong);
-  background: var(--ui-daw-lane);
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--daw-lane);
 }
 .midi-track.drag-target {
-  background: color-mix(in srgb, var(--clip-color, var(--ui-color-action)) 8%, var(--ui-daw-lane));
+  background: color-mix(in srgb, var(--clip-color, var(--accent)) 8%, var(--daw-lane));
 }
 .empty-hint {
   position: absolute;
   top: 50%;
   left: var(--ui-space-3);
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   pointer-events: none;
   transform: translateY(-50%);
@@ -219,10 +219,10 @@ function relayDragStart(clipId: string, offsetPixels: number): void {
   pointer-events: none;
 }
 .bar-line {
-  background: var(--ui-daw-grid-line);
+  background: var(--daw-grid-line);
 }
 .beat-line {
-  background: color-mix(in srgb, var(--ui-daw-grid-line) 32%, transparent);
+  background: color-mix(in srgb, var(--daw-grid-line) 32%, transparent);
 }
 .midi-clip-drop-preview {
   position: absolute;
@@ -234,8 +234,8 @@ function relayDragStart(clipId: string, offsetPixels: number): void {
   padding: 4px 5px;
   border: 1px solid;
   border-radius: 3px;
-  color: var(--ui-color-text);
-  background: color-mix(in srgb, var(--clip-color) 32%, var(--ui-color-surface-sunken));
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--clip-color) 32%, var(--surface-sunken));
   box-shadow: var(--ui-focus-ring);
   opacity: 0.92;
   pointer-events: none;

@@ -62,11 +62,11 @@ const { t } = useI18n()
   z-index: var(--ui-z-local-header);
   min-width: 0;
   height: 38px;
-  border-bottom: 1px solid var(--ui-color-border-strong);
+  border-bottom: 1px solid var(--line-strong);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--ui-color-surface-raised) 76%, var(--ui-color-surface-raised)),
-    var(--ui-color-surface)
+    color-mix(in srgb, var(--surface-2) 76%, var(--surface-1)),
+    var(--surface-panel)
   );
   box-shadow: var(--ui-shadow-highlight-inset);
   user-select: none;
@@ -97,11 +97,11 @@ const { t } = useI18n()
   display: flex;
   align-items: center;
   flex: none;
-  color: var(--ui-color-text-muted);
+  color: var(--text-secondary);
 }
 
 .app-titlebar__logo {
-  color: var(--ui-color-action);
+  color: var(--accent);
   font-size: var(--ui-font-size-xs);
 }
 
@@ -127,7 +127,7 @@ const { t } = useI18n()
   min-width: 0;
   gap: 6px;
   overflow: hidden;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -138,12 +138,12 @@ const { t } = useI18n()
   height: 5px;
   flex: none;
   border-radius: 50%;
-  background: var(--ui-color-warning);
+  background: var(--warning);
   box-shadow: var(--ui-shadow-warning-ring);
 }
 
 .app-titlebar__project--empty {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
 }
 
 @media (max-width: 980px) {

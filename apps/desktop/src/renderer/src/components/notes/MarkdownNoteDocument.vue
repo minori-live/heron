@@ -140,10 +140,10 @@ watch(
   gap: 6px;
   margin-bottom: 10px;
   padding: 5px 8px;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 5px;
-  color: var(--ui-color-text-subtle);
-  background: var(--ui-daw-control);
+  color: var(--text-muted);
+  background: var(--daw-control);
   font-size: var(--ui-type-size-caption);
 }
 
@@ -151,7 +151,7 @@ watch(
   min-height: 0;
   padding: 2px 5px 24px;
   overflow-y: auto;
-  color: var(--ui-color-text-muted);
+  color: var(--text-secondary);
   font-size: var(--ui-type-size-body-compact);
   line-height: var(--ui-type-leading-relaxed);
   user-select: text;
@@ -159,7 +159,7 @@ watch(
 
 .markdown-preview :deep(:is(h1, h2, h3, h4)) {
   margin: 1.25em 0 0.45em;
-  color: var(--ui-color-text);
+  color: var(--text-primary);
   font-family: var(--ui-type-family-display);
   line-height: var(--ui-type-leading-tight);
 }
@@ -171,7 +171,7 @@ watch(
 
 .markdown-preview :deep(h2) {
   padding-bottom: 0.3em;
-  border-bottom: 1px solid var(--ui-color-border);
+  border-bottom: 1px solid var(--line-soft);
   font-size: var(--ui-type-size-feature-title);
 }
 
@@ -189,8 +189,8 @@ watch(
 
 .markdown-preview :deep(blockquote) {
   padding: 2px 0 2px 11px;
-  border-left: 2px solid var(--ui-color-action);
-  color: var(--ui-color-text-subtle);
+  border-left: 2px solid var(--accent);
+  color: var(--text-muted);
 }
 
 .markdown-preview :deep(:is(code, pre)) {
@@ -199,24 +199,24 @@ watch(
 
 .markdown-preview :deep(code) {
   padding: 0.12em 0.35em;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 4px;
-  color: var(--ui-color-action-hover);
-  background: var(--ui-color-surface-sunken);
+  color: var(--accent-soft);
+  background: var(--surface-sunken);
 }
 
 .markdown-preview :deep(pre) {
   padding: 10px;
   overflow-x: auto;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 6px;
-  background: var(--ui-color-surface-sunken);
+  background: var(--surface-sunken);
 }
 
 .markdown-preview :deep(pre code) {
   padding: 0;
   border: 0;
-  color: var(--ui-color-text-muted);
+  color: var(--text-secondary);
   background: transparent;
 }
 
@@ -224,7 +224,7 @@ watch(
   height: 1px;
   margin: 1.2em 0;
   border: 0;
-  background: var(--ui-color-border);
+  background: var(--line-soft);
 }
 
 .empty-state {
@@ -232,17 +232,17 @@ watch(
   justify-items: center;
   margin: auto;
   padding: 26px 18px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   text-align: center;
 }
 
 .empty-state svg {
   margin-bottom: 12px;
-  color: var(--ui-color-action-hover);
+  color: var(--accent-soft);
 }
 
 .empty-state strong {
-  color: var(--ui-color-text-muted);
+  color: var(--text-secondary);
   font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-panel-title);
 }
@@ -256,20 +256,20 @@ watch(
 
 .empty-state button {
   padding: 5px 9px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 5px;
-  color: var(--ui-color-text-muted);
-  background: var(--ui-daw-control);
+  color: var(--text-secondary);
+  background: var(--daw-control);
   font-size: var(--ui-type-size-caption);
 }
 
 .empty-state.muted svg {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
 }
 
 .editor-label {
   margin: 0 2px 7px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
   text-transform: uppercase;
@@ -281,10 +281,10 @@ watch(
   flex: 1;
   resize: none;
   padding: 12px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
-  color: var(--ui-color-text);
-  background: var(--ui-color-surface-sunken);
+  color: var(--text-primary);
+  background: var(--surface-sunken);
   font-family: var(--ui-type-family-data);
   font-size: var(--ui-type-size-body-compact);
   line-height: var(--ui-type-leading-relaxed);
@@ -292,7 +292,7 @@ watch(
 }
 
 .markdown-editor::placeholder {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
 }
 
 .editor-footer {
@@ -304,7 +304,7 @@ watch(
 }
 
 .editor-footer > span {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 

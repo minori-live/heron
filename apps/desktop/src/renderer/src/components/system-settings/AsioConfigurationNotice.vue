@@ -30,11 +30,11 @@ const { t } = useI18n()
   gap: 14px;
   margin-top: 12px;
   padding: 14px;
-  border: 1px solid var(--ui-color-border);
-  border-left: var(--ui-signal-rail-width) solid var(--ui-signal-audio);
+  border: 1px solid var(--line-soft);
+  border-left: var(--ui-signal-rail-width) solid var(--signal-cyan);
   border-radius: 7px;
   color: var(--text-strong);
-  background: var(--ui-color-surface-raised);
+  background: var(--surface-1);
 }
 
 .asio-compatible-logo {
@@ -58,7 +58,7 @@ const { t } = useI18n()
 }
 
 .asio-configuration-statement {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font-size: var(--ui-type-size-control);
   line-height: var(--ui-type-leading-normal);
 }

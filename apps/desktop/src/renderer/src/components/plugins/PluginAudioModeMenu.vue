@@ -97,7 +97,7 @@ function isSupported(mode: PluginAudioMode): boolean {
 }
 .mode-menu header small {
   margin-top: 2px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 .mode-list {
@@ -105,7 +105,7 @@ function isSupported(mode: PluginAudioMode): boolean {
   gap: 4px;
 }
 .mode-list em {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font: var(--ui-type-size-micro) var(--ui-type-family-data);
   font-style: normal;
 }

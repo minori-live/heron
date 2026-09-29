@@ -72,7 +72,7 @@ const clipStyle = computed(() => {
     left: `${displayedClip.value.startTick * pixelsPerTick}px`,
     width: `${Math.max(9, displayedClip.value.lengthTicks * pixelsPerTick)}px`,
     borderColor: props.trackColor,
-    background: `color-mix(in srgb, ${props.trackColor} 20%, var(--ui-color-surface-sunken))`
+    background: `color-mix(in srgb, ${props.trackColor} 20%, var(--surface-sunken))`
   }
 })
 
@@ -156,14 +156,14 @@ function selectMenuAction(id: string): void {
   padding: 4px 7px;
   border: 1px solid;
   border-radius: 3px;
-  color: var(--ui-color-text);
+  color: var(--text-primary);
   text-align: left;
 }
 .midi-clip.trimming {
   z-index: var(--ui-z-local-selection);
 }
 .midi-clip[aria-pressed="true"] {
-  outline: 2px solid var(--ui-color-focus);
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 .midi-clip strong {
@@ -198,7 +198,7 @@ function selectMenuAction(id: string): void {
   bottom: 4px;
   width: 2px;
   border-radius: 1px;
-  background: color-mix(in srgb, var(--ui-color-text) 75%, transparent);
+  background: color-mix(in srgb, var(--text-primary) 75%, transparent);
   content: "";
   opacity: 0;
 }

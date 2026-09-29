@@ -183,10 +183,10 @@ function updateHardwareOutput(index: number, value: string): void {
   width: 210px;
   gap: 9px;
   padding: 11px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
-  color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
+  color: var(--text-primary);
+  background: var(--surface-1);
   box-shadow: 0 14px 36px var(--ui-domain-color-00000075);
 }
 .mixer-popover header span,
@@ -194,7 +194,7 @@ function updateHardwareOutput(index: number, value: string): void {
   display: block;
 }
 .mixer-popover header span {
-  color: var(--ui-color-action);
+  color: var(--accent);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
 }
@@ -207,7 +207,7 @@ function updateHardwareOutput(index: number, value: string): void {
   grid-template-columns: 40px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font-size: var(--ui-type-size-control);
 }
 </style>

@@ -79,7 +79,7 @@ onMounted(() => {
 }
 
 .midi-error {
-  color: var(--ui-signal-record);
+  color: var(--record);
   font-size: var(--ui-type-size-body-compact);
 }
 

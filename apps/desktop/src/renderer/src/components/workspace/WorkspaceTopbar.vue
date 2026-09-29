@@ -1,6 +1,6 @@
 <template>
   <header
-    class="topbar col-span-full flex h-[56px] min-w-0 items-center justify-between gap-[clamp(4px,0.55vw,10px)] border-b border-b-solid px-[12px] py-[5px] [border-bottom-color:var(--ui-color-border-strong)]"
+    class="topbar col-span-full flex h-[56px] min-w-0 items-center justify-between gap-[clamp(4px,0.55vw,10px)] border-b border-b-solid px-[12px] py-[5px] [border-bottom-color:var(--line-strong)]"
   >
     <slot />
   </header>
@@ -8,10 +8,10 @@
 
 <style scoped>
 .topbar {
-  background: color-mix(in srgb, var(--ui-color-surface-raised) 96%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 96%, transparent);
   box-shadow:
     0 1px 0 var(--ui-domain-color-ffffff05) inset,
-    0 8px 22px var(--ui-color-shadow);
+    0 8px 22px var(--shadow);
 }
 @media (max-width: 1279px) {
   .topbar {

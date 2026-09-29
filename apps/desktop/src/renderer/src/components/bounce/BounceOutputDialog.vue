@@ -92,7 +92,7 @@ const { t } = useI18n()
 }
 :deep(.bounce-fieldset legend) {
   padding: 0 5px;
-  color: var(--ui-signal-mixer-bounce);
+  color: var(--mixer-bounce);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
   text-transform: uppercase;

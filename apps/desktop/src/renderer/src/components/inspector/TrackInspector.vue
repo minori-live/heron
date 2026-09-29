@@ -57,8 +57,8 @@ function updateTrack(patch: MixerChannelPatch): void {
   min-height: 0;
   overflow-y: auto;
   padding: 17px 12px 16px;
-  border-right: 1px solid var(--ui-color-border);
-  background: var(--ui-color-surface);
+  border-right: 1px solid var(--line-soft);
+  background: var(--surface-panel);
 }
 
 .panel-heading {
@@ -74,14 +74,14 @@ function updateTrack(patch: MixerChannelPatch): void {
 }
 
 .panel-heading span {
-  color: var(--ui-color-action);
+  color: var(--accent);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-widest);
 }
 
 .panel-heading strong {
   margin-top: 5px;
-  color: var(--ui-color-text);
+  color: var(--text-primary);
   font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-panel-title);
   letter-spacing: var(--ui-type-tracking-wide);
@@ -89,7 +89,7 @@ function updateTrack(patch: MixerChannelPatch): void {
 
 .panel-heading > svg {
   margin-top: 3px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
 }
 
 .empty-state {
@@ -97,26 +97,26 @@ function updateTrack(patch: MixerChannelPatch): void {
   place-items: center;
   margin-top: 4px;
   padding: 28px 12px;
-  border: 1px dashed var(--ui-color-border-strong);
+  border: 1px dashed var(--line-strong);
   border-radius: 7px;
-  color: var(--ui-color-text-subtle);
-  background: var(--ui-color-surface-sunken);
+  color: var(--text-faint);
+  background: var(--surface-sunken);
   text-align: center;
 }
 
 .empty-state > svg {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
 }
 
 .empty-state strong {
   margin-top: 10px;
-  color: var(--ui-color-text-muted);
+  color: var(--text-secondary);
   font-size: var(--ui-type-size-body-compact);
 }
 
 .empty-state p {
   margin: 6px 0 0;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font-size: var(--ui-type-size-control);
   line-height: var(--ui-type-leading-normal);
 }

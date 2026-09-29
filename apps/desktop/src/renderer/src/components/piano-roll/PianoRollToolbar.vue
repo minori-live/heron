@@ -138,7 +138,7 @@ function changeKeyZoom(delta: number): void {
   grid-template-columns: auto 7rem;
   align-items: center;
   gap: 5px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 

@@ -35,11 +35,11 @@ defineSlots<{
   grid-template-rows: auto auto;
   gap: 3px 7px;
   padding: 6px 10px;
-  border-bottom: 1px solid var(--ui-color-border-strong);
+  border-bottom: 1px solid var(--line-strong);
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--lane-color) 8%, var(--ui-daw-track-header)),
-    var(--ui-daw-track-header) 74%
+    color-mix(in srgb, var(--lane-color) 8%, var(--daw-track-header)),
+    var(--daw-track-header) 74%
   );
   box-shadow: 3px 0 0 var(--lane-color) inset;
 }
@@ -59,7 +59,7 @@ defineSlots<{
 }
 .lane-copy strong {
   margin-top: 1px;
-  color: var(--ui-color-text);
+  color: var(--text-primary);
   font: var(--ui-type-size-label) var(--ui-type-family-display);
 }
 .lane-controls {

@@ -189,10 +189,10 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
   max-height: min(720px, calc(100vh - 40px));
   gap: 12px;
   padding: 15px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
-  color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
+  color: var(--text-primary);
+  background: var(--surface-1);
   box-shadow: var(--ui-shadow-lg);
   transform: translate(-50%, -50%);
 }
@@ -219,14 +219,14 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
 .midi-dialog header button {
   width: 28px;
   height: 28px;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 4px;
-  color: var(--ui-color-text-muted);
-  background: var(--ui-daw-control);
+  color: var(--text-secondary);
+  background: var(--daw-control);
 }
 .midi-dialog > p {
   margin: 0;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font-size: var(--ui-type-size-control);
 }
 .mapping-list {
@@ -241,9 +241,9 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
   align-items: center;
   gap: 8px;
   padding: 8px;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 4px;
-  background: var(--ui-color-surface-sunken);
+  background: var(--surface-sunken);
 }
 .mapping-list strong,
 .mapping-list small {
@@ -254,7 +254,7 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
 }
 .mapping-list small {
   margin-top: 3px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font-size: var(--ui-type-size-caption);
 }
 .mapping-list .warning {
@@ -271,7 +271,7 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
 .tempo-choice legend {
   grid-column: 1/-1;
   margin-bottom: 2px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
   text-transform: uppercase;
@@ -282,17 +282,13 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
   align-items: start;
   gap: 7px;
   padding: 9px;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 4px;
-  background: var(--ui-color-surface-sunken);
+  background: var(--surface-sunken);
 }
 .tempo-choice label.selected {
-  border-color: color-mix(
-    in srgb,
-    var(--ui-domain-color-73d6a2) 58%,
-    var(--ui-color-border-strong)
-  );
-  background: color-mix(in srgb, var(--ui-domain-color-73d6a2) 7%, var(--ui-color-surface-sunken));
+  border-color: color-mix(in srgb, var(--ui-domain-color-73d6a2) 58%, var(--line-strong));
+  background: color-mix(in srgb, var(--ui-domain-color-73d6a2) 7%, var(--surface-sunken));
   box-shadow: var(--ui-shadow-selected-outline);
 }
 .tempo-choice input {
@@ -304,21 +300,21 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
   display: block;
 }
 .tempo-choice strong {
-  color: var(--ui-color-text);
+  color: var(--text-primary);
   font-size: var(--ui-type-size-control);
 }
 .tempo-choice small {
   margin-top: 4px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font-size: var(--ui-type-size-caption);
   line-height: var(--ui-type-leading-compact);
 }
 .warning {
-  color: var(--ui-color-warning) !important;
+  color: var(--warning) !important;
   font-size: var(--ui-type-size-caption) !important;
 }
 .error {
-  color: var(--ui-signal-record) !important;
+  color: var(--record) !important;
 }
 .midi-dialog footer {
   display: flex;
@@ -328,18 +324,14 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
 .midi-dialog footer button {
   height: 30px;
   padding: 0 12px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
-  color: var(--ui-color-text-muted);
-  background: var(--ui-daw-control);
+  color: var(--text-secondary);
+  background: var(--daw-control);
   font-size: var(--ui-type-size-control);
 }
 .midi-dialog footer .primary {
-  border-color: color-mix(
-    in srgb,
-    var(--ui-domain-color-73d6a2) 55%,
-    var(--ui-color-border-strong)
-  );
+  border-color: color-mix(in srgb, var(--ui-domain-color-73d6a2) 55%, var(--line-strong));
   color: var(--ui-domain-color-08120d);
   background: var(--ui-domain-color-73d6a2);
   font-weight: var(--ui-type-weight-bold);

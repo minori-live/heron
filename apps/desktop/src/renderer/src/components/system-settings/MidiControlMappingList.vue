@@ -142,15 +142,15 @@ function connected(binding: MidiControlBinding): boolean {
 
 .mapping-toolbar p {
   margin: 0;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 
 .mapping-group {
   overflow: hidden;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 7px;
-  background: var(--ui-color-surface-raised);
+  background: var(--surface-1);
 }
 
 .mapping-header {
@@ -158,8 +158,8 @@ function connected(binding: MidiControlBinding): boolean {
   grid-template-columns: 30px minmax(0, 1fr) auto;
   gap: 10px;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--ui-color-border);
-  background: var(--ui-color-surface-raised);
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--surface-2);
 }
 
 .device-mark {
@@ -167,15 +167,15 @@ function connected(binding: MidiControlBinding): boolean {
   width: 28px;
   height: 28px;
   place-items: center;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 5px;
-  color: var(--ui-color-text-subtle);
-  background: var(--ui-color-surface-sunken);
+  color: var(--text-faint);
+  background: var(--surface-sunken);
 }
 
 .device-mark.connected {
-  border-color: color-mix(in srgb, var(--ui-color-action) 42%, var(--ui-color-border-strong));
-  color: var(--ui-color-action);
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line-strong));
+  color: var(--accent);
 }
 
 .mapping-address,
@@ -196,12 +196,12 @@ function connected(binding: MidiControlBinding): boolean {
 .mapping-address small,
 .target-copy small,
 .connection-state {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 
 .connection-state[data-connected="true"] {
-  color: var(--ui-color-action);
+  color: var(--accent);
 }
 
 .fanout-notice {
@@ -218,7 +218,7 @@ function connected(binding: MidiControlBinding): boolean {
   justify-content: space-between;
   gap: 12px;
   min-height: 49px;
-  border-top: 1px solid var(--ui-color-border);
+  border-top: 1px solid var(--line-soft);
 }
 
 .target-row:first-child {

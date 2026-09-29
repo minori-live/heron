@@ -65,17 +65,17 @@ const stateTone = computed(() => {
   display: grid;
   grid-template-columns: minmax(170px, 0.85fr) minmax(300px, 1.4fr);
   overflow: hidden;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 7px;
-  background: var(--ui-color-surface-raised);
+  background: var(--surface-1);
 }
 
 .sync-panel[data-tone="healthy"] {
-  border-color: color-mix(in srgb, var(--ui-color-action) 44%, var(--ui-color-border-strong));
+  border-color: color-mix(in srgb, var(--accent) 44%, var(--line-strong));
 }
 
 .sync-panel[data-tone="warning"] {
-  border-color: color-mix(in srgb, var(--ui-color-warning) 48%, var(--ui-color-border-strong));
+  border-color: color-mix(in srgb, var(--warning) 48%, var(--line-strong));
 }
 
 .sync-identity {
@@ -83,8 +83,8 @@ const stateTone = computed(() => {
   align-items: center;
   gap: 11px;
   padding: 13px;
-  border-right: 1px solid var(--ui-color-border);
-  background: var(--ui-color-surface-raised);
+  border-right: 1px solid var(--line-soft);
+  background: var(--surface-2);
 }
 
 .sync-mark {
@@ -93,19 +93,19 @@ const stateTone = computed(() => {
   height: 34px;
   flex: none;
   place-items: center;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 50%;
-  color: var(--ui-color-text-subtle);
-  background: var(--ui-color-surface-sunken);
+  color: var(--text-faint);
+  background: var(--surface-sunken);
 }
 
 .sync-panel[data-tone="active"] .sync-mark,
 .sync-panel[data-tone="healthy"] .sync-mark {
-  color: var(--ui-color-action);
+  color: var(--accent);
 }
 
 .sync-panel[data-tone="warning"] .sync-mark {
-  color: var(--ui-color-warning);
+  color: var(--warning);
 }
 
 .sync-copy {
@@ -117,7 +117,7 @@ const stateTone = computed(() => {
 .sync-copy small,
 .sync-metric small,
 .sync-metric em {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   font-style: normal;
 }
@@ -133,7 +133,7 @@ const stateTone = computed(() => {
 
 .sync-copy span {
   overflow: hidden;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font-size: var(--ui-type-size-caption);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -142,7 +142,7 @@ const stateTone = computed(() => {
 .sync-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  background: var(--ui-color-border);
+  background: var(--line-soft);
   gap: 1px;
 }
 
@@ -152,11 +152,11 @@ const stateTone = computed(() => {
   gap: 3px;
   min-width: 0;
   padding: 10px;
-  background: var(--ui-color-surface-raised);
+  background: var(--surface-1);
 }
 
 .sync-metric strong {
-  color: var(--ui-color-text-muted);
+  color: var(--text-secondary);
   font: var(--ui-type-weight-semibold) var(--ui-font-size-sm) var(--ui-type-family-data);
 }
 
@@ -167,7 +167,7 @@ const stateTone = computed(() => {
 
   .sync-identity {
     border-right: 0;
-    border-bottom: 1px solid var(--ui-color-border);
+    border-bottom: 1px solid var(--line-soft);
   }
 
   .sync-metrics {

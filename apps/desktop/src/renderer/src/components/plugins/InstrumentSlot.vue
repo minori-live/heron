@@ -83,7 +83,7 @@ function drop(data: UiDragData[]): void {
   display: grid;
   gap: 7px;
   padding: 11px 13px;
-  border-bottom: 1px solid var(--ui-color-border);
+  border-bottom: 1px solid var(--line-soft);
   background: linear-gradient(
     90deg,
     color-mix(in srgb, var(--ui-domain-color-73d6a2) 5%, transparent),
@@ -99,7 +99,7 @@ function drop(data: UiDragData[]): void {
   letter-spacing: var(--ui-type-tracking-wider);
 }
 .slot-heading b {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font-size: var(--ui-type-size-micro);
 }
 .slot-body {
@@ -109,9 +109,9 @@ function drop(data: UiDragData[]): void {
   gap: 5px;
   min-height: 34px;
   padding: 5px 5px 5px 7px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
-  background: var(--ui-color-surface-sunken);
+  background: var(--surface-sunken);
   box-shadow: inset 2px 0 0 color-mix(in srgb, var(--ui-domain-color-73d6a2) 72%, transparent);
 }
 .slot-body i {
@@ -122,14 +122,14 @@ function drop(data: UiDragData[]): void {
   box-shadow: 0 0 5px color-mix(in srgb, var(--ui-domain-color-73d6a2) 60%, transparent);
 }
 .slot-body i.bypassed {
-  background: var(--ui-color-text-subtle);
+  background: var(--text-faint);
   box-shadow: none;
 }
 .slot-body i.failed,
 .slot-body i.missing,
 .slot-body i.quarantined {
-  background: var(--ui-signal-record);
-  box-shadow: 0 0 5px color-mix(in srgb, var(--ui-signal-record) 55%, transparent);
+  background: var(--record);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--record) 55%, transparent);
 }
 .slot-body strong,
 .slot-body small {
@@ -143,17 +143,17 @@ function drop(data: UiDragData[]): void {
 }
 .slot-body small {
   margin-top: 2px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font-size: var(--ui-type-size-micro);
 }
 .instrument-slot > p {
   margin: 0;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font-size: var(--ui-type-size-control);
   line-height: var(--ui-type-leading-normal);
 }
 .slot-error {
-  color: var(--ui-signal-record);
+  color: var(--record);
   font-size: var(--ui-type-size-caption);
 }
 </style>

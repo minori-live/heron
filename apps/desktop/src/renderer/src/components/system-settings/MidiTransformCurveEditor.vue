@@ -277,11 +277,11 @@ function removeLastSegment(): void {
 .segment-table td {
   text-align: left;
   padding: 6px;
-  border-bottom: 1px solid var(--ui-color-border);
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .segment-table th {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   font-weight: var(--ui-type-weight-medium);
 }

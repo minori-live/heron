@@ -25,7 +25,7 @@ const panUnits = computed(() => normalizedToPanUnits(props.value))
     size="track"
     double-click-action="edit"
     :drag-range-pixels="254"
-    accent="var(--ui-signal-mixer-pan)"
+    accent="var(--mixer-pan)"
     @preview="emit('preview', panUnitsToNormalized($event))"
     @commit="emit('commit', panUnitsToNormalized($event))"
   />

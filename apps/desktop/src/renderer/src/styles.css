@@ -7,8 +7,8 @@ body,
 body {
   margin: 0;
   overflow: hidden;
-  color: var(--ui-color-text);
-  background: var(--ui-color-canvas);
+  color: var(--text-primary);
+  background: var(--canvas);
 }
 button,
 input {
@@ -24,54 +24,54 @@ button,
   -webkit-tap-highlight-color: transparent;
 }
 ::selection {
-  color: var(--ui-color-action-text);
-  background: var(--ui-color-action-pressed);
+  color: var(--button-primary-text);
+  background: var(--accent-strong);
 }
 
 .driver-popover.heron-tutorial-popover {
   max-width: 340px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 9px;
-  color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
+  color: var(--text-primary);
+  background: var(--surface-2);
   box-shadow: var(--ui-shadow-lg);
   font-family: var(--ui-type-family-interface);
 }
 
 .driver-popover.heron-tutorial-popover .driver-popover-title {
-  color: var(--ui-color-text);
+  color: var(--text-primary);
   font-family: var(--ui-type-family-display);
   font-size: var(--ui-font-size-md);
 }
 
 .driver-popover.heron-tutorial-popover .driver-popover-description,
 .driver-popover.heron-tutorial-popover .driver-popover-progress-text {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   line-height: var(--ui-type-leading-relaxed);
 }
 
 .driver-popover.heron-tutorial-popover button {
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
-  color: var(--ui-color-text-muted);
-  background: var(--ui-color-surface-hover);
+  color: var(--text-secondary);
+  background: var(--surface-3);
   text-shadow: none;
 }
 
 .driver-popover.heron-tutorial-popover button:hover,
 .driver-popover.heron-tutorial-popover button:focus-visible {
-  color: var(--ui-color-text);
-  background: var(--ui-color-surface-active);
+  color: var(--text-primary);
+  background: var(--surface-active);
 }
 
 .driver-popover.heron-tutorial-popover .driver-popover-next-btn {
-  border-color: var(--ui-color-action-pressed);
-  color: var(--ui-color-action-text);
-  background: var(--ui-color-action);
+  border-color: var(--accent-strong);
+  color: var(--button-primary-text);
+  background: var(--button-primary);
 }
 
 .driver-popover.heron-tutorial-popover .driver-popover-close-btn {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
 }
 
 .settings-button {
@@ -83,12 +83,12 @@ button,
   padding: 0;
   border: 1px solid transparent;
   border-radius: 7px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   background: transparent;
   cursor: pointer;
 }
 .tooltip-arrow {
-  fill: var(--ui-color-border-strong);
+  fill: var(--line-strong);
 }
 
 .tooltip-content {
@@ -97,19 +97,19 @@ button,
   align-items: center;
   gap: 10px;
   padding: 7px 9px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
-  color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
+  color: var(--text-primary);
+  background: var(--surface-2);
   box-shadow: var(--ui-shadow-md);
   font-size: var(--ui-type-size-body-compact);
   animation: floating-surface-in 100ms ease-out;
 }
 .tooltip-content span {
   padding: 2px 4px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 3px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 
@@ -122,53 +122,53 @@ button,
 
 /* The large DAW surfaces stay deliberately neutral; color is reserved for signal state. */
 :root[data-theme] .settings-page {
-  color: var(--ui-color-text);
-  background: var(--ui-color-canvas);
+  color: var(--text-primary);
+  background: var(--canvas);
 }
 
 :root[data-theme] :is(.save-button, .primary-action) {
-  border-color: var(--ui-color-action-pressed);
-  color: var(--ui-color-action-text);
-  background: var(--ui-color-action);
+  border-color: var(--accent-strong);
+  color: var(--button-primary-text);
+  background: var(--button-primary);
 }
 
 :root[data-theme] :is(.signal-card, .backend-card, .latency-card) {
-  color: var(--ui-color-text-muted);
-  background: var(--ui-color-surface-sunken);
+  color: var(--text-secondary);
+  background: var(--surface-sunken);
 }
 
 :root[data-theme] .progress-track {
-  background: var(--ui-color-surface-sunken);
+  background: var(--surface-sunken);
 }
 
 :root[data-theme] :is(.settings-nav-item.active, .settings-page-item.active) {
-  border-color: var(--ui-color-border-strong);
-  color: var(--ui-color-text);
-  background: var(--ui-color-surface-active);
+  border-color: var(--line-strong);
+  color: var(--text-primary);
+  background: var(--surface-active);
 }
 
 :root[data-theme] :is(.path-control code, .path-control button) {
-  border-color: var(--ui-color-border-strong);
-  color: var(--ui-color-text-muted);
-  background: var(--ui-color-surface-raised);
+  border-color: var(--line-strong);
+  color: var(--text-secondary);
+  background: var(--surface-2);
 }
 
 :root[data-theme] .backend-card[data-state="checked"] {
-  border-color: var(--ui-color-action-pressed);
-  background: var(--ui-color-surface-active);
+  border-color: var(--accent-strong);
+  background: var(--surface-active);
   box-shadow: var(--ui-shadow-selected-edge);
 }
 
 :root[data-theme="light"] .prefs-primary-nav {
-  background: var(--ui-color-surface);
+  background: var(--surface-panel);
 }
 
 :root[data-theme="light"] .prefs-secondary-nav {
-  background: var(--ui-color-surface-raised);
+  background: var(--surface-1);
 }
 
 :root[data-theme="light"] :is(.backend-card-copy b, .settings-page-item.active) {
-  color: var(--ui-color-text);
+  color: var(--text-primary);
   text-shadow: none;
 }
 

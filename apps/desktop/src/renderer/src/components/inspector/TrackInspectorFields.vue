@@ -96,9 +96,9 @@ function commitName(value: string): void {
   gap: 3px 9px;
   min-width: 0;
   padding: 10px 10px 10px 8px;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 7px;
-  background: var(--ui-color-surface-sunken);
+  background: var(--surface-sunken);
 }
 
 .track-color-rail {
@@ -107,7 +107,7 @@ function commitName(value: string): void {
 }
 
 .track-heading-label {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
   text-transform: uppercase;
@@ -116,7 +116,7 @@ function commitName(value: string): void {
 .track-heading strong {
   min-width: 0;
   overflow: hidden;
-  color: var(--ui-color-text);
+  color: var(--text-primary);
   font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-panel-title);
   text-overflow: ellipsis;
@@ -130,12 +130,12 @@ function commitName(value: string): void {
 
 .property-section + .property-section {
   padding-top: 15px;
-  border-top: 1px solid var(--ui-color-border);
+  border-top: 1px solid var(--line-soft);
 }
 
 .property-section h2 {
   margin: 0;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
   text-transform: uppercase;
@@ -149,7 +149,7 @@ function commitName(value: string): void {
 
 .color-value,
 .track-type {
-  color: var(--ui-color-text-muted);
+  color: var(--text-secondary);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
 }
 
@@ -160,12 +160,12 @@ function commitName(value: string): void {
 }
 
 .track-type :deep(svg) {
-  color: var(--ui-color-action);
+  color: var(--accent);
 }
 
 .section-note {
   margin: -3px 0 0;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   font-size: var(--ui-type-size-caption);
   line-height: var(--ui-type-leading-normal);
 }

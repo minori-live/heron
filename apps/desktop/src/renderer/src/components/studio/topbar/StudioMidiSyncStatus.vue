@@ -38,7 +38,7 @@ const label = computed(() => {
   gap: 5px;
   min-width: 86px;
   padding: 0 7px;
-  color: var(--ui-color-text-muted);
+  color: var(--text-secondary);
   font: var(--ui-type-size-micro) var(--ui-type-family-data);
   white-space: nowrap;
 }
@@ -46,7 +46,7 @@ const label = computed(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--ui-color-action);
+  background: var(--accent);
 }
 .midi-sync-status[data-state="waiting"] i,
 .midi-sync-status[data-state="locking"] i {
@@ -54,7 +54,7 @@ const label = computed(() => {
 }
 .midi-sync-status[data-state="freewheel"] i,
 .midi-sync-status[data-state="lost"] i {
-  background: var(--ui-signal-record);
+  background: var(--mixer-record);
 }
 @keyframes pulse {
   50% {

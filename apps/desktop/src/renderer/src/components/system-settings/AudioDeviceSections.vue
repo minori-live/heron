@@ -91,7 +91,7 @@ const { t } = useI18n()
   display: grid;
   gap: 7px;
   margin-top: 12px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
   text-transform: uppercase;
@@ -102,19 +102,19 @@ const { t } = useI18n()
   gap: 5px;
   padding: 0;
   border: 0;
-  color: var(--ui-signal-audio);
+  color: var(--signal-cyan);
   background: transparent;
   font-size: var(--ui-type-size-control);
 }
 .refresh-button:disabled {
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
 }
 .spinning {
   animation: icon-spin 800ms linear infinite;
 }
 .discovery-error {
   margin: 8px 0 0;
-  color: var(--ui-signal-record);
+  color: var(--record);
   font-size: var(--ui-type-size-control);
   overflow-wrap: anywhere;
 }

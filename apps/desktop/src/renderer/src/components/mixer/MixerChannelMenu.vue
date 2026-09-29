@@ -73,17 +73,17 @@ const colorModel = computed({
   width: 168px;
   gap: 8px;
   padding: 10px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
-  color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
+  color: var(--text-primary);
+  background: var(--surface-1);
   box-shadow: 0 14px 36px var(--ui-domain-color-00000075);
 }
 .channel-menu label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-muted);
   font-size: var(--ui-type-size-control);
 }
 .delete-action {
@@ -92,10 +92,10 @@ const colorModel = computed({
   gap: 7px;
   height: 27px;
   padding: 0 8px;
-  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 55%, var(--ui-color-border-strong));
+  border: 1px solid color-mix(in srgb, var(--record) 55%, var(--line-strong));
   border-radius: 3px;
-  color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 9%, var(--ui-daw-control));
+  color: var(--record);
+  background: color-mix(in srgb, var(--record) 9%, var(--daw-control));
   font-size: var(--ui-type-size-control);
 }
 </style>

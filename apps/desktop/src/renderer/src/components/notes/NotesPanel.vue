@@ -117,9 +117,7 @@ async function save(): Promise<void> {
     />
 
     <div v-if="workspaceStore.activeNotesTab === 'track'" class="track-context">
-      <i
-        :style="{ background: mixerStore.selectedChannel?.color ?? 'var(--ui-color-text-subtle)' }"
-      />
+      <i :style="{ background: mixerStore.selectedChannel?.color ?? 'var(--text-faint)' }" />
       <span>{{ selectedTrackName }}</span>
     </div>
 
@@ -147,8 +145,8 @@ async function save(): Promise<void> {
   min-width: 0;
   min-height: 0;
   flex-direction: column;
-  border-left: 1px solid var(--ui-color-border);
-  background: var(--ui-color-surface);
+  border-left: 1px solid var(--line-soft);
+  background: var(--surface-panel);
 }
 
 .notes-heading {
@@ -164,14 +162,14 @@ async function save(): Promise<void> {
 }
 
 .notes-heading span {
-  color: var(--ui-color-action);
+  color: var(--accent);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-widest);
 }
 
 .notes-heading strong {
   margin-top: 5px;
-  color: var(--ui-color-text);
+  color: var(--text-primary);
   font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-panel-title);
   letter-spacing: var(--ui-type-tracking-wide);
@@ -185,7 +183,7 @@ async function save(): Promise<void> {
   padding: 0;
   border: 1px solid transparent;
   border-radius: 5px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   background: transparent;
 }
 
@@ -194,9 +192,9 @@ async function save(): Promise<void> {
   grid-template-columns: 1fr 1fr;
   margin: 0 14px;
   padding: 3px;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--line-soft);
   border-radius: 7px;
-  background: var(--ui-color-surface-sunken);
+  background: var(--surface-sunken);
 }
 
 .notes-tabs button {
@@ -208,19 +206,19 @@ async function save(): Promise<void> {
   padding: 7px 6px;
   border: 0;
   border-radius: 5px;
-  color: var(--ui-color-text-subtle);
+  color: var(--text-faint);
   background: transparent;
   font-size: var(--ui-type-size-caption);
 }
 
 .notes-tabs button[aria-selected="true"] {
-  color: var(--ui-color-text);
-  background: var(--ui-color-surface-active);
+  color: var(--text-primary);
+  background: var(--surface-active);
   box-shadow: var(--ui-shadow-highlight-inset);
 }
 
 .notes-tabs button[aria-selected="true"] svg {
-  color: var(--ui-color-action-hover);
+  color: var(--accent-soft);
 }
 
 .notes-tabs button:disabled {
@@ -233,8 +231,8 @@ async function save(): Promise<void> {
   gap: 7px;
   margin: 11px 16px 0;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--ui-color-border);
-  color: var(--ui-color-text-subtle);
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--text-muted);
   font-size: var(--ui-type-size-caption);
 }
 
@@ -254,10 +252,10 @@ async function save(): Promise<void> {
 .notes-error {
   margin: 0 14px 12px;
   padding: 8px;
-  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 45%, var(--ui-color-border));
+  border: 1px solid color-mix(in srgb, var(--record) 45%, var(--line-soft));
   border-radius: 5px;
-  color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 8%, transparent);
+  color: var(--record);
+  background: color-mix(in srgb, var(--record) 8%, transparent);
   font-size: var(--ui-type-size-caption);
 }
 </style>
