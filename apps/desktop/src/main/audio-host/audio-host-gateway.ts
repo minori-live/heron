@@ -20,6 +20,33 @@ export class AudioHostRequestError extends Error {
   }
 }
 
+/**
+ * Rejects a response the native side could not have produced from the request.
+ *
+ * The envelope is the one part of the control protocol every call depends on,
+ * and `result` was read before it was known to be an object: a malformed or
+ * drifted payload surfaced as a `TypeError` from deep inside the caller rather
+ * than as a failed request.
+ */
+function decodeControlResponse(
+  value: unknown,
+  requestId: number,
+  command: Record<string, unknown>
+): ControlResponse {
+  const response = value as Partial<ControlResponse> | null
+  if (!response || typeof response !== "object") {
+    throw requestError(command)
+  }
+  if (response.request_id !== requestId) {
+    throw new Error("audio host returned an out-of-order response")
+  }
+  const result = response.result as { type?: unknown } | undefined
+  if (!result || typeof result !== "object" || typeof result.type !== "string") {
+    throw requestError(command)
+  }
+  return response as ControlResponse
+}
+
 function requestError(command: Record<string, unknown>, error?: RpcError): Error {
   if (!error) return new Error("errors.audioEngineUnavailable")
   return new AudioHostRequestError(
@@ -118,11 +145,8 @@ export class AudioHostGateway {
       throw new Error("audio host logical request exceeds 128 MiB")
     }
     const wireResponse = await client.request(payload)
-    const response = decode(wireResponse.body) as ControlResponse
+    const response = decodeControlResponse(decode(wireResponse.body), requestId, command)
     hydrateAttachments(response, wireResponse.attachments)
-    if (response.request_id !== requestId) {
-      throw new Error("audio host returned an out-of-order response")
-    }
     if (response.result.type === "error") {
       throw requestError(command, response.result.error)
     }
