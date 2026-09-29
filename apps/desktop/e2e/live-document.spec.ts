@@ -37,18 +37,24 @@ async function expectWorkspaceGeometry(page: Page): Promise<void> {
         shell.querySelector(".topbar")!.scrollWidth > shell.querySelector(".topbar")!.clientWidth
     }
   })
+  // The shell heights are token values; the flush edges below compare rects
+  // that Chromium computes independently, so they carry sub-pixel float noise
+  // (observed ~1e-5 px) and need a tolerance rather than exact equality.
+  const flush = (actual: number, expected: number): void => {
+    expect(Math.abs(actual - expected)).toBeLessThan(0.01)
+  }
   expect(geometry.top.height).toBe(56)
   expect(geometry.bottom.height).toBe(25)
-  expect(geometry.top.y).toBe(geometry.shell.y)
-  expect(geometry.bottom.bottom).toBe(geometry.shell.bottom)
-  expect(geometry.left.x).toBe(geometry.shell.x)
-  expect(geometry.left.right).toBe(geometry.center.x)
-  expect(geometry.center.right).toBe(geometry.right.x)
-  expect(geometry.right.right).toBe(geometry.shell.right)
-  expect(geometry.left.y).toBe(geometry.top.bottom)
-  expect(geometry.center.y).toBe(geometry.top.bottom)
-  expect(geometry.right.y).toBe(geometry.top.bottom)
-  expect(geometry.right.bottom).toBe(geometry.bottom.y)
+  flush(geometry.top.y, geometry.shell.y)
+  flush(geometry.bottom.bottom, geometry.shell.bottom)
+  flush(geometry.left.x, geometry.shell.x)
+  flush(geometry.left.right, geometry.center.x)
+  flush(geometry.center.right, geometry.right.x)
+  flush(geometry.right.right, geometry.shell.right)
+  flush(geometry.left.y, geometry.top.bottom)
+  flush(geometry.center.y, geometry.top.bottom)
+  flush(geometry.right.y, geometry.top.bottom)
+  flush(geometry.right.bottom, geometry.bottom.y)
   expect(geometry.center.width).toBeGreaterThan(150)
   expect(geometry.centerChildren).toBe(0)
   expect(geometry.pageOverflows).toBe(false)

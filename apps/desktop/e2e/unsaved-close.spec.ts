@@ -52,15 +52,18 @@ test("prompts before closing a project with a committed mutation", async () => {
       })
       .toBe(true)
 
-    const closeShortcutHandled = await page.evaluate(() => {
+    // `project.close` binds the `primary` modifier, which the renderer resolves
+    // to Command on darwin and Control elsewhere.
+    const closeShortcutHandled = await page.evaluate((metaKey: boolean) => {
       const event = new KeyboardEvent("keydown", {
         code: "KeyW",
-        ctrlKey: true,
+        metaKey,
+        ctrlKey: !metaKey,
         bubbles: true,
         cancelable: true
       })
       return !window.dispatchEvent(event)
-    })
+    }, process.platform === "darwin")
     expect(closeShortcutHandled).toBe(true)
     const closeDialog = page.getByRole("alertdialog")
     await expect(

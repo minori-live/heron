@@ -96,11 +96,12 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     await page.getByRole("button", { name: "Back to welcome" }).focus()
     await expect(yamaha).toHaveAttribute("aria-pressed", "true")
     expect(await yamaha.evaluate((el) => getComputedStyle(el).boxShadow)).toContain("inset")
+    // The stacked title/caption contract of a controller profile row is owned by
+    // the Storybook boundary story (`design-system/tests/midi-preferences.spec.ts`),
+    // which asserts the same geometry plus the font sizes. This run only proves
+    // the real MIDI page reaches that state.
     await page.getByRole("button", { name: /MIDI Controls/ }).click()
-    const row = page.locator(".profile-list button").first()
-    await expect(row).toBeVisible()
-    const title = (await row.locator("strong").boundingBox())!
-    expect((await row.locator("small").boundingBox())!.y).toBeGreaterThan(title.y + title.height)
+    await expect(page.locator(".profile-list button").first()).toBeVisible()
     await page.getByRole("button", { name: "Back to welcome" }).click()
     await page.getByRole("button", { name: "New Studio" }).click()
     await expect(page.locator(".studio-shell")).toBeVisible({ timeout: 90_000 })

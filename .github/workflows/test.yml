@@ -169,6 +169,31 @@ jobs:
         if: ${{ always() && steps.setup_build.outcome == 'success' }}
         run: mise run ci:report:sccache
 
+  e2e:
+    name: Electron end-to-end
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up build environment
+        uses: ./.github/actions/setup-build
+        with:
+          github-token: >-
+            ${{ github.event_name == 'pull_request' && '' || github.token }}
+          cache-rust-build: "true"
+
+      - name: Install Playwright Chromium and Linux dependencies
+        run: |
+          mise run ci:install:playwright
+          sudo apt-get install --yes --no-install-recommends dbus-x11 xauth xvfb
+
+      - name: Run Electron end-to-end tests
+        run: mise run test:e2e
+
   codecov-finalize:
     name: Finalize Codecov coverage
     needs: checks

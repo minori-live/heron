@@ -3,4 +3,14 @@
 #MISE depends=["native:debug"]
 set -euo pipefail
 
-pnpm test:e2e
+# The same entry point serves local runs and CI. A headless Linux runner needs a
+# private D-Bus session and an X server; macOS and Windows launch Electron on
+# the session display directly.
+if [[ "${RUNNER_OS:-}" == "Linux" ]]; then
+  exec dbus-run-session -- \
+    xvfb-run --auto-servernum \
+      --server-args="-screen 0 1920x1080x24 -nolisten tcp -noreset" \
+      pnpm --filter @heron/desktop test:e2e
+fi
+
+exec pnpm --filter @heron/desktop test:e2e
