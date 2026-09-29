@@ -3,16 +3,16 @@ use std::{
     time::{Duration, Instant},
 };
 
-use heron_audio_host::engine::{AudioEngine, NativeAudioEngineConfig, NativeAudioRuntimeSnapshot};
+use heron_audio_host::engine::{AudioEngine, AudioEngineConfig, AudioRuntime};
 use heron_audio_host::mock;
 
 /// The block sizes the mock devices advertise.
 const MOCK_MIN_BUFFER_FRAMES: u32 = 32;
 const MOCK_MAX_BUFFER_FRAMES: u32 = 2_048;
 
-fn start(engine: &AudioEngine, buffer_size: u32) -> NativeAudioRuntimeSnapshot {
+fn start(engine: &AudioEngine, buffer_size: u32) -> AudioRuntime {
     engine
-        .start_audio_engine(NativeAudioEngineConfig {
+        .start_audio_engine(AudioEngineConfig {
             backend: mock::BACKEND_ID.to_owned(),
             input_device_id: "custom:mock-duplex".to_owned(),
             output_device_id: "custom:mock-duplex".to_owned(),

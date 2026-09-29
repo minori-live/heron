@@ -1,89 +1,9 @@
 use super::{
-    ApplicationCaptureLogicalTarget, ApplicationCaptureSnapshot,
-    ApplicationCaptureTargetDescriptor, AudioBackend, AudioRuntime, BinaryPayload, ControlCommand,
-    ControlResult, HashMap, LiveLatencyPolicy, LiveMixerGraph, MIDI_INPUT, MidiNoteBatch,
-    MixerChannelMeter, NativeRecordingResult, NativeRecordingStartConfig, NativeWaveformSnapshot,
-    RecordingResult, RecordingWaveform, RoundTripLatencyMeasurement, TempoEvent,
+    AudioBackend, ControlCommand, ControlResult, HashMap, LiveLatencyPolicy, LiveMixerGraph,
+    MIDI_INPUT, MidiNoteBatch, MixerChannelMeter, RecordingStartConfig, TempoEvent,
     TimeSignatureEvent, TransportState, audio_device_list, audio_device_recovery, device, engine,
     vst3,
 };
-
-fn audio_runtime(value: engine::NativeAudioRuntimeSnapshot) -> AudioRuntime {
-    AudioRuntime {
-        state: value.state,
-        requested_buffer_size: value.requested_buffer_size,
-        sample_rate: value.sample_rate,
-        input_sample_rate: value.input_sample_rate,
-        output_sample_rate: value.output_sample_rate,
-        input_buffer_size: value.input_buffer_size,
-        output_buffer_size: value.output_buffer_size,
-        ring_buffer_capacity_frames: value.ring_buffer_capacity_frames,
-        ring_buffer_fill_frames: value.ring_buffer_fill_frames,
-        input_latency_ms: value.input_latency_ms,
-        output_latency_ms: value.output_latency_ms,
-        ring_buffer_latency_ms: value.ring_buffer_latency_ms,
-        engine_latency_ms: value.engine_latency_ms,
-        estimated_round_trip_latency_ms: value.estimated_round_trip_latency_ms,
-        xruns: value.xruns,
-        clock_sync: value.clock_sync,
-        buffer_fallback: value.buffer_fallback,
-    }
-}
-
-fn round_trip_latency_measurement(
-    value: engine::NativeRoundTripLatencyMeasurementSnapshot,
-) -> RoundTripLatencyMeasurement {
-    RoundTripLatencyMeasurement {
-        status: value.status,
-        input_channel: value.input_channel,
-        output_channel: value.output_channel,
-        measured_round_trip_latency_ms: value.measured_round_trip_latency_ms,
-        failure: value.failure,
-    }
-}
-
-fn application_target(
-    value: engine::application_capture::ApplicationCaptureTargetDescriptor,
-) -> ApplicationCaptureTargetDescriptor {
-    ApplicationCaptureTargetDescriptor {
-        runtime_id: value.runtime_id,
-        process_id: value.process_id,
-        display_name: value.display_name,
-        executable_path: value.executable_path,
-        logical_target: ApplicationCaptureLogicalTarget {
-            platform: value.logical_target.platform,
-            bundle_identifier: value.logical_target.bundle_identifier,
-            executable_path: value.logical_target.executable_path,
-            executable_name: value.logical_target.executable_name,
-            include_process_tree: value.logical_target.include_process_tree,
-        },
-        channel_count: value.channel_count,
-        status: value.status,
-    }
-}
-
-fn application_snapshot(
-    value: engine::application_capture::ApplicationCaptureSnapshot,
-) -> ApplicationCaptureSnapshot {
-    ApplicationCaptureSnapshot {
-        runtime_id: value.runtime_id,
-        process_id: value.process_id,
-        display_name: value.display_name,
-        executable_path: value.executable_path,
-        logical_target: ApplicationCaptureLogicalTarget {
-            platform: value.logical_target.platform,
-            bundle_identifier: value.logical_target.bundle_identifier,
-            executable_path: value.logical_target.executable_path,
-            executable_name: value.logical_target.executable_name,
-            include_process_tree: value.logical_target.include_process_tree,
-        },
-        channel_count: value.channel_count,
-        status: value.status,
-        dropout_frames: value.dropout_frames,
-        overflow_frames: value.overflow_frames,
-        underflow_frames: value.underflow_frames,
-    }
-}
 
 pub(super) fn live_graph(
     generation: u64,
@@ -376,29 +296,6 @@ pub(super) fn live_graph(
     })
 }
 
-fn recording_result(value: NativeRecordingResult) -> RecordingResult {
-    RecordingResult {
-        path: value.path,
-        sample_rate: value.sample_rate,
-        channels: value.channels,
-        frame_count: value.frame_count,
-        dropout_frames: value.dropout_frames,
-    }
-}
-
-fn recording_waveform(value: NativeWaveformSnapshot) -> RecordingWaveform {
-    RecordingWaveform {
-        sample_rate: value.sample_rate,
-        channels: value.channels,
-        frame_count: value.frame_count,
-        start_frame: value.start_frame,
-        end_frame: value.end_frame,
-        frames_per_bucket: value.frames_per_bucket,
-        bucket_count: value.bucket_count,
-        peaks: BinaryPayload::inline(value.peaks),
-    }
-}
-
 fn audition_control_result<E: std::fmt::Display>(
     result: std::result::Result<(), E>,
 ) -> ControlResult {
@@ -442,44 +339,36 @@ pub(super) fn engine_command(
             targets: audio_engine
                 .list_application_capture_targets()
                 .into_iter()
-                .map(application_target)
                 .collect(),
         },
         ControlCommand::ApplicationCaptureSnapshot => ControlResult::ApplicationCaptures {
             captures: audio_engine
                 .application_capture_snapshot()
                 .into_iter()
-                .map(application_snapshot)
                 .collect(),
         },
         ControlCommand::StartAudioEngine { config } => {
-            match audio_engine.start_audio_engine(engine::NativeAudioEngineConfig {
+            match audio_engine.start_audio_engine(engine::AudioEngineConfig {
                 backend: config.backend,
                 input_device_id: config.input_device_id,
                 output_device_id: config.output_device_id,
                 buffer_size: config.buffer_size,
                 session_sample_rate: config.session_sample_rate,
             }) {
-                Ok(runtime) => ControlResult::AudioRuntime {
-                    runtime: audio_runtime(runtime),
-                },
+                Ok(runtime) => ControlResult::AudioRuntime { runtime },
                 Err(error) => control_error! {
                     message: error.to_string(),
                 },
             }
         }
         ControlCommand::StopAudioEngine => match audio_engine.stop_audio_engine() {
-            Ok(runtime) => ControlResult::AudioRuntime {
-                runtime: audio_runtime(runtime),
-            },
+            Ok(runtime) => ControlResult::AudioRuntime { runtime },
             Err(error) => control_error! {
                 message: error.to_string(),
             },
         },
         ControlCommand::AudioEngineSnapshot => match audio_engine.audio_engine_snapshot() {
-            Ok(runtime) => ControlResult::AudioRuntime {
-                runtime: audio_runtime(runtime),
-            },
+            Ok(runtime) => ControlResult::AudioRuntime { runtime },
             Err(error) => control_error! {
                 message: error.to_string(),
             },
@@ -502,7 +391,7 @@ pub(super) fn engine_command(
             config,
         } => match audio_engine.select_recovery_device(
             recovery_id,
-            engine::NativeAudioEngineConfig {
+            engine::AudioEngineConfig {
                 backend: config.backend,
                 input_device_id: config.input_device_id,
                 output_device_id: config.output_device_id,
@@ -514,7 +403,7 @@ pub(super) fn engine_command(
                 recovery: audio_engine
                     .device_recovery_snapshot()
                     .map(audio_device_recovery),
-                runtime: Some(audio_runtime(runtime)),
+                runtime: Some(runtime),
             },
             Err(error) => control_error! {
                 message: error.to_string(),
@@ -524,7 +413,7 @@ pub(super) fn engine_command(
             match audio_engine.keep_restored_device(recovery_id) {
                 Ok(()) => ControlResult::AudioDeviceRecovery {
                     recovery: None,
-                    runtime: audio_engine.audio_engine_snapshot().ok().map(audio_runtime),
+                    runtime: audio_engine.audio_engine_snapshot().ok(),
                 },
                 Err(error) => control_error! {
                     message: error.to_string(),
@@ -535,18 +424,16 @@ pub(super) fn engine_command(
             recovery: audio_engine
                 .device_recovery_snapshot()
                 .map(audio_device_recovery),
-            runtime: audio_engine.audio_engine_snapshot().ok().map(audio_runtime),
+            runtime: audio_engine.audio_engine_snapshot().ok(),
         },
         ControlCommand::StartRoundTripLatencyMeasurement { request } => {
             match audio_engine.start_round_trip_latency_measurement(
-                engine::NativeRoundTripLatencyMeasurementRequest {
+                engine::RoundTripLatencyMeasurementRequest {
                     input_channel: request.input_channel,
                     output_channel: request.output_channel,
                 },
             ) {
-                Ok(measurement) => ControlResult::RoundTripLatencyMeasurement {
-                    measurement: round_trip_latency_measurement(measurement),
-                },
+                Ok(measurement) => ControlResult::RoundTripLatencyMeasurement { measurement },
                 Err(error) => control_error! {
                     message: error.to_string(),
                 },
@@ -554,9 +441,7 @@ pub(super) fn engine_command(
         }
         ControlCommand::RoundTripLatencyMeasurementSnapshot => {
             match audio_engine.round_trip_latency_measurement_snapshot() {
-                Ok(measurement) => ControlResult::RoundTripLatencyMeasurement {
-                    measurement: round_trip_latency_measurement(measurement),
-                },
+                Ok(measurement) => ControlResult::RoundTripLatencyMeasurement { measurement },
                 Err(error) => control_error! {
                     message: error.to_string(),
                 },
@@ -685,7 +570,7 @@ pub(super) fn engine_command(
             }
         }
         ControlCommand::StartRecording { config } => {
-            match audio_engine.start_recording(NativeRecordingStartConfig {
+            match audio_engine.start_recording(RecordingStartConfig {
                 path: config.path,
                 asset_id: config.asset_id,
                 originator: config.originator,
@@ -702,9 +587,7 @@ pub(super) fn engine_command(
             }
         }
         ControlCommand::StopRecording => match audio_engine.stop_recording() {
-            Ok(value) => ControlResult::RecordingStopped {
-                recording: recording_result(value),
-            },
+            Ok(value) => ControlResult::RecordingStopped { recording: value },
             Err(error) => control_error! {
                 message: error.to_string(),
             },
@@ -738,9 +621,7 @@ pub(super) fn engine_command(
             end_frame,
             max_buckets,
         } => match audio_engine.recording_waveform_snapshot(start_frame, end_frame, max_buckets) {
-            Ok(value) => ControlResult::RecordingWaveform {
-                waveform: recording_waveform(value),
-            },
+            Ok(value) => ControlResult::RecordingWaveform { waveform: value },
             Err(error) => control_error! {
                 message: error.to_string(),
             },
@@ -779,38 +660,6 @@ mod tests {
         ) -> bool {
             true
         }
-    }
-
-    fn logical_target() -> engine::application_capture::ApplicationCaptureLogicalTarget {
-        engine::application_capture::ApplicationCaptureLogicalTarget {
-            platform: "macos".to_owned(),
-            bundle_identifier: Some("live.minori.player".to_owned()),
-            executable_path: "/Applications/Player.app/Contents/MacOS/Player".to_owned(),
-            executable_name: "Player".to_owned(),
-            include_process_tree: true,
-        }
-    }
-
-    #[test]
-    fn application_target_preserves_logical_identity() {
-        let converted = application_target(
-            engine::application_capture::ApplicationCaptureTargetDescriptor {
-                runtime_id: "macos-process-42".to_owned(),
-                process_id: 42,
-                display_name: "Player".to_owned(),
-                executable_path: "/Applications/Player.app/Contents/MacOS/Player".to_owned(),
-                logical_target: logical_target(),
-                channel_count: 2,
-                status: "inactive".to_owned(),
-            },
-        );
-
-        assert_eq!(converted.runtime_id, "macos-process-42");
-        assert_eq!(
-            converted.logical_target.bundle_identifier.as_deref(),
-            Some("live.minori.player")
-        );
-        assert!(converted.logical_target.include_process_tree);
     }
 
     #[test]
@@ -883,29 +732,6 @@ mod tests {
             ),
             Some(ControlResult::Error { .. })
         ));
-    }
-
-    #[test]
-    fn application_snapshot_preserves_status_and_counters() {
-        let converted =
-            application_snapshot(engine::application_capture::ApplicationCaptureSnapshot {
-                runtime_id: "macos-process-42".to_owned(),
-                process_id: Some(42),
-                display_name: "Player".to_owned(),
-                executable_path: "/Applications/Player.app/Contents/MacOS/Player".to_owned(),
-                logical_target: logical_target(),
-                channel_count: 2,
-                status: "capturing".to_owned(),
-                dropout_frames: 3,
-                overflow_frames: 5,
-                underflow_frames: 7,
-            });
-
-        assert_eq!(converted.process_id, Some(42));
-        assert_eq!(converted.status, "capturing");
-        assert_eq!(converted.dropout_frames, 3);
-        assert_eq!(converted.overflow_frames, 5);
-        assert_eq!(converted.underflow_frames, 7);
     }
 
     fn shared_blob() -> SharedBlobRef {

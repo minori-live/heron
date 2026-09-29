@@ -1,31 +1,19 @@
-use super::{
-    AudioEngine, NativeAudioEngineConfig, NativeAudioRuntimeSnapshot, Ordering, Result, audio_error,
+// Owned by the protocol crate; this module keeps the engine-facing path stable.
+pub use heron_dsp_runtime::protocol::{
+    AudioDeviceFaultKind, AudioDeviceRecoveryPhase, AudioStreamDirection,
 };
-use crate::device::{self, NativeAudioDeviceList};
+
+use super::{AudioEngine, AudioEngineConfig, AudioRuntime, Ordering, Result, audio_error};
+use crate::device::{self, AudioDeviceList};
 use std::time::{Duration, Instant};
 
 const DEVICE_ENUMERATION_INTERVAL: Duration = Duration::from_secs(1);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NativeStreamDirection {
-    Input,
-    Output,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NativeDeviceFaultKind {
-    DeviceNotAvailable,
-    StreamInvalidated,
-    HostUnavailable,
-    DeviceBusy,
-    BackendError,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct DeviceFaultSignal {
     pub(super) stream_incarnation: u64,
-    pub(super) direction: NativeStreamDirection,
-    pub(super) kind: NativeDeviceFaultKind,
+    pub(super) direction: AudioStreamDirection,
+    pub(super) kind: AudioDeviceFaultKind,
 }
 
 #[derive(Clone)]
@@ -34,33 +22,23 @@ pub(super) struct StreamFaultReporter {
     pub(super) sender: std::sync::mpsc::SyncSender<DeviceFaultSignal>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NativeDeviceRecoveryPhase {
-    WaitingForAuthorization,
-    WaitingForChange,
-    AttemptingOriginal,
-    OriginalRestored,
-    ApplyingSelection,
-    SelectionFailed,
-}
-
 #[derive(Clone, Debug, PartialEq)]
-pub struct NativeAudioDeviceRecoverySnapshot {
+pub struct AudioDeviceRecoverySnapshot {
     pub recovery_id: u64,
     pub revision: u64,
     pub candidate_revision: u64,
     pub attempt_generation: u64,
-    pub phase: NativeDeviceRecoveryPhase,
-    pub original_config: NativeAudioEngineConfig,
-    pub candidates: NativeAudioDeviceList,
+    pub phase: AudioDeviceRecoveryPhase,
+    pub original_config: AudioEngineConfig,
+    pub candidates: AudioDeviceList,
     pub lost_input: bool,
     pub lost_output: bool,
-    pub fault: NativeDeviceFaultKind,
+    pub fault: AudioDeviceFaultKind,
 }
 
 #[derive(Debug)]
 pub enum DeviceRecoveryAttempt {
-    Committed(NativeAudioRuntimeSnapshot),
+    Committed(AudioRuntime),
     Superseded,
 }
 
@@ -69,12 +47,12 @@ pub(super) struct DeviceRecoveryState {
     revision: u64,
     candidate_revision: u64,
     attempt_generation: u64,
-    phase: NativeDeviceRecoveryPhase,
-    original_config: NativeAudioEngineConfig,
-    candidates: NativeAudioDeviceList,
+    phase: AudioDeviceRecoveryPhase,
+    original_config: AudioEngineConfig,
+    candidates: AudioDeviceList,
     lost_input: bool,
     lost_output: bool,
-    fault: NativeDeviceFaultKind,
+    fault: AudioDeviceFaultKind,
     authorized: bool,
     immediate_attempt: bool,
     last_enumerated_at: Option<Instant>,
@@ -82,8 +60,8 @@ pub(super) struct DeviceRecoveryState {
 }
 
 impl DeviceRecoveryState {
-    fn snapshot(&self) -> NativeAudioDeviceRecoverySnapshot {
-        NativeAudioDeviceRecoverySnapshot {
+    fn snapshot(&self) -> AudioDeviceRecoverySnapshot {
+        AudioDeviceRecoverySnapshot {
             recovery_id: self.recovery_id,
             revision: self.revision,
             candidate_revision: self.candidate_revision,
@@ -102,15 +80,15 @@ impl DeviceRecoveryState {
     }
 }
 
-fn empty_devices() -> NativeAudioDeviceList {
-    NativeAudioDeviceList {
+fn empty_devices() -> AudioDeviceList {
+    AudioDeviceList {
         inputs: Vec::new(),
         outputs: Vec::new(),
     }
 }
 
-fn device_signature(devices: &NativeAudioDeviceList) -> Vec<String> {
-    let signature = |direction: char, device: &crate::device::NativeAudioDevice| {
+fn device_signature(devices: &AudioDeviceList) -> Vec<String> {
+    let signature = |direction: char, device: &crate::device::AudioDevice| {
         format!(
             "{direction}:{}:{:?}:{:?}:{:?}:{:?}",
             device.id,
@@ -130,10 +108,7 @@ fn device_signature(devices: &NativeAudioDeviceList) -> Vec<String> {
     signature
 }
 
-fn original_devices_visible(
-    config: &NativeAudioEngineConfig,
-    devices: &NativeAudioDeviceList,
-) -> bool {
+fn original_devices_visible(config: &AudioEngineConfig, devices: &AudioDeviceList) -> bool {
     devices
         .inputs
         .iter()
@@ -164,7 +139,7 @@ impl AudioEngine {
         self.recovery_authority.fetch_add(1, Ordering::AcqRel) + 1
     }
 
-    pub fn device_recovery_snapshot(&self) -> Option<NativeAudioDeviceRecoverySnapshot> {
+    pub fn device_recovery_snapshot(&self) -> Option<AudioDeviceRecoverySnapshot> {
         self.device_recovery
             .lock()
             .ok()
@@ -199,13 +174,13 @@ impl AudioEngine {
                 continue;
             }
             if let Some(state) = recovery.as_mut() {
-                state.lost_input |= signal.direction == NativeStreamDirection::Input;
-                state.lost_output |= signal.direction == NativeStreamDirection::Output;
+                state.lost_input |= signal.direction == AudioStreamDirection::Input;
+                state.lost_output |= signal.direction == AudioStreamDirection::Output;
                 state.fault = signal.kind;
                 state.phase = if state.authorized {
-                    NativeDeviceRecoveryPhase::WaitingForChange
+                    AudioDeviceRecoveryPhase::WaitingForChange
                 } else {
-                    NativeDeviceRecoveryPhase::WaitingForAuthorization
+                    AudioDeviceRecoveryPhase::WaitingForAuthorization
                 };
                 state.immediate_attempt = state.authorized;
                 state.bump();
@@ -215,11 +190,11 @@ impl AudioEngine {
                     revision: 1,
                     candidate_revision: 0,
                     attempt_generation: self.recovery_authority.load(Ordering::Acquire),
-                    phase: NativeDeviceRecoveryPhase::WaitingForAuthorization,
+                    phase: AudioDeviceRecoveryPhase::WaitingForAuthorization,
                     original_config: config.clone(),
                     candidates: empty_devices(),
-                    lost_input: signal.direction == NativeStreamDirection::Input,
-                    lost_output: signal.direction == NativeStreamDirection::Output,
+                    lost_input: signal.direction == AudioStreamDirection::Input,
+                    lost_output: signal.direction == AudioStreamDirection::Output,
                     fault: signal.kind,
                     authorized: false,
                     immediate_attempt: false,
@@ -243,7 +218,7 @@ impl AudioEngine {
             .ok_or_else(|| audio_error("device recovery", "stale recovery decision"))?;
         state.authorized = true;
         state.immediate_attempt = true;
-        state.phase = NativeDeviceRecoveryPhase::WaitingForChange;
+        state.phase = AudioDeviceRecoveryPhase::WaitingForChange;
         state.bump();
         Ok(())
     }
@@ -255,7 +230,7 @@ impl AudioEngine {
             .map_err(|_| audio_error("device recovery lock", "poisoned"))?;
         let can_keep = recovery.as_ref().is_some_and(|state| {
             state.recovery_id == recovery_id
-                && state.phase == NativeDeviceRecoveryPhase::OriginalRestored
+                && state.phase == AudioDeviceRecoveryPhase::OriginalRestored
         });
         if !can_keep {
             return Err(audio_error(
@@ -277,8 +252,8 @@ impl AudioEngine {
     pub fn select_recovery_device(
         &self,
         recovery_id: u64,
-        config: NativeAudioEngineConfig,
-    ) -> Result<NativeAudioRuntimeSnapshot> {
+        config: AudioEngineConfig,
+    ) -> Result<AudioRuntime> {
         let (original, restore_original_on_failure, generation) = {
             let mut recovery = self
                 .device_recovery
@@ -295,10 +270,10 @@ impl AudioEngine {
                 ));
             }
             let restore_original_on_failure =
-                state.phase == NativeDeviceRecoveryPhase::OriginalRestored;
+                state.phase == AudioDeviceRecoveryPhase::OriginalRestored;
             let generation = self.claim_recovery_generation();
             state.attempt_generation = generation;
-            state.phase = NativeDeviceRecoveryPhase::ApplyingSelection;
+            state.phase = AudioDeviceRecoveryPhase::ApplyingSelection;
             state.bump();
             (
                 state.original_config.clone(),
@@ -328,7 +303,7 @@ impl AudioEngine {
                         .as_mut()
                         .filter(|state| state.recovery_id == recovery_id)
                 {
-                    state.phase = NativeDeviceRecoveryPhase::SelectionFailed;
+                    state.phase = AudioDeviceRecoveryPhase::SelectionFailed;
                     state.bump();
                 }
                 if restore_original_on_failure {
@@ -396,8 +371,8 @@ impl AudioEngine {
                 && original_devices_visible(&config, &devices)
                 && matches!(
                     state.phase,
-                    NativeDeviceRecoveryPhase::WaitingForChange
-                        | NativeDeviceRecoveryPhase::SelectionFailed
+                    AudioDeviceRecoveryPhase::WaitingForChange
+                        | AudioDeviceRecoveryPhase::SelectionFailed
                 )
         };
         if !should_attempt {
@@ -411,7 +386,7 @@ impl AudioEngine {
                 .filter(|state| state.recovery_id == recovery_id)
         {
             state.attempt_generation = generation;
-            state.phase = NativeDeviceRecoveryPhase::AttemptingOriginal;
+            state.phase = AudioDeviceRecoveryPhase::AttemptingOriginal;
             state.bump();
         }
         let result = self.start_audio_engine_generation(config, generation);
@@ -423,10 +398,10 @@ impl AudioEngine {
         {
             state.phase = match result {
                 Ok(DeviceRecoveryAttempt::Committed(_)) => {
-                    NativeDeviceRecoveryPhase::OriginalRestored
+                    AudioDeviceRecoveryPhase::OriginalRestored
                 }
                 Ok(DeviceRecoveryAttempt::Superseded) | Err(_) => {
-                    NativeDeviceRecoveryPhase::WaitingForChange
+                    AudioDeviceRecoveryPhase::WaitingForChange
                 }
             };
             state.bump();

@@ -1,10 +1,10 @@
 use super::{
-    Adjustable, Arc, Async, AuditionPlayback, Consumer, Device, DeviceTrait, EngineCommand,
-    FixedAsync, FromSample, HardwareOutputFrame, HeapCons, HeapProd, INPUT_RESAMPLER_OUTPUT_FRAMES,
-    InputFrame, InputPeakBank, InterleavedSlice, MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS,
-    MAX_PLUGIN_BLOCK_FRAMES, NativeStreamDirection, OUTPUT_RESAMPLER_FRAMES, Observer, Ordering,
+    Adjustable, Arc, Async, AudioStreamDirection, AuditionPlayback, Consumer, Device, DeviceTrait,
+    EngineCommand, FixedAsync, FromSample, HardwareOutputFrame, HeapCons, HeapProd,
+    INPUT_RESAMPLER_OUTPUT_FRAMES, InputFrame, InputPeakBank, InterleavedSlice, MAX_INPUT_CHANNELS,
+    MAX_OUTPUT_CHANNELS, MAX_PLUGIN_BLOCK_FRAMES, OUTPUT_RESAMPLER_FRAMES, Observer, Ordering,
     OutputMixerControl, OutputStreamContext, Producer, Resampler, Result, RoundTripInputDetector,
-    RoundTripLatencyMeasurement, RoundTripOutputProbe, RuntimeMetrics, Sample,
+    RoundTripLatencyState, RoundTripOutputProbe, RuntimeMetrics, Sample,
     SincInterpolationParameters, SizedSample, Stream, StreamConfig, StreamFaultReporter,
     UNKNOWN_LATENCY_US, audio_error, duration_to_micros, frames_to_micros, frames_to_nanos,
     invalid_config, mark_stream_error,
@@ -337,7 +337,7 @@ pub(super) fn build_input_stream<T>(
     mut producer: HeapProd<InputFrame>,
     metrics: Arc<RuntimeMetrics>,
     input_peaks: Arc<InputPeakBank>,
-    round_trip_latency: Arc<RoundTripLatencyMeasurement>,
+    round_trip_latency: Arc<RoundTripLatencyState>,
     device_faults: StreamFaultReporter,
 ) -> Result<Stream>
 where
@@ -384,7 +384,7 @@ where
             move |error| {
                 mark_stream_error(
                     &error_metrics,
-                    NativeStreamDirection::Input,
+                    AudioStreamDirection::Input,
                     &error,
                     &device_faults,
                 );
@@ -590,7 +590,7 @@ where
             move |error| {
                 mark_stream_error(
                     &error_metrics,
-                    NativeStreamDirection::Output,
+                    AudioStreamDirection::Output,
                     &error,
                     &device_faults,
                 );

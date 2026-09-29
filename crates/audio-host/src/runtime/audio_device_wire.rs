@@ -3,8 +3,8 @@ use super::{
     AudioDeviceRecoveryPhase, AudioEngineConfig, AudioStreamDirection, device, engine,
 };
 
-pub(super) fn audio_device_list(value: device::NativeAudioDeviceList) -> AudioDeviceList {
-    let convert = |value: device::NativeAudioDevice| AudioDevice {
+pub(super) fn audio_device_list(value: device::AudioDeviceList) -> AudioDeviceList {
+    let convert = |value: device::AudioDevice| AudioDevice {
         id: value.id,
         name: value.name,
         is_default: value.is_default,
@@ -20,36 +20,36 @@ pub(super) fn audio_device_list(value: device::NativeAudioDeviceList) -> AudioDe
 }
 
 pub(super) fn audio_device_recovery(
-    value: engine::NativeAudioDeviceRecoverySnapshot,
+    value: engine::AudioDeviceRecoverySnapshot,
 ) -> AudioDeviceRecovery {
     let phase = match value.phase {
-        engine::NativeDeviceRecoveryPhase::WaitingForAuthorization => {
+        engine::AudioDeviceRecoveryPhase::WaitingForAuthorization => {
             AudioDeviceRecoveryPhase::WaitingForAuthorization
         }
-        engine::NativeDeviceRecoveryPhase::WaitingForChange => {
+        engine::AudioDeviceRecoveryPhase::WaitingForChange => {
             AudioDeviceRecoveryPhase::WaitingForChange
         }
-        engine::NativeDeviceRecoveryPhase::AttemptingOriginal => {
+        engine::AudioDeviceRecoveryPhase::AttemptingOriginal => {
             AudioDeviceRecoveryPhase::AttemptingOriginal
         }
-        engine::NativeDeviceRecoveryPhase::OriginalRestored => {
+        engine::AudioDeviceRecoveryPhase::OriginalRestored => {
             AudioDeviceRecoveryPhase::OriginalRestored
         }
-        engine::NativeDeviceRecoveryPhase::ApplyingSelection => {
+        engine::AudioDeviceRecoveryPhase::ApplyingSelection => {
             AudioDeviceRecoveryPhase::ApplyingSelection
         }
-        engine::NativeDeviceRecoveryPhase::SelectionFailed => {
+        engine::AudioDeviceRecoveryPhase::SelectionFailed => {
             AudioDeviceRecoveryPhase::SelectionFailed
         }
     };
     let fault = match value.fault {
-        engine::NativeDeviceFaultKind::DeviceNotAvailable => {
+        engine::AudioDeviceFaultKind::DeviceNotAvailable => {
             AudioDeviceFaultKind::DeviceNotAvailable
         }
-        engine::NativeDeviceFaultKind::StreamInvalidated => AudioDeviceFaultKind::StreamInvalidated,
-        engine::NativeDeviceFaultKind::HostUnavailable => AudioDeviceFaultKind::HostUnavailable,
-        engine::NativeDeviceFaultKind::DeviceBusy => AudioDeviceFaultKind::DeviceBusy,
-        engine::NativeDeviceFaultKind::BackendError => AudioDeviceFaultKind::BackendError,
+        engine::AudioDeviceFaultKind::StreamInvalidated => AudioDeviceFaultKind::StreamInvalidated,
+        engine::AudioDeviceFaultKind::HostUnavailable => AudioDeviceFaultKind::HostUnavailable,
+        engine::AudioDeviceFaultKind::DeviceBusy => AudioDeviceFaultKind::DeviceBusy,
+        engine::AudioDeviceFaultKind::BackendError => AudioDeviceFaultKind::BackendError,
     };
     let mut lost_directions = Vec::with_capacity(2);
     if value.lost_input {
@@ -81,8 +81,8 @@ pub(super) fn audio_device_recovery(
 mod tests {
     use super::*;
 
-    fn native_device(id: &str) -> device::NativeAudioDevice {
-        device::NativeAudioDevice {
+    fn native_device(id: &str) -> device::AudioDevice {
+        device::AudioDevice {
             id: id.to_owned(),
             name: id.to_owned(),
             is_default: id == "input",
@@ -94,23 +94,23 @@ mod tests {
     }
 
     fn recovery(
-        phase: engine::NativeDeviceRecoveryPhase,
-        fault: engine::NativeDeviceFaultKind,
-    ) -> engine::NativeAudioDeviceRecoverySnapshot {
-        engine::NativeAudioDeviceRecoverySnapshot {
+        phase: engine::AudioDeviceRecoveryPhase,
+        fault: engine::AudioDeviceFaultKind,
+    ) -> engine::AudioDeviceRecoverySnapshot {
+        engine::AudioDeviceRecoverySnapshot {
             recovery_id: 7,
             revision: 8,
             candidate_revision: 9,
             attempt_generation: 10,
             phase,
-            original_config: engine::NativeAudioEngineConfig {
+            original_config: engine::AudioEngineConfig {
                 backend: "mock".to_owned(),
                 input_device_id: "input".to_owned(),
                 output_device_id: "output".to_owned(),
                 buffer_size: 128,
                 session_sample_rate: Some(48_000),
             },
-            candidates: device::NativeAudioDeviceList {
+            candidates: device::AudioDeviceList {
                 inputs: vec![native_device("input")],
                 outputs: vec![native_device("output")],
             },
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn audio_device_list_preserves_capabilities_and_direction() {
-        let converted = audio_device_list(device::NativeAudioDeviceList {
+        let converted = audio_device_list(device::AudioDeviceList {
             inputs: vec![native_device("input")],
             outputs: vec![native_device("output")],
         });
@@ -137,38 +137,38 @@ mod tests {
     fn recovery_maps_every_phase_and_fault_to_the_wire_protocol() {
         let cases = [
             (
-                engine::NativeDeviceRecoveryPhase::WaitingForAuthorization,
-                engine::NativeDeviceFaultKind::DeviceNotAvailable,
+                engine::AudioDeviceRecoveryPhase::WaitingForAuthorization,
+                engine::AudioDeviceFaultKind::DeviceNotAvailable,
                 AudioDeviceRecoveryPhase::WaitingForAuthorization,
                 AudioDeviceFaultKind::DeviceNotAvailable,
             ),
             (
-                engine::NativeDeviceRecoveryPhase::WaitingForChange,
-                engine::NativeDeviceFaultKind::StreamInvalidated,
+                engine::AudioDeviceRecoveryPhase::WaitingForChange,
+                engine::AudioDeviceFaultKind::StreamInvalidated,
                 AudioDeviceRecoveryPhase::WaitingForChange,
                 AudioDeviceFaultKind::StreamInvalidated,
             ),
             (
-                engine::NativeDeviceRecoveryPhase::AttemptingOriginal,
-                engine::NativeDeviceFaultKind::HostUnavailable,
+                engine::AudioDeviceRecoveryPhase::AttemptingOriginal,
+                engine::AudioDeviceFaultKind::HostUnavailable,
                 AudioDeviceRecoveryPhase::AttemptingOriginal,
                 AudioDeviceFaultKind::HostUnavailable,
             ),
             (
-                engine::NativeDeviceRecoveryPhase::OriginalRestored,
-                engine::NativeDeviceFaultKind::DeviceBusy,
+                engine::AudioDeviceRecoveryPhase::OriginalRestored,
+                engine::AudioDeviceFaultKind::DeviceBusy,
                 AudioDeviceRecoveryPhase::OriginalRestored,
                 AudioDeviceFaultKind::DeviceBusy,
             ),
             (
-                engine::NativeDeviceRecoveryPhase::ApplyingSelection,
-                engine::NativeDeviceFaultKind::BackendError,
+                engine::AudioDeviceRecoveryPhase::ApplyingSelection,
+                engine::AudioDeviceFaultKind::BackendError,
                 AudioDeviceRecoveryPhase::ApplyingSelection,
                 AudioDeviceFaultKind::BackendError,
             ),
             (
-                engine::NativeDeviceRecoveryPhase::SelectionFailed,
-                engine::NativeDeviceFaultKind::BackendError,
+                engine::AudioDeviceRecoveryPhase::SelectionFailed,
+                engine::AudioDeviceFaultKind::BackendError,
                 AudioDeviceRecoveryPhase::SelectionFailed,
                 AudioDeviceFaultKind::BackendError,
             ),

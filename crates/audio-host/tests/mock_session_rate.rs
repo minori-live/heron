@@ -4,8 +4,8 @@ use std::{
 };
 
 use heron_audio_host::engine::{
-    AudioEngine, NativeAudioEngineConfig, NativeMixerChannel, NativeMixerGraph,
-    NativeTransportSnapshot, compile_graph_build,
+    AudioEngine, AudioEngineConfig, NativeMixerChannel, NativeMixerGraph, NativeTransportSnapshot,
+    compile_graph_build,
 };
 use heron_audio_host::mock;
 use heron_dsp_runtime::tempo::{TempoEvent, TimeSignatureEvent};
@@ -32,7 +32,7 @@ fn stable_transport_snapshot(engine: &AudioEngine) -> (u64, NativeTransportSnaps
 fn mock_backend_uses_the_project_clock_over_native_48_khz_io() {
     let engine = AudioEngine::new();
     let runtime = engine
-        .start_audio_engine(NativeAudioEngineConfig {
+        .start_audio_engine(AudioEngineConfig {
             backend: mock::BACKEND_ID.to_owned(),
             input_device_id: "custom:mock-input".to_owned(),
             output_device_id: "custom:mock-output".to_owned(),

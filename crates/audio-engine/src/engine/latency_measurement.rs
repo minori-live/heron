@@ -1,16 +1,15 @@
 use super::{
-    Arc, AtomicBool, AtomicU32, AtomicU64, BlockMidiEvent, CountInState, InputPeakBank, Instant,
-    LOOPBACK_CORRELATION_THRESHOLD, LOOPBACK_MEASUREMENT_COMPLETE, LOOPBACK_MEASUREMENT_IDLE,
-    LOOPBACK_MEASUREMENT_INPUT_TOO_LOUD, LOOPBACK_MEASUREMENT_PREPARING,
+    Arc, AtomicBool, AtomicU32, AtomicU64, AudioRuntime, BlockMidiEvent, CountInState,
+    InputPeakBank, Instant, LOOPBACK_CORRELATION_THRESHOLD, LOOPBACK_MEASUREMENT_COMPLETE,
+    LOOPBACK_MEASUREMENT_IDLE, LOOPBACK_MEASUREMENT_INPUT_TOO_LOUD, LOOPBACK_MEASUREMENT_PREPARING,
     LOOPBACK_MEASUREMENT_READY, LOOPBACK_MEASUREMENT_RUNNING,
     LOOPBACK_MEASUREMENT_SIGNAL_NOT_DETECTED, LOOPBACK_MEASUREMENT_TIMEOUT_NS,
     LOOPBACK_MINIMUM_SIGNAL_ENERGY, LOOPBACK_PROBE, LOOPBACK_PROBE_AMPLITUDE,
     LOOPBACK_QUIET_DURATION_MS, LOOPBACK_QUIET_THRESHOLD, LiveMidiRoute, LivePlugin, LoadedClip,
-    MAX_INPUT_CHANNELS, MeterBank, MetronomeScheduler, NativeAudioRuntimeSnapshot,
-    NativeMixerParameterPreview, NativeRoundTripLatencyMeasurementRequest,
-    NativeRoundTripLatencyMeasurementSnapshot, Ordering, RenderMeter, RenderRuntime, Result,
-    ScheduledMidiEvent, SignalWidth, StereoFrame, TempoMap, TransportShared, frames_to_ms,
-    frames_to_nanos, invalid_config, optional_latency,
+    MAX_INPUT_CHANNELS, MeterBank, MetronomeScheduler, NativeMixerParameterPreview, Ordering,
+    RenderMeter, RenderRuntime, Result, RoundTripLatencyMeasurement,
+    RoundTripLatencyMeasurementRequest, ScheduledMidiEvent, SignalWidth, StereoFrame, TempoMap,
+    TransportShared, frames_to_ms, frames_to_nanos, invalid_config, optional_latency,
 };
 use crate::application_capture::PreparedApplicationCapture;
 
@@ -135,7 +134,7 @@ pub(super) enum EngineCommand {
     StopAudition,
 }
 
-pub(super) struct RoundTripLatencyMeasurement {
+pub(super) struct RoundTripLatencyState {
     pub(super) clock_origin: Instant,
     pub(super) state: AtomicU32,
     pub(super) generation: AtomicU64,
@@ -149,7 +148,7 @@ pub(super) struct RoundTripLatencyMeasurement {
     pub(super) input_sample_rate: u32,
 }
 
-impl RoundTripLatencyMeasurement {
+impl RoundTripLatencyState {
     pub(super) fn new(input_channels: u32, output_channels: u32, input_sample_rate: u32) -> Self {
         Self {
             clock_origin: Instant::now(),
@@ -173,7 +172,7 @@ impl RoundTripLatencyMeasurement {
             .min(u128::from(u64::MAX)) as u64
     }
 
-    pub(super) fn start(&self, request: NativeRoundTripLatencyMeasurementRequest) -> Result<()> {
+    pub(super) fn start(&self, request: RoundTripLatencyMeasurementRequest) -> Result<()> {
         if request.input_channel == 0 || request.input_channel > self.input_channels {
             return Err(invalid_config(format!(
                 "loopback input channel must be between 1 and {}",
@@ -231,12 +230,12 @@ impl RoundTripLatencyMeasurement {
         }
     }
 
-    pub(super) fn snapshot(&self) -> NativeRoundTripLatencyMeasurementSnapshot {
+    pub(super) fn snapshot(&self) -> RoundTripLatencyMeasurement {
         self.expire_if_needed(self.now_ns());
         let state = self.state.load(Ordering::Acquire);
         let has_selection = state != LOOPBACK_MEASUREMENT_IDLE;
         let latency_ns = self.latency_ns.load(Ordering::Acquire);
-        NativeRoundTripLatencyMeasurementSnapshot {
+        RoundTripLatencyMeasurement {
             status: match state {
                 LOOPBACK_MEASUREMENT_PREPARING | LOOPBACK_MEASUREMENT_READY => "preparing",
                 LOOPBACK_MEASUREMENT_RUNNING => "measuring",
@@ -261,7 +260,7 @@ impl RoundTripLatencyMeasurement {
 }
 
 pub(super) struct RoundTripInputDetector {
-    pub(super) shared: Arc<RoundTripLatencyMeasurement>,
+    pub(super) shared: Arc<RoundTripLatencyState>,
     pub(super) generation: u64,
     pub(super) quiet_frames: u32,
     pub(super) quiet_peak: f32,
@@ -270,7 +269,7 @@ pub(super) struct RoundTripInputDetector {
 }
 
 impl RoundTripInputDetector {
-    pub(super) fn new(shared: Arc<RoundTripLatencyMeasurement>) -> Self {
+    pub(super) fn new(shared: Arc<RoundTripLatencyState>) -> Self {
         Self {
             shared,
             generation: 0,
@@ -368,13 +367,13 @@ impl RoundTripInputDetector {
 }
 
 pub(super) struct RoundTripOutputProbe {
-    pub(super) shared: Arc<RoundTripLatencyMeasurement>,
+    pub(super) shared: Arc<RoundTripLatencyState>,
     pub(super) generation: u64,
     pub(super) cursor: usize,
 }
 
 impl RoundTripOutputProbe {
-    pub(super) fn new(shared: Arc<RoundTripLatencyMeasurement>) -> Self {
+    pub(super) fn new(shared: Arc<RoundTripLatencyState>) -> Self {
         Self {
             shared,
             generation: 0,
@@ -454,7 +453,7 @@ pub(super) struct RuntimeMetrics {
 }
 
 impl RuntimeMetrics {
-    pub(super) fn snapshot(&self) -> NativeAudioRuntimeSnapshot {
+    pub(super) fn snapshot(&self) -> AudioRuntime {
         let input_latency_us = optional_latency(self.input_latency_us.load(Ordering::Relaxed));
         let output_latency_us = optional_latency(self.output_latency_us.load(Ordering::Relaxed));
         let ring_fill = self.ring_buffer_fill_frames.load(Ordering::Relaxed);
@@ -470,7 +469,7 @@ impl RuntimeMetrics {
                         + engine_latency_ms
                 });
 
-        NativeAudioRuntimeSnapshot {
+        AudioRuntime {
             state: if self.faulted.load(Ordering::Relaxed) {
                 "error".to_owned()
             } else {

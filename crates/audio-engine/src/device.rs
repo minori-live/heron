@@ -1,3 +1,6 @@
+// Owned by the protocol crate; this module keeps the engine-facing path stable.
+pub use heron_dsp_runtime::protocol::{AudioBackend, AudioDevice, AudioDeviceList};
+
 use crate::mock;
 use crate::{HostError as Error, HostResult as Result, Status};
 use cpal::{
@@ -11,30 +14,6 @@ const KNOWN_BACKENDS: [(&str, &str); 4] = [
     ("coreaudio", "CoreAudio"),
     ("alsa", "ALSA"),
 ];
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NativeAudioBackend {
-    pub id: String,
-    pub label: String,
-    pub available: bool,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NativeAudioDevice {
-    pub id: String,
-    pub name: String,
-    pub is_default: bool,
-    pub default_sample_rate: Option<u32>,
-    pub min_buffer_size: Option<u32>,
-    pub max_buffer_size: Option<u32>,
-    pub channel_count: Option<u32>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NativeAudioDeviceList {
-    pub inputs: Vec<NativeAudioDevice>,
-    pub outputs: Vec<NativeAudioDevice>,
-}
 
 fn cpal_error(context: &str, error: impl std::fmt::Display) -> Error {
     Error::new(Status::GenericFailure, format!("{context}: {error}"))
@@ -56,12 +35,12 @@ fn stream_capabilities(
     }
 }
 
-pub fn list_audio_backends() -> Vec<NativeAudioBackend> {
+pub fn list_audio_backends() -> Vec<AudioBackend> {
     let available_hosts = cpal::available_hosts();
 
     let mut backends = KNOWN_BACKENDS
         .iter()
-        .map(|(id, label)| NativeAudioBackend {
+        .map(|(id, label)| AudioBackend {
             id: (*id).to_owned(),
             label: (*label).to_owned(),
             available: available_hosts
@@ -73,7 +52,7 @@ pub fn list_audio_backends() -> Vec<NativeAudioBackend> {
     // of `available_hosts`. It ships in every build and needs no driver, so it
     // is always selectable and is listed last as the fallback for machines with
     // no usable audio hardware.
-    backends.push(NativeAudioBackend {
+    backends.push(AudioBackend {
         id: mock::BACKEND_ID.to_owned(),
         label: mock::BACKEND_LABEL.to_owned(),
         available: true,
@@ -100,7 +79,7 @@ pub fn host_for_backend(backend: &str) -> Result<Host> {
     cpal::host_from_id(host_id).map_err(|error| cpal_error("failed to initialize cpal host", error))
 }
 
-pub fn list_audio_devices(backend: String) -> Result<NativeAudioDeviceList> {
+pub fn list_audio_devices(backend: String) -> Result<AudioDeviceList> {
     let host = host_for_backend(&backend)?;
     let default_input_id = host
         .default_input_device()
@@ -119,7 +98,7 @@ pub fn list_audio_devices(backend: String) -> Result<NativeAudioDeviceList> {
             let is_default = default_input_id.as_ref() == Some(&id);
             let (default_sample_rate, min_buffer_size, max_buffer_size, channel_count) =
                 stream_capabilities(device.default_input_config());
-            Ok(NativeAudioDevice {
+            Ok(AudioDevice {
                 id: id.to_string(),
                 name: device.to_string(),
                 is_default,
@@ -141,7 +120,7 @@ pub fn list_audio_devices(backend: String) -> Result<NativeAudioDeviceList> {
             let is_default = default_output_id.as_ref() == Some(&id);
             let (default_sample_rate, min_buffer_size, max_buffer_size, channel_count) =
                 stream_capabilities(device.default_output_config());
-            Ok(NativeAudioDevice {
+            Ok(AudioDevice {
                 id: id.to_string(),
                 name: device.to_string(),
                 is_default,
@@ -153,5 +132,5 @@ pub fn list_audio_devices(backend: String) -> Result<NativeAudioDeviceList> {
         })
         .collect::<Result<Vec<_>>>()?;
 
-    Ok(NativeAudioDeviceList { inputs, outputs })
+    Ok(AudioDeviceList { inputs, outputs })
 }

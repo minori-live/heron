@@ -1,19 +1,19 @@
 use super::device_recovery::StreamFaultReporter;
 use super::{
-    Arc, AtomicBool, AtomicU32, AtomicU64, AudioEngine, AudioEngineKey, AuditionPlayback,
-    DeviceRecoveryAttempt, DeviceTrait, ENGINE_COMMAND_CAPACITY, EngineCommand, HeapRb, InputFrame,
-    InputPeakBank, MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS, MeterBank, NativeAudioEngineConfig,
-    NativeAudioRuntimeSnapshot, NativeMixerRuntime, NativeRoundTripLatencyMeasurementRequest,
-    NativeRoundTripLatencyMeasurementSnapshot, Ordering, OutputMixerControl, OutputStreamContext,
-    Producer, RING_BUFFER_BLOCKS, RecorderController, Result, RoundTripLatencyMeasurement,
-    RunningAudioEngine, RuntimeMetrics, SampleFormat, Split, StreamTrait, TRANSPORT_RECORDING,
-    TRANSPORT_STOPPED, TransportShared, UNKNOWN_LATENCY_US, audio_error, build_input_stream,
-    build_output_stream, build_stream_for_format, find_device, invalid_config,
-    resolve_stream_devices, stream_config, take_pending_mixer,
+    Arc, AtomicBool, AtomicU32, AtomicU64, AudioEngine, AudioEngineConfig, AudioEngineKey,
+    AudioRuntime, AuditionPlayback, DeviceRecoveryAttempt, DeviceTrait, ENGINE_COMMAND_CAPACITY,
+    EngineCommand, HeapRb, InputFrame, InputPeakBank, MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS,
+    MeterBank, NativeMixerRuntime, Ordering, OutputMixerControl, OutputStreamContext, Producer,
+    RING_BUFFER_BLOCKS, RecorderController, Result, RoundTripLatencyMeasurement,
+    RoundTripLatencyMeasurementRequest, RoundTripLatencyState, RunningAudioEngine, RuntimeMetrics,
+    SampleFormat, Split, StreamTrait, TRANSPORT_RECORDING, TRANSPORT_STOPPED, TransportShared,
+    UNKNOWN_LATENCY_US, audio_error, build_input_stream, build_output_stream,
+    build_stream_for_format, find_device, invalid_config, resolve_stream_devices, stream_config,
+    take_pending_mixer,
 };
 
-fn stopped_snapshot() -> NativeAudioRuntimeSnapshot {
-    NativeAudioRuntimeSnapshot {
+fn stopped_snapshot() -> AudioRuntime {
+    AudioRuntime {
         state: "stopped".to_owned(),
         requested_buffer_size: None,
         sample_rate: None,
@@ -35,10 +35,7 @@ fn stopped_snapshot() -> NativeAudioRuntimeSnapshot {
 }
 
 impl AudioEngine {
-    pub fn start_audio_engine(
-        &self,
-        config: NativeAudioEngineConfig,
-    ) -> Result<NativeAudioRuntimeSnapshot> {
+    pub fn start_audio_engine(&self, config: AudioEngineConfig) -> Result<AudioRuntime> {
         self.cancel_device_recovery();
         let generation = self.claim_recovery_generation();
         match self.start_audio_engine_generation(config, generation)? {
@@ -51,7 +48,7 @@ impl AudioEngine {
 
     pub(super) fn start_audio_engine_generation(
         &self,
-        config: NativeAudioEngineConfig,
+        config: AudioEngineConfig,
         generation: u64,
     ) -> Result<DeviceRecoveryAttempt> {
         if config.buffer_size == 0 {
@@ -162,7 +159,7 @@ impl AudioEngine {
                 "adaptive-resampled"
             },
         });
-        let round_trip_latency = Arc::new(RoundTripLatencyMeasurement::new(
+        let round_trip_latency = Arc::new(RoundTripLatencyState::new(
             u32::from(input_config.channels).min(MAX_INPUT_CHANNELS as u32),
             u32::from(output_config.channels).min(MAX_OUTPUT_CHANNELS as u32),
             input_config.sample_rate,
@@ -311,7 +308,7 @@ impl AudioEngine {
         Ok(DeviceRecoveryAttempt::Committed(snapshot))
     }
 
-    pub fn stop_audio_engine(&self) -> Result<NativeAudioRuntimeSnapshot> {
+    pub fn stop_audio_engine(&self) -> Result<AudioRuntime> {
         self.cancel_device_recovery();
         let _transition = self
             .runtime_transition
@@ -332,7 +329,7 @@ impl AudioEngine {
         Ok(stopped_snapshot())
     }
 
-    pub fn audio_engine_snapshot(&self) -> Result<NativeAudioRuntimeSnapshot> {
+    pub fn audio_engine_snapshot(&self) -> Result<AudioRuntime> {
         let guard = self
             .running
             .lock()
@@ -344,8 +341,8 @@ impl AudioEngine {
 
     pub fn start_round_trip_latency_measurement(
         &self,
-        request: NativeRoundTripLatencyMeasurementRequest,
-    ) -> Result<NativeRoundTripLatencyMeasurementSnapshot> {
+        request: RoundTripLatencyMeasurementRequest,
+    ) -> Result<RoundTripLatencyMeasurement> {
         let guard = self
             .running
             .lock()
@@ -362,9 +359,7 @@ impl AudioEngine {
         Ok(engine.round_trip_latency.snapshot())
     }
 
-    pub fn round_trip_latency_measurement_snapshot(
-        &self,
-    ) -> Result<NativeRoundTripLatencyMeasurementSnapshot> {
+    pub fn round_trip_latency_measurement_snapshot(&self) -> Result<RoundTripLatencyMeasurement> {
         let guard = self
             .running
             .lock()

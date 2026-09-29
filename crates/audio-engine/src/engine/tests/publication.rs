@@ -57,7 +57,7 @@ fn audition_preparation_validates_outputs_and_decodes_canonical_audio() {
         std::process::id()
     ));
     write_deterministic_test_recording(
-        NativeRecordingStartConfig {
+        RecordingStartConfig {
             path: path.to_string_lossy().into_owned(),
             asset_id: "audition-test".to_owned(),
             originator: "Heron test".to_owned(),
@@ -109,7 +109,7 @@ fn running_engine_accepts_and_processes_asset_audition_commands() {
         std::process::id()
     ));
     write_deterministic_test_recording(
-        NativeRecordingStartConfig {
+        RecordingStartConfig {
             path: path.to_string_lossy().into_owned(),
             asset_id: "running-audition-test".to_owned(),
             originator: "Heron test".to_owned(),
@@ -123,7 +123,7 @@ fn running_engine_accepts_and_processes_asset_audition_commands() {
         64,
     )
     .expect("write audition fixture");
-    let config = || NativeAudioEngineConfig {
+    let config = || AudioEngineConfig {
         backend: "mock".to_owned(),
         input_device_id: "custom:mock-duplex".to_owned(),
         output_device_id: "custom:mock-duplex".to_owned(),

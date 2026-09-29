@@ -1,7 +1,7 @@
 use std::{thread, time::Duration};
 
 use heron_audio_host::engine::{
-    AudioEngine, NativeAudioEngineConfig, NativeRoundTripLatencyMeasurementRequest,
+    AudioEngine, AudioEngineConfig, RoundTripLatencyMeasurementRequest,
 };
 use heron_audio_host::mock;
 
@@ -9,7 +9,7 @@ use heron_audio_host::mock;
 fn mock_backend_completes_a_loopback_measurement_through_its_duplex_device() {
     let engine = AudioEngine::new();
     engine
-        .start_audio_engine(NativeAudioEngineConfig {
+        .start_audio_engine(AudioEngineConfig {
             backend: mock::BACKEND_ID.to_owned(),
             input_device_id: "custom:mock-duplex".to_owned(),
             output_device_id: "custom:mock-duplex".to_owned(),
@@ -18,7 +18,7 @@ fn mock_backend_completes_a_loopback_measurement_through_its_duplex_device() {
         })
         .unwrap();
     engine
-        .start_round_trip_latency_measurement(NativeRoundTripLatencyMeasurementRequest {
+        .start_round_trip_latency_measurement(RoundTripLatencyMeasurementRequest {
             input_channel: 1,
             output_channel: 1,
         })

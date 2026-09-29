@@ -42,8 +42,8 @@ use rubato::{
 };
 
 use crate::recording::{
-    MAX_INPUT_CHANNELS, NativeRecordingResult, NativeRecordingStartConfig, NativeWaveformSnapshot,
-    RecorderController, RecordingTap, StereoFrame,
+    MAX_INPUT_CHANNELS, RecorderController, RecordingResult, RecordingStartConfig, RecordingTap,
+    RecordingWaveform, StereoFrame,
 };
 use crate::{HostError as Error, HostResult as Result, Status};
 use heron_audio_plugin::{
@@ -106,7 +106,7 @@ pub struct AudioEngine {
     device_fault_receiver: Mutex<mpsc::Receiver<DeviceFaultSignal>>,
     next_stream_incarnation: AtomicU64,
     current_stream_incarnation: AtomicU64,
-    current_audio_config: Mutex<Option<NativeAudioEngineConfig>>,
+    current_audio_config: Mutex<Option<AudioEngineConfig>>,
     recovery_authority: AtomicU64,
     recovery_commit: Mutex<()>,
     next_recovery_id: AtomicU64,
@@ -224,8 +224,8 @@ use device_streams::{
 use graph_build::build_mixer_runtime;
 use latency_measurement::{
     AuditionPlayback, EngineCommand, NativeMixerRuntime, RealtimeParameter,
-    RealtimeParameterCommand, RoundTripInputDetector, RoundTripLatencyMeasurement,
-    RoundTripOutputProbe, RuntimeMetrics, TransportAction,
+    RealtimeParameterCommand, RoundTripInputDetector, RoundTripLatencyState, RoundTripOutputProbe,
+    RuntimeMetrics, TransportAction,
 };
 use lifecycle_types::{
     AudioEngineKey, OutputMixerControl, OutputStreamContext, RunningAudioEngine, audio_error,
@@ -246,18 +246,17 @@ pub use bounce::{
 };
 pub use clip_decode::decode_clip_audio;
 pub use device_recovery::{
-    DeviceRecoveryAttempt, NativeAudioDeviceRecoverySnapshot, NativeDeviceFaultKind,
-    NativeDeviceRecoveryPhase, NativeStreamDirection,
+    AudioDeviceFaultKind, AudioDeviceRecoveryPhase, AudioDeviceRecoverySnapshot,
+    AudioStreamDirection, DeviceRecoveryAttempt,
 };
 pub use metering::TransportClockHandle;
 pub use publication::{CompiledGraphBuild, GraphBuildInput, PublishOutcome, compile_graph_build};
 pub use spec::{
-    NativeApplicationCaptureTarget, NativeAudioEngineConfig, NativeAudioRuntimeSnapshot,
-    NativeLatencyPolicy, NativeMidiClip, NativeMidiEvent, NativeMidiEventKind, NativeMidiNote,
-    NativeMixerChannel, NativeMixerChannelMeter, NativeMixerClip, NativeMixerGraph,
-    NativeMixerParameterPreview, NativeMixerSend, NativeMixerSnapshot, NativePluginAuxInputBus,
-    NativePluginInstance, NativeRoundTripLatencyMeasurementRequest,
-    NativeRoundTripLatencyMeasurementSnapshot, NativeTransportSnapshot,
+    AudioEngineConfig, AudioRuntime, NativeApplicationCaptureTarget, NativeLatencyPolicy,
+    NativeMidiClip, NativeMidiEvent, NativeMidiEventKind, NativeMidiNote, NativeMixerChannel,
+    NativeMixerChannelMeter, NativeMixerClip, NativeMixerGraph, NativeMixerParameterPreview,
+    NativeMixerSend, NativeMixerSnapshot, NativePluginAuxInputBus, NativePluginInstance,
+    NativeTransportSnapshot, RoundTripLatencyMeasurement, RoundTripLatencyMeasurementRequest,
 };
 
 #[cfg(test)]

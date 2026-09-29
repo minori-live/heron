@@ -23,20 +23,17 @@ use crate::{
     editor_platform::{self, NativeUiContext},
     engine,
     midi_input::MidiInputActor,
-    recording::{NativeRecordingResult, NativeRecordingStartConfig, NativeWaveformSnapshot},
     vst3,
 };
 use heron_audio_plugin::PluginProcessFailure;
 use heron_dsp_runtime::protocol::{
-    ApplicationCaptureLogicalTarget, ApplicationCaptureSnapshot,
-    ApplicationCaptureTargetDescriptor, AudioBackend, AudioDevice, AudioDeviceFaultKind,
-    AudioDeviceList, AudioDeviceRecovery, AudioDeviceRecoveryPhase, AudioEngineConfig,
-    AudioRuntime, AudioStreamDirection, BinaryPayload, ControlCommand, ControlResult,
-    GraphCandidateSnapshot, GraphDeploymentSnapshot, GraphDeploymentStatus, GraphOperationOutcome,
-    GraphOperationSnapshot, GraphTransactionRequest, GraphTransactionValue, HostEvent,
-    IPC_PROTOCOL_VERSION, LiveLatencyPolicy, LiveMixerGraph, MidiNoteBatch, MixerChannelMeter,
-    PluginFailureCategory, PluginFailureOutcome, PluginFailureStage, PluginRuntimeFailure,
-    RecordingResult, RecordingWaveform, ResourceKind, ResourceRef, RoundTripLatencyMeasurement,
+    AudioBackend, AudioDevice, AudioDeviceFaultKind, AudioDeviceList, AudioDeviceRecovery,
+    AudioDeviceRecoveryPhase, AudioEngineConfig, AudioStreamDirection, BinaryPayload,
+    ControlCommand, ControlResult, GraphCandidateSnapshot, GraphDeploymentSnapshot,
+    GraphDeploymentStatus, GraphOperationOutcome, GraphOperationSnapshot, GraphTransactionRequest,
+    GraphTransactionValue, HostEvent, IPC_PROTOCOL_VERSION, LiveLatencyPolicy, LiveMixerGraph,
+    MidiNoteBatch, MixerChannelMeter, PluginFailureCategory, PluginFailureOutcome,
+    PluginFailureStage, PluginRuntimeFailure, RecordingStartConfig, ResourceKind, ResourceRef,
     RpcError, RpcErrorCategory, RpcErrorCode, RpcErrorDetails, RpcFailure, RpcMutationOutcome,
     RpcRequestMeta, RpcResult, RpcRetry, RpcSuccess, TransportState,
 };

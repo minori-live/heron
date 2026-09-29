@@ -1,51 +1,14 @@
+// Owned by the protocol crate; this module keeps the engine-facing path stable.
+pub use heron_dsp_runtime::protocol::{
+    AudioEngineConfig, AudioRuntime, RoundTripLatencyMeasurement,
+    RoundTripLatencyMeasurementRequest,
+};
+
 use super::{
     AudioPluginProcessorHandle, LiveMixerSendTap, LiveMixerSystemRole, LowLatencyChannel,
     LowLatencyPlan, LowLatencyPlugin, PluginAudioMode, TempoEvent, TimeSignatureEvent,
     plan_low_latency,
 };
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NativeAudioEngineConfig {
-    pub backend: String,
-    pub input_device_id: String,
-    pub output_device_id: String,
-    pub buffer_size: u32,
-    pub session_sample_rate: Option<u32>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct NativeAudioRuntimeSnapshot {
-    pub state: String,
-    pub requested_buffer_size: Option<u32>,
-    pub sample_rate: Option<u32>,
-    pub input_sample_rate: Option<u32>,
-    pub output_sample_rate: Option<u32>,
-    pub input_buffer_size: Option<u32>,
-    pub output_buffer_size: Option<u32>,
-    pub ring_buffer_capacity_frames: Option<u32>,
-    pub ring_buffer_fill_frames: Option<u32>,
-    pub input_latency_ms: Option<f64>,
-    pub output_latency_ms: Option<f64>,
-    pub ring_buffer_latency_ms: Option<f64>,
-    pub engine_latency_ms: Option<f64>,
-    pub estimated_round_trip_latency_ms: Option<f64>,
-    pub xruns: u32,
-    pub clock_sync: String,
-    pub buffer_fallback: bool,
-}
-
-pub struct NativeRoundTripLatencyMeasurementRequest {
-    pub input_channel: u32,
-    pub output_channel: u32,
-}
-
-pub struct NativeRoundTripLatencyMeasurementSnapshot {
-    pub status: String,
-    pub input_channel: Option<u32>,
-    pub output_channel: Option<u32>,
-    pub measured_round_trip_latency_ms: Option<f64>,
-    pub failure: Option<String>,
-}
 
 #[derive(Clone)]
 pub struct NativeMixerChannel {
