@@ -157,13 +157,13 @@ function setNumber(
   gap: 12px;
   margin-bottom: 1px;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--line-soft);
-  color: var(--text-secondary);
+  border-bottom: 1px solid var(--ui-color-border);
+  color: var(--ui-color-text-muted);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
 }
 
 .runtime-strip span {
-  color: var(--accent);
+  color: var(--ui-color-action);
   font-weight: var(--ui-type-weight-bold);
   letter-spacing: var(--ui-type-tracking-wider);
   text-transform: uppercase;
@@ -176,7 +176,7 @@ function setNumber(
 .runtime-strip i {
   width: 1px;
   height: 11px;
-  background: var(--line-strong);
+  background: var(--ui-color-border-strong);
 }
 
 .thread-control {
@@ -188,10 +188,10 @@ function setNumber(
 
 .runtime-actions button {
   height: 36px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 7px;
-  color: var(--text-secondary);
-  background: var(--surface-3);
+  color: var(--ui-color-text-muted);
+  background: var(--ui-color-surface-hover);
   font: var(--ui-type-size-body-compact) var(--ui-type-family-data);
 }
 
@@ -200,7 +200,7 @@ function setNumber(
 }
 
 .thread-control small {
-  color: var(--text-faint);
+  color: var(--ui-color-text-subtle);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 
@@ -222,8 +222,8 @@ function setNumber(
 .runtime-error {
   padding: 11px;
   border-radius: 7px;
-  color: var(--record);
-  background: color-mix(in srgb, var(--record) 9%, var(--surface-1));
+  color: var(--ui-signal-record);
+  background: color-mix(in srgb, var(--ui-signal-record) 9%, var(--ui-color-surface-raised));
   font-size: var(--ui-type-size-body-compact);
 }
 </style>

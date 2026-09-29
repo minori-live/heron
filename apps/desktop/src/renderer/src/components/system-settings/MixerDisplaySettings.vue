@@ -100,13 +100,13 @@ onMounted(() => {
   align-content: start;
   width: min(420px, 100%);
   gap: 7px;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
 }
 
 .display-error {
-  color: var(--record);
+  color: var(--ui-signal-record);
   font-size: var(--ui-type-size-body-compact);
 }
 </style>

@@ -98,7 +98,7 @@ function formatFrames(value: number | null): string {
   display: grid;
   gap: 7px;
   width: min(220px, 100%);
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
   text-transform: uppercase;
@@ -112,17 +112,17 @@ function formatFrames(value: number | null): string {
   display: grid;
   gap: 4px;
   padding: 13px;
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--ui-color-border);
   border-radius: 7px;
-  background: var(--surface-1);
+  background: var(--ui-color-surface-raised);
 }
 .latency-card span,
 .latency-card small {
-  color: var(--text-faint);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-caption);
 }
 .latency-card strong {
-  color: var(--signal-cyan);
+  color: var(--ui-signal-audio);
   font: var(--ui-type-size-view-title) var(--ui-type-family-data);
 }
 @media (max-width: 1120px) {

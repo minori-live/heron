@@ -84,8 +84,8 @@ function commitInspectorValue(field: string, value: number | null | undefined): 
   flex-direction: column;
   gap: var(--ui-space-2);
   padding: var(--ui-space-2) var(--ui-space-3);
-  border-right: 1px solid var(--line-soft);
-  background: var(--surface-1);
+  border-right: 1px solid var(--ui-color-border);
+  background: var(--ui-color-surface-raised);
   overflow-y: auto;
 }
 
@@ -95,7 +95,7 @@ function commitInspectorValue(field: string, value: number | null | undefined): 
 
 .selection-summary,
 .resolution {
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 

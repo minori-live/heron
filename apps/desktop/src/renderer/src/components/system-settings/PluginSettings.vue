@@ -114,25 +114,25 @@ const lastScan = computed(() =>
   gap: 5px;
   min-width: 0;
   padding: 13px 12px;
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--ui-color-border);
   border-radius: 7px;
-  background: var(--surface-2);
+  background: var(--ui-color-surface-raised);
 }
 
 .catalog-metric strong {
-  color: var(--accent);
+  color: var(--ui-color-action);
   font: var(--ui-type-weight-semibold) var(--ui-font-size-lg) var(--ui-type-family-data);
 }
 
 .catalog-metric span,
 .last-scan span,
 .scan-control span {
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-caption);
 }
 
 .catalog-metric-muted strong {
-  color: var(--text-secondary);
+  color: var(--ui-color-text-muted);
 }
 
 .last-scan {
@@ -141,7 +141,7 @@ const lastScan = computed(() =>
   justify-content: space-between;
   gap: 16px;
   margin: 2px 0 0;
-  color: var(--text-secondary);
+  color: var(--ui-color-text-muted);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 
@@ -158,10 +158,10 @@ const lastScan = computed(() =>
 .scan-control button {
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 7px;
-  color: var(--text-secondary);
-  background: var(--surface-3);
+  color: var(--ui-color-text-muted);
+  background: var(--ui-color-surface-hover);
   font-size: var(--ui-type-size-body-compact);
 }
 
@@ -174,8 +174,8 @@ const lastScan = computed(() =>
   margin: 12px 0 0;
   padding: 11px;
   border-radius: 7px;
-  color: var(--record);
-  background: color-mix(in srgb, var(--record) 9%, var(--surface-1));
+  color: var(--ui-signal-record);
+  background: color-mix(in srgb, var(--ui-signal-record) 9%, var(--ui-color-surface-raised));
   font-size: var(--ui-type-size-body-compact);
 }
 

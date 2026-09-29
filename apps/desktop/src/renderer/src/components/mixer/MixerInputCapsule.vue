@@ -273,7 +273,7 @@ function toggleStereo(): void {
 
 .input-capsule__status {
   margin: 0;
-  color: var(--warning);
+  color: var(--ui-color-warning);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   line-height: var(--ui-type-leading-compact);
 }

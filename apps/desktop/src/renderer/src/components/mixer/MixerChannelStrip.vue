@@ -226,7 +226,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
 
 <style scoped>
 .channel-strip {
-  --strip-color: var(--accent);
+  --strip-color: var(--ui-color-action);
   position: relative;
   display: grid;
   grid-template-rows:
@@ -308,8 +308,8 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   gap: 7px;
   padding: 0 6px;
   border: 0;
-  border-top: 1px solid var(--line-strong);
-  color: var(--text-primary);
+  border-top: 1px solid var(--ui-color-border-strong);
+  color: var(--ui-color-text);
   background: color-mix(in srgb, var(--strip-color) 72%, var(--ui-domain-color-484848));
   text-align: left;
 }

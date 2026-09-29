@@ -167,34 +167,34 @@ function formatLatency(value: number | null): string {
   border: 1px solid transparent;
   border-radius: 4px;
   gap: 8px;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   background: transparent;
   letter-spacing: var(--ui-type-tracking-wide);
 }
 .performance-trigger.warning {
-  border-color: color-mix(in srgb, var(--warning) 45%, var(--line-strong));
-  color: var(--warning);
-  background: color-mix(in srgb, var(--warning) 10%, var(--daw-statusbar));
+  border-color: color-mix(in srgb, var(--ui-color-warning) 45%, var(--ui-color-border-strong));
+  color: var(--ui-color-warning);
+  background: color-mix(in srgb, var(--ui-color-warning) 10%, var(--ui-daw-statusbar));
 }
 .performance-trigger.critical {
-  border-color: color-mix(in srgb, var(--record) 45%, var(--line-strong));
-  color: var(--record);
-  background: color-mix(in srgb, var(--record) 10%, var(--daw-statusbar));
+  border-color: color-mix(in srgb, var(--ui-signal-record) 45%, var(--ui-color-border-strong));
+  color: var(--ui-signal-record);
+  background: color-mix(in srgb, var(--ui-signal-record) 10%, var(--ui-daw-statusbar));
 }
 .health-light {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--signal-cyan);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--signal-cyan) 60%, transparent);
+  background: var(--ui-signal-audio);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--ui-signal-audio) 60%, transparent);
 }
 .warning .health-light {
-  background: var(--warning);
-  box-shadow: 0 0 7px color-mix(in srgb, var(--warning) 66%, transparent);
+  background: var(--ui-color-warning);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--ui-color-warning) 66%, transparent);
 }
 .critical .health-light {
-  background: var(--record);
-  box-shadow: 0 0 7px color-mix(in srgb, var(--record) 72%, transparent);
+  background: var(--ui-signal-record);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--ui-signal-record) 72%, transparent);
 }
 .performance-popover {
   z-index: var(--ui-z-dropdown);
@@ -204,12 +204,12 @@ function formatLatency(value: number | null): string {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 10px;
   outline: none;
-  color: var(--text-primary);
-  background: var(--surface-panel);
-  box-shadow: 0 24px 64px var(--shadow);
+  color: var(--ui-color-text);
+  background: var(--ui-color-surface);
+  box-shadow: 0 24px 64px var(--ui-color-shadow);
   transform-origin: var(--reka-popover-content-transform-origin);
   animation: performance-surface-in 120ms ease-out;
 }
@@ -222,8 +222,8 @@ function formatLatency(value: number | null): string {
   justify-content: space-between;
   gap: 16px;
   padding: 11px 10px;
-  border-bottom: 1px solid var(--line-soft);
-  background: color-mix(in srgb, var(--surface-2) 93%, transparent);
+  border-bottom: 1px solid var(--ui-color-border);
+  background: color-mix(in srgb, var(--ui-color-surface-raised) 93%, transparent);
   backdrop-filter: blur(10px);
 }
 .performance-popover-shell {
@@ -236,14 +236,14 @@ function formatLatency(value: number | null): string {
   box-shadow: none;
 }
 .performance-popover-shell > .ui-popover__arrow {
-  fill: var(--line-strong);
+  fill: var(--ui-color-border-strong);
 }
 .performance-header > div:first-child > span,
 .performance-header > div:first-child > strong {
   display: block;
 }
 .performance-header > div:first-child > span {
-  color: var(--accent);
+  color: var(--ui-color-action);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   text-transform: uppercase;
   letter-spacing: var(--ui-type-tracking-widest);
@@ -259,23 +259,23 @@ function formatLatency(value: number | null): string {
 }
 .health-badge {
   padding: 4px 7px;
-  border: 1px solid color-mix(in srgb, var(--signal-cyan) 50%, var(--line-strong));
+  border: 1px solid color-mix(in srgb, var(--ui-signal-audio) 50%, var(--ui-color-border-strong));
   border-radius: 4px;
-  color: var(--signal-cyan);
-  background: color-mix(in srgb, var(--signal-cyan) 10%, var(--surface-2));
+  color: var(--ui-signal-audio);
+  background: color-mix(in srgb, var(--ui-signal-audio) 10%, var(--ui-color-surface-raised));
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   text-transform: uppercase;
   letter-spacing: var(--ui-type-tracking-wide);
 }
 .health-badge.warning {
-  border-color: color-mix(in srgb, var(--warning) 45%, var(--line-strong));
-  color: var(--warning);
-  background: color-mix(in srgb, var(--warning) 10%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--ui-color-warning) 45%, var(--ui-color-border-strong));
+  color: var(--ui-color-warning);
+  background: color-mix(in srgb, var(--ui-color-warning) 10%, var(--ui-color-surface-raised));
 }
 .health-badge.critical {
-  border-color: color-mix(in srgb, var(--record) 45%, var(--line-strong));
-  color: var(--record);
-  background: color-mix(in srgb, var(--record) 10%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--ui-signal-record) 45%, var(--ui-color-border-strong));
+  color: var(--ui-signal-record);
+  background: color-mix(in srgb, var(--ui-signal-record) 10%, var(--ui-color-surface-raised));
 }
 .refresh-performance {
   display: grid;
@@ -283,10 +283,10 @@ function formatLatency(value: number | null): string {
   width: 24px;
   height: 24px;
   padding: 0;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 5px;
-  color: var(--text-muted);
-  background: var(--daw-control);
+  color: var(--ui-color-text-subtle);
+  background: var(--ui-daw-control);
 }
 .refresh-performance:disabled {
   opacity: 0.55;
@@ -297,16 +297,16 @@ function formatLatency(value: number | null): string {
 .performance-alerts {
   display: grid;
   padding: 8px;
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--ui-color-border);
   gap: 5px;
-  background: var(--surface-panel);
+  background: var(--ui-color-surface);
 }
 .alerts-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 1px 1px 3px;
-  color: var(--text-faint);
+  color: var(--ui-color-text-subtle);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   text-transform: uppercase;
   letter-spacing: var(--ui-type-tracking-wide);
@@ -316,16 +316,16 @@ function formatLatency(value: number | null): string {
   grid-template-columns: 15px minmax(0, 1fr);
   align-items: start;
   padding: 7px 8px;
-  border: 1px solid color-mix(in srgb, var(--warning) 42%, var(--line-strong));
+  border: 1px solid color-mix(in srgb, var(--ui-color-warning) 42%, var(--ui-color-border-strong));
   border-radius: 6px;
   gap: 7px;
-  color: var(--warning);
-  background: color-mix(in srgb, var(--warning) 10%, var(--surface-1));
+  color: var(--ui-color-warning);
+  background: color-mix(in srgb, var(--ui-color-warning) 10%, var(--ui-color-surface-raised));
 }
 .performance-alert.critical {
-  border-color: color-mix(in srgb, var(--record) 45%, var(--line-strong));
-  color: var(--record);
-  background: color-mix(in srgb, var(--record) 10%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--ui-signal-record) 45%, var(--ui-color-border-strong));
+  color: var(--ui-signal-record);
+  background: color-mix(in srgb, var(--ui-signal-record) 10%, var(--ui-color-surface-raised));
 }
 .performance-alert div {
   min-width: 0;
@@ -339,12 +339,12 @@ function formatLatency(value: number | null): string {
 }
 .performance-alert span {
   margin-top: 3px;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-caption);
   line-height: var(--ui-type-leading-normal);
 }
 .performance-alert.critical span {
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
 }
 @keyframes monitor-spin {
   to {

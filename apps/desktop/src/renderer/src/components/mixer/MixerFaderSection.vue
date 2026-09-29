@@ -138,10 +138,10 @@ function commitGainInputValue(raw: string): void {
   height: 20px;
   margin: 0;
   padding: 0 2px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 2px;
-  color: var(--text-primary);
-  background: var(--daw-control);
+  color: var(--ui-color-text);
+  background: var(--ui-daw-control);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
   text-align: center;
   writing-mode: horizontal-tb;

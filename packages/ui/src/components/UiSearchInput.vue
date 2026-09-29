@@ -35,14 +35,14 @@ const props = withDefaults(
   min-width: 0;
   height: 27px;
   padding: 0 7px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: var(--ui-radius-sm);
-  color: var(--text-faint);
-  background: var(--daw-control);
+  color: var(--ui-color-text-subtle);
+  background: var(--ui-daw-control);
 }
 .ui-search-input:focus-within {
-  border-color: var(--focus);
-  box-shadow: inset 0 0 0 1px var(--focus);
+  border-color: var(--ui-color-focus);
+  box-shadow: inset 0 0 0 1px var(--ui-color-focus);
 }
 .ui-search-input__icon {
   width: 12px;
@@ -61,12 +61,12 @@ const props = withDefaults(
   outline: 0;
   box-shadow: none;
   appearance: none;
-  color: var(--text-primary);
+  color: var(--ui-color-text);
   background: transparent;
   font: var(--ui-type-size-control) / var(--ui-type-leading-normal) var(--ui-type-family-interface);
 }
 .ui-search-input input::placeholder {
-  color: var(--text-faint);
+  color: var(--ui-color-text-subtle);
   opacity: 1;
 }
 .ui-search-input input::-webkit-search-cancel-button {

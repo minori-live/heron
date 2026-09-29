@@ -179,8 +179,9 @@
   --ui-shadow-md: 0 8px 24px rgb(0 0 0 / 34%);
   --ui-shadow-lg: 0 18px 56px rgb(0 0 0 / 46%);
   --ui-shadow-glow: 0 0 8px color-mix(in srgb, var(--ui-color-action) 42%, transparent);
-  --ui-shadow-selected-edge: 2px 0 0 var(--accent) inset;
-  --ui-shadow-selected-outline: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent) inset;
+  --ui-shadow-selected-edge: 2px 0 0 var(--ui-color-action) inset;
+  --ui-shadow-selected-outline: 0 0 0 1px
+    color-mix(in srgb, var(--ui-color-action) 30%, transparent) inset;
   --ui-shadow-highlight-inset: 0 1px 0 color-mix(in srgb, var(--ui-color-text) 14%, transparent)
     inset;
   --ui-shadow-warning-ring: 0 0 0 2px color-mix(in srgb, var(--ui-color-warning) 15%, transparent);
@@ -208,69 +209,30 @@
   --ui-z-floating-control: 20;
   --ui-z-floating-menu: 30;
 
-  /* Product compatibility aliases. New UI primitives use the semantic tokens above. */
-  --canvas: #151515;
-  --canvas-subtle: var(--ui-color-canvas-subtle);
-  --surface-1: #1b1b1b;
-  --surface-2: #202020;
-  --surface-3: #282828;
-  --surface-panel: #181818;
-  --surface-sunken: #111111;
-  --surface-active: #2a2d2f;
-  --daw-workspace: #101010;
-  --daw-lane: #141414;
-  --daw-lane-stripe: #1c1c1c;
-  --daw-grid-line: #292929;
-  --daw-ruler: #191919;
-  --daw-track-header: #1c1c1c;
-  --daw-track-header-hover: #232323;
-  --daw-track-header-selected: #292d2f;
-  --daw-mixer-strip: #202020;
-  --daw-mixer-strip-bus: #23211e;
-  --daw-mixer-strip-master: #1c2324;
-  --daw-mixer-strip-selected: #2b2d2e;
-  --daw-control: #292929;
-  --daw-control-hover: #333333;
-  --daw-meter-well: #0b0b0b;
-  --daw-statusbar: #121212;
-  --daw-resizer: #2a2a2a;
-  --line-soft: #2b2b2b;
-  --line-strong: #3a3a3a;
-  --text-primary: #e8e8e8;
-  --text-secondary: #b8b8b8;
-  --text-muted: #8c8c8c;
-  --text-faint: #686868;
-  --accent: #8da8b5;
-  --accent-soft: #b6cbd3;
-  --accent-strong: #6f929f;
-  --signal-cyan: #72c3c7;
-  --record: #ff6577;
-  --loop: #e4b93f;
-  --loop-ink: #221c08;
-  --warning: #e8b75f;
-  --mixer-mute: #2f9ed0;
-  --mixer-solo: #e4b93f;
-  --mixer-record: #e54b58;
-  --mixer-input: #e8892f;
-  --mixer-bounce: #73d6c9;
-  --mixer-pan: #69c68b;
-  --meter-green: #50b86d;
-  --meter-yellow: #e4b93f;
-  --meter-red: #e54b58;
-  --focus: #8eb9c8;
-  --button-primary: #44636d;
-  --button-primary-text: #f5fbfc;
-  --shadow: #00000066;
-  --border: var(--line-soft);
-  --border-strong: var(--line-strong);
-  --accent-hover: var(--accent-soft);
-  --danger: var(--record);
-  --success: var(--meter-green);
-  --focus-ring: var(--ui-focus-ring);
-  --font-sans: var(--ui-type-family-interface);
-  --font-mono: var(--ui-type-family-data);
-  --font-display: var(--ui-type-family-display);
-  --font-utility: var(--ui-type-family-data);
+  /*
+   * DAW chrome and signal colors whose value carries spatial or signal meaning.
+   * They have no semantic equivalent, and they stay in the `--ui-` namespace so
+   * there is one vocabulary; ordinary surfaces use the semantic tokens above.
+   */
+  --ui-daw-workspace: #101010;
+  --ui-daw-lane: #141414;
+  --ui-daw-lane-stripe: #1c1c1c;
+  --ui-daw-grid-line: #292929;
+  --ui-daw-ruler: #191919;
+  --ui-daw-track-header: #1c1c1c;
+  --ui-daw-track-header-hover: #232323;
+  --ui-daw-track-header-selected: #292d2f;
+  --ui-daw-mixer-strip: #202020;
+  --ui-daw-mixer-strip-bus: #23211e;
+  --ui-daw-mixer-strip-master: #1c2324;
+  --ui-daw-mixer-strip-selected: #2b2d2e;
+  --ui-daw-control: #292929;
+  --ui-daw-control-hover: #333333;
+  --ui-daw-meter-well: #0b0b0b;
+  --ui-daw-statusbar: #121212;
+  --ui-daw-resizer: #2a2a2a;
+  --ui-signal-mixer-pan: #69c68b;
+  --ui-color-shadow: #00000066;
 }
 
 [data-theme="light"] {
@@ -340,50 +302,23 @@
   --ui-shadow-md: 0 8px 24px rgb(14 16 20 / 16%);
   --ui-shadow-lg: 0 18px 56px rgb(14 16 20 / 24%);
 
-  --canvas: #d8d9db;
-  --surface-1: #e4e5e7;
-  --surface-2: #ececee;
-  --surface-3: #f3f3f4;
-  --surface-panel: #d0d1d3;
-  --surface-sunken: #c7c9cc;
-  --surface-active: #c8d0d4;
-  --daw-workspace: #c9cbcd;
-  --daw-lane: #d5d6d8;
-  --daw-lane-stripe: #ced0d2;
-  --daw-grid-line: #b5b8bb;
-  --daw-ruler: #d0d1d3;
-  --daw-track-header: #dcdddf;
-  --daw-track-header-hover: #e6e7e8;
-  --daw-track-header-selected: #c6d0d4;
-  --daw-mixer-strip: #d5d6d8;
-  --daw-mixer-strip-bus: #d8d5cf;
-  --daw-mixer-strip-master: #ccd5d6;
-  --daw-mixer-strip-selected: #e2e3e4;
-  --daw-control: #e8e8e9;
-  --daw-control-hover: #f2f2f3;
-  --daw-meter-well: #25282a;
-  --daw-statusbar: #c5c7c9;
-  --daw-resizer: #b5b8bb;
-  --line-soft: #c4c5c7;
-  --line-strong: #aaadb0;
-  --text-primary: #202224;
-  --text-secondary: #45494c;
-  --text-muted: #676c70;
-  --text-faint: #858a8e;
-  --accent: #456d7a;
-  --accent-soft: #355d6b;
-  --accent-strong: #365e6b;
-  --signal-cyan: #287982;
-  --record: #c13e50;
-  --loop: #c88e12;
-  --loop-ink: #221c08;
-  --warning: #9a681d;
-  --mixer-pan: #28744b;
-  --meter-green: #33804b;
-  --meter-yellow: #a77818;
-  --meter-red: #bd3d4b;
-  --focus: #2f758b;
-  --button-primary: #426d7a;
-  --button-primary-text: #ffffff;
-  --shadow: #34383d24;
+  --ui-daw-workspace: #c9cbcd;
+  --ui-daw-lane: #d5d6d8;
+  --ui-daw-lane-stripe: #ced0d2;
+  --ui-daw-grid-line: #b5b8bb;
+  --ui-daw-ruler: #d0d1d3;
+  --ui-daw-track-header: #dcdddf;
+  --ui-daw-track-header-hover: #e6e7e8;
+  --ui-daw-track-header-selected: #c6d0d4;
+  --ui-daw-mixer-strip: #d5d6d8;
+  --ui-daw-mixer-strip-bus: #d8d5cf;
+  --ui-daw-mixer-strip-master: #ccd5d6;
+  --ui-daw-mixer-strip-selected: #e2e3e4;
+  --ui-daw-control: #e8e8e9;
+  --ui-daw-control-hover: #f2f2f3;
+  --ui-daw-meter-well: #25282a;
+  --ui-daw-statusbar: #c5c7c9;
+  --ui-daw-resizer: #b5b8bb;
+  --ui-signal-mixer-pan: #28744b;
+  --ui-color-shadow: #34383d24;
 }

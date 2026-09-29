@@ -339,8 +339,8 @@ function editGesture(action: string, intent: UiGestureIntent): void {
   height: 6px;
   border: 1px solid var(--ui-domain-color-ffe5e9);
   border-radius: 50%;
-  background: var(--record);
-  box-shadow: 0 0 5px var(--record);
+  background: var(--ui-signal-record);
+  box-shadow: 0 0 5px var(--ui-signal-record);
 }
 .waveform {
   position: absolute;

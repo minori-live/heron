@@ -167,10 +167,10 @@ function setSoftwareMonitoring(enabled: boolean): void {
   min-width: 0;
   overflow: hidden;
   padding: 11px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 7px;
-  color: var(--text-secondary);
-  background: var(--surface-1);
+  color: var(--ui-color-text-muted);
+  background: var(--ui-color-surface-raised);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -178,10 +178,10 @@ function setSoftwareMonitoring(enabled: boolean): void {
 
 .path-control button {
   padding: 0 12px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 7px;
-  color: var(--text-secondary);
-  background: var(--surface-3);
+  color: var(--ui-color-text-muted);
+  background: var(--ui-color-surface-hover);
 }
 
 .path-control button {
@@ -196,7 +196,7 @@ function setSoftwareMonitoring(enabled: boolean): void {
   display: grid;
   width: min(240px, 100%);
   gap: 7px;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
 }
@@ -206,11 +206,11 @@ function setSoftwareMonitoring(enabled: boolean): void {
   align-items: center;
   width: min(480px, 100%);
   gap: var(--ui-space-3);
-  color: var(--text-secondary);
+  color: var(--ui-color-text-muted);
   font-size: var(--ui-type-size-body-compact);
 }
 .latency-budget-control output {
-  color: var(--signal-cyan);
+  color: var(--ui-signal-audio);
   font-family: var(--ui-type-family-data);
   text-align: right;
 }
@@ -222,7 +222,7 @@ function setSoftwareMonitoring(enabled: boolean): void {
 }
 
 .monitoring-state {
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-caption);
   line-height: var(--ui-type-leading-normal);
 }
@@ -232,12 +232,12 @@ function setSoftwareMonitoring(enabled: boolean): void {
 }
 
 .recovery-count b {
-  color: var(--signal-cyan);
+  color: var(--ui-signal-audio);
   font: var(--ui-font-size-2xl) var(--ui-type-family-data);
 }
 
 .recovery-count span {
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-body-compact);
 }
 
@@ -248,7 +248,7 @@ function setSoftwareMonitoring(enabled: boolean): void {
 }
 
 .recording-error {
-  color: var(--record);
-  background: color-mix(in srgb, var(--record) 9%, var(--surface-1));
+  color: var(--ui-signal-record);
+  background: color-mix(in srgb, var(--ui-signal-record) 9%, var(--ui-color-surface-raised));
 }
 </style>

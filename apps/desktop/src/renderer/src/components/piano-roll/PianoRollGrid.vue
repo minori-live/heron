@@ -125,9 +125,9 @@ const {
   left: 0;
   width: 72px;
   height: 28px;
-  border-right: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line-strong);
-  background: var(--surface-2);
+  border-right: 1px solid var(--ui-color-border-strong);
+  border-bottom: 1px solid var(--ui-color-border-strong);
+  background: var(--ui-color-surface-raised);
 }
 
 .ruler {
@@ -138,8 +138,8 @@ const {
   height: 28px;
   margin-top: -28px;
   margin-left: 72px;
-  border-bottom: 1px solid var(--line-strong);
-  background: var(--surface-2);
+  border-bottom: 1px solid var(--ui-color-border-strong);
+  background: var(--ui-color-surface-raised);
 }
 
 .ruler-mark {
@@ -148,8 +148,8 @@ const {
   height: 28px;
   padding: 2px 4px;
   border: 0;
-  border-left: 1px solid var(--daw-grid-line);
-  color: var(--text-muted);
+  border-left: 1px solid var(--ui-daw-grid-line);
+  color: var(--ui-color-text-subtle);
   background: transparent;
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
@@ -166,22 +166,22 @@ const {
       to bottom,
       transparent 0,
       transparent calc(var(--row-height) - 1px),
-      var(--line-soft) calc(var(--row-height) - 1px),
-      var(--line-soft) var(--row-height)
+      var(--ui-color-border) calc(var(--row-height) - 1px),
+      var(--ui-color-border) var(--row-height)
     ),
-    var(--daw-lane);
+    var(--ui-daw-lane);
 }
 
 .pitch-row {
   position: absolute;
   right: 0;
   left: 0;
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--ui-color-border);
   pointer-events: none;
 }
 
 .pitch-row.black {
-  background: color-mix(in srgb, var(--surface-sunken) 46%, transparent);
+  background: color-mix(in srgb, var(--ui-color-surface-sunken) 46%, transparent);
 }
 
 .bar-line,
@@ -195,11 +195,11 @@ const {
 }
 
 .bar-line {
-  background: var(--daw-grid-line);
+  background: var(--ui-daw-grid-line);
 }
 
 .beat-line {
-  background: color-mix(in srgb, var(--daw-grid-line) 35%, transparent);
+  background: color-mix(in srgb, var(--ui-daw-grid-line) 35%, transparent);
 }
 
 .clip-range {
@@ -220,7 +220,7 @@ const {
 .create-preview {
   position: absolute;
   z-index: var(--ui-z-local-selection);
-  border: 1px solid color-mix(in srgb, var(--note-color) 65%, var(--line-strong));
+  border: 1px solid color-mix(in srgb, var(--note-color) 65%, var(--ui-color-border-strong));
   border-radius: 2px;
   background: color-mix(in srgb, var(--note-color) 75%, transparent);
   pointer-events: none;
@@ -229,8 +229,8 @@ const {
 .marquee {
   position: absolute;
   z-index: var(--ui-z-local-selection);
-  border: 1px dashed var(--focus);
-  background: color-mix(in srgb, var(--focus) 12%, transparent);
+  border: 1px dashed var(--ui-color-focus);
+  background: color-mix(in srgb, var(--ui-color-focus) 12%, transparent);
   pointer-events: none;
 }
 

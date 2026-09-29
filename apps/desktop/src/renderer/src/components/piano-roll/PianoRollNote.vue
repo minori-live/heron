@@ -48,13 +48,13 @@ const {
   align-items: center;
   overflow: hidden;
   padding: 0 4px;
-  border: 1px solid color-mix(in srgb, var(--note-color) 65%, var(--line-strong));
+  border: 1px solid color-mix(in srgb, var(--note-color) 65%, var(--ui-color-border-strong));
   border-radius: 2px;
-  color: var(--canvas);
+  color: var(--ui-color-canvas);
   background: color-mix(
     in srgb,
     var(--note-color) calc(38% + 62% * var(--note-velocity, 1)),
-    var(--surface-sunken)
+    var(--ui-color-surface-sunken)
   );
 }
 
@@ -64,7 +64,7 @@ const {
 
 .note.selected {
   z-index: var(--ui-z-local-selection);
-  outline: 2px solid var(--focus);
+  outline: 2px solid var(--ui-color-focus);
   outline-offset: 0;
   opacity: 1;
 }

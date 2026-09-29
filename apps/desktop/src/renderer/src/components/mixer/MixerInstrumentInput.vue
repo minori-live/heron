@@ -182,10 +182,10 @@ function confirmDrop(selection: PluginSelection): void {
   left: 0;
   width: 232px;
   padding: 9px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 6px;
-  color: var(--text-primary);
-  background: var(--surface-1);
+  color: var(--ui-color-text);
+  background: var(--ui-color-surface-raised);
   box-shadow: 0 14px 36px var(--ui-domain-color-00000075);
 }
 .instrument-input.bypassed {

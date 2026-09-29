@@ -357,10 +357,10 @@ function createSend(value: string): void {
   width: 250px;
   gap: 10px;
   padding: 11px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 6px;
-  color: var(--text-primary);
-  background: var(--surface-1);
+  color: var(--ui-color-text);
+  background: var(--ui-color-surface-raised);
   box-shadow: 0 14px 36px var(--ui-domain-color-00000075);
 }
 .send-popover header {
@@ -373,7 +373,7 @@ function createSend(value: string): void {
   display: block;
 }
 .send-popover header span {
-  color: var(--accent);
+  color: var(--ui-color-action);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
 }
@@ -386,15 +386,15 @@ function createSend(value: string): void {
   place-items: center;
   width: 25px;
   height: 25px;
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--ui-color-border);
   border-radius: 3px;
-  color: var(--record);
-  background: var(--daw-control);
+  color: var(--ui-signal-record);
+  background: var(--ui-daw-control);
 }
 .send-popover label {
   display: grid;
   gap: 5px;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-control);
 }
 .send-popover label > span {

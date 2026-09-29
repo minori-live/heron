@@ -179,7 +179,7 @@ function removePlugin(instanceId: string): void {
 .manual-mixer-strip {
   width: 136px;
   min-width: 136px;
-  color: var(--text-primary);
+  color: var(--ui-color-text);
   font-family: var(--ui-type-family-interface);
   font-size: var(--ui-type-size-body-compact);
   line-height: var(--ui-type-leading-normal);

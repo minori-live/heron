@@ -71,7 +71,7 @@ const { t } = useI18n()
 
 .welcome-recent__heading h2 {
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--ui-color-text-muted);
   font: var(--ui-type-weight-bold) var(--ui-font-size-xs) / var(--ui-type-leading-tight)
     var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-widest);
@@ -82,7 +82,7 @@ const { t } = useI18n()
   min-height: 32px;
   padding: 0;
   border: 0;
-  color: var(--accent);
+  color: var(--ui-color-action);
   background: transparent;
   font-size: var(--ui-font-size-xs);
   transition: color var(--ui-motion-fast) var(--ui-ease-standard);
@@ -111,7 +111,7 @@ const { t } = useI18n()
   padding: 11px 10px;
   border: 1px solid transparent;
   border-radius: var(--ui-radius-md);
-  color: var(--text-secondary);
+  color: var(--ui-color-text-muted);
   background: transparent;
   text-align: left;
   transition:
@@ -130,10 +130,10 @@ const { t } = useI18n()
   width: 34px;
   height: 34px;
   place-items: center;
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--ui-color-border);
   border-radius: var(--ui-radius-md);
-  color: var(--text-faint);
-  background: var(--surface-sunken);
+  color: var(--ui-color-text-subtle);
+  background: var(--ui-color-surface-sunken);
 }
 
 .recent-item__icon svg {
@@ -161,7 +161,7 @@ const { t } = useI18n()
 
 .recent-item__copy small {
   overflow: hidden;
-  color: var(--text-faint);
+  color: var(--ui-color-text-subtle);
   font: var(--ui-font-size-xs) var(--ui-type-family-data);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -170,7 +170,7 @@ const { t } = useI18n()
 .recent-item__arrow {
   width: 17px;
   fill: none;
-  stroke: var(--text-faint);
+  stroke: var(--ui-color-text-subtle);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.4;
@@ -180,9 +180,9 @@ const { t } = useI18n()
 .welcome-recent__empty {
   margin: 16px 0 0;
   padding: 18px;
-  border: 1px dashed var(--line-soft);
+  border: 1px dashed var(--ui-color-border);
   border-radius: var(--ui-radius-md);
-  color: var(--text-faint);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-font-size-sm);
   line-height: var(--ui-type-leading-relaxed);
 }

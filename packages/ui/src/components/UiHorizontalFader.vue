@@ -145,14 +145,14 @@ function reset(): void {
 
 <style scoped>
 .ui-horizontal-fader {
-  --ui-color-border-strong: var(--line-strong);
-  --ui-color-text-muted: var(--text-muted);
-  --ui-color-control-hover: var(--daw-control-hover);
-  --ui-color-text: var(--text-primary);
-  --ui-color-surface-raised: var(--surface-3);
-  --ui-signal-meter-safe: var(--meter-green);
-  --ui-signal-meter-warning: var(--meter-yellow);
-  --ui-signal-meter-clip: var(--meter-red);
+  --ui-color-border-strong: var(--ui-color-border-strong);
+  --ui-color-text-muted: var(--ui-color-text-subtle);
+  --ui-color-control-hover: var(--ui-daw-control-hover);
+  --ui-color-text: var(--ui-color-text);
+  --ui-color-surface-raised: var(--ui-color-surface-hover);
+  --ui-signal-meter-safe: var(--ui-signal-meter-safe);
+  --ui-signal-meter-warning: var(--ui-signal-meter-warning);
+  --ui-signal-meter-clip: var(--ui-signal-meter-clip);
   position: relative;
   display: block;
   width: 100%;
@@ -181,7 +181,7 @@ function reset(): void {
 .ui-horizontal-fader__meter {
   position: absolute;
   inset: 0 0 0 var(--horizontal-fader-meter-level);
-  background: var(--daw-meter-well);
+  background: var(--ui-daw-meter-well);
   opacity: 0.88;
   transition: left 55ms linear;
 }

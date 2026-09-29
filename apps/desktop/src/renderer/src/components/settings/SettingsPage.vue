@@ -13,7 +13,7 @@ defineSlots<{
 
 <template>
   <section
-    class="ui-preferences-surface min-w-0 overflow-auto bg-[var(--canvas)] px-[clamp(30px,4.5vw,68px)] pb-[60px] pt-[38px]"
+    class="ui-preferences-surface min-w-0 overflow-auto bg-[var(--ui-color-canvas)] px-[clamp(30px,4.5vw,68px)] pb-[60px] pt-[38px]"
   >
     <header class="settings-page-intro max-w-[900px]">
       <span class="settings-page-path">
@@ -25,7 +25,7 @@ defineSlots<{
       <p>{{ description }}</p>
     </header>
     <div
-      class="settings-page-body mt-[25px] max-w-[900px] border-t border-t-solid [border-top-color:var(--line-soft)]"
+      class="settings-page-body mt-[25px] max-w-[900px] border-t border-t-solid [border-top-color:var(--ui-color-border)]"
     >
       <slot />
     </div>
@@ -34,7 +34,7 @@ defineSlots<{
 
 <style scoped>
 .settings-page-path {
-  color: var(--accent);
+  color: var(--ui-color-action);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-widest);
   text-transform: uppercase;
@@ -42,7 +42,7 @@ defineSlots<{
 
 .settings-page-path b {
   margin: 0 5px;
-  color: var(--text-faint);
+  color: var(--ui-color-text-subtle);
   font-weight: var(--ui-type-weight-medium);
 }
 
@@ -54,7 +54,7 @@ defineSlots<{
 
 .settings-page-intro p {
   margin: 0;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-body-compact);
   line-height: var(--ui-type-leading-normal);
 }

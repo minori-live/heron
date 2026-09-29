@@ -74,7 +74,7 @@ const {
 <style scoped>
 .apply-error {
   margin: 12px 0 0;
-  color: var(--record);
+  color: var(--ui-signal-record);
   font-size: var(--ui-type-size-body-compact);
   line-height: var(--ui-type-leading-normal);
 }

@@ -188,7 +188,7 @@ export const PreferenceControls: Story = {
       ]
     }),
     template: `
-      <div class="ui-preferences-surface" style="display:grid;max-width:34rem;gap:var(--ui-space-5);padding:var(--ui-space-5);background:var(--canvas)">
+      <div class="ui-preferences-surface" style="display:grid;max-width:34rem;gap:var(--ui-space-5);padding:var(--ui-space-5);background:var(--ui-color-canvas)">
         <UiCheckbox
           v-model="monitoring"
           label="Software monitoring"

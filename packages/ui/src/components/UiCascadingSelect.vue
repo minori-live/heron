@@ -211,7 +211,7 @@ function choose(value: string): void {
 }
 
 .ui-cascading-select--workspace:focus-visible {
-  outline-color: var(--focus);
+  outline-color: var(--ui-color-focus);
   box-shadow: none;
 }
 

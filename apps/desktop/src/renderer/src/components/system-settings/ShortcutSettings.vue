@@ -306,7 +306,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  color: var(--text-secondary);
+  color: var(--ui-color-text-muted);
   font-size: var(--ui-type-size-body-compact);
 }
 
@@ -317,10 +317,10 @@ onBeforeUnmount(() => {
 .shortcut-toolbar button,
 .binding-button,
 .clear-button {
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--ui-color-border);
   border-radius: 5px;
-  color: var(--text-secondary);
-  background: var(--surface-1);
+  color: var(--ui-color-text-muted);
+  background: var(--ui-color-surface-raised);
 }
 
 .shortcut-toolbar button {
@@ -331,9 +331,9 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 1px;
   overflow: hidden;
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--ui-color-border);
   border-radius: 6px;
-  background: var(--line-soft);
+  background: var(--ui-color-border);
 }
 
 .shortcut-row {
@@ -342,7 +342,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   padding: 9px 10px;
-  background: var(--surface-1);
+  background: var(--ui-color-surface-raised);
 }
 
 .shortcut-command strong,
@@ -356,7 +356,7 @@ onBeforeUnmount(() => {
 
 .shortcut-command small {
   margin-top: 2px;
-  color: var(--text-faint);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-caption);
 }
 
@@ -367,8 +367,8 @@ onBeforeUnmount(() => {
 }
 
 .binding-button.capturing {
-  border-color: var(--accent);
-  color: var(--text-primary);
+  border-color: var(--ui-color-action);
+  color: var(--ui-color-text);
   box-shadow: var(--ui-focus-ring);
 }
 
@@ -384,7 +384,7 @@ onBeforeUnmount(() => {
 }
 
 .shortcut-error {
-  color: var(--record);
+  color: var(--ui-signal-record);
   font-size: var(--ui-type-size-body-compact);
 }
 

@@ -153,14 +153,14 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 25% 1fr;
   height: 72px;
-  border: 1px solid color-mix(in srgb, var(--text-primary) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-color-text) 18%, transparent);
   border-radius: 5px;
-  background: var(--canvas);
+  background: var(--ui-color-canvas);
   overflow: hidden;
 }
 
 .preview-sidebar {
-  background: var(--surface-panel);
+  background: var(--ui-color-surface);
 }
 
 .preview-content {
@@ -174,12 +174,12 @@ onMounted(() => {
   display: block;
   height: 5px;
   border-radius: 2px;
-  background: var(--line-strong);
+  background: var(--ui-color-border-strong);
 }
 
 .preview-content i:first-child {
   width: 58%;
-  background: var(--accent);
+  background: var(--ui-color-action);
 }
 
 .preview-content i:last-child {
@@ -233,7 +233,7 @@ onMounted(() => {
 }
 
 .display-error {
-  color: var(--record);
+  color: var(--ui-signal-record);
   font-size: var(--ui-type-size-body-compact);
 }
 
