@@ -37,14 +37,15 @@ async function expectWorkspaceGeometry(page: Page): Promise<void> {
         shell.querySelector(".topbar")!.scrollWidth > shell.querySelector(".topbar")!.clientWidth
     }
   })
-  // The shell heights are token values; the flush edges below compare rects
-  // that Chromium computes independently, so they carry sub-pixel float noise
-  // (observed ~1e-5 px) and need a tolerance rather than exact equality.
+  // Every value here comes from `getBoundingClientRect`, so Chromium's
+  // fractional device pixel ratio leaves sub-pixel noise on values that are
+  // whole numbers in the stylesheet: the topbar measures 55.999996185302734 on
+  // the Linux runner. Compare with a tolerance instead of exact equality.
   const flush = (actual: number, expected: number): void => {
     expect(Math.abs(actual - expected)).toBeLessThan(0.01)
   }
-  expect(geometry.top.height).toBe(56)
-  expect(geometry.bottom.height).toBe(25)
+  flush(geometry.top.height, 56)
+  flush(geometry.bottom.height, 25)
   flush(geometry.top.y, geometry.shell.y)
   flush(geometry.bottom.bottom, geometry.shell.bottom)
   flush(geometry.left.x, geometry.shell.x)

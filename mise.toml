@@ -123,7 +123,9 @@ run = "pnpm docs:build"
 
 [tasks."check:static"]
 hide = true
-depends = ["install"]
+# Oxlint runs type-aware rules, so the generated napi declarations must exist
+# before it can resolve imports from the addon.
+depends = ["check:prepare"]
 run = [
   "pnpm format:check",
   "cargo xtask fmt --check",
