@@ -5,7 +5,6 @@
 
 use std::{
     collections::HashMap,
-    fmt,
     hash::Hash,
     sync::{
         Arc,
@@ -65,83 +64,7 @@ impl PluginProcessFailureState {
     }
 }
 
-/// Plug-in binary format understood by the host registry.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum PluginFormat {
-    Vst3,
-    Clap,
-}
-
-impl PluginFormat {
-    /// Stable lower-case value used by wire and persistence adapters.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Vst3 => "vst3",
-            Self::Clap => "clap",
-        }
-    }
-}
-
-impl fmt::Display for PluginFormat {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(self.as_str())
-    }
-}
-
-/// Persistable identity of one plug-in type in one artifact.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct PluginLocator {
-    pub format: PluginFormat,
-    pub artifact_path: String,
-    pub native_id: String,
-}
-
-impl PluginLocator {
-    /// Key for preferences shared by relocations of the same plug-in type.
-    #[must_use]
-    pub fn type_key(&self) -> String {
-        format!("{}:{}", self.format, self.native_id)
-    }
-}
-
-/// Stable, persistable key of an audio port.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct AudioPortKey(pub String);
-
-/// Stable, persistable key of a plug-in parameter.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ParameterKey(pub String);
-
-/// One opaque format-defined state chunk.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PluginStateChunk {
-    pub key: String,
-    pub bytes: Vec<u8>,
-}
-
-/// Versioned state container shared by every plug-in format.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PluginStateEnvelope {
-    pub version: u32,
-    pub chunks: Vec<PluginStateChunk>,
-}
-
-impl Default for PluginStateEnvelope {
-    fn default() -> Self {
-        Self {
-            version: 1,
-            chunks: Vec::new(),
-        }
-    }
-}
-
-/// A dense audio-port token resolved while a plug-in instance is prepared.
-///
-/// Tokens are instance-local and must never be persisted. Persisted routing
-/// uses the stable string port key exposed by the public contract.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-#[repr(transparent)]
 pub struct AudioPortToken(u32);
 
 impl AudioPortToken {
