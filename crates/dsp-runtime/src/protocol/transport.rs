@@ -46,19 +46,6 @@ pub enum MidiEventBatch {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct LiveTempoEvent {
-    pub tick: u64,
-    pub beats_per_minute: f64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LiveTimeSignatureEvent {
-    pub tick: u64,
-    pub numerator: u8,
-    pub denominator: u8,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TransportControl {
     pub kind: String,
     pub position_frames: Option<i64>,

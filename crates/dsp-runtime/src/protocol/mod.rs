@@ -35,6 +35,9 @@ pub use recording::*;
 pub use responses::*;
 pub use rpc::*;
 pub use transport::*;
+// The tempo map is part of the graph wire contract; it lives in `crate::tempo`
+// because the render and engine paths already share that definition.
+pub use crate::tempo::{TempoEvent, TimeSignatureEvent};
 
 #[cfg(test)]
 mod tests;

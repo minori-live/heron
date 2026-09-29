@@ -755,10 +755,10 @@ mod tests {
     use super::*;
     use heron_audio_plugin::{AudioPluginProcessor, ProcessContext, SidechainSource};
     use heron_dsp_runtime::protocol::{
-        ApplicationCaptureTarget, BinaryPayload, LiveLatencyPolicy, LiveMidiClip, LiveMidiEvent,
-        LiveMidiNote, LiveMixerChannel, LiveMixerClip, LiveMixerGraph, LiveMixerSend,
-        LiveMixerSendTap, LivePluginAuxInputBus, LivePluginInstance, LiveTempoEvent,
-        LiveTimeSignatureEvent, MidiEventBatch, MidiNoteBatch, PluginAudioMode, SharedBlobRef,
+        ApplicationCaptureLogicalTarget, BinaryPayload, LiveLatencyPolicy, LiveMidiClip,
+        LiveMidiEvent, LiveMidiNote, LiveMixerChannel, LiveMixerClip, LiveMixerGraph,
+        LiveMixerSend, LiveMixerSendTap, LivePluginAuxInputBus, LivePluginInstance, MidiEventBatch,
+        MidiNoteBatch, PluginAudioMode, SharedBlobRef, TempoEvent, TimeSignatureEvent,
     };
 
     type InvalidGraphCase = (&'static str, fn(&mut LiveMixerGraph));
@@ -966,7 +966,7 @@ mod tests {
                     midi_input_channel: Some(2),
                     input_source: Some("application".to_owned()),
                     input_channels: vec![1, 2],
-                    application_capture: Some(ApplicationCaptureTarget {
+                    application_capture: Some(ApplicationCaptureLogicalTarget {
                         platform: "linux".to_owned(),
                         bundle_identifier: None,
                         executable_path: "/usr/bin/player".to_owned(),
@@ -1053,11 +1053,11 @@ mod tests {
                 },
                 events: MidiEventBatch::Inline { events },
             }],
-            tempo_events: vec![LiveTempoEvent {
+            tempo_events: vec![TempoEvent {
                 tick: 0,
                 beats_per_minute: 120.0,
             }],
-            time_signature_events: vec![LiveTimeSignatureEvent {
+            time_signature_events: vec![TimeSignatureEvent {
                 tick: 0,
                 numerator: 4,
                 denominator: 4,

@@ -45,11 +45,11 @@ pub(super) fn empty_graph() -> LiveMixerGraph {
         clips: vec![],
         plugins: vec![],
         midi_clips: vec![],
-        tempo_events: vec![heron_dsp_runtime::protocol::LiveTempoEvent {
+        tempo_events: vec![heron_dsp_runtime::protocol::TempoEvent {
             tick: 0,
             beats_per_minute: 120.0,
         }],
-        time_signature_events: vec![heron_dsp_runtime::protocol::LiveTimeSignatureEvent {
+        time_signature_events: vec![heron_dsp_runtime::protocol::TimeSignatureEvent {
             tick: 0,
             numerator: 4,
             denominator: 4,

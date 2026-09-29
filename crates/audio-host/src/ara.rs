@@ -25,7 +25,7 @@ use ara2_bridge_sys::{ARAAssertCategory, ARAFactory, ARAPlugInExtensionInstance}
 use bwavfile::WaveReader;
 use heron_dsp_runtime::protocol::{
     AraAnalysisProgressState, AraArchiveDirection, AraCallbackEvent, AraCallbackFailureCategory,
-    AraObjectKind, LiveMixerClip, LiveMixerGraph, LiveTempoEvent, LiveTimeSignatureEvent,
+    AraObjectKind, LiveMixerClip, LiveMixerGraph, TempoEvent, TimeSignatureEvent,
 };
 use heron_vst3_host::{AraMainFactory, AraPluginEntry, ClassId, HostError, Module};
 use sha2::{Digest, Sha256};
@@ -48,8 +48,8 @@ struct TrackGraph {
     sample_rate: u32,
     channel_id: String,
     clips: Vec<LiveMixerClip>,
-    tempo_events: Vec<LiveTempoEvent>,
-    time_signature_events: Vec<LiveTimeSignatureEvent>,
+    tempo_events: Vec<TempoEvent>,
+    time_signature_events: Vec<TimeSignatureEvent>,
 }
 
 #[derive(Clone)]

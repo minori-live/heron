@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use super::{
-    LiveMidiClip, LivePluginInstance, LiveTempoEvent, LiveTimeSignatureEvent, ResourceRef,
-};
+use super::{ApplicationCaptureLogicalTarget, LiveMidiClip, LivePluginInstance, ResourceRef};
+use crate::tempo::{TempoEvent, TimeSignatureEvent};
 
 const fn default_project_end_tick() -> u64 {
     61_440
@@ -41,18 +40,8 @@ pub struct LiveMixerChannel {
     pub input_source: Option<String>,
     pub input_channels: Vec<u32>,
     #[serde(default)]
-    pub application_capture: Option<ApplicationCaptureTarget>,
+    pub application_capture: Option<ApplicationCaptureLogicalTarget>,
     pub hardware_output_channels: Vec<u32>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ApplicationCaptureTarget {
-    pub platform: String,
-    #[serde(default)]
-    pub bundle_identifier: Option<String>,
-    pub executable_path: String,
-    pub executable_name: String,
-    pub include_process_tree: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -109,8 +98,8 @@ pub struct LiveMixerGraph {
     pub clips: Vec<LiveMixerClip>,
     pub plugins: Vec<LivePluginInstance>,
     pub midi_clips: Vec<LiveMidiClip>,
-    pub tempo_events: Vec<LiveTempoEvent>,
-    pub time_signature_events: Vec<LiveTimeSignatureEvent>,
+    pub tempo_events: Vec<TempoEvent>,
+    pub time_signature_events: Vec<TimeSignatureEvent>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

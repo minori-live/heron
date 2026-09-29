@@ -45,7 +45,7 @@ fn decode_base64(value: &str) -> Vec<u8> {
 
 #[test]
 fn legacy_windows_application_capture_target_defaults_bundle_identifier() {
-    let target: ApplicationCaptureTarget = serde_json::from_value(serde_json::json!({
+    let target: ApplicationCaptureLogicalTarget = serde_json::from_value(serde_json::json!({
         "platform": "windows",
         "executable_path": "C:\\Program Files\\Player\\player.exe",
         "executable_name": "player.exe",
@@ -59,7 +59,7 @@ fn legacy_windows_application_capture_target_defaults_bundle_identifier() {
 
 #[test]
 fn macos_application_capture_target_round_trips_bundle_identifier() {
-    let target = ApplicationCaptureTarget {
+    let target = ApplicationCaptureLogicalTarget {
         platform: "macos".to_owned(),
         bundle_identifier: Some("com.example.player".to_owned()),
         executable_path: "/Applications/Player.app/Contents/MacOS/Player".to_owned(),
@@ -67,7 +67,7 @@ fn macos_application_capture_target_round_trips_bundle_identifier() {
         include_process_tree: true,
     };
     let bytes = rmp_serde::to_vec_named(&target).expect("macOS target must encode");
-    let decoded: ApplicationCaptureTarget =
+    let decoded: ApplicationCaptureLogicalTarget =
         rmp_serde::from_slice(&bytes).expect("macOS target must decode");
 
     assert_eq!(decoded, target);
@@ -610,11 +610,11 @@ fn empty_graph() -> LiveMixerGraph {
         clips: vec![],
         plugins: vec![],
         midi_clips: vec![],
-        tempo_events: vec![LiveTempoEvent {
+        tempo_events: vec![TempoEvent {
             tick: 0,
             beats_per_minute: 120.0,
         }],
-        time_signature_events: vec![LiveTimeSignatureEvent {
+        time_signature_events: vec![TimeSignatureEvent {
             tick: 0,
             numerator: 4,
             denominator: 4,
@@ -654,7 +654,7 @@ fn populated_graph() -> LiveMixerGraph {
                 midi_input_channel: Some(3),
                 input_source: Some("device-1:0".to_owned()),
                 input_channels: vec![0, 1],
-                application_capture: Some(ApplicationCaptureTarget {
+                application_capture: Some(ApplicationCaptureLogicalTarget {
                     platform: "macos".to_owned(),
                     bundle_identifier: Some("com.example.player".to_owned()),
                     executable_path: "/Applications/Player.app".to_owned(),
@@ -771,16 +771,16 @@ fn populated_graph() -> LiveMixerGraph {
             },
         }],
         tempo_events: vec![
-            LiveTempoEvent {
+            TempoEvent {
                 tick: 0,
                 beats_per_minute: 120.0,
             },
-            LiveTempoEvent {
+            TempoEvent {
                 tick: 7_680,
                 beats_per_minute: 96.5,
             },
         ],
-        time_signature_events: vec![LiveTimeSignatureEvent {
+        time_signature_events: vec![TimeSignatureEvent {
             tick: 0,
             numerator: 6,
             denominator: 8,
