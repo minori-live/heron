@@ -1,8 +1,8 @@
-import type { AppLocale, RecentProject, RecordingBitDepth, ThemePreference } from "./project"
-import type { MidiSyncPreferences } from "./midi"
-import type { MidiControlPreferences } from "./midi-control"
-import type { ShortcutPreferences } from "./shortcuts"
-import type { ApplicationSettingsRef } from "./rpc"
+import type { AppLocale, RecentProject, RecordingBitDepth, ThemePreference } from "./project.ts"
+import type { MidiSyncPreferences } from "./midi.ts"
+import type { MidiControlPreferences } from "./midi-control.ts"
+import type { ShortcutPreferences } from "./shortcuts.ts"
+import type { ApplicationSettingsRef } from "./rpc.ts"
 
 export type MeterPeakHold = "800ms" | "2s" | "4s" | "infinite"
 export const METER_RETURN_RATES = [

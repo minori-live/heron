@@ -1,6 +1,6 @@
-import type { ProjectCommandResult } from "./mixer"
-import type { ProjectWorkspaceSnapshot } from "./project"
-import type { AudioHostRef, MidiRuntimeRef } from "./rpc"
+import type { ProjectCommandResult } from "./mixer.ts"
+import type { ProjectWorkspaceSnapshot } from "./project.ts"
+import type { AudioHostRef, MidiRuntimeRef } from "./rpc.ts"
 
 export const MUSICAL_TICKS_PER_QUARTER = 960
 export const MUSICAL_TICKS_PER_WHOLE_NOTE = MUSICAL_TICKS_PER_QUARTER * 4

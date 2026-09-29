@@ -1,5 +1,5 @@
-import type { PluginEditorMode } from "./settings"
-import type { PluginInstanceRef, ProjectGraphRef } from "./rpc"
+import type { PluginEditorMode } from "./settings.ts"
+import type { PluginInstanceRef, ProjectGraphRef } from "./rpc.ts"
 
 export type PluginKind = "effect" | "instrument"
 export type PluginFormat = "vst3" | "clap"

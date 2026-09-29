@@ -9,8 +9,8 @@ import {
   midiControlAddressKey,
   midiBindingCompatibilityError,
   midiTransformProfile
-} from "./midi-control"
-import type { MidiControlBinding, MidiControlPreferences } from "./midi-control"
+} from "./midi-control.ts"
+import type { MidiControlBinding, MidiControlPreferences } from "./midi-control.ts"
 
 const address = {
   portId: "controller-1",

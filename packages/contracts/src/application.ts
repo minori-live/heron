@@ -1,4 +1,4 @@
-import type { OfflineWorkerRef } from "./rpc"
+import type { OfflineWorkerRef } from "./rpc.ts"
 
 export interface OfflineToolsResourceSnapshot {
   worker: OfflineWorkerRef

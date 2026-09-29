@@ -1,4 +1,4 @@
-import type { ApplicationCommandId } from "./application"
+import type { ApplicationCommandId } from "./application.ts"
 
 export const BUILTIN_MIDI_TRANSFORM_PROFILE_IDS = {
   linear: "builtin:absolute-linear",

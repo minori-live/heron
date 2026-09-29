@@ -1,4 +1,4 @@
-import type { ApplicationCommandId, DesktopPlatform } from "./application"
+import type { ApplicationCommandId, DesktopPlatform } from "./application.ts"
 
 export const SHORTCUT_MODIFIERS = ["primary", "control", "alt", "shift"] as const
 export type ShortcutModifier = (typeof SHORTCUT_MODIFIERS)[number]

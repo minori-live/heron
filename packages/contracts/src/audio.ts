@@ -1,5 +1,5 @@
-import type { ProjectLifecycleState } from "./project"
-import type { RecordingLifecycleState, RecordingResourceSnapshot } from "./recording"
+import type { ProjectLifecycleState } from "./project.ts"
+import type { RecordingLifecycleState, RecordingResourceSnapshot } from "./recording.ts"
 import type {
   AudioDeviceRecoveryRef,
   AudioEngineRef,
@@ -7,7 +7,7 @@ import type {
   MidiRuntimeRef,
   RpcError,
   TransportRef
-} from "./rpc"
+} from "./rpc.ts"
 
 // "mock" is a cpal custom host that synthesises capture and discards playback.
 // It is always available and is listed last so it is only auto-selected when no

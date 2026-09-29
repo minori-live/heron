@@ -1,5 +1,10 @@
-import type { AudioEngineRef, ProjectGraphRef, ProjectSessionRef, RecordingSessionRef } from "./rpc"
-import type { ProjectWorkspaceSnapshot } from "./project"
+import type {
+  AudioEngineRef,
+  ProjectGraphRef,
+  ProjectSessionRef,
+  RecordingSessionRef
+} from "./rpc.ts"
+import type { ProjectWorkspaceSnapshot } from "./project.ts"
 
 export interface RecordingSession {
   id: string

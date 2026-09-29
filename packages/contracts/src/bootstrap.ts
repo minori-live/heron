@@ -1,11 +1,11 @@
-import type { AudioResourceSnapshot, DesktopLifecycleSnapshot } from "./audio"
-import type { OfflineToolsResourceSnapshot } from "./application"
-import type { ProjectWorkspaceSnapshot } from "./project"
-import type { LiveWorkspaceSnapshot } from "./live"
-import type { RecordingResourceSnapshot } from "./recording"
-import type { ApplicationSettingsRef, DesktopSessionRef } from "./rpc"
-import type { ApplicationSettingsResourceSnapshot } from "./settings"
-import { IPC_PROTOCOL_VERSION } from "./rpc"
+import type { AudioResourceSnapshot, DesktopLifecycleSnapshot } from "./audio.ts"
+import type { OfflineToolsResourceSnapshot } from "./application.ts"
+import type { ProjectWorkspaceSnapshot } from "./project.ts"
+import type { LiveWorkspaceSnapshot } from "./live.ts"
+import type { RecordingResourceSnapshot } from "./recording.ts"
+import type { ApplicationSettingsRef, DesktopSessionRef } from "./rpc.ts"
+import type { ApplicationSettingsResourceSnapshot } from "./settings.ts"
+import { IPC_PROTOCOL_VERSION } from "./rpc.ts"
 
 export interface ApplicationBootstrapSnapshot {
   protocolVersion: typeof IPC_PROTOCOL_VERSION

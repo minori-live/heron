@@ -1,5 +1,5 @@
-import type { ProjectGraphSnapshot } from "./mixer"
-import type { ProjectGraphRef, ProjectSessionRef } from "./rpc"
+import type { ProjectGraphSnapshot } from "./mixer.ts"
+import type { ProjectGraphRef, ProjectSessionRef } from "./rpc.ts"
 
 export const PROJECT_SAMPLE_RATES = [44_100, 48_000, 88_200, 96_000, 176_400, 192_000] as const
 export type ProjectSampleRate = (typeof PROJECT_SAMPLE_RATES)[number]
@@ -123,5 +123,5 @@ export interface RecentProject {
   name: string
   openedAt: number
   /** Older settings records omit this; their extension determines the kind. */
-  kind?: import("./live").DocumentKind
+  kind?: import("./live.ts").DocumentKind
 }
