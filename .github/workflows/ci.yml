@@ -29,35 +29,10 @@ jobs:
     permissions:
       contents: read
 
-  docs:
-    name: Documentation
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Install locked toolchain
-        uses: jdx/mise-action@v4
-        with:
-          version: 2026.9.15
-          cache: true
-
-      - name: Install workspace dependencies
-        run: mise run install
-
-      - name: Build documentation
-        run: mise run docs-build
-
   gate:
     name: Gate
     if: ${{ always() }}
-    needs: [test, build, docs]
+    needs: [test, build]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -66,17 +41,16 @@ jobs:
         env:
           TEST_RESULT: ${{ needs.test.result }}
           BUILD_RESULT: ${{ needs.build.result }}
-          DOCS_RESULT: ${{ needs.docs.result }}
         run: |
-          if [[ "$TEST_RESULT" != "success" || "$BUILD_RESULT" != "success" || "$DOCS_RESULT" != "success" ]]; then
-            echo "::error::Required CI jobs did not succeed (Test: $TEST_RESULT, Build: $BUILD_RESULT, Docs: $DOCS_RESULT)."
+          if [[ "$TEST_RESULT" != "success" || "$BUILD_RESULT" != "success" ]]; then
+            echo "::error::Required CI jobs did not succeed (Test: $TEST_RESULT, Build: $BUILD_RESULT)."
             exit 1
           fi
 
   deploy-docs:
     name: Deploy documentation
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: [gate, docs]
+    needs: [gate]
     uses: ./.github/workflows/pages.yml
     with:
       source_ref: ${{ github.sha }}

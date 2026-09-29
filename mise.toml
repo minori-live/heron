@@ -33,26 +33,6 @@ sources = [
 ]
 outputs = ["node_modules/.pnpm/lock.yaml"]
 
-[tasks."js:dev"]
-hide = true
-depends = ["install"]
-run = "pnpm dev"
-
-[tasks."js:docs"]
-hide = true
-depends = ["install"]
-run = "pnpm docs:dev"
-
-[tasks."js:docs-build"]
-hide = true
-depends = ["install"]
-run = "pnpm docs:build"
-
-[tasks."js:desktop:build"]
-hide = true
-depends = ["install"]
-run = "pnpm build:desktop"
-
 [tasks."js:format"]
 hide = true
 depends = ["install"]
@@ -63,35 +43,10 @@ hide = true
 depends = ["install"]
 run = "pnpm format:check"
 
-[tasks."js:lint"]
-hide = true
-depends = ["install"]
-run = "pnpm lint"
-
 [tasks."js:check:configs"]
 hide = true
 depends = ["install"]
 run = "pnpm check:configs"
-
-[tasks."js:check:packages"]
-hide = true
-depends = ["install"]
-run = "pnpm check:packages"
-
-[tasks."js:test"]
-hide = true
-depends = ["install"]
-run = "pnpm test:js"
-
-[tasks."js:test:coverage"]
-hide = true
-depends = ["install"]
-run = "pnpm test:coverage:js"
-
-[tasks."js:native:test"]
-hide = true
-depends = ["install"]
-run = "pnpm test:native-bindings"
 
 [tasks."js:design:test"]
 hide = true
@@ -119,29 +74,9 @@ run = "cargo shear"
 hide = true
 run = "cargo xtask clippy"
 
-[tasks."rust:clippy:fast"]
-hide = true
-run = "cargo xtask clippy --fast"
-
-[tasks."rust:test"]
-hide = true
-run = "cargo xtask test"
-
-[tasks."rust:test:fast"]
-hide = true
-run = "cargo xtask test --fast"
-
 [tasks."rust:bench:check"]
 hide = true
 run = "cargo xtask bench check"
-
-[tasks."rust:native:debug"]
-hide = true
-run = "cargo xtask native build --profile debug"
-
-[tasks."rust:native:release"]
-hide = true
-run = "cargo xtask native build --profile release"
 
 [tasks."native:bindings:debug"]
 hide = true
@@ -186,6 +121,60 @@ description = "Build the user documentation site"
 depends = ["install"]
 run = "pnpm docs:build"
 
+[tasks."check:static"]
+hide = true
+depends = ["install"]
+run = [
+  "pnpm format:check",
+  "cargo xtask fmt --check",
+  "cargo shear",
+  "cargo xtask clippy",
+  "pnpm lint",
+  "pnpm check:configs",
+  "pnpm check:packages",
+]
+
+[tasks."check:js-tests"]
+hide = true
+depends = ["check:prepare"]
+run = "pnpm test:js"
+
+[tasks."check:js-tests:coverage"]
+hide = true
+# CI builds the instrumented addon inside its own coverage shell, so this
+# variant must not depend on the uninstrumented `check:prepare` build.
+depends = ["install"]
+run = [
+  "pnpm test:coverage:js",
+  "pnpm test:native-bindings",
+  "pnpm test:scripts",
+]
+
+[tasks."check:rust-tests"]
+hide = true
+depends = ["check:prepare"]
+run = "cargo xtask test"
+
+[tasks."check:rust-tests:coverage"]
+hide = true
+# CI builds the instrumented addon inside its own coverage shell, so this
+# variant must not depend on the uninstrumented `check:prepare` build.
+depends = ["install"]
+run = "cargo xtask coverage prepare"
+
+[tasks."check:design"]
+hide = true
+depends = ["install"]
+run = [
+  "pnpm design:test",
+  "pnpm design:build",
+]
+
+[tasks."check:bench"]
+hide = true
+depends = ["check:prepare"]
+run = "cargo xtask bench check"
+
 [tasks."check:prepare"]
 hide = true
 depends = ["install"]
@@ -194,33 +183,15 @@ run = [
   "pnpm --filter @heron/dsp-node build:debug",
 ]
 
-[tasks."check:js"]
-hide = true
-depends = ["check:prepare"]
-run = [
-  "pnpm format:check",
-  "pnpm lint",
-  "pnpm check:configs",
-  "pnpm check:packages",
-  "pnpm test:js",
-  "pnpm design:test",
-  "pnpm design:build",
-]
-
-[tasks."check:rust"]
-hide = true
-depends = ["check:prepare"]
-run = [
-  "cargo xtask fmt --check",
-  "cargo shear",
-  "cargo xtask clippy",
-  "cargo xtask test",
-  "cargo xtask bench check",
-]
-
 [tasks.check]
 description = "Run the full JavaScript, Rust, native, and design validation path"
-depends = ["check:js", "check:rust"]
+depends = [
+  "check:static",
+  "check:js-tests",
+  "check:rust-tests",
+  "check:design",
+  "check:bench",
+]
 
 [tasks."check-fast"]
 description = "Run the fast Rust edit-loop checks without installing JavaScript dependencies"
@@ -331,19 +302,6 @@ run = "pnpm --filter @heron/design-system exec playwright install --with-deps ch
 [tasks."ci:report:sccache"]
 hide = true
 run = "node scripts/ci-sccache-report.ts"
-
-[tasks."ci:check:native"]
-hide = true
-depends = ["install"]
-run = [
-  "cargo xtask fmt --check",
-  "cargo xtask clippy",
-  "cargo xtask test",
-  "pnpm --filter @heron/dsp-node build:debug",
-  "pnpm test:native-bindings",
-  "pnpm --filter @heron/desktop test:unit",
-  "pnpm --filter @heron/project-db test:integration",
-]
 
 [tasks."ci:package:windows-x64"]
 hide = true

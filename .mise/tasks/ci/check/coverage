@@ -3,8 +3,11 @@
 #MISE depends=["install"]
 set -euo pipefail
 
+# The shared `check:*` tasks define what a full validation run covers. This task
+# only adds what is specific to the Linux coverage leg: the llvm-cov shell and
+# the official plug-in fixtures, which need a network fetch and CMake.
 mise run version:check
-mise run js:format-check ::: rust:format:check ::: rust:shear ::: rust:clippy ::: js:check:configs
+mise run check:static
 
 target="$(cargo xtask host-target)"
 coverage_target="$PWD/target-coverage"
@@ -12,24 +15,20 @@ mkdir -p "$coverage_target"
 if [[ ! -f "$coverage_target/CACHEDIR.TAG" ]]; then
   printf '%s\n' \
     'Signature: 8a477f597d28d172789f06886806bc55' \
-    '# This file is a cache directory tag created for Cargo coverage artifacts.' \
+    '# This file is a cache directory tag created by Cargo coverage artifacts.' \
     '# For information about cache directory tags see https://bford.info/cachedir/' \
     > "$coverage_target/CACHEDIR.TAG"
 fi
 (
   export CARGO_TARGET_DIR="$coverage_target"
   eval "$(cargo llvm-cov show-env --sh --target "$target")"
-  cargo xtask coverage prepare
+  mise run check:rust-tests:coverage
   pnpm --filter @heron/dsp-node build:debug
-  pnpm lint
-  pnpm check:packages
-  pnpm test:coverage:js
-  pnpm test:native-bindings
-  pnpm test:scripts
+  mise run check:js-tests:coverage
   mise run test:official-plugin-fixtures
   cargo xtask coverage report
   node scripts/rewrite-lcov-paths.ts coverage/rust/lcov.info
 )
 
-mise run rust:bench:check
-mise run js:design:test ::: js:design:build
+mise run check:bench
+mise run check:design

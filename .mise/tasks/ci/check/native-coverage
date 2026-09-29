@@ -3,12 +3,14 @@
 #MISE depends=["install"]
 set -euo pipefail
 
+# Windows and macOS collect Rust coverage and run the platform-sensitive
+# desktop and project-database suites. Formatting, lint, Clippy, TypeScript and
+# Storybook produce identical results everywhere, so `check:static` and
+# `check:design` stay on the Linux leg instead of running here.
 if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
   llvm_cov_bin="$(cygpath -u "$(mise which cargo-llvm-cov)")"
   export PATH="$(dirname "$llvm_cov_bin"):$PATH"
 fi
-
-mise run rust:format:check ::: rust:clippy
 
 target="$(cargo xtask host-target)"
 coverage_target="$PWD/target-coverage"
@@ -16,14 +18,14 @@ mkdir -p "$coverage_target"
 if [[ ! -f "$coverage_target/CACHEDIR.TAG" ]]; then
   printf '%s\n' \
     'Signature: 8a477f597d28d172789f06886806bc55' \
-    '# This file is a cache directory tag created for Cargo coverage artifacts.' \
+    '# This file is a cache directory tag created by Cargo coverage artifacts.' \
     '# For information about cache directory tags see https://bford.info/cachedir/' \
     > "$coverage_target/CACHEDIR.TAG"
 fi
 (
   export CARGO_TARGET_DIR="$coverage_target"
   eval "$(cargo llvm-cov show-env --sh --target "$target")"
-  cargo xtask coverage prepare
+  mise run check:rust-tests:coverage
   pnpm --filter @heron/dsp-node build:debug
   pnpm test:native-bindings
   cargo xtask coverage report
