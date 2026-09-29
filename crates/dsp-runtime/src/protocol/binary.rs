@@ -7,11 +7,13 @@ use serde::{Deserialize, Serialize};
 /// decodable so a payload that still carries the removed helper-process
 /// transport encoding is rejected with a typed error instead of a decode
 /// failure.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "storage", rename_all = "kebab-case")]
 pub enum BinaryPayload {
     Inline {
         #[serde(with = "serde_bytes")]
+        #[cfg_attr(feature = "ts-export", ts(type = "Uint8Array"))]
         bytes: Vec<u8>,
     },
     Shared {
@@ -26,6 +28,7 @@ pub enum BinaryPayload {
 
 /// Identity of a region in the removed shared-memory transport. Retained so a
 /// stale payload that references one fails with a typed rejection.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SharedBlobRef {
     pub session_epoch: u64,

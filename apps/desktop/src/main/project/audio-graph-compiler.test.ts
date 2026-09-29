@@ -404,6 +404,13 @@ describe("AudioGraphCompiler", () => {
     ]
     const notes = ["channel", "duration_ticks", "key", "release_velocity", "start_tick", "velocity"]
 
+    const midiClip = compiled.midi_clips[0]!
+    const noteBatch = midiClip.notes
+    const eventBatch = midiClip.events
+    if (noteBatch.storage !== "inline" || eventBatch.storage !== "inline") {
+      throw new Error("the compiler always emits inline MIDI batches")
+    }
+
     // Each entry is [label, object, allowed keys, keys Rust cannot default].
     const shapes: Array<[string, object, string[], string[]]> = [
       ["graph", compiled, Object.keys(compiled), Object.keys(compiled)],
@@ -446,29 +453,24 @@ describe("AudioGraphCompiler", () => {
         ]
       ],
       ["midi clip", compiled.midi_clips[0]!, midiClips, midiClips],
-      ["note batch", compiled.midi_clips[0]!.notes, ["notes", "reference", "storage"], ["storage"]],
-      ["note", compiled.midi_clips[0]!.notes.notes[0]!, notes, notes],
-      [
-        "event batch",
-        compiled.midi_clips[0]!.events,
-        ["events", "reference", "storage"],
-        ["storage"]
-      ],
+      ["note batch", noteBatch, ["notes", "reference", "storage"], ["storage"]],
+      ["note", noteBatch.notes[0]!, notes, notes],
+      ["event batch", eventBatch, ["events", "reference", "storage"], ["storage"]],
       [
         "midi event",
-        compiled.midi_clips[0]!.events.events[0]!,
+        eventBatch.events[0]!,
         ["channel", "data", "kind", "tick"],
         ["channel", "data", "kind", "tick"]
       ],
       [
         "binary payload",
-        compiled.midi_clips[0]!.events.events[0]!.data,
+        eventBatch.events[0]!.data,
         ["bytes", "index", "length", "offset", "reference", "storage"],
         ["storage"]
       ],
       [
         "latency policy",
-        compiled.latency_policy!,
+        compiled.latency_policy,
         ["plugin_budget_samples", "target_output_channel_id", "type"],
         ["type"]
       ],

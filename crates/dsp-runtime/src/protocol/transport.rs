@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{BinaryPayload, SharedBlobRef};
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LiveMidiNote {
     pub start_tick: u64,
@@ -12,6 +13,7 @@ pub struct LiveMidiNote {
     pub release_velocity: u8,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LiveMidiClip {
     pub id: String,
@@ -23,6 +25,7 @@ pub struct LiveMidiClip {
     pub events: MidiEventBatch,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "storage", rename_all = "kebab-case")]
 pub enum MidiNoteBatch {
@@ -30,6 +33,7 @@ pub enum MidiNoteBatch {
     Shared { reference: SharedBlobRef },
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LiveMidiEvent {
     pub tick: u64,
@@ -38,6 +42,7 @@ pub struct LiveMidiEvent {
     pub data: BinaryPayload,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "storage", rename_all = "kebab-case")]
 pub enum MidiEventBatch {
@@ -45,6 +50,7 @@ pub enum MidiEventBatch {
     Shared { reference: SharedBlobRef },
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TransportControl {
     pub kind: String,
@@ -57,6 +63,7 @@ pub struct TransportControl {
     pub loop_end_tick: Option<i64>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TransportState {
     pub state: String,

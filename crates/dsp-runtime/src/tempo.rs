@@ -4,12 +4,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::MUSICAL_TICKS_PER_QUARTER;
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct TempoEvent {
     pub tick: u64,
     pub beats_per_minute: f64,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TimeSignatureEvent {
     pub tick: u64,

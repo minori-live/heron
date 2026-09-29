@@ -121,11 +121,21 @@ description = "Build the user documentation site"
 depends = ["install"]
 run = "pnpm docs:build"
 
+[tasks."codegen:wire-types:check"]
+hide = true
+# Regenerating is deterministic, so a diff means the committed declarations no
+# longer match the Rust protocol they are generated from.
+depends = ["check:prepare"]
+run = [
+  "mise run codegen:wire-types",
+  "git diff --exit-code -- apps/desktop/src/main/audio-host/wire/generated",
+]
+
 [tasks."check:static"]
 hide = true
 # Oxlint runs type-aware rules, so the generated napi declarations must exist
 # before it can resolve imports from the addon.
-depends = ["check:prepare"]
+depends = ["check:prepare", "codegen:wire-types:check"]
 run = [
   "pnpm format:check",
   "cargo xtask fmt --check",

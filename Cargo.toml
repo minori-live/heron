@@ -73,6 +73,7 @@ serde_json = "1"
 thiserror = "2"
 tokio = { version = "1.53.1", default-features = false, features = ["macros", "rt-multi-thread", "sync", "time"] }
 truce = { version = "=6.3.0", default-features = false }
+ts-rs = { version = "12", features = ["serde-compat", "no-serde-warnings"] }
 truce-iced = "=6.3.0"
 truce-test = "=6.3.0"
 truce-vst3 = "=6.3.0"

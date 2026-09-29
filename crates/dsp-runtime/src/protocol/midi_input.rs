@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::MidiRecordingPreview;
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MidiInputPort {
     pub id: String,
@@ -11,6 +12,7 @@ pub struct MidiInputPort {
     pub connected: bool,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MidiSyncPreferences {
     pub enabled: bool,
@@ -23,6 +25,7 @@ pub struct MidiSyncPreferences {
     pub capture_all_controls: bool,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MidiSyncRuntime {
     pub state: String,
@@ -36,6 +39,7 @@ pub struct MidiSyncRuntime {
     pub error: Option<String>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum MidiControlEventKind {
@@ -43,6 +47,7 @@ pub enum MidiControlEventKind {
     ControlChange { number: u8, value: u8 },
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MidiControlEvent {
     pub generation: u64,
@@ -54,6 +59,7 @@ pub struct MidiControlEvent {
     pub kind: MidiControlEventKind,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MidiActiveNote {
     pub port_id: String,
@@ -61,6 +67,7 @@ pub struct MidiActiveNote {
     pub key: u8,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MidiInputSnapshot {
     pub ports: Vec<MidiInputPort>,

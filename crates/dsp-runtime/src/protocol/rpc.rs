@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 pub const IPC_PROTOCOL_VERSION: u8 = 2;
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ResourceKind {
@@ -22,6 +23,7 @@ pub enum ResourceKind {
     OfflineWorker,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResourceRef {
@@ -31,6 +33,7 @@ pub struct ResourceRef {
     pub generation: u32,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcMutationMeta {
@@ -38,6 +41,7 @@ pub struct RpcMutationMeta {
     pub idempotency_key: String,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcRequestMeta {
@@ -51,6 +55,7 @@ pub struct RpcRequestMeta {
     pub mutation: Option<RpcMutationMeta>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum RpcErrorCode {
@@ -67,6 +72,7 @@ pub enum RpcErrorCode {
     InvariantViolation,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum RpcErrorCategory {
@@ -81,6 +87,7 @@ pub enum RpcErrorCategory {
     InvariantViolation,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum RpcMutationOutcome {
@@ -89,6 +96,7 @@ pub enum RpcMutationOutcome {
     Quarantined,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum RpcRetry {
@@ -97,6 +105,7 @@ pub enum RpcRetry {
     AfterReconcile,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum RpcComponent {
@@ -107,6 +116,7 @@ pub enum RpcComponent {
     OfflineWorker,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum RpcStaleReason {
@@ -116,6 +126,7 @@ pub enum RpcStaleReason {
     ParentInvalid,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(
     tag = "type",
@@ -165,6 +176,7 @@ pub enum RpcErrorDetails {
     },
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcError {
@@ -180,6 +192,7 @@ pub struct RpcError {
     pub details: Option<RpcErrorDetails>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcWarning {
@@ -239,9 +252,11 @@ impl<'de> Deserialize<'de> for RpcFalse {
     }
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcSuccess<T> {
+    #[cfg_attr(feature = "ts-export", ts(type = "true"))]
     ok: RpcTrue,
     pub request_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -272,9 +287,11 @@ impl<T> RpcSuccess<T> {
     }
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcFailure {
+    #[cfg_attr(feature = "ts-export", ts(type = "false"))]
     ok: RpcFalse,
     pub request_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -294,6 +311,7 @@ impl RpcFailure {
     }
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum RpcResult<T> {
@@ -301,6 +319,7 @@ pub enum RpcResult<T> {
     Failure(RpcFailure),
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcEvent<T> {

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::BinaryPayload;
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PluginFormat {
@@ -9,6 +10,7 @@ pub enum PluginFormat {
     Clap,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct PluginLocator {
     pub format: PluginFormat,
@@ -16,18 +18,21 @@ pub struct PluginLocator {
     pub native_id: String,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginStateChunk {
     pub key: String,
     pub bytes: BinaryPayload,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginStateEnvelope {
     pub version: u32,
     pub chunks: Vec<PluginStateChunk>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PluginFailureCategory {
@@ -39,6 +44,7 @@ pub enum PluginFailureCategory {
     HostState,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PluginFailureStage {
@@ -51,6 +57,7 @@ pub enum PluginFailureStage {
     Ara,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PluginFailureOutcome {
@@ -58,6 +65,7 @@ pub enum PluginFailureOutcome {
     Quarantined,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PluginRuntimeFailure {
@@ -72,6 +80,7 @@ pub struct PluginRuntimeFailure {
     pub message: String,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PluginEditorMode {
@@ -79,6 +88,7 @@ pub enum PluginEditorMode {
     Parameters,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PluginEditorCompareSlot {
@@ -86,6 +96,7 @@ pub enum PluginEditorCompareSlot {
     B,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum PluginEditorAction {
@@ -108,6 +119,7 @@ pub enum PluginEditorAction {
     },
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PluginEditorSidechainSourceKind {
@@ -116,6 +128,7 @@ pub enum PluginEditorSidechainSourceKind {
     Aux,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PluginEditorSidechainBus {
     pub input_port_key: String,
@@ -123,6 +136,7 @@ pub struct PluginEditorSidechainBus {
     pub source_channel_id: Option<String>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PluginEditorSidechainSource {
     pub id: String,
@@ -130,6 +144,7 @@ pub struct PluginEditorSidechainSource {
     pub kind: PluginEditorSidechainSourceKind,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PluginEditorToolbarState {
     pub active_mode: PluginEditorMode,
@@ -145,6 +160,7 @@ pub struct PluginEditorToolbarState {
 }
 
 /// Resolved theme for host-owned plug-in editor chrome.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PluginEditorTheme {
@@ -154,6 +170,7 @@ pub enum PluginEditorTheme {
 }
 
 /// Locale supported by host-owned plug-in editor chrome.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PluginEditorLocale {
     #[serde(rename = "en-US")]
@@ -164,6 +181,7 @@ pub enum PluginEditorLocale {
 }
 
 /// Appearance shared by all currently open host-owned editor surfaces.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PluginEditorAppearance {
     pub theme: PluginEditorTheme,
@@ -171,6 +189,7 @@ pub struct PluginEditorAppearance {
 }
 
 /// Display context for one plug-in editor window.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PluginEditorContext {
     pub channel_name: String,
@@ -179,6 +198,7 @@ pub struct PluginEditorContext {
     pub appearance: PluginEditorAppearance,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PluginEditorPreference {
     pub mode: PluginEditorMode,
@@ -201,6 +221,7 @@ impl PluginEditorPreference {
     }
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PluginAudioMode {
@@ -211,6 +232,7 @@ pub enum PluginAudioMode {
     DualMono,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LivePluginAuxInputBus {
     pub input_port_key: String,
@@ -219,12 +241,14 @@ pub struct LivePluginAuxInputBus {
     pub source_channel_id: Option<String>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PluginAuxInputConfiguration {
     pub input_port_key: String,
     pub channels: u8,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LivePluginInstance {
     pub instance_id: String,
@@ -248,6 +272,7 @@ const fn initial_plugin_generation() -> u32 {
     1
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ParameterGesture {
@@ -256,6 +281,7 @@ pub enum ParameterGesture {
     End,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u32)]
 #[serde(rename_all = "kebab-case")]
@@ -265,6 +291,7 @@ pub enum ParameterTargetKind {
     MixerSend = 3,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct ParameterCommand {
     pub session_epoch: u64,
@@ -277,6 +304,7 @@ pub struct ParameterCommand {
     pub gesture: ParameterGesture,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginParameter {
     pub parameter_key: String,
@@ -300,6 +328,7 @@ pub struct PluginParameter {
     pub formatted: String,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AraObjectKind {
@@ -309,6 +338,7 @@ pub enum AraObjectKind {
     Document,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AraAnalysisProgressState {
@@ -317,6 +347,7 @@ pub enum AraAnalysisProgressState {
     Completed,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AraArchiveDirection {
@@ -324,6 +355,7 @@ pub enum AraArchiveDirection {
     Restore,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AraCallbackFailureCategory {
@@ -333,6 +365,7 @@ pub enum AraCallbackFailureCategory {
     HostState,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum AraCallbackEvent {
