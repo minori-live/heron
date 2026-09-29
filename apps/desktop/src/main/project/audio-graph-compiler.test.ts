@@ -313,6 +313,192 @@ describe("AudioGraphCompiler", () => {
     ])
   })
 
+  // The compiled graph is decoded by Rust through `serde`, which rejects an
+  // unknown or renamed key only when a project is opened. Rust also marks
+  // optional fields `#[serde(default)]`, so the producer may omit those; every
+  // other key is required. The key lists mirror
+  // `populated_graph_fixture_pins_the_cross_language_wire_keys` in
+  // `crates/dsp-runtime/src/protocol/tests.rs`; the two must move together.
+  it("emits only wire keys the Rust decoder accepts and every required one", () => {
+    const graph = snapshot()
+    graph.channels.find((channel) => channel.id === "audio-1")!.applicationCapture = {
+      platform: "macos",
+      bundleIdentifier: "com.example.player",
+      executablePath: "/Applications/Player.app/Contents/MacOS/Player",
+      executableName: "Player",
+      includeProcessTree: true
+    }
+    const compiled = compiler.compile(graph, assetPaths, true)
+    const audioChannel = compiled.channels.find((channel) => channel.id === "audio-1")!
+    const keysOf = (value: object): string[] => Object.keys(value).sort()
+
+    const channels = [
+      "application_capture",
+      "color",
+      "gain_db",
+      "hardware_output_channels",
+      "id",
+      "input_channels",
+      "input_monitoring",
+      "input_source",
+      "kind",
+      "midi_input_channel",
+      "midi_input_port_id",
+      "midi_input_port_name",
+      "muted",
+      "name",
+      "output_bus",
+      "output_channel_id",
+      "pan",
+      "record_armed",
+      "soloed",
+      "system_role"
+    ]
+    const capture = [
+      "bundle_identifier",
+      "executable_name",
+      "executable_path",
+      "include_process_tree",
+      "platform"
+    ]
+    const sends = [
+      "enabled",
+      "id",
+      "level_db",
+      "source_channel_id",
+      "tap",
+      "target_bus",
+      "target_channel_id"
+    ]
+    const clips = [
+      "channel_id",
+      "fade_in_frames",
+      "fade_out_frames",
+      "id",
+      "length_frames",
+      "path",
+      "source_offset_frames",
+      "start_frame"
+    ]
+    const plugins = [
+      "audio_mode",
+      "aux_input_buses",
+      "channel_id",
+      "duplicate_mono_output",
+      "enabled",
+      "instance_generation",
+      "instance_id",
+      "latency_samples",
+      "role",
+      "slot_order",
+      "tail_samples"
+    ]
+    const midiClips = [
+      "channel_id",
+      "events",
+      "id",
+      "length_ticks",
+      "notes",
+      "source_offset_ticks",
+      "start_tick"
+    ]
+    const notes = ["channel", "duration_ticks", "key", "release_velocity", "start_tick", "velocity"]
+
+    // Each entry is [label, object, allowed keys, keys Rust cannot default].
+    const shapes: Array<[string, object, string[], string[]]> = [
+      ["graph", compiled, Object.keys(compiled), Object.keys(compiled)],
+      // Rust marks these `#[serde(default)]`, so the producer may omit them.
+      [
+        "channel",
+        compiled.channels[0]!,
+        channels,
+        [
+          "gain_db",
+          "hardware_output_channels",
+          "id",
+          "input_channels",
+          "input_source",
+          "kind",
+          "muted",
+          "output_bus",
+          "output_channel_id",
+          "pan",
+          "record_armed",
+          "soloed",
+          "system_role"
+        ]
+      ],
+      ["application capture", audioChannel.application_capture!, capture, capture],
+      ["send", compiled.sends[0]!, sends, sends],
+      ["clip", compiled.clips[0]!, clips, clips],
+      [
+        "plugin",
+        compiled.plugins[0]!,
+        plugins,
+        [
+          "channel_id",
+          "enabled",
+          "instance_id",
+          "latency_samples",
+          "role",
+          "slot_order",
+          "tail_samples"
+        ]
+      ],
+      ["midi clip", compiled.midi_clips[0]!, midiClips, midiClips],
+      ["note batch", compiled.midi_clips[0]!.notes, ["notes", "reference", "storage"], ["storage"]],
+      ["note", compiled.midi_clips[0]!.notes.notes[0]!, notes, notes],
+      [
+        "event batch",
+        compiled.midi_clips[0]!.events,
+        ["events", "reference", "storage"],
+        ["storage"]
+      ],
+      [
+        "midi event",
+        compiled.midi_clips[0]!.events.events[0]!,
+        ["channel", "data", "kind", "tick"],
+        ["channel", "data", "kind", "tick"]
+      ],
+      [
+        "binary payload",
+        compiled.midi_clips[0]!.events.events[0]!.data,
+        ["bytes", "index", "length", "offset", "reference", "storage"],
+        ["storage"]
+      ],
+      [
+        "latency policy",
+        compiled.latency_policy!,
+        ["plugin_budget_samples", "target_output_channel_id", "type"],
+        ["type"]
+      ],
+      [
+        "tempo event",
+        compiled.tempo_events[0]!,
+        ["beats_per_minute", "tick"],
+        ["beats_per_minute", "tick"]
+      ],
+      [
+        "time signature event",
+        compiled.time_signature_events[0]!,
+        ["denominator", "numerator", "tick"],
+        ["denominator", "numerator", "tick"]
+      ]
+    ]
+
+    for (const [label, value, allowed, required] of shapes) {
+      const actual = keysOf(value)
+      expect(
+        actual.filter((key) => !allowed.includes(key)),
+        `${label} has unknown keys`
+      ).toEqual([])
+      expect(
+        required.filter((key) => !actual.includes(key)),
+        `${label} is missing keys`
+      ).toEqual([])
+    }
+  })
+
   it("marks host-provided mono-to-stereo output duplication for native mono effects", () => {
     const monoDescriptor: PluginDescriptor = { ...descriptor, supportedAudioModes: ["mono"] }
     const monoToStereo: PluginInstanceState = {
