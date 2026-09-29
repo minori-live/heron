@@ -9,6 +9,7 @@
 )]
 
 mod audio;
+mod binary;
 mod bounce;
 mod commands;
 mod events;
@@ -21,9 +22,9 @@ mod recording;
 mod responses;
 mod rpc;
 mod transport;
-mod wire;
 
 pub use audio::*;
+pub use binary::*;
 pub use bounce::*;
 pub use commands::*;
 pub use events::*;
@@ -34,7 +35,6 @@ pub use recording::*;
 pub use responses::*;
 pub use rpc::*;
 pub use transport::*;
-pub use wire::*;
 
 #[cfg(test)]
 mod tests;

@@ -370,40 +370,6 @@ fn midi_recording_stop_uses_the_desktop_wire_field() {
 }
 
 #[test]
-fn messagepack_frame_round_trips() {
-    let request = ControlRequest {
-        request_id: 42,
-        command: ControlCommand::PrepareGraph {
-            meta: RpcRequestMeta {
-                protocol_version: IPC_PROTOCOL_VERSION,
-                request_id: "round-trip".into(),
-                target: None,
-                expected_revision: None,
-                mutation: None,
-            },
-            request: Box::new(PrepareGraphRequest {
-                helper_epoch: "42".into(),
-                project_graph: ResourceRef {
-                    kind: ResourceKind::ProjectGraph,
-                    id: "graph".into(),
-                    epoch: "project".into(),
-                    generation: 1,
-                },
-                base_revision: 0,
-                graph_revision: 1,
-                graph: empty_graph(),
-            }),
-        },
-    };
-    let mut bytes = Vec::new();
-    write_message(&mut bytes, &request).unwrap();
-    assert_eq!(
-        read_message::<ControlRequest>(&mut bytes.as_slice()).unwrap(),
-        request
-    );
-}
-
-#[test]
 fn plugin_editor_commands_use_the_documented_wire_context() {
     let context = PluginEditorContext {
         channel_name: "主唱".to_owned(),
@@ -634,16 +600,6 @@ fn mixer_send_taps_use_stable_kebab_case_wire_values() {
     assert!(rmp_serde::from_slice::<LiveMixerSendTap>(&unknown).is_err());
 }
 
-#[test]
-fn rejects_oversized_frame_before_allocating() {
-    let mut bytes = ((MAX_MESSAGE_BYTES as u32) + 1).to_be_bytes().to_vec();
-    bytes.extend_from_slice(&[0; 4]);
-    assert!(matches!(
-        read_message::<ControlRequest>(&mut bytes.as_slice()),
-        Err(ProtocolError::MessageTooLarge(_))
-    ));
-}
-
 fn empty_graph() -> LiveMixerGraph {
     LiveMixerGraph {
         sample_rate: 48_000,
@@ -859,121 +815,6 @@ fn binary_payloads_expose_bytes_only_when_they_are_inline() {
         }
         .as_inline(),
         None
-    );
-}
-
-#[test]
-fn a_frame_is_length_prefixed_in_big_endian() {
-    let mut bytes = Vec::new();
-    write_message(
-        &mut bytes,
-        &ControlRequest {
-            request_id: 1,
-            command: ControlCommand::Ping,
-        },
-    )
-    .unwrap();
-
-    let length = u32::from_be_bytes(bytes[..4].try_into().unwrap()) as usize;
-    assert_eq!(length, bytes.len() - 4);
-}
-
-#[test]
-fn consecutive_frames_are_read_back_in_order() {
-    let mut bytes = Vec::new();
-    for request_id in 0..3 {
-        write_message(
-            &mut bytes,
-            &ControlRequest {
-                request_id,
-                command: ControlCommand::Ping,
-            },
-        )
-        .unwrap();
-    }
-
-    let mut reader = bytes.as_slice();
-    for request_id in 0..3 {
-        assert_eq!(
-            read_message::<ControlRequest>(&mut reader)
-                .unwrap()
-                .request_id,
-            request_id
-        );
-    }
-    assert!(reader.is_empty());
-}
-
-#[test]
-fn a_truncated_frame_is_reported_as_an_io_error() {
-    let mut bytes = Vec::new();
-    write_message(
-        &mut bytes,
-        &ControlRequest {
-            request_id: 1,
-            command: ControlCommand::Ping,
-        },
-    )
-    .unwrap();
-    bytes.truncate(bytes.len() - 1);
-
-    assert!(matches!(
-        read_message::<ControlRequest>(&mut bytes.as_slice()),
-        Err(ProtocolError::Io(_))
-    ));
-}
-
-#[test]
-fn a_frame_that_is_not_the_expected_message_is_reported_as_a_decode_error() {
-    let mut bytes = Vec::new();
-    write_message(&mut bytes, &"not a control request".to_owned()).unwrap();
-
-    assert!(matches!(
-        read_message::<ControlRequest>(&mut bytes.as_slice()),
-        Err(ProtocolError::Decode(_))
-    ));
-}
-
-#[test]
-fn a_write_that_fails_midway_surfaces_the_io_error() {
-    struct FullDisk;
-
-    impl std::io::Write for FullDisk {
-        fn write(&mut self, _buffer: &[u8]) -> std::io::Result<usize> {
-            Err(std::io::Error::other("no space left on device"))
-        }
-
-        fn flush(&mut self) -> std::io::Result<()> {
-            Ok(())
-        }
-    }
-
-    let error = write_message(
-        &mut FullDisk,
-        &ControlRequest {
-            request_id: 1,
-            command: ControlCommand::Ping,
-        },
-    )
-    .expect_err("a failing writer should surface an error");
-
-    assert!(matches!(error, ProtocolError::Io(_)));
-    assert!(error.to_string().starts_with("helper protocol I/O failed"));
-}
-
-#[test]
-fn protocol_errors_describe_themselves() {
-    assert_eq!(
-        ProtocolError::MessageTooLarge(70_000_000).to_string(),
-        "helper message exceeds 64 MiB: 70000000"
-    );
-
-    let decode = read_message::<ControlRequest>(&mut [0, 0, 0, 1, 0xc1].as_slice())
-        .expect_err("0xc1 is never a valid MessagePack marker");
-    assert!(
-        decode
-            .to_string()
-            .starts_with("helper message decoding failed")
     );
 }
 
