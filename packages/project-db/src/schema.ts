@@ -14,6 +14,7 @@ export {
   pluginStateChunks,
   pluginSidechainRoutes
 } from "./mixer-schema.ts"
+import { DEFAULT_PROJECT_END_TICK } from "@heron/contracts"
 import { relations, sql } from "drizzle-orm"
 import {
   check,
@@ -28,8 +29,8 @@ import {
   uniqueIndex
 } from "drizzle-orm/pg-core"
 
-export const PROJECT_SAMPLE_RATES = [44_100, 48_000, 88_200, 96_000, 176_400, 192_000] as const
-export type ProjectSampleRate = (typeof PROJECT_SAMPLE_RATES)[number]
+export { PROJECT_SAMPLE_RATES } from "@heron/contracts"
+export type { ProjectSampleRate } from "@heron/contracts"
 
 export const PROJECT_ID = "project"
 export const STUDIO_FORMAT_VERSION = 1
@@ -45,7 +46,7 @@ export const project = pgTable(
     sampleRate: integer("sample_rate").notNull(),
     waveformDisplayMode: text("waveform_display_mode").$type<"separate" | "aggregate">().notNull(),
     notes: text("notes").notNull().default(""),
-    projectEndTick: integer("project_end_tick").notNull().default(61_440)
+    projectEndTick: integer("project_end_tick").notNull().default(DEFAULT_PROJECT_END_TICK)
   },
   (table) => [
     check("project_singleton_id_check", sql`${table.id} = 'project'`),
@@ -54,6 +55,7 @@ export const project = pgTable(
     check("project_name_check", sql`length(trim(${table.name})) > 0`),
     check(
       "project_sample_rate_check",
+      // Kept as a literal: this expression is part of the generated migration SQL.
       sql`${table.sampleRate} in (44100, 48000, 88200, 96000, 176400, 192000)`
     ),
     check(
