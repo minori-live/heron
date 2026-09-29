@@ -1,5 +1,5 @@
 use super::*;
-use crate::NativeApplicationCaptureTarget;
+use crate::ApplicationCaptureLogicalTarget;
 use heron_audio_plugin::{AudioPluginProcessor, AudioPluginProcessorHandle, SidechainSource};
 
 #[derive(Clone)]
@@ -380,7 +380,7 @@ fn build_mixer_runtime_keeps_a_silent_route_for_an_unsupported_application_targe
     let mut graph = simple_native_graph();
     graph.channels[0].input_source = Some("application".to_owned());
     graph.channels[0].input_monitoring = true;
-    graph.channels[0].application_capture = Some(NativeApplicationCaptureTarget {
+    graph.channels[0].application_capture = Some(ApplicationCaptureLogicalTarget {
         platform: if cfg!(target_os = "macos") {
             "windows".to_owned()
         } else {

@@ -1,6 +1,6 @@
 // Owned by the protocol crate; this module keeps the engine-facing path stable.
 pub use heron_dsp_runtime::protocol::{
-    AudioEngineConfig, AudioRuntime, RoundTripLatencyMeasurement,
+    ApplicationCaptureLogicalTarget, AudioEngineConfig, AudioRuntime, RoundTripLatencyMeasurement,
     RoundTripLatencyMeasurementRequest,
 };
 
@@ -27,19 +27,10 @@ pub struct NativeMixerChannel {
     pub input_monitoring: bool,
     pub input_source: Option<String>,
     pub input_channels: Vec<u32>,
-    pub application_capture: Option<NativeApplicationCaptureTarget>,
+    pub application_capture: Option<ApplicationCaptureLogicalTarget>,
     pub hardware_output_channels: Vec<u32>,
     pub midi_input_port_id: Option<String>,
     pub midi_input_channel: Option<u8>,
-}
-
-#[derive(Clone)]
-pub struct NativeApplicationCaptureTarget {
-    pub platform: String,
-    pub bundle_identifier: Option<String>,
-    pub executable_path: String,
-    pub executable_name: String,
-    pub include_process_tree: bool,
 }
 
 #[derive(Clone)]

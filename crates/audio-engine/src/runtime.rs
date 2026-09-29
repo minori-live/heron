@@ -252,7 +252,7 @@ pub use device_recovery::{
 pub use metering::TransportClockHandle;
 pub use publication::{CompiledGraphBuild, GraphBuildInput, PublishOutcome, compile_graph_build};
 pub use spec::{
-    AudioEngineConfig, AudioRuntime, NativeApplicationCaptureTarget, NativeLatencyPolicy,
+    ApplicationCaptureLogicalTarget, AudioEngineConfig, AudioRuntime, NativeLatencyPolicy,
     NativeMidiClip, NativeMidiEvent, NativeMidiEventKind, NativeMidiNote, NativeMixerChannel,
     NativeMixerChannelMeter, NativeMixerClip, NativeMixerGraph, NativeMixerParameterPreview,
     NativeMixerSend, NativeMixerSnapshot, NativePluginAuxInputBus, NativePluginInstance,

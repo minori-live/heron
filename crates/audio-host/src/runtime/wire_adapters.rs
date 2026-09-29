@@ -63,7 +63,7 @@ pub(super) fn live_graph(
                 input_source: channel.input_source.clone(),
                 input_channels: channel.input_channels.clone(),
                 application_capture: channel.application_capture.as_ref().map(|target| {
-                    engine::NativeApplicationCaptureTarget {
+                    engine::ApplicationCaptureLogicalTarget {
                         platform: target.platform.clone(),
                         bundle_identifier: target.bundle_identifier.clone(),
                         executable_path: target.executable_path.clone(),
