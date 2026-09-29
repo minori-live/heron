@@ -1,8 +1,6 @@
-import { builtinModules } from "node:module"
 import { resolve } from "node:path"
 import { defineConfig } from "vite"
-
-const nodeBuiltins = [...builtinModules, ...builtinModules.map((name) => `node:${name}`)]
+import { nodeBuiltins } from "./build/node-builtins.ts"
 
 export default defineConfig({
   build: {

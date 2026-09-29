@@ -1,15 +1,14 @@
 import { createHash } from "node:crypto"
 import { access, cp, readdir, readFile, rm } from "node:fs/promises"
-import { builtinModules } from "node:module"
 import { resolve } from "node:path"
 import { buildProjectTemplateArchive } from "@heron/project-db/template"
 import { buildLiveTemplateArchive } from "@heron/project-db/live-template"
 import { defineConfig } from "vite"
 import type { Plugin } from "vite"
 import { appVersionDefine } from "./build/app-version.ts"
+import { nodeBuiltins } from "./build/node-builtins.ts"
 import { releaseBuild } from "./src/shared/release-build.ts"
 
-const nodeBuiltins = [...builtinModules, ...builtinModules.map((name) => `node:${name}`)]
 const migrationsDirectory = resolve(import.meta.dirname, "../../packages/project-db/drizzle")
 const bundledMigrationsDirectory = resolve(import.meta.dirname, "out/drizzle")
 const bundledProjectTemplate = resolve(import.meta.dirname, "out/project-template.pglite.gz")
