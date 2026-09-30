@@ -151,6 +151,12 @@ therefore requires the pinned LLVM/Clang toolchain, including on non-Windows
 hosts. Cargo reruns Bindgen when the wrapper or its VST3/ARA header inputs
 change.
 
+The VST3 Bindgen dependency enables only logging and runtime Clang loading;
+generated bindings are formatted with the repository-managed rustfmt. Its
+optional prettyplease formatter is disabled because independent resolution of
+Bindgen's and prettyplease's `syn` major versions can break compilation during
+lockfile updates, as in [PR #180](https://github.com/minori-live/heron/pull/180).
+
 `mise run check`, `mise run lint`, and the platform-native CI task build debug
 N-API bindings before type-aware Oxlint, residual Vue ESLint, package
 TypeScript checks, and tests that resolve `@heron/dsp-node`, so the gitignored
