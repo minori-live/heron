@@ -39,6 +39,26 @@ Heron 仍处于实验阶段。如果发布页面还没有可用的安装包，�
 
 ## macOS
 
+Heron 要求 macOS 14.2 或更新版本，支持 Apple 芯片和 Intel Mac。
+
+使用[项目维护的 Homebrew Tap](https://github.com/minori-live/homebrew-tap) 安装：
+
+```sh
+brew install --cask minori-live/tap/heron
+```
+
+Heron 支持在应用内下载并安装更新。如果希望通过 Homebrew 升级，请先关闭
+Heron，然后运行：
+
+```sh
+brew update
+brew upgrade --cask --greedy-auto-updates minori-live/tap/heron
+```
+
+运行 `brew uninstall --cask minori-live/tap/heron` 可以卸载应用；工程和应用数据会保留。
+
+也可以从发布页面下载通用 DMG 安装包。
+
 打开 `.dmg` 并将 Heron 拖入“应用程序”。首次启动可能需要在
 **系统设置 → 隐私与安全性** 中确认，对于实验性或未签名的构建尤其如此。
 

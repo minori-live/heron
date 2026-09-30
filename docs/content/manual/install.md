@@ -43,6 +43,27 @@ came from the official repository and verify its checksum before continuing.
 
 ## macOS
 
+Heron requires macOS 14.2 or later and supports Apple silicon and Intel Macs.
+
+Install using the [project-maintained Homebrew Tap](https://github.com/minori-live/homebrew-tap):
+
+```sh
+brew install --cask minori-live/tap/heron
+```
+
+Heron can download and install updates from inside the application. To upgrade
+through Homebrew instead, close Heron and run:
+
+```sh
+brew update
+brew upgrade --cask --greedy-auto-updates minori-live/tap/heron
+```
+
+Uninstall with `brew uninstall --cask minori-live/tap/heron`. This removes the
+application while preserving projects and application data.
+
+Alternatively, download the Universal DMG from the release page.
+
 Open the `.dmg` and move Heron to Applications. The first launch may require
 confirmation in **System Settings → Privacy & Security**, especially for an
 experimental or unsigned build.
