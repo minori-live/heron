@@ -30,7 +30,7 @@ jobs:
   checks:
     name: Checks (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 120
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -137,6 +137,10 @@ jobs:
       - name: Run repository checks
         run: mise run ${{ matrix.check-task }}
 
+      - name: Run Electron end-to-end tests
+        if: runner.os == 'Linux'
+        run: mise run test:e2e
+
       # Linux produces JavaScript LCOV in addition to the per-platform Rust report.
       # The Rust coverage orchestrators merge profiles from Cargo tests and
       # instrumented napi calls, keeping output in target-coverage/ so it stays out
@@ -168,31 +172,6 @@ jobs:
       - name: Report shared compiler cache health
         if: ${{ always() && steps.setup_build.outcome == 'success' }}
         run: mise run ci:report:sccache
-
-  e2e:
-    name: Electron end-to-end
-    runs-on: ubuntu-26.04
-    timeout-minutes: 60
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-
-      - name: Set up build environment
-        uses: ./.github/actions/setup-build
-        with:
-          github-token: >-
-            ${{ github.event_name == 'pull_request' && '' || github.token }}
-          cache-rust-build: "true"
-
-      - name: Install Playwright Chromium and Linux dependencies
-        run: |
-          mise run ci:install:playwright
-          sudo apt-get install --yes --no-install-recommends dbus-x11 xauth xvfb
-
-      - name: Run Electron end-to-end tests
-        run: mise run test:e2e
 
   codecov-finalize:
     name: Finalize Codecov coverage

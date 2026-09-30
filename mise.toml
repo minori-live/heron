@@ -309,7 +309,7 @@ run = "node scripts/version.ts sync"
 [tasks."ci:install:playwright"]
 hide = true
 depends = ["install"]
-run = "pnpm --filter @heron/design-system exec playwright install --with-deps chromium"
+run = "pnpm --filter @heron/desktop exec playwright install --with-deps chromium"
 
 [tasks."ci:report:sccache"]
 hide = true
