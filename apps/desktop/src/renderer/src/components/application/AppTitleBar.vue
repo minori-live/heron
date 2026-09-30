@@ -101,7 +101,7 @@ const { t } = useI18n()
 }
 
 .app-titlebar__logo {
-  color: var(--ui-color-action);
+  color: var(--ui-daw-action);
   font-size: var(--ui-font-size-xs);
 }
 

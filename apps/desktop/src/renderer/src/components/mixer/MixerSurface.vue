@@ -289,7 +289,7 @@ const sectionStyle = computed(() => ({
 
 <style scoped>
 .mixer-toolbar > span {
-  color: var(--ui-color-action);
+  color: var(--ui-daw-action);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-widest);
 }

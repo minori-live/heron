@@ -28,6 +28,13 @@ framing, attachment, shared-memory, lease, or retry semantics. Large state is
 carried inline until a measured local-boundary bottleneck justifies a simpler
 typed N-API representation.
 
+Electron main validates the response envelope on both control and priority
+calls before reading the result: the response must be an object, answer the
+issued request id, and contain an object result with a string discriminator.
+Malformed responses follow the gateway's unavailable/error path; they must not
+escape as accidental property-access errors. Native structured failures retain
+their error details and originating command context.
+
 The MIDI input actor also owns the counted set of active Note On lifecycles.
 Electron main samples that small state through the existing MIDI runtime
 snapshot at a UI cadence and forwards it to the renderer. Route filtering,
