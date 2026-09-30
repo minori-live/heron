@@ -28,12 +28,12 @@ export class AudioHostRequestError extends Error {
  * drifted payload surfaced as a `TypeError` from deep inside the caller rather
  * than as a failed request.
  */
-function decodeControlResponse(
+function decodeResponse<T extends ControlResponse | PriorityResponse>(
   value: unknown,
   requestId: number,
   command: Record<string, unknown>
-): ControlResponse {
-  const response = value as Partial<ControlResponse> | null
+): T {
+  const response = value as Partial<T> | null
   if (!response || typeof response !== "object") {
     throw requestError(command)
   }
@@ -44,7 +44,7 @@ function decodeControlResponse(
   if (!result || typeof result !== "object" || typeof result.type !== "string") {
     throw requestError(command)
   }
-  return response as ControlResponse
+  return response as T
 }
 
 function requestError(command: Record<string, unknown>, error?: RpcError): Error {
@@ -102,10 +102,7 @@ export class AudioHostGateway {
     const requestId = this.nextRequestId++
     const payload = Buffer.from(encode({ request_id: requestId, command }))
     const wireResponse = await client.heartbeat(payload)
-    const response = decode(wireResponse.body) as PriorityResponse
-    if (response.request_id !== requestId) {
-      throw new Error("audio host returned an invalid priority response")
-    }
+    const response = decodeResponse<PriorityResponse>(decode(wireResponse.body), requestId, command)
     if (response.result.type === "error") {
       throw requestError(command, response.result.error)
     }
@@ -145,7 +142,7 @@ export class AudioHostGateway {
       throw new Error("audio host logical request exceeds 128 MiB")
     }
     const wireResponse = await client.request(payload)
-    const response = decodeControlResponse(decode(wireResponse.body), requestId, command)
+    const response = decodeResponse<ControlResponse>(decode(wireResponse.body), requestId, command)
     hydrateAttachments(response, wireResponse.attachments)
     if (response.result.type === "error") {
       throw requestError(command, response.result.error)

@@ -86,5 +86,5 @@ impl Task for FinalizeRecordingTask {
 pub fn finalize_recording(
     config: NativeFinalizeRecordingConfig,
 ) -> napi::bindgen_prelude::AsyncTask<FinalizeRecordingTask> {
-    napi::bindgen_prelude::AsyncTask::new(FinalizeRecordingTask { config })
+    napi::bindgen_prelude::AsyncTask::new(FinalizeRecordingTask::new(config))
 }

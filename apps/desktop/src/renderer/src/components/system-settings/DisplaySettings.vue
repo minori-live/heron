@@ -187,17 +187,17 @@ onMounted(() => {
 }
 
 .theme-preview-light {
-  --canvas: var(--ui-domain-preview-light-canvas);
-  --surface-panel: var(--ui-domain-preview-light-panel);
-  --line-strong: var(--ui-domain-preview-light-line);
-  --accent: var(--ui-domain-preview-light-accent);
+  --ui-color-canvas: var(--ui-domain-preview-light-canvas);
+  --ui-color-surface-sunken: var(--ui-domain-preview-light-panel);
+  --ui-color-border-strong: var(--ui-domain-preview-light-line);
+  --ui-color-action: var(--ui-domain-preview-light-accent);
 }
 
 .theme-preview-dark {
-  --canvas: var(--ui-domain-preview-dark-canvas);
-  --surface-panel: var(--ui-domain-preview-dark-panel);
-  --line-strong: var(--ui-domain-preview-dark-line);
-  --accent: var(--ui-domain-preview-dark-accent);
+  --ui-color-canvas: var(--ui-domain-preview-dark-canvas);
+  --ui-color-surface-sunken: var(--ui-domain-preview-dark-panel);
+  --ui-color-border-strong: var(--ui-domain-preview-dark-line);
+  --ui-color-action: var(--ui-domain-preview-dark-accent);
 }
 
 .theme-preview-system {

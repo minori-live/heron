@@ -29,6 +29,26 @@ type NativeBindings = {
     sampleRate: number
     waveformLevels: unknown[]
   }>
+  finalizeRecording: (config: {
+    inputPath: string
+    outputPath: string
+    targetSampleRate: number
+    bitDepth: string
+    assetId: string
+    originator: string
+    originationDate: string
+    originationTime: string
+    timeReference: number
+  }) => Promise<{
+    path: string
+    contentHash: string
+    sampleRate: number
+    channels: number
+    bitDepth: string
+    frameCount: number
+    timeReference: number
+    waveformLevels: unknown[]
+  }>
   engineInfo: () => { backend: string; nodeApi: number; version: string }
   processGain: (samples: number[], gain: number) => { samples: number[]; peak: number }
   writeDeterministicTestRecording: (
@@ -55,6 +75,7 @@ const {
   AudioHostRuntime,
   analyzeWaveform,
   engineInfo,
+  finalizeRecording,
   processGain,
   writeDeterministicTestRecording
 } = require("../../crates/dsp-node") as NativeBindings
@@ -69,7 +90,7 @@ await test("native DSP binding processes values across the napi boundary", () =>
   assert.deepEqual(processGain([1, -0.5, 0], 2), { samples: [2, -1, 0], peak: 2 })
 })
 
-await test("native DSP binding writes and analyzes a deterministic recording", async () => {
+await test("native DSP binding writes, finalizes and analyzes a deterministic recording", async () => {
   const directory = await mkdtemp(join(tmpdir(), "heron-native-bindings-"))
   try {
     const path = join(directory, "recording.bwf")
@@ -94,6 +115,29 @@ await test("native DSP binding writes and analyzes a deterministic recording", a
     assert.equal(waveform.frameCount, 128)
     assert.equal(waveform.sampleRate, 48_000)
     assert.ok(waveform.waveformLevels.length > 0)
+
+    const outputPath = join(directory, "finalized.bwf")
+    const finalized = await finalizeRecording({
+      inputPath: path,
+      outputPath,
+      targetSampleRate: 48_000,
+      bitDepth: "pcm24",
+      assetId: "finalized-fixture",
+      originator: "Heron tests",
+      originationDate: "2026-01-01",
+      originationTime: "00:00:00",
+      timeReference: 42
+    })
+    assert.equal(finalized.path, outputPath)
+    assert.equal(finalized.sampleRate, 48_000)
+    assert.equal(finalized.channels, 2)
+    assert.equal(finalized.frameCount, 128)
+    assert.equal(finalized.bitDepth, "pcm24")
+    assert.equal(finalized.timeReference, 42)
+    assert.match(finalized.contentHash, /^[a-f0-9]{64}$/u)
+    const persisted = await analyzeWaveform(outputPath)
+    assert.equal(persisted.frameCount, finalized.frameCount)
+    assert.deepEqual(persisted.waveformLevels, finalized.waveformLevels)
   } finally {
     await rm(directory, { force: true, recursive: true })
   }

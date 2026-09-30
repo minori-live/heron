@@ -6,10 +6,11 @@ use std::{
 };
 
 use bwavfile::{WaveReader, WaveWriter};
+use napi::Task;
 
 use crate::recording::{
-    NativeFinalizeRecordingConfig,
-    finalize::{TpdfDither, finalize},
+    FinalizeRecordingTask, NativeFinalizeRecordingConfig,
+    finalize::TpdfDither,
     repair_recording_header,
     waveform::base_peak_level,
     waveform_analysis::analyze_waveform_path,
@@ -113,7 +114,7 @@ fn fft_resampling_preserves_sine_length_frequency_and_all_final_formats() {
 
     for bit_depth in ["float32", "pcm24", "pcm16"] {
         let output = temporary_file(bit_depth);
-        let finalized = finalize(&NativeFinalizeRecordingConfig {
+        let finalized = FinalizeRecordingTask::new(NativeFinalizeRecordingConfig {
             input_path: source.to_string_lossy().into_owned(),
             output_path: output.to_string_lossy().into_owned(),
             target_sample_rate: 48_000,
@@ -125,6 +126,7 @@ fn fft_resampling_preserves_sine_length_frequency_and_all_final_formats() {
             time_reference: 123,
             channel_indices: None,
         })
+        .compute()
         .unwrap();
         assert!((finalized.frame_count - 4_800).abs() <= 1);
         assert_eq!(finalized.bit_depth, bit_depth);

@@ -44,13 +44,12 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
   })
   application.process().stderr?.on("data", (data) => console.log(`main stderr: ${String(data)}`))
   try {
-    const firstWindow = await application.firstWindow()
-    await firstWindow.waitForLoadState("domcontentloaded")
-    const page =
-      application.windows().find((candidate) => candidate.url().includes("index.html")) ??
-      (await application.waitForEvent("window", {
-        predicate: (candidate) => !candidate.url().includes("splash.html")
-      }))
+    // A window can exist before its navigation starts; waiting only for the
+    // next creation event misses that already-created main window.
+    await expect
+      .poll(() => application.windows().some((page) => page.url().includes("index.html")))
+      .toBe(true)
+    const page = application.windows().find((page) => page.url().includes("index.html"))!
     await page.waitForLoadState("domcontentloaded")
     await expect(page.getByRole("button", { name: "New Studio", exact: true })).toBeVisible()
     await page.evaluate(() => {
@@ -88,6 +87,30 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
       expect(preview.width).toBeGreaterThan(100)
       expect(title.y).toBeGreaterThan(preview.y + preview.height)
       expect(description.y).toBeGreaterThan(title.y + title.height)
+      // Both cards must depict their own palette, independent of the selected theme.
+      for (const [name, canvas, panel, line, accent] of [
+        [
+          "Light",
+          "rgb(216, 217, 219)",
+          "rgb(197, 199, 202)",
+          "rgb(164, 168, 174)",
+          "rgb(101, 127, 141)"
+        ],
+        ["Dark", "rgb(32, 32, 32)", "rgb(23, 23, 23)", "rgb(65, 65, 65)", "rgb(139, 166, 180)"]
+      ] as const) {
+        const card = page.getByRole("button", { name: new RegExp(`^${name} `) })
+        await expect(card.locator(".theme-preview")).toHaveCSS("background-color", canvas)
+        await expect(card.locator(".preview-sidebar")).toHaveCSS("background-color", panel)
+        await expect(card.locator(".preview-content i").first()).toHaveCSS(
+          "background-color",
+          accent
+        )
+        await expect(card.locator(".preview-content i").last()).toHaveCSS("background-color", line)
+      }
+      await expect(page.locator(".app-titlebar__logo")).toHaveCSS(
+        "color",
+        theme === "Light" ? "rgb(69, 109, 122)" : "rgb(141, 168, 181)"
+      )
       await page.screenshot({ path: testInfo.outputPath(`display-${theme}.png`) })
     }
     await page.getByRole("button", { name: "MIDI", exact: true }).click()
@@ -116,6 +139,10 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
       ".mixer-console:visible .output-section .ui-cascading-select, .mixer-console:visible .output-control"
     )
     await expect(input).toBeVisible()
+    await expect(page.locator(".mixer-console:visible .mixer-toolbar > span")).toHaveCSS(
+      "color",
+      "rgb(141, 168, 181)"
+    )
     await page.evaluate(async () => {
       const bootstrap = await window.heron.bootstrap({
         protocolVersion: 2,

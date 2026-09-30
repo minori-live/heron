@@ -177,6 +177,7 @@ for (const file of rendererFiles) {
     report(file, "numeric-z-index", match[0])
   }
   auditTypography(file, source)
+  auditDomainPalette(file, source, false)
   auditTokenReferences(file, source)
   auditUtilities(file, source)
 

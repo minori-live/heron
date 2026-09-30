@@ -226,7 +226,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
 
 <style scoped>
 .channel-strip {
-  --strip-color: var(--ui-color-action);
+  --strip-color: var(--ui-daw-action);
   position: relative;
   display: grid;
   grid-template-rows:
