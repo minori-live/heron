@@ -147,7 +147,9 @@ mod tests {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let engine = AudioEngine::new();
-        let input = engine.begin_resolved_build(minimal_graph(3)).expect("begin");
+        let input = engine
+            .begin_resolved_build(minimal_graph(3))
+            .expect("begin");
         let built = tokio::runtime::Builder::new_current_thread()
             .build()
             .unwrap()

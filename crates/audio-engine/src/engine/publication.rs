@@ -1,14 +1,13 @@
-use heron_dsp_runtime::protocol::LiveMixerGraph;
 use super::{
-    resolve,
     Arc, AtomicBool, AtomicU32, AtomicU64, AudioEngine, AudioPluginProcessorHandle,
     AuditionPlayback, CompiledAudioGraphSnapshot, EngineCommand, HashMap, InputPeakBank,
     MAX_OUTPUT_CHANNELS, MeterAtomics, MixerParameterPreview, MixerRuntime, MixerSnapshot,
     Ordering, Producer, RealtimeParameterCommand, ResolvedMixerGraph, Result, RunningAudioEngine,
     TRANSPORT_RECORDING, TRANSPORT_STOPPED, TransportAction, TransportClockHandle, TransportShared,
     TransportSnapshot, TryLockError, audio_error, build_mixer_runtime, compiled_graph_snapshot,
-    decode_clip_audio, invalid_config,
+    decode_clip_audio, invalid_config, resolve,
 };
+use heron_dsp_runtime::protocol::LiveMixerGraph;
 
 /// Immutable input for a supervised graph-worker compile.
 pub struct GraphBuildInput {
@@ -114,10 +113,7 @@ impl AudioEngine {
     ///
     /// A latency change mutates the published graph in place, so that path
     /// rebuilds from the resolved form rather than re-resolving the wire.
-    pub fn begin_resolved_build(
-        &self,
-        graph: ResolvedMixerGraph,
-    ) -> Result<GraphBuildInput> {
+    pub fn begin_resolved_build(&self, graph: ResolvedMixerGraph) -> Result<GraphBuildInput> {
         let build_generation = self.next_build_generation.fetch_add(1, Ordering::Relaxed);
         let (transport, input_peaks) = self.engine_transport_handles(graph.sample_rate)?;
         Ok(GraphBuildInput {

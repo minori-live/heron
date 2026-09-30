@@ -38,9 +38,7 @@ pub(super) fn engine_command(
                     });
                 }
             };
-            ControlResult::AudioDevices {
-                devices: value,
-            }
+            ControlResult::AudioDevices { devices: value }
         }
         ControlCommand::ListApplicationCaptureTargets => ControlResult::ApplicationCaptureTargets {
             targets: audio_engine

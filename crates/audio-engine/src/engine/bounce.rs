@@ -1,4 +1,6 @@
-pub use heron_dsp_runtime::protocol::{BounceChannelMode, BounceDither, BounceNormalization, LiveMixerGraph};
+pub use heron_dsp_runtime::protocol::{
+    BounceChannelMode, BounceDither, BounceNormalization, LiveMixerGraph,
+};
 
 use super::lifecycle_types::invalid_config;
 use super::resolve::resolve_graph;

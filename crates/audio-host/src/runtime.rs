@@ -27,11 +27,10 @@ use crate::{
 };
 use heron_audio_plugin::PluginProcessFailure;
 use heron_dsp_runtime::protocol::{
-    AudioBackend, BinaryPayload,
-    ControlCommand, ControlResult, GraphCandidateSnapshot, GraphDeploymentSnapshot,
-    GraphDeploymentStatus, GraphOperationOutcome, GraphOperationSnapshot, GraphTransactionRequest,
-    GraphTransactionValue, HostEvent, IPC_PROTOCOL_VERSION, LiveMixerGraph, MixerChannelMeter,
-    PluginFailureCategory, PluginFailureOutcome,
+    AudioBackend, BinaryPayload, ControlCommand, ControlResult, GraphCandidateSnapshot,
+    GraphDeploymentSnapshot, GraphDeploymentStatus, GraphOperationOutcome, GraphOperationSnapshot,
+    GraphTransactionRequest, GraphTransactionValue, HostEvent, IPC_PROTOCOL_VERSION,
+    LiveMixerGraph, MixerChannelMeter, PluginFailureCategory, PluginFailureOutcome,
     PluginFailureStage, PluginRuntimeFailure, RecordingStartConfig, ResourceKind, ResourceRef,
     RpcError, RpcErrorCategory, RpcErrorCode, RpcErrorDetails, RpcFailure, RpcMutationOutcome,
     RpcRequestMeta, RpcResult, RpcRetry, RpcSuccess, TransportState,
@@ -41,17 +40,18 @@ use tokio::sync::{mpsc, oneshot};
 
 pub mod embedded;
 mod engine_actor;
+mod engine_commands;
 mod graph_transactions;
 mod plugin_actor;
 mod runtime_config;
 mod ui_runtime;
-mod engine_commands;
 
 use engine_actor::{
     ActorCommand, ActorRequest, GraphParameterHandles, background_io_actor, engine_actor,
     forward_to_ui, publish_built_graph, queue_background_graph_build, refresh_graph_handles,
     stable_runtime_handle,
 };
+use engine_commands::engine_command;
 use graph_transactions::{
     GraphTransactionState, PreparedGraphCandidate, graph_busy_error, graph_conflict_error,
     graph_correlation, graph_dependency_error, graph_failure, graph_stale_error, graph_success,
@@ -64,6 +64,5 @@ use plugin_actor::{
 };
 use runtime_config::RuntimeConfig;
 use ui_runtime::{EmbeddedUiHost, UiEvent, UiMailboxWaker};
-use engine_commands::engine_command;
 
 static MIDI_INPUT: OnceLock<MidiInputActor> = OnceLock::new();

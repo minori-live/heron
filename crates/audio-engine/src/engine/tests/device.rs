@@ -62,8 +62,16 @@ fn recovery_merges_duplicate_directions_and_ignores_old_streams() {
 
     assert!(engine.observe_device_faults());
     let recovery = engine.device_recovery_snapshot().unwrap();
-    assert!(recovery.lost_directions.contains(&AudioStreamDirection::Input));
-    assert!(recovery.lost_directions.contains(&AudioStreamDirection::Output));
+    assert!(
+        recovery
+            .lost_directions
+            .contains(&AudioStreamDirection::Input)
+    );
+    assert!(
+        recovery
+            .lost_directions
+            .contains(&AudioStreamDirection::Output)
+    );
     assert_eq!(recovery.fault, AudioDeviceFaultKind::StreamInvalidated);
     assert_eq!(
         recovery.phase,

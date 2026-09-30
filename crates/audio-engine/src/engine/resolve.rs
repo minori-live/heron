@@ -236,9 +236,7 @@ pub fn resolve_graph(
                     }
                     _ => return Err(format!("invalid MIDI event {}", event.kind)),
                 };
-                if !matches!(kind, DecodedMidiEventKind::SysEx { .. })
-                    && event.channel.is_none()
-                {
+                if !matches!(kind, DecodedMidiEventKind::SysEx { .. }) && event.channel.is_none() {
                     return Err(format!("MIDI event {} requires a channel", event.kind));
                 }
                 native_events.push(DecodedMidiEvent {
@@ -564,5 +562,4 @@ mod tests {
             assert!(resolve_graph(1, &graph).is_err(), "{label}");
         }
     }
-
 }

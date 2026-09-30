@@ -208,10 +208,10 @@ mod publication;
 mod recording;
 #[path = "engine/render_runtime.rs"]
 mod render_runtime;
-#[path = "engine/resolve.rs"]
-mod resolve;
 #[path = "engine/resampling.rs"]
 mod resampling;
+#[path = "engine/resolve.rs"]
+mod resolve;
 #[path = "engine/spec.rs"]
 mod spec;
 #[path = "engine/transport_midi.rs"]
