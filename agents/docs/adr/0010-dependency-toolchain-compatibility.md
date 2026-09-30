@@ -38,6 +38,14 @@ In pnpm 12.6.0, a non-interactive child runs in a separate process group and can
 survive Playwright's shutdown signal. Storybook then keeps its output pipes open,
 leaving the Linux design-system test command waiting after its tests finish.
 
+Keep bindgen 0.73's locked `syn` major aligned with its `prettyplease` formatter:
+`prettyplease` 0.3 uses `syn` 3, while `prettyplease` 0.2 uses `syn` 2. Bindgen's
+independent version ranges allow Cargo to select incompatible pairs, which fail
+to compile when bindgen passes a parsed syntax tree to the formatter. PR #174
+restores bindgen 0.73.2's `syn` 3 entry alongside `prettyplease` 0.3.0; Windows
+ASIO's separate bindgen 0.72 dependency retains its `syn` 2 / `prettyplease` 0.2
+pair. Validate the resolved pairs through the native build after lockfile updates.
+
 ## Alternatives rejected
 
 - Reverting the entire update discards compatible upgrades and the native
