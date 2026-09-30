@@ -31,11 +31,11 @@ const { t } = useI18n()
   min-width: 52px;
   height: 100%;
   min-height: calc(566px + var(--plugin-section-height) + var(--send-section-height));
-  color: var(--ui-domain-color-d0d0d0);
-  background: var(--ui-domain-color-555);
+  color: var(--ui-domain-mixer-label-ink);
+  background: var(--ui-domain-mixer-section);
   box-shadow:
-    1px 0 0 var(--ui-domain-color-1f1f1f),
-    7px 0 14px var(--ui-domain-color-0000002b);
+    1px 0 0 var(--ui-domain-mixer-label-edge),
+    7px 0 14px var(--ui-domain-mixer-label-shadow);
 }
 
 .mixer-section-labels span {
@@ -43,7 +43,7 @@ const { t } = useI18n()
   align-items: center;
   justify-content: flex-end;
   padding: 0 8px 0 4px;
-  border-bottom: 1px solid var(--ui-domain-color-464646);
+  border-bottom: 1px solid var(--ui-domain-mixer-label-divider);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
   text-align: right;

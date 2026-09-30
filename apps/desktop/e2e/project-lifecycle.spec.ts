@@ -70,8 +70,8 @@ test("records into a Large Object and reopens the PGlite project archive", async
           .slice(0, 3)
           .map(Number)
       )
-      // Preserve the existing DAW palettes (light canvas is subtly tinted #d8d9db),
-      // rather than accepting the generic design-system blue-gray surface.
+      // The settings surface remaps the canvas onto the product palette, so it
+      // stays on the DAW canvas rather than the generic application surface.
       const theme = await page.locator("html").getAttribute("data-theme")
       expect(colors).toEqual(theme === "light" ? [216, 217, 219] : [21, 21, 21])
       await expect(

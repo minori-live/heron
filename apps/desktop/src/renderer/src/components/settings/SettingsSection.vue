@@ -13,7 +13,7 @@ defineSlots<{
 
 <template>
   <section
-    class="settings-section grid grid-cols-[minmax(170px,230px)_minmax(0,1fr)] gap-[48px] border-b border-b-solid py-[25px] [border-bottom-color:var(--line-soft)]"
+    class="settings-section grid grid-cols-[minmax(170px,230px)_minmax(0,1fr)] gap-[48px] border-b border-b-solid py-[25px] [border-bottom-color:var(--ui-color-border)]"
     :class="{ 'settings-section--stacked': layout === 'stacked' }"
   >
     <header class="settings-section-copy">
@@ -36,7 +36,7 @@ defineSlots<{
 .settings-section-copy span {
   display: block;
   margin-bottom: 7px;
-  color: var(--accent);
+  color: var(--ui-color-action);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
   text-transform: uppercase;
@@ -51,7 +51,7 @@ defineSlots<{
 
 .settings-section-copy p {
   margin: 0;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-body-compact);
   line-height: var(--ui-type-leading-normal);
 }

@@ -55,19 +55,23 @@ textarea {
   border: 0 !important;
 }
 
-/* Preference panels use the quieter product chrome instead of action-heavy form colors. */
+/* Preference panels use the quieter product chrome instead of action-heavy form
+   colors, and sit on the product canvas rather than the application surface.
+   These are remaps of the semantic roles, which is why the right-hand side is
+   the DAW namespace: a role cannot resolve to itself. */
 .ui-preferences-surface {
-  --ui-color-action: var(--accent);
-  --ui-color-action-hover: var(--accent-soft);
-  --ui-color-action-pressed: var(--accent-strong);
+  --ui-color-canvas: var(--ui-daw-canvas);
+  --ui-color-action: var(--ui-daw-action);
+  --ui-color-action-hover: var(--ui-daw-action-hover);
+  --ui-color-action-pressed: var(--ui-daw-action-pressed);
   --ui-color-action-text: var(--ui-color-text-inverse);
-  --ui-color-border: var(--line-strong);
-  --ui-color-border-strong: var(--accent);
-  --ui-color-control: var(--surface-3);
-  --ui-color-control-hover: var(--daw-control-hover);
-  --ui-color-focus: var(--focus);
-  --ui-color-text-muted: var(--text-secondary);
-  --ui-color-text-subtle: var(--text-secondary);
+  --ui-color-border: var(--ui-daw-border-strong);
+  --ui-color-border-strong: var(--ui-daw-action);
+  --ui-color-control: var(--ui-daw-surface-hover);
+  --ui-color-control-hover: var(--ui-daw-control-hover);
+  --ui-color-focus: var(--ui-daw-focus);
+  --ui-color-text-muted: var(--ui-daw-text-muted);
+  --ui-color-text-subtle: var(--ui-daw-text-muted);
 }
 
 @media (prefers-reduced-motion: reduce) {

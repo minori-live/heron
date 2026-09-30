@@ -115,8 +115,8 @@ const { t } = useI18n()
   align-content: center;
   justify-items: center;
   gap: 4px;
-  border-top: 1px solid var(--ui-domain-color-444);
-  background: var(--ui-domain-color-525252);
+  border-top: 1px solid var(--ui-domain-mixer-divider);
+  background: var(--ui-domain-mixer-section);
 }
 .input-actions,
 .mix-actions {

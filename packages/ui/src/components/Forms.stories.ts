@@ -188,7 +188,7 @@ export const PreferenceControls: Story = {
       ]
     }),
     template: `
-      <div class="ui-preferences-surface" style="display:grid;max-width:34rem;gap:var(--ui-space-5);padding:var(--ui-space-5);background:var(--canvas)">
+      <div class="ui-preferences-surface" style="display:grid;max-width:34rem;gap:var(--ui-space-5);padding:var(--ui-space-5);background:var(--ui-color-canvas)">
         <UiCheckbox
           v-model="monitoring"
           label="Software monitoring"
@@ -349,10 +349,10 @@ export const EmbeddedHoverTreatments: Story = {
     }),
     template: `
       <div class="storybook-stack" style="max-width:28rem">
-        <div style="overflow:hidden;border-radius:var(--ui-radius-sm);color:white;background:linear-gradient(var(--ui-domain-color-3f91d4),var(--ui-domain-color-2871ae))">
+        <div style="overflow:hidden;border-radius:var(--ui-radius-sm);color:white;background:linear-gradient(var(--ui-domain-face-audio-top),var(--ui-domain-face-audio-bottom))">
           <UiCascadingSelect v-model="hostTintValue" :options="options" size="compact" appearance="embedded" hover-treatment="host-tint" aria-label="Host tint embedded hover" />
         </div>
-        <div style="overflow:hidden;border-radius:var(--ui-radius-sm);color:white;background:linear-gradient(var(--ui-domain-color-3f91d4),var(--ui-domain-color-2871ae))">
+        <div style="overflow:hidden;border-radius:var(--ui-radius-sm);color:white;background:linear-gradient(var(--ui-domain-face-audio-top),var(--ui-domain-face-audio-bottom))">
           <UiCascadingSelect v-model="surfaceValue" :options="options" size="compact" appearance="embedded" hover-treatment="surface" aria-label="Surface embedded hover" />
         </div>
       </div>

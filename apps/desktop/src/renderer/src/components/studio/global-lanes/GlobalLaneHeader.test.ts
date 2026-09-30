@@ -12,7 +12,7 @@ describe("GlobalLaneHeader", () => {
         unit: "BPM",
         minimum: 20,
         maximum: 300,
-        color: "var(--ui-domain-color-65a8ff)"
+        color: "var(--ui-domain-lane-tempo)"
       }
     })
     const input = wrapper.get<HTMLInputElement>('[role="spinbutton"]')

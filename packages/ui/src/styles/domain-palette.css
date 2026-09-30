@@ -1,186 +1,149 @@
 /*
- * Fixed product-rendering palette.
+ * Heron's domain palette.
  *
- * These values preserve intentional DAW chrome, waveform, track, meter, and
- * plug-in signal colors while keeping raw colors out of component styles.
- * Prefer semantic tokens for ordinary UI; use this palette only for domain
- * visuals whose color carries spatial or signal meaning.
+ * The semantic layer in `tokens.css` describes ordinary interface surfaces.
+ * These tokens are the other half: colours whose meaning is bound to a place in
+ * the product — a timeline lane, a waveform trace, the chrome of a mixer strip,
+ * the face of a control that carries signal — and which therefore cannot be
+ * expressed as "surface" or "border" without losing what they say.
+ *
+ * Every token is named for the role it paints, never for the value it holds, so
+ * a theme can move the value without the name turning into a lie. A token that
+ * only restates its own hex is a bug: name the role, or use a semantic token.
+ *
+ * These declarations are theme-independent. The mixer is a hardware panel in
+ * both themes, and the theme previews must show their own palette regardless of
+ * the active one.
+ *
+ * `scripts/design-audit.ts` allows exactly this prefix in renderer styles;
+ * `--ui-domain-*` is the only namespace where a literal colour may enter the
+ * product, and it exists so the audit can see every one of them.
  */
 :root {
-  --ui-domain-color-000: #000;
-  --ui-domain-color-00000024: #00000024;
-  --ui-domain-color-0000002b: #0000002b;
-  --ui-domain-color-00000038: #00000038;
-  --ui-domain-color-0000005c: #0000005c;
-  --ui-domain-color-00000075: #00000075;
-  --ui-domain-color-0006: #0006;
-  --ui-domain-color-0008: #0008;
-  --ui-domain-color-0009: #0009;
-  --ui-domain-color-000a: #000a;
-  --ui-domain-color-000b: #000b;
-  --ui-domain-color-000e: #000e;
-  --ui-domain-color-02050bc9: #02050bc9;
-  --ui-domain-color-02050bd9: #02050bd9;
-  --ui-domain-color-05070bbb: #05070bbb;
-  --ui-domain-color-080d14: #080d14;
-  --ui-domain-color-081116: #081116;
-  --ui-domain-color-08120d: #08120d;
-  --ui-domain-color-090e16: #090e16;
-  --ui-domain-color-090f17: #090f17;
-  --ui-domain-color-0b111a: #0b111a;
-  --ui-domain-color-0c121b: #0c121b;
-  --ui-domain-color-0d131d: #0d131d;
-  --ui-domain-color-0d131dcf: #0d131dcf;
-  --ui-domain-color-0d131df2: #0d131df2;
-  --ui-domain-color-0d1620: #0d1620;
-  --ui-domain-color-101620: #101620;
-  --ui-domain-color-101722: #101722;
-  --ui-domain-color-101823: #101823;
-  --ui-domain-color-111111b8: #111111b8;
-  --ui-domain-color-111111e8: #111111e8;
-  --ui-domain-color-111824: #111824;
-  --ui-domain-color-111923: #111923;
-  --ui-domain-color-151d29: #151d29;
-  --ui-domain-color-16172a: #16172a;
-  --ui-domain-color-17151d: #17151d;
-  --ui-domain-color-171717: #171717;
-  --ui-domain-color-171735: #171735;
-  --ui-domain-color-17191a: #17191a;
-  --ui-domain-color-17394355: #17394355;
-  --ui-domain-color-18213270: #18213270;
-  --ui-domain-color-1f1f1f: #1f1f1f;
-  --ui-domain-color-202020: #202020;
-  --ui-domain-color-202a38: #202a38;
-  --ui-domain-color-211f3a: #211f3a;
-  --ui-domain-color-221c08: #221c08;
-  --ui-domain-color-2871ae: #2871ae;
-  --ui-domain-color-2c3849: #2c3849;
-  --ui-domain-color-2e285f66: #2e285f66;
-  --ui-domain-color-2e2e2e: #2e2e2e;
-  --ui-domain-color-2e5d86: #2e5d86;
-  --ui-domain-color-303030: #303030;
-  --ui-domain-color-303436: #303436;
-  --ui-domain-color-303b4c: #303b4c;
-  --ui-domain-color-321923: #321923;
-  --ui-domain-color-34374e: #34374e;
-  --ui-domain-color-377aa8: #377aa8;
-  --ui-domain-color-3a3443: #3a3443;
-  --ui-domain-color-3a5961: #3a5961;
-  --ui-domain-color-3f4263: #3f4263;
-  --ui-domain-color-3f6b87: #3f6b87;
-  --ui-domain-color-3f91d4: #3f91d4;
-  --ui-domain-color-414141: #414141;
-  --ui-domain-color-423d83: #423d83;
-  --ui-domain-color-444: #444;
-  --ui-domain-color-464646: #464646;
-  --ui-domain-color-484848: #484848;
-  --ui-domain-color-494949: #494949;
-  --ui-domain-color-4a6b80: #4a6b80;
-  --ui-domain-color-4b4b4b: #4b4b4b;
-  --ui-domain-color-4c4c4c: #4c4c4c;
-  --ui-domain-color-4d4d4d: #4d4d4d;
-  --ui-domain-color-4d8fc0: #4d8fc0;
-  --ui-domain-color-4e8dbf: #4e8dbf;
-  --ui-domain-color-4f4f4f: #4f4f4f;
-  --ui-domain-color-4f83a4: #4f83a4;
-  --ui-domain-color-505050: #505050;
-  --ui-domain-color-514aa544: #514aa544;
-  --ui-domain-color-514b88: #514b88;
-  --ui-domain-color-525252: #525252;
-  --ui-domain-color-526573: #526573;
-  --ui-domain-color-53575a: #53575a;
-  --ui-domain-color-555: #555;
-  --ui-domain-color-565656: #565656;
-  --ui-domain-color-566a78: #566a78;
-  --ui-domain-color-575757: #575757;
-  --ui-domain-color-585858: #585858;
-  --ui-domain-color-595959: #595959;
-  --ui-domain-color-5b5b5b: #5b5b5b;
-  --ui-domain-color-5d57a1: #5d57a1;
-  --ui-domain-color-5d5d5d: #5d5d5d;
-  --ui-domain-color-5fe66b5c: #5fe66b5c;
-  --ui-domain-color-606060: #606060;
-  --ui-domain-color-617685: #617685;
-  --ui-domain-color-625bc4: #625bc4;
-  --ui-domain-color-625bc42b: #625bc42b;
-  --ui-domain-color-626262: #626262;
-  --ui-domain-color-63764d: #63764d;
-  --ui-domain-color-65543e: #65543e;
-  --ui-domain-color-657187: #657187;
-  --ui-domain-color-657f8d: #657f8d;
-  --ui-domain-color-65a8ff: #65a8ff;
-  --ui-domain-color-666: #666;
-  --ui-domain-color-67d9e788: #67d9e788;
-  --ui-domain-color-67d9e799: #67d9e799;
-  --ui-domain-color-697654: #697654;
-  --ui-domain-color-6b6b6b: #6b6b6b;
-  --ui-domain-color-6d3e39: #6d3e39;
-  --ui-domain-color-6d65d4: #6d65d4;
-  --ui-domain-color-6d6d6d: #6d6d6d;
-  --ui-domain-color-707070: #707070;
-  --ui-domain-color-7168e8: #7168e8;
-  --ui-domain-color-73d6a2: #73d6a2;
-  --ui-domain-color-747474: #747474;
-  --ui-domain-color-768a61: #768a61;
-  --ui-domain-color-76404b: #76404b;
-  --ui-domain-color-777: #777;
-  --ui-domain-color-7770d0: #7770d0;
-  --ui-domain-color-7e9362: #7e9362;
-  --ui-domain-color-81ed8b: #81ed8b;
-  --ui-domain-color-8279f4: #8279f4;
-  --ui-domain-color-86e7ff: #86e7ff;
-  --ui-domain-color-87a8b7: #87a8b7;
-  --ui-domain-color-884f49: #884f49;
-  --ui-domain-color-8ba6b4: #8ba6b4;
-  --ui-domain-color-8c83ff2e: #8c83ff2e;
-  --ui-domain-color-8c83ff55: #8c83ff55;
-  --ui-domain-color-8d4a43: #8d4a43;
-  --ui-domain-color-8f8f8f: #8f8f8f;
-  --ui-domain-color-929292: #929292;
-  --ui-domain-color-a4a8ae: #a4a8ae;
-  --ui-domain-color-a7a7a7: #a7a7a7;
-  --ui-domain-color-b7b1ff: #b7b1ff;
-  --ui-domain-color-b7d9f3: #b7d9f3;
-  --ui-domain-color-b7e9fa: #b7e9fa;
-  --ui-domain-color-b894ff: #b894ff;
-  --ui-domain-color-b8b8b8: #b8b8b8;
-  --ui-domain-color-bcbcbc: #bcbcbc;
-  --ui-domain-color-c5c7ca: #c5c7ca;
-  --ui-domain-color-c5d0d7: #c5d0d7;
-  --ui-domain-color-d0d0d0: #d0d0d0;
-  --ui-domain-color-d6e4ca: #d6e4ca;
-  --ui-domain-color-d8d9db: #d8d9db;
-  --ui-domain-color-dceeff: #dceeff;
-  --ui-domain-color-dedede: #dedede;
-  --ui-domain-color-ededed: #ededed;
-  --ui-domain-color-f0f4f5: #f0f4f5;
-  --ui-domain-color-f1f0ff: #f1f0ff;
-  --ui-domain-color-f2a65a: #f2a65a;
-  --ui-domain-color-f2f0ff: #f2f0ff;
-  --ui-domain-color-f2f2f2: #f2f2f2;
-  --ui-domain-color-f5f5f5: #f5f5f5;
-  --ui-domain-color-f7f8f8: #f7f8f8;
-  --ui-domain-color-f7fbff: #f7fbff;
-  --ui-domain-color-ff9dab: #ff9dab;
-  --ui-domain-color-ffb3be: #ffb3be;
-  --ui-domain-color-ffd2d8: #ffd2d8;
-  --ui-domain-color-ffd4ce: #ffd4ce;
-  --ui-domain-color-ffe0e4: #ffe0e4;
-  --ui-domain-color-ffe5e9: #ffe5e9;
-  --ui-domain-color-fff: #fff;
-  --ui-domain-color-fff7: #fff7;
-  --ui-domain-color-ffffff05: #ffffff05;
-  --ui-domain-color-ffffff08: #ffffff08;
-  --ui-domain-color-ffffff0c: #ffffff0c;
-  --ui-domain-color-ffffff12: #ffffff12;
-  --ui-domain-color-ffffff14: #ffffff14;
-  --ui-domain-color-ffffff16: #ffffff16;
-  --ui-domain-color-ffffff1a: #ffffff1a;
-  --ui-domain-color-ffffff22: #ffffff22;
-  --ui-domain-color-ffffff24: #ffffff24;
-  --ui-domain-color-ffffff28: #ffffff28;
-  --ui-domain-color-ffffff2c: #ffffff2c;
-  --ui-domain-color-ffffff40: #ffffff40;
-  --ui-domain-color-ffffff5c: #ffffff5c;
-  --ui-domain-color-ffffff7a: #ffffff7a;
+  /* Timeline lane identities: the three global tracks, in order. */
+  --ui-domain-lane-tempo: #65a8ff;
+  --ui-domain-lane-meter: #f2a65a;
+  --ui-domain-lane-key: #b894ff;
+
+  /* Waveform trace. The guide is the quiet lane-centre line; the peak is the
+     amplitude trace drawn over it, and turns red while recording. */
+  --ui-domain-waveform-guide: #87a8b7;
+  --ui-domain-waveform-peak: #b7e9fa;
+  --ui-domain-waveform-record-guide: #ffb3be;
+  --ui-domain-waveform-record-peak: #ffd2d8;
+
+  /* Clip chrome. `tint` values sit under the clip colour; `body` values are the
+     neutral the clip colour is mixed into, so a clip reads as its own colour
+     rather than as the surface behind it. */
+  --ui-domain-clip-ink: #f7f8f8;
+  --ui-domain-clip-meta: #f0f4f5;
+  --ui-domain-clip-meta-record: #ffe0e4;
+  --ui-domain-clip-capture-ring: #ffe5e9;
+  --ui-domain-clip-tint-hi: #111111e8;
+  --ui-domain-clip-tint-lo: #111111b8;
+  --ui-domain-clip-body-top: #303436;
+  --ui-domain-clip-body-bottom: #17191a;
+  --ui-domain-clip-body-sheen: #ffffff24;
+  --ui-domain-clip-drop-ring: #ffffff7a;
+  --ui-domain-clip-outline: #fff;
+  --ui-domain-clip-ink-shadow: #000a;
+  --ui-domain-clip-shade: #0008;
+
+  /* Ink drawn on a saturated signal-coloured control. */
+  --ui-domain-signal-ink: #fff;
+  --ui-domain-signal-healthy: #73d6a2;
+  --ui-domain-signal-healthy-ink: #08120d;
+  --ui-domain-play-ink: #081116;
+
+  /* Mixer chrome. The strip is a panel, not a surface: it keeps its own greys
+     in both themes rather than following the canvas. */
+  --ui-domain-mixer-surface: #4f4f4f;
+  --ui-domain-mixer-section: #575757;
+  --ui-domain-mixer-divider: #444;
+  --ui-domain-mixer-strip-edge: #303030;
+  --ui-domain-mixer-strip-sheen: #ffffff0c;
+  --ui-domain-mixer-strip-aux: #53575a;
+  --ui-domain-mixer-strip-master: #505050;
+  --ui-domain-mixer-strip-master-edge: #2e2e2e;
+  --ui-domain-mixer-strip-master-cast: #0000005c;
+  --ui-domain-mixer-strip-selected: #626262;
+  --ui-domain-mixer-name-base: #484848;
+  --ui-domain-mixer-label-ink: #d0d0d0;
+  --ui-domain-mixer-label-edge: #1f1f1f;
+  --ui-domain-mixer-label-shadow: #0000002b;
+  --ui-domain-mixer-label-divider: #464646;
+  --ui-domain-mixer-placeholder-border: #6b6b6b;
+  --ui-domain-mixer-placeholder-ink: #bcbcbc;
+  --ui-domain-mixer-placeholder-top: #666;
+  --ui-domain-mixer-placeholder-bottom: #595959;
+  --ui-domain-mixer-automation-ink: #81ed8b;
+  --ui-domain-mixer-automation-glow: #5fe66b5c;
+
+  /* Control faces. A face is a border, an ink, and a vertical gradient; the
+     family says what the control carries, the state says what it is doing.
+     `sheen` and `inset` are the shared highlight and well shadows. */
+  --ui-domain-face-sheen: #ffffff28;
+  --ui-domain-face-inset: #00000038;
+  --ui-domain-face-audio-border: #2e5d86;
+  --ui-domain-face-audio-top: #3f91d4;
+  --ui-domain-face-audio-bottom: #2871ae;
+  --ui-domain-face-audio-glow: #4e8dbf;
+  --ui-domain-face-instrument-border: #697654;
+  --ui-domain-face-instrument-top: #7e9362;
+  --ui-domain-face-instrument-bottom: #63764d;
+  --ui-domain-face-send-border: #4a6b80;
+  --ui-domain-face-send-top: #4f83a4;
+  --ui-domain-face-send-bottom: #3f6b87;
+  --ui-domain-face-send-ink: #f5f5f5;
+  --ui-domain-face-neutral-border: #747474;
+  --ui-domain-face-neutral-top: #6d6d6d;
+  --ui-domain-face-neutral-bottom: #5d5d5d;
+  --ui-domain-face-neutral-ink: #f2f2f2;
+  --ui-domain-face-neutral-hover-border: #929292;
+  --ui-domain-face-neutral-hover-bottom: #626262;
+  --ui-domain-face-neutral-muted-ink: #b8b8b8;
+  --ui-domain-face-bypassed-border: #505050;
+  --ui-domain-face-bypassed-top: #5b5b5b;
+  --ui-domain-face-bypassed-bottom: #4b4b4b;
+  --ui-domain-face-bypassed-ink: #a7a7a7;
+  --ui-domain-face-bypassed-sheen: #ffffff12;
+  --ui-domain-face-unloaded-border: #566a78;
+  --ui-domain-face-unloaded-top: #617685;
+  --ui-domain-face-unloaded-bottom: #526573;
+  --ui-domain-face-unloaded-ink: #c5d0d7;
+  --ui-domain-face-failed-border: #8d4a43;
+  --ui-domain-face-failed-top: #884f49;
+  --ui-domain-face-failed-bottom: #6d3e39;
+  --ui-domain-face-failed-ink: #ffd4ce;
+  --ui-domain-face-failed-sheen: #ffffff16;
+  --ui-domain-face-empty-border: #4c4c4c;
+  --ui-domain-face-empty-fill: #4d4d4d;
+  --ui-domain-face-empty-ink: #8f8f8f;
+
+  /* Menus and popovers drawn over the mixer. */
+  --ui-domain-popover-shadow: #00000075;
+  --ui-domain-menu-trigger-border: #ffffff2c;
+  --ui-domain-menu-trigger-fill: #00000024;
+
+  /* Surface hairlines: the 1px inset top edge that separates a raised panel
+     from the one behind it, in two weights. */
+  --ui-domain-surface-hairline: #ffffff05;
+  --ui-domain-display-hairline: #ffffff08;
+  --ui-domain-surface-hover-tint: #ffffff22;
+
+  /* Modal scrim and the error surface that sits on it. */
+  --ui-domain-overlay-scrim: #05070bbb;
+  --ui-domain-error-surface: #321923;
+  --ui-domain-error-ink: #ff9dab;
+
+  /* Theme-preview swatches. These mock the two themes inside the settings page,
+     so they are fixed values rather than references to the active theme. */
+  --ui-domain-preview-light-canvas: #d8d9db;
+  --ui-domain-preview-light-panel: #c5c7ca;
+  --ui-domain-preview-light-line: #a4a8ae;
+  --ui-domain-preview-light-accent: #657f8d;
+  --ui-domain-preview-dark-canvas: #202020;
+  --ui-domain-preview-dark-panel: #171717;
+  --ui-domain-preview-dark-line: #414141;
+  --ui-domain-preview-dark-accent: #8ba6b4;
 }

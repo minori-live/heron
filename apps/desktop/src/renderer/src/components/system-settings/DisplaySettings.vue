@@ -153,14 +153,14 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 25% 1fr;
   height: 72px;
-  border: 1px solid color-mix(in srgb, var(--text-primary) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-color-text) 18%, transparent);
   border-radius: 5px;
-  background: var(--canvas);
+  background: var(--ui-color-canvas);
   overflow: hidden;
 }
 
 .preview-sidebar {
-  background: var(--surface-panel);
+  background: var(--ui-color-surface-sunken);
 }
 
 .preview-content {
@@ -174,12 +174,12 @@ onMounted(() => {
   display: block;
   height: 5px;
   border-radius: 2px;
-  background: var(--line-strong);
+  background: var(--ui-color-border-strong);
 }
 
 .preview-content i:first-child {
   width: 58%;
-  background: var(--accent);
+  background: var(--ui-color-action);
 }
 
 .preview-content i:last-child {
@@ -187,53 +187,53 @@ onMounted(() => {
 }
 
 .theme-preview-light {
-  --canvas: var(--ui-domain-color-d8d9db);
-  --surface-panel: var(--ui-domain-color-c5c7ca);
-  --line-strong: var(--ui-domain-color-a4a8ae);
-  --accent: var(--ui-domain-color-657f8d);
+  --canvas: var(--ui-domain-preview-light-canvas);
+  --surface-panel: var(--ui-domain-preview-light-panel);
+  --line-strong: var(--ui-domain-preview-light-line);
+  --accent: var(--ui-domain-preview-light-accent);
 }
 
 .theme-preview-dark {
-  --canvas: var(--ui-domain-color-202020);
-  --surface-panel: var(--ui-domain-color-171717);
-  --line-strong: var(--ui-domain-color-414141);
-  --accent: var(--ui-domain-color-8ba6b4);
+  --canvas: var(--ui-domain-preview-dark-canvas);
+  --surface-panel: var(--ui-domain-preview-dark-panel);
+  --line-strong: var(--ui-domain-preview-dark-line);
+  --accent: var(--ui-domain-preview-dark-accent);
 }
 
 .theme-preview-system {
   background: linear-gradient(
     90deg,
-    var(--ui-domain-color-d8d9db) 0 50%,
-    var(--ui-domain-color-202020) 50%
+    var(--ui-domain-preview-light-canvas) 0 50%,
+    var(--ui-domain-preview-dark-canvas) 50%
   );
 }
 
 .theme-preview-system .preview-sidebar {
   background: linear-gradient(
     90deg,
-    var(--ui-domain-color-c5c7ca) 0 50%,
-    var(--ui-domain-color-171717) 50%
+    var(--ui-domain-preview-light-panel) 0 50%,
+    var(--ui-domain-preview-dark-panel) 50%
   );
 }
 
 .theme-preview-system .preview-content i {
   background: linear-gradient(
     90deg,
-    var(--ui-domain-color-a4a8ae) 0 50%,
-    var(--ui-domain-color-414141) 50%
+    var(--ui-domain-preview-light-line) 0 50%,
+    var(--ui-domain-preview-dark-line) 50%
   );
 }
 
 .theme-preview-system .preview-content i:first-child {
   background: linear-gradient(
     90deg,
-    var(--ui-domain-color-657f8d) 0 50%,
-    var(--ui-domain-color-8ba6b4) 50%
+    var(--ui-domain-preview-light-accent) 0 50%,
+    var(--ui-domain-preview-dark-accent) 50%
   );
 }
 
 .display-error {
-  color: var(--record);
+  color: var(--ui-signal-record);
   font-size: var(--ui-type-size-body-compact);
 }
 

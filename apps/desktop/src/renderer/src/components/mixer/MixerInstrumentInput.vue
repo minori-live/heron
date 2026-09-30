@@ -155,11 +155,14 @@ function confirmDrop(selection: PluginSelection): void {
   min-width: 0;
   overflow: hidden;
   padding: 0;
-  border: 1px solid var(--ui-domain-color-697654);
+  border: 1px solid var(--ui-domain-face-instrument-border);
   border-radius: 4px;
-  color: var(--ui-domain-color-fff);
-  background: linear-gradient(var(--ui-domain-color-7e9362), var(--ui-domain-color-63764d));
-  box-shadow: 0 1px 0 var(--ui-domain-color-ffffff28) inset;
+  color: var(--ui-domain-signal-ink);
+  background: linear-gradient(
+    var(--ui-domain-face-instrument-top),
+    var(--ui-domain-face-instrument-bottom)
+  );
+  box-shadow: 0 1px 0 var(--ui-domain-face-sheen) inset;
 }
 .instrument-actions {
   display: grid;
@@ -171,7 +174,7 @@ function confirmDrop(selection: PluginSelection): void {
 }
 .mode-badge {
   padding: 1px 4px;
-  border: 1px solid var(--ui-domain-color-ffffff28);
+  border: 1px solid var(--ui-domain-face-sheen);
   border-radius: 3px;
   font: var(--ui-type-size-micro) var(--ui-type-family-data);
 }
@@ -182,31 +185,40 @@ function confirmDrop(selection: PluginSelection): void {
   left: 0;
   width: 232px;
   padding: 9px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 6px;
-  color: var(--text-primary);
-  background: var(--surface-1);
-  box-shadow: 0 14px 36px var(--ui-domain-color-00000075);
+  color: var(--ui-color-text);
+  background: var(--ui-color-surface);
+  box-shadow: 0 14px 36px var(--ui-domain-popover-shadow);
 }
 .instrument-input.bypassed {
-  border-color: var(--ui-domain-color-505050);
-  color: var(--ui-domain-color-a7a7a7);
-  background: linear-gradient(var(--ui-domain-color-5b5b5b), var(--ui-domain-color-4b4b4b));
-  box-shadow: 0 1px 0 var(--ui-domain-color-ffffff12) inset;
+  border-color: var(--ui-domain-face-bypassed-border);
+  color: var(--ui-domain-face-bypassed-ink);
+  background: linear-gradient(
+    var(--ui-domain-face-bypassed-top),
+    var(--ui-domain-face-bypassed-bottom)
+  );
+  box-shadow: 0 1px 0 var(--ui-domain-face-bypassed-sheen) inset;
 }
 .instrument-input.loading,
 .instrument-input.unloaded {
-  border-color: var(--ui-domain-color-566a78);
-  color: var(--ui-domain-color-c5d0d7);
-  background: linear-gradient(var(--ui-domain-color-617685), var(--ui-domain-color-526573));
+  border-color: var(--ui-domain-face-unloaded-border);
+  color: var(--ui-domain-face-unloaded-ink);
+  background: linear-gradient(
+    var(--ui-domain-face-unloaded-top),
+    var(--ui-domain-face-unloaded-bottom)
+  );
 }
 .instrument-input.failed,
 .instrument-input.missing,
 .instrument-input.quarantined {
-  border-color: var(--ui-domain-color-8d4a43);
-  color: var(--ui-domain-color-ffd4ce);
-  background: linear-gradient(var(--ui-domain-color-884f49), var(--ui-domain-color-6d3e39));
-  box-shadow: 0 1px 0 var(--ui-domain-color-ffffff16) inset;
+  border-color: var(--ui-domain-face-failed-border);
+  color: var(--ui-domain-face-failed-ink);
+  background: linear-gradient(
+    var(--ui-domain-face-failed-top),
+    var(--ui-domain-face-failed-bottom)
+  );
+  box-shadow: 0 1px 0 var(--ui-domain-face-failed-sheen) inset;
 }
 .instrument-input button {
   display: grid;
@@ -233,10 +245,10 @@ function confirmDrop(selection: PluginSelection): void {
   display: grid;
   grid-template-columns: 1fr;
   place-items: center;
-  border-color: var(--ui-domain-color-4c4c4c);
-  color: var(--ui-domain-color-8f8f8f);
-  background: var(--ui-domain-color-4d4d4d);
-  box-shadow: 0 1px 2px var(--ui-domain-color-00000038) inset;
+  border-color: var(--ui-domain-face-empty-border);
+  color: var(--ui-domain-face-empty-ink);
+  background: var(--ui-domain-face-empty-fill);
+  box-shadow: 0 1px 2px var(--ui-domain-face-inset) inset;
   font: inherit;
 }
 </style>

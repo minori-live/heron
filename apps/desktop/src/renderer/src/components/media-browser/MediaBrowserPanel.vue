@@ -190,18 +190,18 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .media-browser {
-  --ui-color-action: var(--accent);
-  --ui-color-surface-hover: var(--surface-hover);
-  --ui-color-border-strong: var(--line-strong);
-  --ui-color-focus: var(--focus);
+  --ui-color-action: var(--ui-daw-action);
+  --ui-color-surface-hover: var(--ui-daw-surface-hover);
+  --ui-color-border-strong: var(--ui-daw-border-strong);
+  --ui-color-focus: var(--ui-daw-focus);
 
   display: flex;
   min-width: 0;
   min-height: 0;
   height: 100%;
   flex-direction: column;
-  border-left: 1px solid var(--line-strong);
-  background: var(--surface-1);
+  border-left: 1px solid var(--ui-color-border-strong);
+  background: var(--ui-color-surface);
 }
 .browser-header {
   display: flex;
@@ -209,10 +209,10 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   min-height: 51px;
   padding: 8px 10px 7px 12px;
-  border-bottom: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--ui-color-border-strong);
 }
 .browser-header span {
-  color: var(--text-faint);
+  color: var(--ui-color-text-faint);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
   text-transform: uppercase;
@@ -225,9 +225,9 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--line-strong);
-  color: var(--text-secondary);
-  background: var(--daw-control);
+  border: 1px solid var(--ui-color-border-strong);
+  color: var(--ui-color-text-muted);
+  background: var(--ui-daw-control);
 }
 .import-row {
   display: grid;
@@ -248,7 +248,7 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 2px;
   padding: 0 10px 8px;
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--ui-color-border);
 }
 .asset-list {
   min-height: 0;
@@ -269,12 +269,12 @@ onBeforeUnmount(() => {
   height: 27px;
   place-items: center;
   border-radius: 4px;
-  color: var(--signal-cyan);
-  background: color-mix(in srgb, var(--signal-cyan) 13%, var(--surface-3));
+  color: var(--ui-signal-audio);
+  background: color-mix(in srgb, var(--ui-signal-audio) 13%, var(--ui-color-surface-hover));
 }
 .kind-mark[data-kind="midi"] {
-  color: var(--signal-green);
-  background: color-mix(in srgb, var(--signal-green) 13%, var(--surface-3));
+  color: var(--ui-color-success);
+  background: color-mix(in srgb, var(--ui-color-success) 13%, var(--ui-color-surface-hover));
 }
 .empty-state {
   display: flex;
@@ -282,11 +282,11 @@ onBeforeUnmount(() => {
   padding: 36px 20px;
   flex-direction: column;
   gap: 5px;
-  color: var(--text-faint);
+  color: var(--ui-color-text-faint);
   text-align: center;
 }
 .empty-state strong {
-  color: var(--text-secondary);
+  color: var(--ui-color-text-muted);
   font-size: var(--ui-type-size-body-compact);
 }
 .empty-state span {
@@ -296,10 +296,10 @@ onBeforeUnmount(() => {
 .browser-error {
   margin: 0;
   padding: 7px 10px;
-  border-top: 1px solid var(--danger);
-  color: var(--danger);
+  border-top: 1px solid var(--ui-color-danger);
+  color: var(--ui-color-danger);
   font-size: var(--ui-type-size-caption);
-  background: color-mix(in srgb, var(--danger) 8%, var(--surface-1));
+  background: color-mix(in srgb, var(--ui-color-danger) 8%, var(--ui-color-surface));
 }
 button:disabled {
   opacity: 0.55;

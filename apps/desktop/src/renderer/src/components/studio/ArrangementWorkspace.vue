@@ -438,12 +438,12 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
 
 <template>
   <section
-    class="arrangement relative grid min-h-0 min-w-0 grid-rows-[43px_minmax(0,1fr)] overflow-hidden bg-[var(--daw-workspace)]"
+    class="arrangement relative grid min-h-0 min-w-0 grid-rows-[43px_minmax(0,1fr)] overflow-hidden bg-[var(--ui-daw-workspace)]"
     data-tutorial="studio-arrangement"
     :aria-label="t('studio.arrangement.ariaLabel')"
   >
     <div
-      class="arrangement-toolbar flex items-center justify-end border-b border-b-solid bg-[var(--surface-1)] py-0 pe-[14px] ps-[15px] [border-bottom-color:var(--line-soft)]"
+      class="arrangement-toolbar flex items-center justify-end border-b border-b-solid bg-[var(--ui-color-surface)] py-0 pe-[14px] ps-[15px] [border-bottom-color:var(--ui-color-border)]"
     >
       <GlobalTracksToggle :expanded="globalTracksExpanded" @toggle="viewStore.toggleGlobalTracks" />
       <ArrangementZoomControls
@@ -462,7 +462,7 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
 
     <div class="timeline-grid min-h-0 min-w-0">
       <UiArrangementViewport
-        class="timeline-viewport h-full w-full min-h-0 min-w-0 overflow-auto bg-[var(--daw-lane)]"
+        class="timeline-viewport h-full w-full min-h-0 min-w-0 overflow-auto bg-[var(--ui-daw-lane)]"
         data-testid="timeline-viewport"
         :label="t('studio.arrangement.ariaLabel')"
         :mime-types="[
@@ -484,7 +484,7 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
         >
           <div
             ref="rail"
-            class="timeline-rail sticky left-0 z-[var(--ui-z-local-sticky)] grid min-h-0 border-r border-r-solid bg-[var(--daw-track-header)] [border-right-color:var(--line-soft)]"
+            class="timeline-rail sticky left-0 z-[var(--ui-z-local-sticky)] grid min-h-0 border-r border-r-solid bg-[var(--ui-daw-track-header)] [border-right-color:var(--ui-color-border)]"
             data-ui-arrangement-rail
             data-testid="timeline-rail"
             :style="railStyle"
@@ -498,20 +498,20 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
                 unit="BPM"
                 :minimum="20"
                 :maximum="300"
-                color="var(--ui-domain-color-65a8ff)"
+                color="var(--ui-domain-lane-tempo)"
                 @update-value="updateSelectedTempo"
               />
               <GlobalEventLaneHeader
                 :label="t('studio.arrangement.meter')"
                 :eyebrow="t('studio.arrangement.globalTrack')"
-                color="var(--ui-domain-color-f2a65a)"
+                color="var(--ui-domain-lane-meter)"
               >
                 <template #controls>
                   <UiNumberInput
                     :model-value="selectedMeter.numerator"
                     size="compact"
                     appearance="workspace"
-                    accent-color="var(--ui-domain-color-f2a65a)"
+                    accent-color="var(--ui-domain-lane-meter)"
                     :min="1"
                     :max="32"
                     :aria-label="t('studio.arrangement.meterNumeratorAria')"
@@ -545,7 +545,7 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
               <GlobalEventLaneHeader
                 :label="t('studio.arrangement.key')"
                 :eyebrow="t('studio.arrangement.globalTrack')"
-                color="var(--ui-domain-color-b894ff)"
+                color="var(--ui-domain-lane-key)"
               >
                 <template #controls>
                   <KeySignatureDropdown
@@ -702,9 +702,9 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
   display: flex;
   align-items: center;
   padding: 0 12px;
-  border-bottom: 1px solid var(--line-strong);
-  color: var(--text-faint);
-  background: var(--daw-ruler);
+  border-bottom: 1px solid var(--ui-color-border-strong);
+  color: var(--ui-color-text-faint);
+  background: var(--ui-daw-ruler);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
 }
@@ -714,8 +714,8 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
   top: 43px;
   bottom: 0;
   width: 1px;
-  background: var(--record);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--record) 55%, transparent);
+  background: var(--ui-signal-record);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ui-signal-record) 55%, transparent);
   pointer-events: none;
 }
 .timeline-playhead span {
@@ -724,11 +724,11 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
   left: -4px;
   width: 9px;
   height: 7px;
-  background: var(--record);
+  background: var(--ui-signal-record);
   clip-path: polygon(0 0, 100% 0, 50% 100%);
 }
 .empty-lane {
-  background: var(--daw-lane);
+  background: var(--ui-daw-lane);
 }
 .playback-error {
   position: absolute;
@@ -736,10 +736,10 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
   bottom: 12px;
   margin: 0;
   padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--record) 55%, var(--line-strong));
+  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 55%, var(--ui-color-border-strong));
   border-radius: 5px;
-  color: var(--record);
-  background: color-mix(in srgb, var(--record) 14%, var(--surface-1));
+  color: var(--ui-signal-record);
+  background: color-mix(in srgb, var(--ui-signal-record) 14%, var(--ui-color-surface));
   font-size: var(--ui-type-size-control);
 }
 @media (max-width: 1100px) {

@@ -149,13 +149,13 @@ function commitMeterEdit(value: string): void {
   align-self: stretch;
   min-width: 0;
   height: 44px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 8px;
-  color: var(--text-secondary);
-  background: var(--surface-sunken);
+  color: var(--ui-color-text-muted);
+  background: var(--ui-color-surface-sunken);
   box-shadow:
-    0 1px 0 var(--ui-domain-color-ffffff08) inset,
-    0 7px 18px var(--shadow);
+    0 1px 0 var(--ui-domain-display-hairline) inset,
+    0 7px 18px var(--ui-color-shadow);
   overflow: hidden;
   -webkit-app-region: no-drag;
 }
@@ -165,7 +165,7 @@ function commitMeterEdit(value: string): void {
   min-width: 0;
   align-content: center;
   justify-items: center;
-  border-left: 1px solid var(--line-soft);
+  border-left: 1px solid var(--ui-color-border);
 }
 .bar-cell {
   border-left: 0;
@@ -176,15 +176,15 @@ function commitMeterEdit(value: string): void {
 .meter-value,
 .key-dropdown {
   height: 22px;
-  color: var(--text-primary);
+  color: var(--ui-color-text);
   font: var(--ui-type-weight-medium) var(--ui-type-size-feature-title) / var(--ui-type-leading-none)
     var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-tight);
-  text-shadow: 0 0 12px color-mix(in srgb, var(--signal-cyan) 23%, transparent);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--ui-signal-audio) 23%, transparent);
 }
 .position-cell > span,
 .lcd-cell > span {
-  color: var(--text-faint);
+  color: var(--ui-color-text-faint);
   font: var(--ui-type-weight-semibold) var(--ui-type-size-micro) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
 }

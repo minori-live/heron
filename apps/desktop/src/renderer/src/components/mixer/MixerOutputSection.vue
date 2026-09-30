@@ -148,8 +148,8 @@ function updateHardwareOutput(index: number, value: string): void {
   align-items: center;
   min-width: 0;
   padding: 6px 7px;
-  border-bottom: 1px solid var(--ui-domain-color-444);
-  background: var(--ui-domain-color-555);
+  border-bottom: 1px solid var(--ui-domain-mixer-divider);
+  background: var(--ui-domain-mixer-section);
 }
 .output-control {
   width: 100%;
@@ -157,10 +157,13 @@ function updateHardwareOutput(index: number, value: string): void {
   min-width: 0;
   padding: 0 7px;
   overflow: hidden;
-  border: 1px solid var(--ui-domain-color-747474);
+  border: 1px solid var(--ui-domain-face-neutral-border);
   border-radius: 4px;
-  color: var(--ui-domain-color-f2f2f2);
-  background: linear-gradient(var(--ui-domain-color-6d6d6d), var(--ui-domain-color-5d5d5d));
+  color: var(--ui-domain-face-neutral-ink);
+  background: linear-gradient(
+    var(--ui-domain-face-neutral-top),
+    var(--ui-domain-face-neutral-bottom)
+  );
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -175,7 +178,7 @@ function updateHardwareOutput(index: number, value: string): void {
 .output-control {
 }
 .output-control:disabled {
-  color: var(--ui-domain-color-b8b8b8);
+  color: var(--ui-domain-face-neutral-muted-ink);
   cursor: default;
 }
 .mixer-popover {
@@ -183,18 +186,18 @@ function updateHardwareOutput(index: number, value: string): void {
   width: 210px;
   gap: 9px;
   padding: 11px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 6px;
-  color: var(--text-primary);
-  background: var(--surface-1);
-  box-shadow: 0 14px 36px var(--ui-domain-color-00000075);
+  color: var(--ui-color-text);
+  background: var(--ui-color-surface);
+  box-shadow: 0 14px 36px var(--ui-domain-popover-shadow);
 }
 .mixer-popover header span,
 .mixer-popover header strong {
   display: block;
 }
 .mixer-popover header span {
-  color: var(--accent);
+  color: var(--ui-color-action);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
 }
@@ -207,7 +210,7 @@ function updateHardwareOutput(index: number, value: string): void {
   grid-template-columns: 40px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-control);
 }
 </style>

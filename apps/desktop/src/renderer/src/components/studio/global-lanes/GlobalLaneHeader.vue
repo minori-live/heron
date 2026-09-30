@@ -57,18 +57,18 @@ const model = computed({
 
 <style scoped>
 .global-lane-header {
-  --lane-color: var(--ui-domain-color-65a8ff);
+  --lane-color: var(--ui-domain-lane-tempo);
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   gap: 5px 7px;
   padding: 9px 10px;
-  border-bottom: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--ui-color-border-strong);
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--lane-color) 8%, var(--daw-track-header)),
-    var(--daw-track-header) 74%
+    color-mix(in srgb, var(--lane-color) 8%, var(--ui-daw-track-header)),
+    var(--ui-daw-track-header) 74%
   );
   box-shadow: 3px 0 0 var(--lane-color) inset;
 }
@@ -88,7 +88,7 @@ const model = computed({
 }
 .lane-copy strong {
   margin-top: 3px;
-  color: var(--text-primary);
+  color: var(--ui-color-text);
   font: var(--ui-type-size-label) var(--ui-type-family-display);
 }
 .lane-value {
@@ -101,7 +101,7 @@ const model = computed({
 .lane-value > span:first-child {
   display: block;
   margin-bottom: 4px;
-  color: var(--text-faint);
+  color: var(--ui-color-text-faint);
   font: var(--ui-type-size-micro) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
   text-transform: uppercase;

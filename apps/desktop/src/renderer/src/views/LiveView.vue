@@ -138,7 +138,7 @@ function updateMixerChannel(
       @configure="openDevices"
     />
     <section
-      class="live-performance-workspace min-h-0 min-w-0 overflow-hidden bg-[var(--daw-workspace)]"
+      class="live-performance-workspace min-h-0 min-w-0 overflow-hidden bg-[var(--ui-daw-workspace)]"
       :aria-label="t('live.performanceWorkspace')"
     />
     <WorkspaceSidePanel

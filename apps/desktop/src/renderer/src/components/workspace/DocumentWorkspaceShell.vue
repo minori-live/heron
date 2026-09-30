@@ -23,8 +23,8 @@ defineProps<{
   grid-template: 56px minmax(0, 1fr) 25px / minmax(0, 1fr);
   width: 100%;
   height: 100%;
-  color: var(--text-primary);
-  background: var(--canvas);
+  color: var(--ui-color-text);
+  background: var(--ui-color-canvas);
   -webkit-user-select: none;
   user-select: none;
 }

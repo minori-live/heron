@@ -186,17 +186,17 @@ function createProject(): void {
   gap: clamp(32px, 6vw, 96px);
   padding: clamp(34px, 5.5vw, 76px);
   overflow: auto;
-  color: var(--text-primary);
+  color: var(--ui-color-text);
   background:
     radial-gradient(
       circle at 12% 18%,
-      color-mix(in srgb, var(--accent) 12%, transparent),
+      color-mix(in srgb, var(--ui-color-action) 12%, transparent),
       transparent 30%
     ),
     linear-gradient(
       125deg,
-      var(--canvas) 0%,
-      color-mix(in srgb, var(--canvas) 94%, var(--surface-3)) 100%
+      var(--ui-color-canvas) 0%,
+      color-mix(in srgb, var(--ui-color-canvas) 94%, var(--ui-color-surface-hover)) 100%
     );
 }
 
@@ -214,7 +214,7 @@ function createProject(): void {
   left: 34%;
   width: min(36vw, 520px);
   aspect-ratio: 1;
-  border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-color-action) 12%, transparent);
   border-radius: 50%;
   opacity: 0.6;
   transform: translate(-50%, -50%);
@@ -248,14 +248,14 @@ function createProject(): void {
 
 .project-welcome__wave-grid {
   fill: none;
-  stroke: color-mix(in srgb, var(--line-soft) 72%, transparent);
+  stroke: color-mix(in srgb, var(--ui-color-border) 72%, transparent);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
 .project-welcome__waveform {
   fill: none;
-  stroke: var(--signal-cyan);
+  stroke: var(--ui-signal-audio);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2;
@@ -272,7 +272,7 @@ function createProject(): void {
 }
 
 .project-welcome__playhead {
-  color: var(--accent-soft);
+  color: var(--ui-color-action-hover);
   animation: welcome-playhead 8s linear infinite;
 }
 
@@ -297,7 +297,7 @@ function createProject(): void {
 
 .project-welcome__logo {
   justify-self: start;
-  color: var(--text-secondary);
+  color: var(--ui-color-text-muted);
   font-size: var(--ui-font-size-xl);
 }
 
@@ -308,7 +308,7 @@ function createProject(): void {
 
 .project-welcome__eyebrow,
 .project-welcome__section-label {
-  color: var(--accent-soft);
+  color: var(--ui-color-action-hover);
   font: var(--ui-type-weight-bold) var(--ui-font-size-xs) / var(--ui-type-leading-tight)
     var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-widest);
@@ -330,14 +330,14 @@ function createProject(): void {
 }
 
 .project-welcome__headline-accent {
-  color: var(--accent-soft);
+  color: var(--ui-color-action-hover);
   font-style: italic;
 }
 
 .project-welcome__body {
   max-width: 560px;
   margin: 0;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font-size: clamp(var(--ui-font-size-md), 1.35vw, var(--ui-font-size-lg));
   line-height: var(--ui-type-leading-relaxed);
   text-wrap: pretty;
@@ -350,16 +350,16 @@ function createProject(): void {
   min-width: 0;
   max-height: 100%;
   padding: clamp(22px, 3vw, 38px);
-  border: 1px solid color-mix(in srgb, var(--line-strong) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-color-border-strong) 82%, transparent);
   border-radius: 3px 28px;
-  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  background: color-mix(in srgb, var(--ui-color-surface) 92%, transparent);
   box-shadow: var(--ui-shadow-lg), var(--ui-shadow-highlight-inset);
   backdrop-filter: blur(20px);
 }
 
 .project-welcome__new-project {
   padding-bottom: clamp(26px, 4vh, 42px);
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--ui-color-border);
 }
 
 .project-welcome__section-label {
@@ -373,7 +373,7 @@ function createProject(): void {
   width: 24px;
   height: 24px;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--accent) 48%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-color-action) 48%, transparent);
   border-radius: 50%;
 }
 
@@ -396,7 +396,7 @@ function createProject(): void {
 .project-welcome__new-project p {
   max-width: 420px;
   margin: 0;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-font-size-sm);
   line-height: var(--ui-type-leading-relaxed);
 }
@@ -409,10 +409,10 @@ function createProject(): void {
   justify-content: space-between;
   margin-top: 28px;
   padding: 0 20px;
-  border: 1px solid var(--accent-strong);
+  border: 1px solid var(--ui-color-action-pressed);
   border-radius: var(--ui-radius-md);
-  color: var(--button-primary-text);
-  background: var(--button-primary);
+  color: var(--ui-color-action-text);
+  background: var(--ui-color-action);
   box-shadow: var(--ui-shadow-md);
   font-weight: var(--ui-type-weight-semibold);
   transition:
@@ -433,9 +433,9 @@ function createProject(): void {
 
 .project-welcome__create--live {
   margin-top: 10px;
-  border-color: var(--line-strong);
-  color: var(--text-primary);
-  background: var(--surface-raised);
+  border-color: var(--ui-color-border-strong);
+  color: var(--ui-color-text);
+  background: var(--ui-color-surface-raised);
   box-shadow: none;
 }
 
@@ -452,10 +452,10 @@ function createProject(): void {
   max-width: min(520px, calc(100vw - 48px));
   margin: 0;
   padding: 12px 16px;
-  border: 1px solid color-mix(in srgb, var(--record) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 45%, transparent);
   border-radius: var(--ui-radius-md);
-  color: var(--ui-domain-color-ff9dab);
-  background: color-mix(in srgb, var(--ui-domain-color-321923) 92%, transparent);
+  color: var(--ui-domain-error-ink);
+  background: color-mix(in srgb, var(--ui-domain-error-surface) 92%, transparent);
   box-shadow: var(--ui-shadow-md);
   font-size: var(--ui-type-size-body-compact);
 }

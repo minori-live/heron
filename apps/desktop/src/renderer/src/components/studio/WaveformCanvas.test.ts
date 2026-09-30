@@ -91,7 +91,7 @@ describe("WaveformCanvas", () => {
     vi.spyOn(window, "getComputedStyle").mockReturnValue({
       color: "rgb(17, 17, 17)",
       getPropertyValue: (property: string) =>
-        property === "--ui-domain-color-ffd2d8" ? "rgb(255, 210, 216)" : ""
+        property === "--ui-domain-waveform-record-peak" ? "rgb(255, 210, 216)" : ""
     } as CSSStyleDeclaration)
     const wrapper = mount(WaveformCanvas, {
       props: {
