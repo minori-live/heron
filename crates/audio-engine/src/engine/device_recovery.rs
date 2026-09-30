@@ -1,6 +1,7 @@
 // Owned by the protocol crate; this module keeps the engine-facing path stable.
 pub use heron_dsp_runtime::protocol::{
-    AudioDeviceFaultKind, AudioDeviceRecoveryPhase, AudioStreamDirection,
+    AudioDeviceFaultKind, AudioDeviceRecovery as AudioDeviceRecoverySnapshot,
+    AudioDeviceRecoveryPhase, AudioStreamDirection,
 };
 
 use super::{AudioEngine, AudioEngineConfig, AudioRuntime, Ordering, Result, audio_error};
@@ -20,20 +21,6 @@ pub(super) struct DeviceFaultSignal {
 pub(super) struct StreamFaultReporter {
     pub(super) stream_incarnation: u64,
     pub(super) sender: std::sync::mpsc::SyncSender<DeviceFaultSignal>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct AudioDeviceRecoverySnapshot {
-    pub recovery_id: u64,
-    pub revision: u64,
-    pub candidate_revision: u64,
-    pub attempt_generation: u64,
-    pub phase: AudioDeviceRecoveryPhase,
-    pub original_config: AudioEngineConfig,
-    pub candidates: AudioDeviceList,
-    pub lost_input: bool,
-    pub lost_output: bool,
-    pub fault: AudioDeviceFaultKind,
 }
 
 #[derive(Debug)]
@@ -69,8 +56,7 @@ impl DeviceRecoveryState {
             phase: self.phase,
             original_config: self.original_config.clone(),
             candidates: self.candidates.clone(),
-            lost_input: self.lost_input,
-            lost_output: self.lost_output,
+            lost_directions: lost_directions(self.lost_input, self.lost_output),
             fault: self.fault,
         }
     }
@@ -78,6 +64,19 @@ impl DeviceRecoveryState {
     fn bump(&mut self) {
         self.revision = self.revision.saturating_add(1);
     }
+}
+
+/// Wire order is input before output; the wire carries directions rather than
+/// the two flags the state accumulates.
+fn lost_directions(lost_input: bool, lost_output: bool) -> Vec<AudioStreamDirection> {
+    let mut directions = Vec::with_capacity(2);
+    if lost_input {
+        directions.push(AudioStreamDirection::Input);
+    }
+    if lost_output {
+        directions.push(AudioStreamDirection::Output);
+    }
+    directions
 }
 
 fn empty_devices() -> AudioDeviceList {

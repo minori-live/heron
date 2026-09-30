@@ -1,6 +1,6 @@
 use super::{
     AudioBackend, ControlCommand, ControlResult, MIDI_INPUT, MixerChannelMeter,
-    RecordingStartConfig, TransportState, audio_device_list, audio_device_recovery, device, engine,
+    RecordingStartConfig, TransportState, device, engine,
 };
 
 fn audition_control_result<E: std::fmt::Display>(
@@ -39,7 +39,7 @@ pub(super) fn engine_command(
                 }
             };
             ControlResult::AudioDevices {
-                devices: audio_device_list(value),
+                devices: value,
             }
         }
         ControlCommand::ListApplicationCaptureTargets => ControlResult::ApplicationCaptureTargets {
@@ -83,9 +83,7 @@ pub(super) fn engine_command(
         ControlCommand::AuthorizeDeviceRecovery { recovery_id } => {
             match audio_engine.authorize_device_recovery(recovery_id) {
                 Ok(()) => ControlResult::AudioDeviceRecovery {
-                    recovery: audio_engine
-                        .device_recovery_snapshot()
-                        .map(audio_device_recovery),
+                    recovery: audio_engine.device_recovery_snapshot(),
                     runtime: None,
                 },
                 Err(error) => control_error! {
@@ -96,20 +94,9 @@ pub(super) fn engine_command(
         ControlCommand::SelectDeviceRecovery {
             recovery_id,
             config,
-        } => match audio_engine.select_recovery_device(
-            recovery_id,
-            engine::AudioEngineConfig {
-                backend: config.backend,
-                input_device_id: config.input_device_id,
-                output_device_id: config.output_device_id,
-                buffer_size: config.buffer_size,
-                session_sample_rate: config.session_sample_rate,
-            },
-        ) {
+        } => match audio_engine.select_recovery_device(recovery_id, config) {
             Ok(runtime) => ControlResult::AudioDeviceRecovery {
-                recovery: audio_engine
-                    .device_recovery_snapshot()
-                    .map(audio_device_recovery),
+                recovery: audio_engine.device_recovery_snapshot(),
                 runtime: Some(runtime),
             },
             Err(error) => control_error! {
@@ -128,9 +115,7 @@ pub(super) fn engine_command(
             }
         }
         ControlCommand::DeviceRecoverySnapshot => ControlResult::AudioDeviceRecovery {
-            recovery: audio_engine
-                .device_recovery_snapshot()
-                .map(audio_device_recovery),
+            recovery: audio_engine.device_recovery_snapshot(),
             runtime: audio_engine.audio_engine_snapshot().ok(),
         },
         ControlCommand::StartRoundTripLatencyMeasurement { request } => {
@@ -373,7 +358,7 @@ mod tests {
     #[test]
     fn recovery_commands_return_typed_results_for_empty_and_stale_decisions() {
         let engine = engine::AudioEngine::new();
-        let config = super::super::AudioEngineConfig {
+        let config = engine::AudioEngineConfig {
             backend: "mock".to_owned(),
             input_device_id: "custom:mock-duplex".to_owned(),
             output_device_id: "custom:mock-duplex".to_owned(),

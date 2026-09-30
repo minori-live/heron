@@ -870,7 +870,7 @@ async fn drive_device_recovery(
         let Ok(snapshot) = observed else {
             continue;
         };
-        let recovery = snapshot.map(super::audio_device_wire::audio_device_recovery);
+        let recovery = snapshot;
         if recovery == previous {
             continue;
         }

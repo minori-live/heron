@@ -27,8 +27,7 @@ use crate::{
 };
 use heron_audio_plugin::PluginProcessFailure;
 use heron_dsp_runtime::protocol::{
-    AudioBackend, AudioDevice, AudioDeviceFaultKind, AudioDeviceList, AudioDeviceRecovery,
-    AudioDeviceRecoveryPhase, AudioEngineConfig, AudioStreamDirection, BinaryPayload,
+    AudioBackend, BinaryPayload,
     ControlCommand, ControlResult, GraphCandidateSnapshot, GraphDeploymentSnapshot,
     GraphDeploymentStatus, GraphOperationOutcome, GraphOperationSnapshot, GraphTransactionRequest,
     GraphTransactionValue, HostEvent, IPC_PROTOCOL_VERSION, LiveMixerGraph, MixerChannelMeter,
@@ -40,16 +39,14 @@ use heron_dsp_runtime::protocol::{
 use heron_vst3_host::Vst3HostRequest;
 use tokio::sync::{mpsc, oneshot};
 
-mod audio_device_wire;
 pub mod embedded;
 mod engine_actor;
 mod graph_transactions;
 mod plugin_actor;
 mod runtime_config;
 mod ui_runtime;
-mod wire_adapters;
+mod engine_commands;
 
-use audio_device_wire::{audio_device_list, audio_device_recovery};
 use engine_actor::{
     ActorCommand, ActorRequest, GraphParameterHandles, background_io_actor, engine_actor,
     forward_to_ui, publish_built_graph, queue_background_graph_build, refresh_graph_handles,
@@ -67,6 +64,6 @@ use plugin_actor::{
 };
 use runtime_config::RuntimeConfig;
 use ui_runtime::{EmbeddedUiHost, UiEvent, UiMailboxWaker};
-use wire_adapters::engine_command;
+use engine_commands::engine_command;
 
 static MIDI_INPUT: OnceLock<MidiInputActor> = OnceLock::new();
