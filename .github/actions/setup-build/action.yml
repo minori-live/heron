@@ -49,7 +49,7 @@ runs:
     - name: Install locked toolchain
       uses: jdx/mise-action@v5
       with:
-        version: 2026.9.17
+        version: 2026.9.18
         cache: true
         github_token: ${{ inputs.github-token }}
 
