@@ -1,0 +1,30 @@
+name: Notify Homebrew tap
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  notify:
+    name: Notify Tap of a stable release
+    if: >-
+      ${{ github.repository == 'minori-live/heron' &&
+          (github.event_name == 'workflow_dispatch' ||
+           (!github.event.release.draft && !github.event.release.prerelease &&
+            startsWith(github.event.release.tag_name, 'v'))) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Request Tap synchronization
+        env:
+          GH_TOKEN: ${{ secrets.TAP_SYNC_TOKEN }}
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::error::Configure TAP_SYNC_TOKEN using agents/docs/homebrew-distribution.md."
+            exit 1
+          fi
+          gh api --method POST repos/minori-live/homebrew-tap/dispatches \
+            -f event_type=heron-release-published
