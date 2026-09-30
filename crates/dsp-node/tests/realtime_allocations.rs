@@ -4,14 +4,16 @@ use std::{
     alloc::{GlobalAlloc, Layout, System},
     cell::Cell,
     hint::black_box,
+    sync::Arc,
+    sync::atomic::AtomicU32,
 };
 
 use heron_audio_host::engine::bench_support::{
     ApplicationCaptureHarness, ParameterQueueHarness, PluginAdapterHarness, RenderHarness,
     RenderScenario, SessionRateBridgeHarness,
 };
+use heron_audio_host::recording::{RecorderController, RecordingStartConfig};
 use heron_dsp_core::mixer::{ChannelKind, ChannelSpec, MixerGraph, RouteTarget};
-use heron_dsp_node::bench_support::TapHarness;
 
 thread_local! {
     static TRACKING: Cell<bool> = const { Cell::new(false) };
@@ -164,12 +166,37 @@ fn realtime_mixer_render_preview_and_capture_do_not_allocate() {
         preview.consume_preview(-18.0);
     });
 
-    let mut tap = TapHarness::new(32, 256);
-    tap.push_block();
-    assert_eq!(tap.drain(), 256);
+    let path = std::env::temp_dir().join(format!(
+        "heron-realtime-allocations-{}.bwf",
+        std::process::id()
+    ));
+    // The tap only captures while the transport state it was created with
+    // matches, so the recording state is the value this test drives.
+    let transport_state = Arc::new(AtomicU32::new(0));
+    let (controller, mut tap) = RecorderController::new(48_000, Arc::clone(&transport_state), 0);
+    controller
+        .start(RecordingStartConfig {
+            path: path.to_string_lossy().into_owned(),
+            asset_id: "realtime-allocations".to_owned(),
+            originator: "Heron test".to_owned(),
+            origination_date: "2026-01-01".to_owned(),
+            origination_time: "00:00:00".to_owned(),
+            time_reference: 0,
+            sample_rate: 48_000,
+            channels: 2,
+        })
+        .expect("start recording");
+    for _ in 0..256 {
+        tap.push(&[0.25, -0.25]);
+    }
     assert_no_thread_allocations("RecordingTap::push", || {
-        tap.push_block();
+        for _ in 0..256 {
+            tap.push(black_box(&[0.25, -0.25]));
+        }
     });
+    let stopped = controller.stop().expect("stop recording");
+    assert_eq!(stopped.frame_count, 512);
+    let _ = std::fs::remove_file(&path);
 
     let mut rate_bridge = SessionRateBridgeHarness::new(48_000, 44_100, 48_000);
     let _ = rate_bridge.render_device_block(1_024);

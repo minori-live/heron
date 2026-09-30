@@ -27,6 +27,7 @@ export const heronUnoColorNames = [
   "surface-hover",
   "surface-raised",
   "text",
+  "text-faint",
   "text-inverse",
   "text-muted",
   "text-subtle",

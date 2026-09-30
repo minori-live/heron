@@ -324,23 +324,23 @@ function editGesture(action: string, intent: UiGestureIntent): void {
   font-weight: var(--ui-type-weight-semibold);
   line-height: var(--ui-type-leading-normal);
   text-overflow: ellipsis;
-  text-shadow: 0 1px 2px var(--ui-domain-color-000a);
+  text-shadow: 0 1px 2px var(--ui-domain-clip-ink-shadow);
 }
 .channel-format {
-  color: var(--ui-domain-color-f0f4f5);
-  filter: drop-shadow(0 1px 1px var(--ui-domain-color-0008));
+  color: var(--ui-domain-clip-meta);
+  filter: drop-shadow(0 1px 1px var(--ui-domain-clip-shade));
 }
 .recording .channel-format {
-  color: var(--ui-domain-color-ffe0e4);
+  color: var(--ui-domain-clip-meta-record);
 }
 .capture-dot {
   flex: none;
   width: 6px;
   height: 6px;
-  border: 1px solid var(--ui-domain-color-ffe5e9);
+  border: 1px solid var(--ui-domain-clip-capture-ring);
   border-radius: 50%;
-  background: var(--record);
-  box-shadow: 0 0 5px var(--record);
+  background: var(--ui-signal-record);
+  box-shadow: 0 0 5px var(--ui-signal-record);
 }
 .waveform {
   position: absolute;
@@ -366,11 +366,11 @@ function editGesture(action: string, intent: UiGestureIntent): void {
   right: 0;
 }
 .fade-shade {
-  fill: var(--ui-domain-color-0008);
+  fill: var(--ui-domain-clip-shade);
 }
 .fade-curve {
   fill: none;
-  stroke: var(--ui-domain-color-fff);
+  stroke: var(--ui-domain-clip-outline);
   stroke-width: 1.25px;
   vector-effect: non-scaling-stroke;
 }

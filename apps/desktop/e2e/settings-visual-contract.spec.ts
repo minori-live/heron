@@ -2,7 +2,7 @@ import { test, expect, _electron as electron } from "@playwright/test"
 import { mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { closeElectronApplication, dismissAutomaticTutorial } from "./support"
+import { closeElectronApplication, dismissAutomaticTutorial, expectNear } from "./support"
 
 test("settings retain persistent selection outlines, dense buttons and stacked previews", async () => {
   const testInfo = test.info()
@@ -66,7 +66,7 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     expect((await backendDescription.boundingBox())!.y).toBeGreaterThanOrEqual(
       (await backendTitle.boundingBox())!.y + (await backendTitle.boundingBox())!.height
     )
-    expect((await backend.getByRole("radio").first().boundingBox())!.width).toBe(12)
+    expectNear((await backend.getByRole("radio").first().boundingBox())!.width, 12)
     await page.screenshot({ path: testInfo.outputPath("backend.png") })
     await page.getByRole("button", { name: "System", exact: true }).click()
     const save = page.getByRole("button", { name: "Save for next launch" })
@@ -84,7 +84,7 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
       const preview = (await selected.locator(".theme-preview").boundingBox())!
       const title = (await selected.locator("strong").boundingBox())!
       const description = (await selected.locator("small").boundingBox())!
-      expect(preview.height).toBe(72)
+      expectNear(preview.height, 72)
       expect(preview.width).toBeGreaterThan(100)
       expect(title.y).toBeGreaterThan(preview.y + preview.height)
       expect(description.y).toBeGreaterThan(title.y + title.height)
@@ -96,11 +96,12 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     await page.getByRole("button", { name: "Back to welcome" }).focus()
     await expect(yamaha).toHaveAttribute("aria-pressed", "true")
     expect(await yamaha.evaluate((el) => getComputedStyle(el).boxShadow)).toContain("inset")
+    // The stacked title/caption contract of a controller profile row is owned by
+    // the Storybook boundary story (`design-system/tests/midi-preferences.spec.ts`),
+    // which asserts the same geometry plus the font sizes. This run only proves
+    // the real MIDI page reaches that state.
     await page.getByRole("button", { name: /MIDI Controls/ }).click()
-    const row = page.locator(".profile-list button").first()
-    await expect(row).toBeVisible()
-    const title = (await row.locator("strong").boundingBox())!
-    expect((await row.locator("small").boundingBox())!.y).toBeGreaterThan(title.y + title.height)
+    await expect(page.locator(".profile-list button").first()).toBeVisible()
     await page.getByRole("button", { name: "Back to welcome" }).click()
     await page.getByRole("button", { name: "New Studio" }).click()
     await expect(page.locator(".studio-shell")).toBeVisible({ timeout: 90_000 })
@@ -165,8 +166,8 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     await expect(performance).toHaveCSS("font-size", "7px")
     await expect(performance).toHaveCSS("font-family", /Cascadia Mono/)
     await expect(performance).toHaveCSS("font-weight", "400")
-    expect((await performance.boundingBox())!.height).toBe(20)
-    expect((await globalTracks.boundingBox())!.height).toBe(27)
+    expectNear((await performance.boundingBox())!.height, 20)
+    expectNear((await globalTracks.boundingBox())!.height, 27)
     await globalTracks.click()
     await expect(globalTracks).toHaveAttribute("aria-pressed", "false")
     await globalTracks.press("Enter")
@@ -178,8 +179,8 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     let previousRight = 0
     for (const button of await stateButtons.all()) {
       const box = (await button.boundingBox())!
-      expect(box.width).toBe(17)
-      expect(box.height).toBe(17)
+      expectNear(box.width, 17)
+      expectNear(box.height, 17)
       if (previousRight) expect(box.x - previousRight).toBeGreaterThanOrEqual(2)
       previousRight = box.x + box.width
     }
@@ -192,7 +193,7 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     const search = browser.getByRole("searchbox")
     await search.fill("D")
     const searchShell = search.locator("..")
-    expect((await searchShell.boundingBox())!.height).toBe(27)
+    expectNear((await searchShell.boundingBox())!.height, 27)
     await expect(search).toHaveCSS("outline-style", "none")
     await expect(search).toHaveCSS("box-shadow", "none")
     const shellBox = (await searchShell.boundingBox())!

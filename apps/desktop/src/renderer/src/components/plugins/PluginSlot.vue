@@ -120,9 +120,9 @@ function failureMessage(category: PluginFailureCategory): string {
   gap: 5px;
   min-height: 31px;
   padding: 4px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 3px;
-  background: var(--surface-sunken);
+  background: var(--ui-color-surface-sunken);
 }
 .badges {
   display: flex;
@@ -130,39 +130,39 @@ function failureMessage(category: PluginFailureCategory): string {
 }
 .mode-badge {
   padding: 2px 4px;
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--ui-color-border);
   border-radius: 3px;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font: var(--ui-type-size-micro) var(--ui-type-family-data);
 }
 .ara-badge {
   padding: 2px 4px;
-  border: 1px solid color-mix(in srgb, var(--signal-cyan) 52%, var(--line-soft));
+  border: 1px solid color-mix(in srgb, var(--ui-signal-audio) 52%, var(--ui-color-border));
   border-radius: 3px;
-  color: var(--signal-cyan);
+  color: var(--ui-signal-audio);
   font: var(--ui-type-weight-bold) var(--ui-type-size-micro) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wide);
 }
 .grip {
   display: grid;
   place-items: center;
-  color: var(--text-faint);
+  color: var(--ui-color-text-faint);
 }
 .plugin-slot i {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--signal-cyan);
-  box-shadow: 0 0 5px color-mix(in srgb, var(--signal-cyan) 55%, transparent);
+  background: var(--ui-signal-audio);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--ui-signal-audio) 55%, transparent);
 }
 .plugin-slot i.bypassed {
-  background: var(--text-faint);
+  background: var(--ui-color-text-faint);
   box-shadow: none;
 }
 .plugin-slot i.failed,
 .plugin-slot i.missing,
 .plugin-slot i.quarantined {
-  background: var(--record);
+  background: var(--ui-signal-record);
 }
 .plugin-slot strong,
 .plugin-slot small {
@@ -176,12 +176,12 @@ function failureMessage(category: PluginFailureCategory): string {
 }
 .plugin-slot small {
   margin-top: 2px;
-  color: var(--text-faint);
+  color: var(--ui-color-text-faint);
   font-size: var(--ui-type-size-micro);
 }
 .failure-message {
   grid-column: 3 / -1;
-  color: var(--record);
+  color: var(--ui-signal-record);
   white-space: normal;
 }
 </style>

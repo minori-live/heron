@@ -103,6 +103,22 @@ function auditTokenReferences(file: string, source: string): void {
   }
 }
 
+/**
+ * The domain palette is the only place a literal colour may enter the product,
+ * and it is only meaningful while it stays single-sourced. A component that
+ * declares its own `--ui-domain-*` value forks the palette: the name keeps
+ * claiming one meaning while the subtree paints another.
+ *
+ * Panels that want the DAW palette remap a semantic role onto `--ui-daw-*`
+ * instead, which says the same thing without splitting the palette.
+ */
+function auditDomainPalette(file: string, source: string, isTokenSource: boolean): void {
+  if (isTokenSource) return
+  for (const match of source.matchAll(/(--ui-domain-[\w-]+)\s*:/g)) {
+    report(file, "forked-domain-palette", match[1] ?? "")
+  }
+}
+
 function auditUtilities(file: string, source: string): void {
   for (const match of source.matchAll(presetColorUtility)) {
     report(file, "preset-color-utility", match[0])
@@ -219,6 +235,7 @@ for (const file of uiFiles) {
   }
   auditTypography(file, source, isTokenSource)
   auditTokenReferences(file, source)
+  auditDomainPalette(file, source, isTokenSource)
   auditUtilities(file, source)
 
   if (/from\s+["'](?:pinia|vue-router|@heron\/contracts|electron)["']|window\.heron/.test(source)) {
@@ -230,6 +247,7 @@ for (const file of designSystemFiles) {
   const source = readFileSync(file, "utf8")
   auditTypography(file, source)
   auditTokenReferences(file, source)
+  auditDomainPalette(file, source, false)
   auditUtilities(file, source)
 }
 

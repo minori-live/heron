@@ -189,10 +189,10 @@ function save(): void {
 }
 
 .save-status {
-  color: var(--signal-cyan);
+  color: var(--ui-signal-audio);
 }
 
 .save-error {
-  color: var(--record);
+  color: var(--ui-signal-record);
 }
 </style>

@@ -3,6 +3,11 @@
 //! The control plane owns this manager. Captured samples cross into the audio
 //! callback through a bounded ring and a fully preallocated adaptive resampler.
 
+// Owned by the protocol crate; this module keeps the engine-facing path stable.
+pub use heron_dsp_runtime::protocol::{
+    ApplicationCaptureLogicalTarget, ApplicationCaptureSnapshot, ApplicationCaptureTargetDescriptor,
+};
+
 use ringbuf::{
     HeapCons, HeapProd, HeapRb,
     traits::{Consumer, Observer, Producer, Split},
@@ -52,40 +57,6 @@ pub enum ApplicationCaptureError {
     WorkerStart(#[source] std::io::Error),
     #[error("application capture platform operation failed: {0}")]
     Platform(String),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ApplicationCaptureLogicalTarget {
-    pub platform: String,
-    pub bundle_identifier: Option<String>,
-    pub executable_path: String,
-    pub executable_name: String,
-    pub include_process_tree: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ApplicationCaptureTargetDescriptor {
-    pub runtime_id: String,
-    pub process_id: u32,
-    pub display_name: String,
-    pub executable_path: String,
-    pub logical_target: ApplicationCaptureLogicalTarget,
-    pub channel_count: u32,
-    pub status: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ApplicationCaptureSnapshot {
-    pub runtime_id: String,
-    pub process_id: Option<u32>,
-    pub display_name: String,
-    pub executable_path: String,
-    pub logical_target: ApplicationCaptureLogicalTarget,
-    pub channel_count: u32,
-    pub status: String,
-    pub dropout_frames: u64,
-    pub overflow_frames: u64,
-    pub underflow_frames: u64,
 }
 
 pub trait ApplicationCaptureBackend: Send + Sync {

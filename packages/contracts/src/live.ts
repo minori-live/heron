@@ -1,5 +1,5 @@
-import type { AudioPreferences } from "./audio"
-import type { MidiControlAddress, MidiControlInputMode } from "./midi-control"
+import type { AudioPreferences } from "./audio.ts"
+import type { MidiControlAddress, MidiControlInputMode } from "./midi-control.ts"
 import type {
   MixerChannelCoreState,
   MixerGraphSnapshot,
@@ -7,9 +7,9 @@ import type {
   MixerChannelPatch,
   MixerSendPatch,
   PluginInstancePatch
-} from "./mixer"
-import type { PluginInstanceState } from "./plugins"
-import type { ProjectGraphRef, ProjectSessionRef } from "./rpc"
+} from "./mixer.ts"
+import type { PluginInstanceState } from "./plugins.ts"
+import type { ProjectGraphRef, ProjectSessionRef } from "./rpc.ts"
 
 export type DocumentKind = "studio" | "live"
 export interface DocumentOpenPreparation {

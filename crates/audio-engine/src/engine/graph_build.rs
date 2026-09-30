@@ -1,14 +1,14 @@
 use super::{
-    Arc, ChannelKind, ChannelSpec, ClipSamples, ClipStoragePolicy, InputPeakBank, LiveMidiRoute,
-    LiveMixerSendTap, LiveMixerSystemRole, LivePlugin, LivePluginAuxInput, LoadedClip,
-    LowLatencyChannel, LowLatencyPlan, LowLatencyPlugin, MAX_INPUT_CHANNELS,
-    MAX_PLUGIN_BLOCK_FRAMES, MeterAtomics, MeterBank, MetronomeScheduler, MixerGraph,
-    NativeLatencyPolicy, NativeMidiClip, NativeMidiEventKind, NativeMixerChannel, NativeMixerClip,
-    NativeMixerGraph, NativeMixerRuntime, NativeMixerSend, NativePluginInstance, Ordering,
-    RenderMeter, RenderRuntime, Result, RouteTarget, ScheduledMidiEvent, ScheduledMidiEventKind,
-    SendSpec, SendTap, SignalWidth, StereoDelayLine, TempoMap, TransportShared, audio_error,
-    clip_storage_policy, decode_clip_audio, fs, invalid_config, parse_channel_kind,
-    plan_low_latency, spawn_streaming_clip,
+    Arc, ChannelKind, ChannelSpec, ClipSamples, ClipStoragePolicy, DecodedMidiClip,
+    DecodedMidiEventKind, InputPeakBank, LiveMidiRoute, LiveMixerSendTap, LiveMixerSystemRole,
+    LivePlugin, LivePluginAuxInput, LoadedClip, LowLatencyChannel, LowLatencyPlan,
+    LowLatencyPlugin, MAX_INPUT_CHANNELS, MAX_PLUGIN_BLOCK_FRAMES, MeterAtomics, MeterBank,
+    MetronomeScheduler, MixerGraph, MixerRuntime, Ordering, RenderMeter, RenderRuntime,
+    ResolvedLatencyPolicy, ResolvedMixerChannel, ResolvedMixerClip, ResolvedMixerGraph,
+    ResolvedMixerSend, ResolvedPluginInstance, Result, RouteTarget, ScheduledMidiEvent,
+    ScheduledMidiEventKind, SendSpec, SendTap, SignalWidth, StereoDelayLine, TempoMap,
+    TransportShared, audio_error, clip_storage_policy, decode_clip_audio, fs, invalid_config,
+    parse_channel_kind, plan_low_latency, spawn_streaming_clip,
 };
 use crate::application_capture::ApplicationCaptureLogicalTarget;
 
@@ -21,27 +21,32 @@ mod routing;
 #[path = "graph_build/validation.rs"]
 mod validation;
 
+use std::collections::HashMap;
+
+use heron_audio_plugin::AudioPluginProcessorHandle;
+
 use clip_midi::{build_midi_events, load_audio_clips};
 use plugin_graph::{PluginGraphInput, build_plugin_graph};
 use routing::{RoutingBuild, build_routing};
 use validation::{InputRoutes, build_input_routes, validate_sample_rate};
 
 pub(super) fn build_mixer_runtime(
-    native: NativeMixerGraph,
+    native: ResolvedMixerGraph,
     build_generation: u64,
     transport: Arc<TransportShared>,
     input_peaks: Arc<InputPeakBank>,
-) -> Result<NativeMixerRuntime> {
+    plugin_slots: &HashMap<String, AudioPluginProcessorHandle>,
+) -> Result<MixerRuntime> {
     validate_sample_rate(native.sample_rate)?;
     transport
         .sample_rate
         .store(native.sample_rate, Ordering::Relaxed);
     let low_latency_plan = match &native.latency_policy {
-        NativeLatencyPolicy::Normal => LowLatencyPlan {
+        ResolvedLatencyPolicy::Normal => LowLatencyPlan {
             sensitive_channels: vec![false; native.channels.len()],
             ..LowLatencyPlan::default()
         },
-        NativeLatencyPolicy::LowLatency {
+        ResolvedLatencyPolicy::LowLatency {
             target_output_index,
             plugin_budget_samples,
         } => plan_low_latency(
@@ -185,6 +190,7 @@ pub(super) fn build_mixer_runtime(
         low_latency_plan: &low_latency_plan,
         low_latency_bypassed: &low_latency_bypassed,
         tempo_map: &tempo_map,
+        plugin_slots,
     })?;
     let midi_build = build_midi_events(
         native.midi_clips,
@@ -204,7 +210,7 @@ pub(super) fn build_mixer_runtime(
         native.sample_rate,
         transport.position_frames.load(Ordering::Relaxed),
     );
-    Ok(NativeMixerRuntime {
+    Ok(MixerRuntime {
         generation: native.generation,
         build_generation,
         peak_scratch: vec![

@@ -1,4 +1,7 @@
-import type { AudioHostRuntimePreferences, ResolvedAudioHostRuntimePreferences } from "./settings"
+import type {
+  AudioHostRuntimePreferences,
+  ResolvedAudioHostRuntimePreferences
+} from "./settings.ts"
 
 export interface CpuCoreSnapshot {
   index: number

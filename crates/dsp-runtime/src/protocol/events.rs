@@ -7,6 +7,7 @@ use super::{
 
 /// Unsolicited helper notifications use a separate channel so editor and
 /// runtime events cannot head-of-line block control responses.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum HostEvent {

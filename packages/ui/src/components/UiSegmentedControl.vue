@@ -122,23 +122,23 @@ function select(value: unknown): void {
 .ui-segmented--separated .ui-segmented__item {
   min-height: 24px;
   padding: 0 9px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 5px;
-  color: var(--text-secondary);
-  background: var(--daw-control);
+  color: var(--ui-color-text-muted);
+  background: var(--ui-daw-control);
   font: var(--ui-type-size-caption) var(--ui-type-family-interface);
 }
 .ui-segmented--separated .ui-segmented__item[data-state="on"] {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--line-strong));
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--accent) 20%, var(--daw-control));
+  border-color: color-mix(in srgb, var(--ui-color-action) 55%, var(--ui-color-border-strong));
+  color: var(--ui-color-text);
+  background: color-mix(in srgb, var(--ui-color-action) 20%, var(--ui-daw-control));
   box-shadow: var(--ui-shadow-highlight-inset);
 }
 .ui-segmented--separated .ui-segmented__item:hover:not(:disabled):not([data-state="on"]) {
-  background: var(--daw-control-hover);
+  background: var(--ui-daw-control-hover);
 }
 .ui-segmented--separated .ui-segmented__item:focus-visible {
-  outline: 2px solid var(--focus);
+  outline: 2px solid var(--ui-color-focus);
   outline-offset: 1px;
   box-shadow: none;
 }

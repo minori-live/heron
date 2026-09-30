@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::BinaryPayload;
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecordingStartConfig {
     pub path: String,
@@ -14,6 +15,7 @@ pub struct RecordingStartConfig {
     pub channels: u32,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecordingResult {
     pub path: String,
@@ -23,6 +25,7 @@ pub struct RecordingResult {
     pub dropout_frames: i64,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecordingWaveform {
     pub sample_rate: u32,
@@ -35,6 +38,7 @@ pub struct RecordingWaveform {
     pub peaks: BinaryPayload,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MidiRecordingTakeConfig {
     pub path: String,
@@ -46,11 +50,13 @@ pub struct MidiRecordingTakeConfig {
     pub channel: Option<u8>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MidiRecordingStartConfig {
     pub takes: Vec<MidiRecordingTakeConfig>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MidiRecordingPreviewNote {
     pub id: u32,
@@ -62,6 +68,7 @@ pub struct MidiRecordingPreviewNote {
     pub active: bool,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MidiRecordingTakePreview {
     pub clip_id: String,
@@ -69,12 +76,14 @@ pub struct MidiRecordingTakePreview {
     pub notes: Vec<MidiRecordingPreviewNote>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MidiRecordingPreview {
     pub position_tick: u64,
     pub takes: Vec<MidiRecordingTakePreview>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MidiRecordingTakeResult {
     pub path: String,
@@ -85,6 +94,7 @@ pub struct MidiRecordingTakeResult {
     pub dropped_events: u64,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MidiRecordingResult {
     pub takes: Vec<MidiRecordingTakeResult>,

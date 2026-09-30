@@ -9,14 +9,6 @@ mod midi;
 mod midi_journal;
 mod recording;
 
-#[cfg(feature = "bench-internals")]
-#[doc(hidden)]
-pub mod bench_support {
-    pub use crate::recording::bench_support::{
-        TapHarness, WaveformHarness, finalize_fixture, write_float_fixture, write_recording_session,
-    };
-}
-
 pub use audio_host::{
     AudioHostRuntime, NativeHostResponse, ParameterEnqueueRequest, ParameterEnqueueResult,
 };
@@ -25,8 +17,8 @@ pub use benchmark::run_audio_benchmark;
 pub use midi::{parse_midi_data, parse_midi_file};
 pub use midi_journal::recover_midi_journal_take;
 pub use recording::{
-    analyze_waveform, finalize_recording, repair_recording_header,
-    write_deterministic_test_recording,
+    FinalizeRecordingTask, NativeFinalizeRecordingConfig, analyze_waveform, finalize_recording,
+    repair_recording_header, write_deterministic_test_recording,
 };
 
 #[napi(object)]

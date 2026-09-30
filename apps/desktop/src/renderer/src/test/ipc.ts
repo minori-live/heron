@@ -154,3 +154,15 @@ export function testBootstrap(
     ...overrides
   }
 }
+
+/**
+ * Assign preload-bridge methods for one test. The renderer runs without the
+ * real bridge under Vitest, so each suite installs only the surface it calls.
+ * `target` defaults to `window.heron` and is overridden for the splash bridge.
+ */
+export function stubApi(
+  overrides: Record<string, unknown>,
+  target: Record<string, unknown> = window.heron as unknown as Record<string, unknown>
+): void {
+  Object.assign(target, overrides)
+}

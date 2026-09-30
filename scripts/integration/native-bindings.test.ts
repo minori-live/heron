@@ -46,7 +46,7 @@ type NativeBindings = {
 }
 
 const require = createRequire(import.meta.url)
-const desktopRequire = createRequire(new URL("../apps/desktop/package.json", import.meta.url))
+const desktopRequire = createRequire(new URL("../../apps/desktop/package.json", import.meta.url))
 const { decode, encode } = desktopRequire("@msgpack/msgpack") as {
   decode: (value: Uint8Array) => unknown
   encode: (value: unknown) => Uint8Array
@@ -57,8 +57,8 @@ const {
   engineInfo,
   processGain,
   writeDeterministicTestRecording
-} = require("../crates/dsp-node") as NativeBindings
-const expectedVersion = (await readFile(new URL("../VERSION", import.meta.url), "utf8")).trim()
+} = require("../../crates/dsp-node") as NativeBindings
+const expectedVersion = (await readFile(new URL("../../VERSION", import.meta.url), "utf8")).trim()
 
 await test("native DSP binding processes values across the napi boundary", () => {
   assert.deepEqual(engineInfo(), {

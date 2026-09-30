@@ -6,7 +6,7 @@ use std::{
 };
 
 use heron_audio_host::{
-    engine::{AudioEngine, NativeAudioEngineConfig, NativeDeviceRecoveryPhase},
+    engine::{AudioDeviceRecoveryPhase, AudioEngine, AudioEngineConfig},
     mock::{
         MockStreamFaultKind, reset_mock_device_control, set_mock_device_available,
         trigger_mock_stream_error,
@@ -38,8 +38,8 @@ fn duration_argument() -> Result<Duration, String> {
     Ok(Duration::from_secs(seconds.saturating_mul(multiplier)))
 }
 
-fn config() -> NativeAudioEngineConfig {
-    NativeAudioEngineConfig {
+fn config() -> AudioEngineConfig {
+    AudioEngineConfig {
         backend: "mock".to_owned(),
         input_device_id: "custom:mock-duplex".to_owned(),
         output_device_id: "custom:mock-duplex".to_owned(),
@@ -65,7 +65,7 @@ fn wait_for_original(engine: &AudioEngine, deadline: Instant) -> Result<u64, Str
         engine.poll_device_recovery();
         if let Some(recovery) = engine.device_recovery_snapshot() {
             last_generation = recovery.attempt_generation;
-            if recovery.phase == NativeDeviceRecoveryPhase::OriginalRestored {
+            if recovery.phase == AudioDeviceRecoveryPhase::OriginalRestored {
                 return Ok(last_generation);
             }
         }

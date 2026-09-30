@@ -40,7 +40,7 @@ function resizeDock(intent: UiGestureIntent): void {
 </script>
 
 <template>
-  <section class="block min-h-0 min-w-0 overflow-hidden bg-[var(--daw-workspace)]">
+  <section class="block min-h-0 min-w-0 overflow-hidden bg-[var(--ui-daw-workspace)]">
     <div class="arrangement-mode relative flex h-full min-h-0 min-w-0 flex-col">
       <ArrangementWorkspace
         :recording-id="recordingId"
@@ -53,7 +53,7 @@ function resizeDock(intent: UiGestureIntent): void {
       />
       <UiResizeHandle
         v-if="workspaceStore.lowerDockOpen"
-        class="dock-resizer relative z-[var(--ui-z-local-controls)] mt-[-2px] h-[5px] flex-none cursor-ns-resize border-b border-b-solid border-t border-t-solid bg-[var(--daw-resizer)] [border-bottom-color:var(--line-soft)] [border-top-color:var(--line-strong)]"
+        class="dock-resizer relative z-[var(--ui-z-local-controls)] mt-[-2px] h-[5px] flex-none cursor-ns-resize border-b border-b-solid border-t border-t-solid bg-[var(--ui-daw-resizer)] [border-bottom-color:var(--ui-color-border)] [border-top-color:var(--ui-color-border-strong)]"
         :class="{ active: resizing }"
         axis="vertical"
         :label="t('studio.arrangement.resizeMixerDockAria')"
@@ -87,9 +87,9 @@ function resizeDock(intent: UiGestureIntent): void {
   width: 32px;
   height: 1px;
   transform: translateX(-50%);
-  background: var(--text-faint);
+  background: var(--ui-color-text-faint);
 }
 .dock-resizer.active {
-  background: var(--surface-active);
+  background: var(--ui-color-surface-active);
 }
 </style>

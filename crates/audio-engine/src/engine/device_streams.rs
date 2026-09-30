@@ -1,8 +1,7 @@
 use super::{
-    BufferSize, Device, DeviceFaultSignal, DeviceTrait, Duration, Host, HostTrait,
-    NativeDeviceFaultKind, NativeStreamDirection, Ordering, Result, RuntimeMetrics, StreamConfig,
-    StreamFaultReporter, SupportedBufferSize, SupportedStreamConfig, UNKNOWN_LATENCY_US,
-    audio_error, invalid_config,
+    AudioDeviceFaultKind, AudioStreamDirection, BufferSize, Device, DeviceFaultSignal, DeviceTrait,
+    Duration, Host, HostTrait, Ordering, Result, RuntimeMetrics, StreamConfig, StreamFaultReporter,
+    SupportedBufferSize, SupportedStreamConfig, UNKNOWN_LATENCY_US, audio_error, invalid_config,
 };
 
 pub(super) fn find_device(host: &Host, id: &str, input: bool) -> Result<Device> {
@@ -120,33 +119,31 @@ pub(super) fn frames_to_nanos(frames: usize, sample_rate: u32) -> u64 {
 pub(super) enum StreamErrorImpact {
     Ignore,
     CountXrun,
-    Recover(NativeDeviceFaultKind),
+    Recover(AudioDeviceFaultKind),
     Fatal,
 }
 
 pub(super) fn stream_error_impact(
-    direction: NativeStreamDirection,
+    direction: AudioStreamDirection,
     error_kind: cpal::ErrorKind,
 ) -> StreamErrorImpact {
     match error_kind {
-        cpal::ErrorKind::Xrun if direction == NativeStreamDirection::Output => {
+        cpal::ErrorKind::Xrun if direction == AudioStreamDirection::Output => {
             StreamErrorImpact::CountXrun
         }
         cpal::ErrorKind::Xrun | cpal::ErrorKind::DeviceChanged => StreamErrorImpact::Ignore,
         cpal::ErrorKind::DeviceNotAvailable => {
-            StreamErrorImpact::Recover(NativeDeviceFaultKind::DeviceNotAvailable)
+            StreamErrorImpact::Recover(AudioDeviceFaultKind::DeviceNotAvailable)
         }
         cpal::ErrorKind::StreamInvalidated => {
-            StreamErrorImpact::Recover(NativeDeviceFaultKind::StreamInvalidated)
+            StreamErrorImpact::Recover(AudioDeviceFaultKind::StreamInvalidated)
         }
         cpal::ErrorKind::HostUnavailable => {
-            StreamErrorImpact::Recover(NativeDeviceFaultKind::HostUnavailable)
+            StreamErrorImpact::Recover(AudioDeviceFaultKind::HostUnavailable)
         }
-        cpal::ErrorKind::DeviceBusy => {
-            StreamErrorImpact::Recover(NativeDeviceFaultKind::DeviceBusy)
-        }
+        cpal::ErrorKind::DeviceBusy => StreamErrorImpact::Recover(AudioDeviceFaultKind::DeviceBusy),
         cpal::ErrorKind::BackendError => {
-            StreamErrorImpact::Recover(NativeDeviceFaultKind::BackendError)
+            StreamErrorImpact::Recover(AudioDeviceFaultKind::BackendError)
         }
         _ => StreamErrorImpact::Fatal,
     }
@@ -154,7 +151,7 @@ pub(super) fn stream_error_impact(
 
 pub(super) fn mark_stream_error(
     metrics: &RuntimeMetrics,
-    direction: NativeStreamDirection,
+    direction: AudioStreamDirection,
     error: &cpal::Error,
     faults: &StreamFaultReporter,
 ) {

@@ -6,6 +6,7 @@ const fn default_include_tail() -> bool {
     true
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum BounceChannelMode {
@@ -13,6 +14,7 @@ pub enum BounceChannelMode {
     Mono,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum BounceDither {
@@ -20,6 +22,7 @@ pub enum BounceDither {
     Tpdf,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "mode", rename_all = "kebab-case")]
 pub enum BounceNormalization {
@@ -28,6 +31,7 @@ pub enum BounceNormalization {
     TruePeak { target_dbtp: f64 },
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum BounceEncoding {
@@ -49,6 +53,7 @@ pub enum BounceEncoding {
     },
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BounceOutputRenderRequest {
     pub operation_id: String,
@@ -67,6 +72,7 @@ pub struct BounceOutputRenderRequest {
     pub encoded_path: String,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum BounceJobPhase {
@@ -76,6 +82,7 @@ pub enum BounceJobPhase {
     Encoding,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum BounceJobState {
@@ -85,6 +92,7 @@ pub enum BounceJobState {
     Cancelled,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BounceJobStatus {
     pub operation_id: String,

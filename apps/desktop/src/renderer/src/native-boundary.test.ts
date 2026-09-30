@@ -12,6 +12,16 @@ function sourceFiles(root: string): string[] {
   })
 }
 
+/**
+ * Test-support modules, which only `*.test.ts` files import.
+ *
+ * They install a stand-in preload bridge, so they name `window.heron` the same
+ * way the suites the scan already skips do. Nothing shipped imports them.
+ */
+function isTestSupport(path: string, rendererRoot: string): boolean {
+  return relative(rendererRoot, path).replaceAll("\\", "/").startsWith("test/")
+}
+
 describe("renderer native-call boundary", () => {
   const rendererRoot = import.meta.dirname
   const desktopSourceRoot = resolve(rendererRoot, "../..")
@@ -20,6 +30,18 @@ describe("renderer native-call boundary", () => {
     const violations = sourceFiles(rendererRoot)
       .filter((path) => readFileSync(path, "utf8").includes("window.heron"))
       .filter((path) => !relative(rendererRoot, path).replaceAll("\\", "/").startsWith("stores/"))
+      .filter((path) => !isTestSupport(path, rendererRoot))
+      .map((path) => relative(rendererRoot, path))
+
+    expect(violations).toEqual([])
+  })
+
+  it("keeps test-support modules out of shipped renderer code", () => {
+    const violations = sourceFiles(rendererRoot)
+      .filter((path) => !isTestSupport(path, rendererRoot))
+      .filter((path) =>
+        /["']\.\.?(\/\.\.)*\/test\/(?:ipc|setup)["']/u.test(readFileSync(path, "utf8"))
+      )
       .map((path) => relative(rendererRoot, path))
 
     expect(violations).toEqual([])

@@ -1,10 +1,10 @@
 use super::{
-    AudioEngine, NativeRecordingResult, NativeRecordingStartConfig, NativeWaveformSnapshot, Result,
-    audio_error, invalid_config,
+    AudioEngine, RecordingResult, RecordingStartConfig, RecordingWaveform, Result, audio_error,
+    invalid_config,
 };
 
 impl AudioEngine {
-    pub fn start_recording(&self, config: NativeRecordingStartConfig) -> Result<()> {
+    pub fn start_recording(&self, config: RecordingStartConfig) -> Result<()> {
         let guard = self
             .running
             .lock()
@@ -15,7 +15,7 @@ impl AudioEngine {
         engine.recorder.start(config)
     }
 
-    pub fn stop_recording(&self) -> Result<NativeRecordingResult> {
+    pub fn stop_recording(&self) -> Result<RecordingResult> {
         let guard = self
             .running
             .lock()
@@ -31,7 +31,7 @@ impl AudioEngine {
         start_frame: i64,
         end_frame: i64,
         max_buckets: u32,
-    ) -> Result<NativeWaveformSnapshot> {
+    ) -> Result<RecordingWaveform> {
         let guard = self
             .running
             .lock()

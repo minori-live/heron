@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AudioEngineConfig {
     pub backend: String,
@@ -9,6 +10,7 @@ pub struct AudioEngineConfig {
     pub session_sample_rate: Option<u32>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AudioBackend {
     pub id: String,
@@ -16,6 +18,7 @@ pub struct AudioBackend {
     pub available: bool,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AudioDevice {
     pub id: String,
@@ -27,12 +30,14 @@ pub struct AudioDevice {
     pub channel_count: Option<u32>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AudioDeviceList {
     pub inputs: Vec<AudioDevice>,
     pub outputs: Vec<AudioDevice>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AudioStreamDirection {
@@ -40,6 +45,7 @@ pub enum AudioStreamDirection {
     Output,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AudioDeviceFaultKind {
@@ -50,6 +56,7 @@ pub enum AudioDeviceFaultKind {
     BackendError,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AudioDeviceRecoveryPhase {
@@ -61,6 +68,7 @@ pub enum AudioDeviceRecoveryPhase {
     SelectionFailed,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AudioDeviceRecovery {
     pub recovery_id: u64,
@@ -74,6 +82,7 @@ pub struct AudioDeviceRecovery {
     pub fault: AudioDeviceFaultKind,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AudioRuntime {
     pub state: String,
@@ -95,6 +104,7 @@ pub struct AudioRuntime {
     pub buffer_fallback: bool,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ApplicationCaptureLogicalTarget {
     pub platform: String,
@@ -105,6 +115,7 @@ pub struct ApplicationCaptureLogicalTarget {
     pub include_process_tree: bool,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ApplicationCaptureTargetDescriptor {
     pub runtime_id: String,
@@ -116,6 +127,7 @@ pub struct ApplicationCaptureTargetDescriptor {
     pub status: String,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ApplicationCaptureSnapshot {
     pub runtime_id: String,
@@ -130,12 +142,14 @@ pub struct ApplicationCaptureSnapshot {
     pub underflow_frames: u64,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RoundTripLatencyMeasurementRequest {
     pub input_channel: u32,
     pub output_channel: u32,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundTripLatencyMeasurement {
     pub status: String,
@@ -145,6 +159,7 @@ pub struct RoundTripLatencyMeasurement {
     pub failure: Option<String>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AudioBenchmarkScenario {
     pub id: String,
@@ -169,6 +184,7 @@ pub struct AudioBenchmarkScenario {
     pub realtime_factor: f64,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AudioBenchmarkReport {
     pub duration_ms: f64,

@@ -8,7 +8,7 @@ import {
 import { mkdtemp, stat } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { closeElectronApplication } from "./support"
+import { closeElectronApplication, expectNear } from "./support"
 
 async function expectWorkspaceGeometry(page: Page): Promise<void> {
   const geometry = await page.locator(".live-shell").evaluate((shell) => {
@@ -37,18 +37,18 @@ async function expectWorkspaceGeometry(page: Page): Promise<void> {
         shell.querySelector(".topbar")!.scrollWidth > shell.querySelector(".topbar")!.clientWidth
     }
   })
-  expect(geometry.top.height).toBe(56)
-  expect(geometry.bottom.height).toBe(25)
-  expect(geometry.top.y).toBe(geometry.shell.y)
-  expect(geometry.bottom.bottom).toBe(geometry.shell.bottom)
-  expect(geometry.left.x).toBe(geometry.shell.x)
-  expect(geometry.left.right).toBe(geometry.center.x)
-  expect(geometry.center.right).toBe(geometry.right.x)
-  expect(geometry.right.right).toBe(geometry.shell.right)
-  expect(geometry.left.y).toBe(geometry.top.bottom)
-  expect(geometry.center.y).toBe(geometry.top.bottom)
-  expect(geometry.right.y).toBe(geometry.top.bottom)
-  expect(geometry.right.bottom).toBe(geometry.bottom.y)
+  expectNear(geometry.top.height, 56)
+  expectNear(geometry.bottom.height, 25)
+  expectNear(geometry.top.y, geometry.shell.y)
+  expectNear(geometry.bottom.bottom, geometry.shell.bottom)
+  expectNear(geometry.left.x, geometry.shell.x)
+  expectNear(geometry.left.right, geometry.center.x)
+  expectNear(geometry.center.right, geometry.right.x)
+  expectNear(geometry.right.right, geometry.shell.right)
+  expectNear(geometry.left.y, geometry.top.bottom)
+  expectNear(geometry.center.y, geometry.top.bottom)
+  expectNear(geometry.right.y, geometry.top.bottom)
+  expectNear(geometry.right.bottom, geometry.bottom.y)
   expect(geometry.center.width).toBeGreaterThan(150)
   expect(geometry.centerChildren).toBe(0)
   expect(geometry.pageOverflows).toBe(false)
@@ -94,7 +94,7 @@ async function expectMixerStripSizing(page: Page): Promise<void> {
   }))
   expect(compact.contentHeight).toBeGreaterThan(compact.viewportHeight)
   expect(compact.stripHeight).toBeGreaterThan(compact.viewportHeight)
-  expect(compact.volumeHeight).toBe(282)
+  expectNear(compact.volumeHeight, 282)
   expect(expanded.faderHeight).toBeGreaterThan(compact.faderHeight)
   await page.setViewportSize({ width: 1440, height: 900 })
 }

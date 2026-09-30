@@ -1,5 +1,5 @@
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     fs,
     sync::{
         Arc, Mutex, OnceLock, TryLockError,
@@ -42,8 +42,8 @@ use rubato::{
 };
 
 use crate::recording::{
-    MAX_INPUT_CHANNELS, NativeRecordingResult, NativeRecordingStartConfig, NativeWaveformSnapshot,
-    RecorderController, RecordingTap, StereoFrame,
+    MAX_INPUT_CHANNELS, RecorderController, RecordingResult, RecordingStartConfig, RecordingTap,
+    RecordingWaveform, StereoFrame,
 };
 use crate::{HostError as Error, HostResult as Result, Status};
 use heron_audio_plugin::{
@@ -98,15 +98,16 @@ pub struct AudioEngine {
     application_capture: crate::application_capture::ApplicationCaptureManager,
     runtime_transition: Mutex<()>,
     running: Mutex<Option<RunningAudioEngine>>,
-    pending_mixer: Mutex<Option<Box<NativeMixerRuntime>>>,
-    last_native_graph: Mutex<Option<NativeMixerGraph>>,
+    pending_mixer: Mutex<Option<Box<MixerRuntime>>>,
+    last_native_graph: Mutex<Option<ResolvedMixerGraph>>,
+    plugin_slots: Mutex<HashMap<String, AudioPluginProcessorHandle>>,
     compiled_graph_snapshots: Mutex<BTreeMap<u64, CompiledAudioGraphSnapshot>>,
     next_build_generation: AtomicU64,
     device_fault_sender: mpsc::SyncSender<DeviceFaultSignal>,
     device_fault_receiver: Mutex<mpsc::Receiver<DeviceFaultSignal>>,
     next_stream_incarnation: AtomicU64,
     current_stream_incarnation: AtomicU64,
-    current_audio_config: Mutex<Option<NativeAudioEngineConfig>>,
+    current_audio_config: Mutex<Option<AudioEngineConfig>>,
     recovery_authority: AtomicU64,
     recovery_commit: Mutex<()>,
     next_recovery_id: AtomicU64,
@@ -123,6 +124,7 @@ impl AudioEngine {
             running: Mutex::new(None),
             pending_mixer: Mutex::new(None),
             last_native_graph: Mutex::new(None),
+            plugin_slots: Mutex::new(HashMap::new()),
             compiled_graph_snapshots: Mutex::new(BTreeMap::new()),
             next_build_generation: AtomicU64::new(1),
             device_fault_sender,
@@ -208,6 +210,8 @@ mod recording;
 mod render_runtime;
 #[path = "engine/resampling.rs"]
 mod resampling;
+#[path = "engine/resolve.rs"]
+mod resolve;
 #[path = "engine/spec.rs"]
 mod spec;
 #[path = "engine/transport_midi.rs"]
@@ -223,9 +227,9 @@ use device_streams::{
 };
 use graph_build::build_mixer_runtime;
 use latency_measurement::{
-    AuditionPlayback, EngineCommand, NativeMixerRuntime, RealtimeParameter,
-    RealtimeParameterCommand, RoundTripInputDetector, RoundTripLatencyMeasurement,
-    RoundTripOutputProbe, RuntimeMetrics, TransportAction,
+    AuditionPlayback, EngineCommand, MixerRuntime, RealtimeParameter, RealtimeParameterCommand,
+    RoundTripInputDetector, RoundTripLatencyState, RoundTripOutputProbe, RuntimeMetrics,
+    TransportAction,
 };
 use lifecycle_types::{
     AudioEngineKey, OutputMixerControl, OutputStreamContext, RunningAudioEngine, audio_error,
@@ -241,23 +245,24 @@ use transport_midi::{
 
 pub use benchmark::run_audio_benchmark;
 pub use bounce::{
-    NativeBounceChannelMode, NativeBounceDither, NativeBounceFormat, NativeBounceNormalization,
-    NativeBounceProgress, NativeBounceRequest, NativeBounceResult, render_bounce_output,
+    BounceChannelMode, BounceDither, BounceFormat, BounceNormalization, BounceProgress,
+    BounceRequest, BounceResult, render_bounce_output,
 };
 pub use clip_decode::decode_clip_audio;
 pub use device_recovery::{
-    DeviceRecoveryAttempt, NativeAudioDeviceRecoverySnapshot, NativeDeviceFaultKind,
-    NativeDeviceRecoveryPhase, NativeStreamDirection,
+    AudioDeviceFaultKind, AudioDeviceRecoveryPhase, AudioDeviceRecoverySnapshot,
+    AudioStreamDirection, DeviceRecoveryAttempt,
 };
 pub use metering::TransportClockHandle;
 pub use publication::{CompiledGraphBuild, GraphBuildInput, PublishOutcome, compile_graph_build};
+pub use resolve::resolve_graph;
 pub use spec::{
-    NativeApplicationCaptureTarget, NativeAudioEngineConfig, NativeAudioRuntimeSnapshot,
-    NativeLatencyPolicy, NativeMidiClip, NativeMidiEvent, NativeMidiEventKind, NativeMidiNote,
-    NativeMixerChannel, NativeMixerChannelMeter, NativeMixerClip, NativeMixerGraph,
-    NativeMixerParameterPreview, NativeMixerSend, NativeMixerSnapshot, NativePluginAuxInputBus,
-    NativePluginInstance, NativeRoundTripLatencyMeasurementRequest,
-    NativeRoundTripLatencyMeasurementSnapshot, NativeTransportSnapshot,
+    ApplicationCaptureLogicalTarget, AudioEngineConfig, AudioRuntime, DecodedMidiClip,
+    DecodedMidiEvent, DecodedMidiEventKind, DecodedMidiNote, MixerChannelMeter,
+    MixerParameterPreview, MixerSnapshot, ResolvedLatencyPolicy, ResolvedMixerChannel,
+    ResolvedMixerClip, ResolvedMixerGraph, ResolvedMixerSend, ResolvedPluginAuxInputBus,
+    ResolvedPluginInstance, RoundTripLatencyMeasurement, RoundTripLatencyMeasurementRequest,
+    TransportSnapshot,
 };
 
 #[cfg(test)]

@@ -266,6 +266,10 @@ Tracked in [issue #135](https://github.com/minori-live/heron/issues/135).
       passed locally; the source-size gate reports zero hard violations.
       Remaining enforcement gaps include shared-package dependency direction
       and validation of issue-linked, bounded policy exceptions.
+      Pull request #176 added a gate against the engine re-acquiring a mirrored
+      `Native*` model or a serialization dependency, and gave local and CI
+      validation one shared task list so the two cannot disagree about what a
+      full run covers. Neither closes the two gaps named above.
 - [ ] Complete automated validation deferred during the closure review,
       including Mixer, shared-control, architecture, and UI checks. Restore the
       project-managed dependency setup and record the results; inspection and

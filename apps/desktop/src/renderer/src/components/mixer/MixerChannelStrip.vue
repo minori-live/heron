@@ -226,7 +226,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
 
 <style scoped>
 .channel-strip {
-  --strip-color: var(--accent);
+  --strip-color: var(--ui-color-action);
   position: relative;
   display: grid;
   grid-template-rows:
@@ -237,9 +237,9 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   height: 100%;
   min-height: calc(566px + var(--plugin-section-height) + var(--send-section-height));
   overflow: hidden;
-  border-right: 1px solid var(--ui-domain-color-303030);
-  background: var(--ui-domain-color-575757);
-  box-shadow: 1px 0 0 var(--ui-domain-color-ffffff0c) inset;
+  border-right: 1px solid var(--ui-domain-mixer-strip-edge);
+  background: var(--ui-domain-mixer-section);
+  box-shadow: 1px 0 0 var(--ui-domain-mixer-strip-sheen) inset;
 }
 
 .channel-strip::before {
@@ -255,20 +255,20 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
 }
 
 .channel-strip.aux {
-  background: var(--ui-domain-color-53575a);
+  background: var(--ui-domain-mixer-strip-aux);
 }
 
 .channel-strip.master {
   position: sticky;
   right: 0;
   z-index: var(--ui-z-local-sticky);
-  border-left: 1px solid var(--ui-domain-color-2e2e2e);
-  background: var(--ui-domain-color-505050);
-  box-shadow: -12px 0 22px var(--ui-domain-color-0000005c);
+  border-left: 1px solid var(--ui-domain-mixer-strip-master-edge);
+  background: var(--ui-domain-mixer-strip-master);
+  box-shadow: -12px 0 22px var(--ui-domain-mixer-strip-master-cast);
 }
 
 .channel-strip.selected {
-  background: var(--ui-domain-color-626262);
+  background: var(--ui-domain-mixer-strip-selected);
   box-shadow: 3px 0 0 var(--strip-color) inset;
 }
 
@@ -276,29 +276,32 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   display: grid;
   align-items: center;
   padding: 4px 7px;
-  border-bottom: 1px solid var(--ui-domain-color-444);
-  background: var(--ui-domain-color-575757);
+  border-bottom: 1px solid var(--ui-domain-mixer-divider);
+  background: var(--ui-domain-mixer-section);
 }
 
 .placeholder-section :deep(.ui-button) {
   width: 100%;
   height: 25px;
-  border: 1px solid var(--ui-domain-color-6b6b6b);
+  border: 1px solid var(--ui-domain-mixer-placeholder-border);
   border-radius: 4px;
-  color: var(--ui-domain-color-bcbcbc);
-  background: linear-gradient(var(--ui-domain-color-666), var(--ui-domain-color-595959));
+  color: var(--ui-domain-mixer-placeholder-ink);
+  background: linear-gradient(
+    var(--ui-domain-mixer-placeholder-top),
+    var(--ui-domain-mixer-placeholder-bottom)
+  );
   font-size: var(--ui-type-size-control);
 }
 
 .automation-section button {
-  color: var(--ui-domain-color-81ed8b);
-  text-shadow: 0 0 5px var(--ui-domain-color-5fe66b5c);
+  color: var(--ui-domain-mixer-automation-ink);
+  text-shadow: 0 0 5px var(--ui-domain-mixer-automation-glow);
 }
 
 .pan-control {
   padding: 8px 12px;
-  border-bottom: 1px solid var(--ui-domain-color-444);
-  background: var(--ui-domain-color-565656);
+  border-bottom: 1px solid var(--ui-domain-mixer-divider);
+  background: var(--ui-domain-mixer-section);
 }
 
 .channel-name {
@@ -308,9 +311,9 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   gap: 7px;
   padding: 0 6px;
   border: 0;
-  border-top: 1px solid var(--line-strong);
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--strip-color) 72%, var(--ui-domain-color-484848));
+  border-top: 1px solid var(--ui-color-border-strong);
+  color: var(--ui-color-text);
+  background: color-mix(in srgb, var(--strip-color) 72%, var(--ui-domain-mixer-name-base));
   text-align: left;
 }
 

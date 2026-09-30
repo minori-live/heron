@@ -1,4 +1,4 @@
-use super::{MAX_INPUT_CHANNELS, NativeMixerChannel, Result, invalid_config};
+use super::{MAX_INPUT_CHANNELS, ResolvedMixerChannel, Result, invalid_config};
 
 pub(super) fn validate_sample_rate(sample_rate: u32) -> Result<()> {
     if sample_rate == 0 {
@@ -13,7 +13,7 @@ pub(super) struct InputRoutes {
     pub(super) source: Vec<Option<[usize; 2]>>,
 }
 
-pub(super) fn build_input_routes(channels: &[NativeMixerChannel]) -> Result<InputRoutes> {
+pub(super) fn build_input_routes(channels: &[ResolvedMixerChannel]) -> Result<InputRoutes> {
     let input_meter_routes = channels
         .iter()
         .map(|channel| {

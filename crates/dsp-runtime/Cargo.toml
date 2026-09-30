@@ -7,14 +7,18 @@ license.workspace = true
 
 [dependencies]
 midly.workspace = true
-rmp-serde.workspace = true
 serde.workspace = true
 serde_bytes.workspace = true
+ts-rs = { workspace = true, optional = true }
+
+[dev-dependencies]
+rmp-serde.workspace = true
 serde_json.workspace = true
 
 [lints]
 workspace = true
 
+# Exports the wire types as TypeScript. Not part of any shipped build.
 [features]
 default = []
-test-support = []
+ts-export = ["dep:ts-rs"]

@@ -7,7 +7,10 @@ use std::{
 
 use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use heron_audio_host::engine::bench_support::{StreamingHarness, decode_clip};
-use heron_dsp_node::bench_support::write_float_fixture;
+
+mod common;
+
+use common::write_float_fixture;
 
 struct FixtureDirectory {
     path: PathBuf,

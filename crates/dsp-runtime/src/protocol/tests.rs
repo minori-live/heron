@@ -45,7 +45,7 @@ fn decode_base64(value: &str) -> Vec<u8> {
 
 #[test]
 fn legacy_windows_application_capture_target_defaults_bundle_identifier() {
-    let target: ApplicationCaptureTarget = serde_json::from_value(serde_json::json!({
+    let target: ApplicationCaptureLogicalTarget = serde_json::from_value(serde_json::json!({
         "platform": "windows",
         "executable_path": "C:\\Program Files\\Player\\player.exe",
         "executable_name": "player.exe",
@@ -59,7 +59,7 @@ fn legacy_windows_application_capture_target_defaults_bundle_identifier() {
 
 #[test]
 fn macos_application_capture_target_round_trips_bundle_identifier() {
-    let target = ApplicationCaptureTarget {
+    let target = ApplicationCaptureLogicalTarget {
         platform: "macos".to_owned(),
         bundle_identifier: Some("com.example.player".to_owned()),
         executable_path: "/Applications/Player.app/Contents/MacOS/Player".to_owned(),
@@ -67,7 +67,7 @@ fn macos_application_capture_target_round_trips_bundle_identifier() {
         include_process_tree: true,
     };
     let bytes = rmp_serde::to_vec_named(&target).expect("macOS target must encode");
-    let decoded: ApplicationCaptureTarget =
+    let decoded: ApplicationCaptureLogicalTarget =
         rmp_serde::from_slice(&bytes).expect("macOS target must decode");
 
     assert_eq!(decoded, target);
@@ -245,7 +245,7 @@ fn rust_messagepack_fixtures_match_named_struct_encoding() {
         .iter()
         .filter(|fixture| fixture.producer == "rust")
         .collect::<Vec<_>>();
-    assert_eq!(rust_fixtures.len(), 4);
+    assert_eq!(rust_fixtures.len(), 5);
 
     for fixture in rust_fixtures {
         let bytes = decode_base64(&fixture.base64);
@@ -367,40 +367,6 @@ fn midi_recording_stop_uses_the_desktop_wire_field() {
         4
     );
     assert!(wire["result"].get("recording").is_none());
-}
-
-#[test]
-fn messagepack_frame_round_trips() {
-    let request = ControlRequest {
-        request_id: 42,
-        command: ControlCommand::PrepareGraph {
-            meta: RpcRequestMeta {
-                protocol_version: IPC_PROTOCOL_VERSION,
-                request_id: "round-trip".into(),
-                target: None,
-                expected_revision: None,
-                mutation: None,
-            },
-            request: Box::new(PrepareGraphRequest {
-                helper_epoch: "42".into(),
-                project_graph: ResourceRef {
-                    kind: ResourceKind::ProjectGraph,
-                    id: "graph".into(),
-                    epoch: "project".into(),
-                    generation: 1,
-                },
-                base_revision: 0,
-                graph_revision: 1,
-                graph: empty_graph(),
-            }),
-        },
-    };
-    let mut bytes = Vec::new();
-    write_message(&mut bytes, &request).unwrap();
-    assert_eq!(
-        read_message::<ControlRequest>(&mut bytes.as_slice()).unwrap(),
-        request
-    );
 }
 
 #[test]
@@ -634,16 +600,6 @@ fn mixer_send_taps_use_stable_kebab_case_wire_values() {
     assert!(rmp_serde::from_slice::<LiveMixerSendTap>(&unknown).is_err());
 }
 
-#[test]
-fn rejects_oversized_frame_before_allocating() {
-    let mut bytes = ((MAX_MESSAGE_BYTES as u32) + 1).to_be_bytes().to_vec();
-    bytes.extend_from_slice(&[0; 4]);
-    assert!(matches!(
-        read_message::<ControlRequest>(&mut bytes.as_slice()),
-        Err(ProtocolError::MessageTooLarge(_))
-    ));
-}
-
 fn empty_graph() -> LiveMixerGraph {
     LiveMixerGraph {
         sample_rate: 48_000,
@@ -654,14 +610,180 @@ fn empty_graph() -> LiveMixerGraph {
         clips: vec![],
         plugins: vec![],
         midi_clips: vec![],
-        tempo_events: vec![LiveTempoEvent {
+        tempo_events: vec![TempoEvent {
             tick: 0,
             beats_per_minute: 120.0,
         }],
-        time_signature_events: vec![LiveTimeSignatureEvent {
+        time_signature_events: vec![TimeSignatureEvent {
             tick: 0,
             numerator: 4,
             denominator: 4,
+        }],
+    }
+}
+
+/// Every channel, send, clip, plug-in, MIDI clip, tempo and time-signature
+/// field is populated so the cross-language fixture pins the whole graph wire
+/// shape rather than a subset. Values stay well inside `2^53` so the
+/// TypeScript decoder reads them as ordinary numbers.
+fn populated_graph() -> LiveMixerGraph {
+    LiveMixerGraph {
+        sample_rate: 48_000,
+        project_end_tick: 122_880,
+        latency_policy: LiveLatencyPolicy::LowLatency {
+            target_output_channel_id: "channel-output".to_owned(),
+            plugin_budget_samples: 512,
+        },
+        channels: vec![
+            LiveMixerChannel {
+                id: "channel-audio".to_owned(),
+                name: "Lead Vocal".to_owned(),
+                color: "#4f8ef7".to_owned(),
+                kind: "audio".to_owned(),
+                system_role: None,
+                gain_db: -6.5,
+                pan: 0.25,
+                muted: false,
+                soloed: true,
+                output_channel_id: Some("channel-bus".to_owned()),
+                output_bus: None,
+                record_armed: true,
+                input_monitoring: true,
+                midi_input_port_id: Some("port-keys".to_owned()),
+                midi_input_port_name: Some("Keys".to_owned()),
+                midi_input_channel: Some(3),
+                input_source: Some("device-1:0".to_owned()),
+                input_channels: vec![0, 1],
+                application_capture: Some(ApplicationCaptureLogicalTarget {
+                    platform: "macos".to_owned(),
+                    bundle_identifier: Some("com.example.player".to_owned()),
+                    executable_path: "/Applications/Player.app".to_owned(),
+                    executable_name: "Player".to_owned(),
+                    include_process_tree: true,
+                }),
+                hardware_output_channels: vec![0, 1],
+            },
+            LiveMixerChannel {
+                id: "channel-bus".to_owned(),
+                name: "Reverb Bus".to_owned(),
+                color: "#b894ff".to_owned(),
+                kind: "aux".to_owned(),
+                system_role: None,
+                gain_db: 0.0,
+                pan: -0.5,
+                muted: true,
+                soloed: false,
+                output_channel_id: None,
+                output_bus: Some(2),
+                record_armed: false,
+                input_monitoring: false,
+                midi_input_port_id: None,
+                midi_input_port_name: None,
+                midi_input_channel: None,
+                input_source: None,
+                input_channels: vec![],
+                application_capture: None,
+                hardware_output_channels: vec![],
+            },
+            LiveMixerChannel {
+                id: "channel-output".to_owned(),
+                name: "Output 1-2".to_owned(),
+                color: "#73d6a2".to_owned(),
+                kind: "output".to_owned(),
+                system_role: Some(LiveMixerSystemRole::Metronome),
+                gain_db: 1.25,
+                pan: 0.0,
+                muted: false,
+                soloed: false,
+                output_channel_id: None,
+                output_bus: None,
+                record_armed: false,
+                input_monitoring: false,
+                midi_input_port_id: None,
+                midi_input_port_name: None,
+                midi_input_channel: None,
+                input_source: None,
+                input_channels: vec![],
+                application_capture: None,
+                hardware_output_channels: vec![3, 4],
+            },
+        ],
+        sends: vec![LiveMixerSend {
+            id: "send-1".to_owned(),
+            source_channel_id: "channel-audio".to_owned(),
+            target_channel_id: Some("channel-bus".to_owned()),
+            target_bus: None,
+            enabled: true,
+            tap: LiveMixerSendTap::PostPan,
+            level_db: -12.0,
+        }],
+        clips: vec![LiveMixerClip {
+            id: "clip-1".to_owned(),
+            channel_id: "channel-audio".to_owned(),
+            start_frame: 0,
+            source_offset_frames: 256,
+            length_frames: 48_000,
+            fade_in_frames: 512,
+            fade_out_frames: 1_024,
+            path: "/media/take-1.wav".to_owned(),
+        }],
+        plugins: vec![LivePluginInstance {
+            instance_id: "plugin-1".to_owned(),
+            instance_generation: 2,
+            channel_id: "channel-audio".to_owned(),
+            role: "effect".to_owned(),
+            slot_order: 1,
+            audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
+            enabled: true,
+            aux_input_buses: vec![LivePluginAuxInputBus {
+                input_port_key: "sidechain".to_owned(),
+                name: "Side Chain".to_owned(),
+                channels: 2,
+                source_channel_id: Some("channel-bus".to_owned()),
+            }],
+            latency_samples: 128,
+            tail_samples: Some(4_096),
+        }],
+        midi_clips: vec![LiveMidiClip {
+            id: "midi-clip-1".to_owned(),
+            channel_id: "channel-audio".to_owned(),
+            start_tick: 960,
+            source_offset_ticks: 0,
+            length_ticks: 1_920,
+            notes: MidiNoteBatch::Inline {
+                notes: vec![LiveMidiNote {
+                    start_tick: 0,
+                    duration_ticks: 480,
+                    channel: 0,
+                    key: 60,
+                    velocity: 100,
+                    release_velocity: 64,
+                }],
+            },
+            events: MidiEventBatch::Inline {
+                events: vec![LiveMidiEvent {
+                    tick: 0,
+                    channel: Some(0),
+                    kind: "control-change".to_owned(),
+                    data: BinaryPayload::inline(vec![1, 74, 64]),
+                }],
+            },
+        }],
+        tempo_events: vec![
+            TempoEvent {
+                tick: 0,
+                beats_per_minute: 120.0,
+            },
+            TempoEvent {
+                tick: 7_680,
+                beats_per_minute: 96.5,
+            },
+        ],
+        time_signature_events: vec![TimeSignatureEvent {
+            tick: 0,
+            numerator: 6,
+            denominator: 8,
         }],
     }
 }
@@ -696,117 +818,229 @@ fn binary_payloads_expose_bytes_only_when_they_are_inline() {
     );
 }
 
-#[test]
-fn a_frame_is_length_prefixed_in_big_endian() {
-    let mut bytes = Vec::new();
-    write_message(
-        &mut bytes,
-        &ControlRequest {
-            request_id: 1,
-            command: ControlCommand::Ping,
-        },
-    )
-    .unwrap();
-
-    let length = u32::from_be_bytes(bytes[..4].try_into().unwrap()) as usize;
-    assert_eq!(length, bytes.len() - 4);
+/// Sorted key set of a JSON object, so a fixture can pin exact wire names
+/// instead of only the values a matching pair of encoders happens to produce.
+fn wire_keys(value: &serde_json::Value) -> Vec<&str> {
+    let mut keys = value
+        .as_object()
+        .expect("wire key assertion requires a JSON object")
+        .keys()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    keys.sort_unstable();
+    keys
 }
 
-#[test]
-fn consecutive_frames_are_read_back_in_order() {
-    let mut bytes = Vec::new();
-    for request_id in 0..3 {
-        write_message(
-            &mut bytes,
-            &ControlRequest {
-                request_id,
-                command: ControlCommand::Ping,
+fn populated_graph_request() -> ControlRequest {
+    ControlRequest {
+        request_id: 47,
+        command: populated_graph_command(),
+    }
+}
+
+fn populated_graph_command() -> ControlCommand {
+    ControlCommand::PrepareGraph {
+        meta: RpcRequestMeta {
+            protocol_version: IPC_PROTOCOL_VERSION,
+            request_id: "fixture-graph".to_owned(),
+            target: Some(ResourceRef {
+                kind: ResourceKind::AudioEngine,
+                id: "engine-1".to_owned(),
+                epoch: "18446744073709551615".to_owned(),
+                generation: 2,
+            }),
+            expected_revision: Some(7),
+            mutation: Some(RpcMutationMeta {
+                operation_id: "operation-graph".to_owned(),
+                idempotency_key: "graph:prepare:8".to_owned(),
+            }),
+        },
+        request: Box::new(PrepareGraphRequest {
+            helper_epoch: "18446744073709551615".to_owned(),
+            project_graph: ResourceRef {
+                kind: ResourceKind::ProjectGraph,
+                id: "graph-1".to_owned(),
+                epoch: "project-epoch".to_owned(),
+                generation: 4,
             },
-        )
-        .unwrap();
+            base_revision: 7,
+            graph_revision: 8,
+            graph: populated_graph(),
+        }),
     }
-
-    let mut reader = bytes.as_slice();
-    for request_id in 0..3 {
-        assert_eq!(
-            read_message::<ControlRequest>(&mut reader)
-                .unwrap()
-                .request_id,
-            request_id
-        );
-    }
-    assert!(reader.is_empty());
 }
 
+/// The mixer graph is the largest surface the Live document work extends, and
+/// the TypeScript mirror of it carries no runtime validation. This fixture
+/// freezes the encoded bytes and every wire key, so a Rust-side rename fails
+/// here as well as in the TypeScript fixture test.
 #[test]
-fn a_truncated_frame_is_reported_as_an_io_error() {
-    let mut bytes = Vec::new();
-    write_message(
-        &mut bytes,
-        &ControlRequest {
-            request_id: 1,
-            command: ControlCommand::Ping,
-        },
-    )
-    .unwrap();
-    bytes.truncate(bytes.len() - 1);
+fn populated_graph_fixture_pins_the_cross_language_wire_keys() {
+    let fixtures: Vec<MessagePackFixture> = serde_json::from_str(include_str!(
+        "../../tests/fixtures/audio-host-messagepack.json"
+    ))
+    .expect("fixture manifest must be valid JSON");
+    let fixture = fixtures
+        .iter()
+        .find(|fixture| fixture.name == "prepare-graph-populated")
+        .expect("the populated graph fixture must exist");
 
-    assert!(matches!(
-        read_message::<ControlRequest>(&mut bytes.as_slice()),
-        Err(ProtocolError::Io(_))
-    ));
-}
-
-#[test]
-fn a_frame_that_is_not_the_expected_message_is_reported_as_a_decode_error() {
-    let mut bytes = Vec::new();
-    write_message(&mut bytes, &"not a control request".to_owned()).unwrap();
-
-    assert!(matches!(
-        read_message::<ControlRequest>(&mut bytes.as_slice()),
-        Err(ProtocolError::Decode(_))
-    ));
-}
-
-#[test]
-fn a_write_that_fails_midway_surfaces_the_io_error() {
-    struct FullDisk;
-
-    impl std::io::Write for FullDisk {
-        fn write(&mut self, _buffer: &[u8]) -> std::io::Result<usize> {
-            Err(std::io::Error::other("no space left on device"))
-        }
-
-        fn flush(&mut self) -> std::io::Result<()> {
-            Ok(())
-        }
-    }
-
-    let error = write_message(
-        &mut FullDisk,
-        &ControlRequest {
-            request_id: 1,
-            command: ControlCommand::Ping,
-        },
-    )
-    .expect_err("a failing writer should surface an error");
-
-    assert!(matches!(error, ProtocolError::Io(_)));
-    assert!(error.to_string().starts_with("helper protocol I/O failed"));
-}
-
-#[test]
-fn protocol_errors_describe_themselves() {
+    let bytes = decode_base64(&fixture.base64);
+    let request = rmp_serde::from_slice::<ControlRequest>(&bytes)
+        .expect("populated graph fixture must decode as a control request");
     assert_eq!(
-        ProtocolError::MessageTooLarge(70_000_000).to_string(),
-        "helper message exceeds 64 MiB: 70000000"
+        serde_json::to_value(&request).expect("fixture must normalize"),
+        fixture.normalized,
+        "fixture {} values drifted",
+        fixture.name
     );
+    assert_eq!(
+        rmp_serde::to_vec_named(&request).expect("fixture must encode"),
+        bytes,
+        "fixture {} bytes drifted",
+        fixture.name
+    );
+    assert_eq!(request, populated_graph_request());
 
-    let decode = read_message::<ControlRequest>(&mut [0, 0, 0, 1, 0xc1].as_slice())
-        .expect_err("0xc1 is never a valid MessagePack marker");
-    assert!(
-        decode
-            .to_string()
-            .starts_with("helper message decoding failed")
+    let wire = serde_json::to_value(&request).expect("fixture must normalize");
+    let graph = &wire["command"]["request"]["graph"];
+    assert_eq!(
+        wire_keys(graph),
+        [
+            "channels",
+            "clips",
+            "latency_policy",
+            "midi_clips",
+            "plugins",
+            "project_end_tick",
+            "sample_rate",
+            "sends",
+            "tempo_events",
+            "time_signature_events",
+        ]
     );
+    assert_eq!(
+        wire_keys(&graph["channels"][0]),
+        [
+            "application_capture",
+            "color",
+            "gain_db",
+            "hardware_output_channels",
+            "id",
+            "input_channels",
+            "input_monitoring",
+            "input_source",
+            "kind",
+            "midi_input_channel",
+            "midi_input_port_id",
+            "midi_input_port_name",
+            "muted",
+            "name",
+            "output_bus",
+            "output_channel_id",
+            "pan",
+            "record_armed",
+            "soloed",
+            "system_role",
+        ]
+    );
+    assert_eq!(
+        wire_keys(&graph["channels"][0]["application_capture"]),
+        [
+            "bundle_identifier",
+            "executable_name",
+            "executable_path",
+            "include_process_tree",
+            "platform",
+        ]
+    );
+    assert_eq!(
+        wire_keys(&graph["sends"][0]),
+        [
+            "enabled",
+            "id",
+            "level_db",
+            "source_channel_id",
+            "tap",
+            "target_bus",
+            "target_channel_id",
+        ]
+    );
+    assert_eq!(
+        wire_keys(&graph["clips"][0]),
+        [
+            "channel_id",
+            "fade_in_frames",
+            "fade_out_frames",
+            "id",
+            "length_frames",
+            "path",
+            "source_offset_frames",
+            "start_frame",
+        ]
+    );
+    assert_eq!(
+        wire_keys(&graph["plugins"][0]),
+        [
+            "audio_mode",
+            "aux_input_buses",
+            "channel_id",
+            "duplicate_mono_output",
+            "enabled",
+            "instance_generation",
+            "instance_id",
+            "latency_samples",
+            "role",
+            "slot_order",
+            "tail_samples",
+        ]
+    );
+    assert_eq!(
+        wire_keys(&graph["plugins"][0]["aux_input_buses"][0]),
+        ["channels", "input_port_key", "name", "source_channel_id",]
+    );
+    assert_eq!(
+        wire_keys(&graph["midi_clips"][0]),
+        [
+            "channel_id",
+            "events",
+            "id",
+            "length_ticks",
+            "notes",
+            "source_offset_ticks",
+            "start_tick",
+        ]
+    );
+    assert_eq!(
+        wire_keys(&graph["midi_clips"][0]["notes"]["notes"][0]),
+        [
+            "channel",
+            "duration_ticks",
+            "key",
+            "release_velocity",
+            "start_tick",
+            "velocity",
+        ]
+    );
+    assert_eq!(
+        wire_keys(&graph["midi_clips"][0]["events"]["events"][0]),
+        ["channel", "data", "kind", "tick"]
+    );
+    assert_eq!(
+        wire_keys(&graph["midi_clips"][0]["events"]["events"][0]["data"]),
+        ["bytes", "storage"]
+    );
+    assert_eq!(
+        wire_keys(&graph["latency_policy"]),
+        ["plugin_budget_samples", "target_output_channel_id", "type"]
+    );
+    assert_eq!(
+        wire_keys(&graph["tempo_events"][0]),
+        ["beats_per_minute", "tick"]
+    );
+    assert_eq!(
+        wire_keys(&graph["time_signature_events"][0]),
+        ["denominator", "numerator", "tick"]
+    );
+    assert_eq!(graph["channels"][2]["system_role"], "metronome");
 }

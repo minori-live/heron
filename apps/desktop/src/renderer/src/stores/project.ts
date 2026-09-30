@@ -15,12 +15,8 @@ import type {
   ProjectWorkspaceSnapshot
 } from "@heron/contracts"
 import { useGlobalDialog } from "../composables/useGlobalDialog"
-import { i18n } from "../i18n"
+import { t } from "../i18n"
 import { mutationMeta, readMeta, rpcErrorMessage } from "../rpc"
-
-function t(key: string, params?: Record<string, string | number>): string {
-  return i18n.global.t(key, params ?? {})
-}
 
 function openState(session: ProjectSession, error: string | null = null): ProjectLifecycleState {
   return { status: "open", session: structuredClone(session), error }

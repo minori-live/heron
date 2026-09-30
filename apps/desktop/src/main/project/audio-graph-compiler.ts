@@ -53,10 +53,7 @@ export class AudioGraphCompiler {
         name: channel.name,
         color: channel.color,
         kind: channel.kind,
-        system_role:
-          "systemRole" in channel
-            ? ((channel as MixerChannelState).systemRole ?? undefined)
-            : undefined,
+        system_role: "systemRole" in channel ? (channel as MixerChannelState).systemRole : null,
         gain_db: channel.gainDb,
         pan: channel.pan,
         muted: channel.muted,
@@ -70,34 +67,32 @@ export class AudioGraphCompiler {
               (channel.kind === "audio" || channel.kind === "aux") &&
               channel.inputMonitoring &&
               (channel.inputSource === "hardware" || channel.inputSource === "application"),
-        midi_input_port_id: channel.midiInput?.portId ?? undefined,
-        midi_input_port_name: channel.midiInput?.portName ?? undefined,
-        midi_input_channel: channel.midiInput?.channel ?? undefined,
-        input_source: channel.inputSource ?? undefined,
+        midi_input_port_id: channel.midiInput?.portId ?? null,
+        midi_input_port_name: channel.midiInput?.portName ?? null,
+        midi_input_channel: channel.midiInput?.channel ?? null,
+        input_source: channel.inputSource ?? null,
         input_channels: channel.inputChannels,
-        ...(channel.applicationCapture
+        application_capture: channel.applicationCapture
           ? {
-              application_capture: {
-                platform: channel.applicationCapture.platform,
-                bundle_identifier:
-                  channel.applicationCapture.platform === "macos"
-                    ? channel.applicationCapture.bundleIdentifier
-                    : null,
-                executable_path: channel.applicationCapture.executablePath,
-                executable_name: channel.applicationCapture.executableName,
-                include_process_tree: channel.applicationCapture.includeProcessTree
-              }
+              platform: channel.applicationCapture.platform,
+              bundle_identifier:
+                channel.applicationCapture.platform === "macos"
+                  ? channel.applicationCapture.bundleIdentifier
+                  : null,
+              executable_path: channel.applicationCapture.executablePath,
+              executable_name: channel.applicationCapture.executableName,
+              include_process_tree: channel.applicationCapture.includeProcessTree
             }
-          : {}),
+          : null,
         hardware_output_channels: channel.hardwareOutputChannels,
-        output_channel_id: channel.outputChannelId ?? undefined,
-        output_bus: channel.outputBus ?? undefined
+        output_channel_id: channel.outputChannelId ?? null,
+        output_bus: channel.outputBus ?? null
       })),
       sends: graph.sends.map((send) => ({
         id: send.id,
         source_channel_id: send.sourceChannelId,
-        target_channel_id: send.targetChannelId ?? undefined,
-        target_bus: send.targetBus ?? undefined,
+        target_channel_id: send.targetChannelId ?? null,
+        target_bus: send.targetBus ?? null,
         enabled: send.enabled,
         tap: send.tap,
         level_db: send.levelDb
@@ -134,9 +129,9 @@ export class AudioGraphCompiler {
             input_port_key: bus.portKey,
             name: bus.name,
             channels: bus.channels,
-            source_channel_id: plugin.sidechainInputs.find(
-              (route) => route.inputPortKey === bus.portKey
-            )?.sourceChannelId
+            source_channel_id:
+              plugin.sidechainInputs.find((route) => route.inputPortKey === bus.portKey)
+                ?.sourceChannelId ?? null
           })),
         latency_samples: 0,
         tail_samples: 0

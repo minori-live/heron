@@ -133,7 +133,7 @@ function removePoint(id: string): void {
     :height="height"
     :beat-guides="beatGuides"
     :vertical-guides="verticalGuides"
-    color="var(--ui-domain-color-f2a65a)"
+    color="var(--ui-domain-lane-meter)"
     :value-label="t('studio.lanes.meter')"
     :position-label="t('studio.lanes.positionLabel')"
     @create="createPoint"

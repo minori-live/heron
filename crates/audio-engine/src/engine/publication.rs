@@ -1,19 +1,23 @@
 use super::{
-    Arc, AtomicBool, AtomicU32, AtomicU64, AudioEngine, AuditionPlayback,
-    CompiledAudioGraphSnapshot, EngineCommand, InputPeakBank, MAX_OUTPUT_CHANNELS, MeterAtomics,
-    NativeMixerGraph, NativeMixerParameterPreview, NativeMixerRuntime, NativeMixerSnapshot,
-    NativeTransportSnapshot, Ordering, Producer, RealtimeParameterCommand, Result,
-    RunningAudioEngine, TRANSPORT_RECORDING, TRANSPORT_STOPPED, TransportAction,
-    TransportClockHandle, TransportShared, TryLockError, audio_error, build_mixer_runtime,
-    compiled_graph_snapshot, decode_clip_audio, invalid_config,
+    Arc, AtomicBool, AtomicU32, AtomicU64, AudioEngine, AudioPluginProcessorHandle,
+    AuditionPlayback, CompiledAudioGraphSnapshot, EngineCommand, HashMap, InputPeakBank,
+    MAX_OUTPUT_CHANNELS, MeterAtomics, MixerParameterPreview, MixerRuntime, MixerSnapshot,
+    Ordering, Producer, RealtimeParameterCommand, ResolvedMixerGraph, Result, RunningAudioEngine,
+    TRANSPORT_RECORDING, TRANSPORT_STOPPED, TransportAction, TransportClockHandle, TransportShared,
+    TransportSnapshot, TryLockError, audio_error, build_mixer_runtime, compiled_graph_snapshot,
+    decode_clip_audio, invalid_config, resolve,
 };
+use heron_dsp_runtime::protocol::LiveMixerGraph;
 
 /// Immutable input for a supervised graph-worker compile.
 pub struct GraphBuildInput {
-    pub(super) graph: NativeMixerGraph,
+    pub(super) graph: ResolvedMixerGraph,
     pub(super) build_generation: u64,
     pub(super) transport: Arc<TransportShared>,
     pub(super) input_peaks: Arc<InputPeakBank>,
+    /// The plug-in endpoints the graph's instances refer to, keyed by instance
+    /// id. A handle cannot be serialised, so it is not part of the graph.
+    pub(super) plugin_slots: HashMap<String, AudioPluginProcessorHandle>,
 }
 
 impl GraphBuildInput {
@@ -24,9 +28,9 @@ impl GraphBuildInput {
 
 /// Preallocated runtime + diagnostic snapshot produced by a graph worker.
 pub struct CompiledGraphBuild {
-    pub(super) runtime: Box<NativeMixerRuntime>,
+    pub(super) runtime: Box<MixerRuntime>,
     pub(super) snapshot: CompiledAudioGraphSnapshot,
-    pub(super) source_graph: NativeMixerGraph,
+    pub(super) source_graph: ResolvedMixerGraph,
 }
 
 impl CompiledGraphBuild {
@@ -96,7 +100,20 @@ impl AudioEngine {
     /// Allocate a build generation and capture transport handles. Heavy compile
     /// work must run on a supervised graph worker via
     /// [`compile_graph_build`].
-    pub fn begin_graph_build(&self, graph: NativeMixerGraph) -> Result<GraphBuildInput> {
+    pub fn begin_graph_build(
+        &self,
+        graph: &LiveMixerGraph,
+        revision: u64,
+    ) -> Result<GraphBuildInput> {
+        let graph = resolve::resolve_graph(revision, graph).map_err(invalid_config)?;
+        self.begin_resolved_build(graph)
+    }
+
+    /// Begins a build from a graph the engine already resolved.
+    ///
+    /// A latency change mutates the published graph in place, so that path
+    /// rebuilds from the resolved form rather than re-resolving the wire.
+    pub fn begin_resolved_build(&self, graph: ResolvedMixerGraph) -> Result<GraphBuildInput> {
         let build_generation = self.next_build_generation.fetch_add(1, Ordering::Relaxed);
         let (transport, input_peaks) = self.engine_transport_handles(graph.sample_rate)?;
         Ok(GraphBuildInput {
@@ -104,6 +121,7 @@ impl AudioEngine {
             build_generation,
             transport,
             input_peaks,
+            plugin_slots: self.plugin_slots()?,
         })
     }
 }
@@ -112,13 +130,15 @@ impl AudioEngine {
 /// background worker; must not touch controllers, winit, devices, or the active
 /// graph.
 pub fn compile_graph_build(input: GraphBuildInput) -> Result<CompiledGraphBuild> {
-    let snapshot = compiled_graph_snapshot(&input.graph, input.build_generation);
+    let snapshot =
+        compiled_graph_snapshot(&input.graph, input.build_generation, &input.plugin_slots);
     let source_graph = input.graph.clone();
     let runtime = Box::new(build_mixer_runtime(
         input.graph,
         input.build_generation,
         input.transport,
         input.input_peaks,
+        &input.plugin_slots,
     )?);
     Ok(CompiledGraphBuild {
         runtime,
@@ -215,8 +235,17 @@ impl AudioEngine {
     }
 
     /// Synchronous build+publish helper for the MessagePack compatibility path.
-    pub fn load_mixer_graph(&self, graph: NativeMixerGraph) -> Result<()> {
-        let input = self.begin_graph_build(graph)?;
+    pub fn load_mixer_graph(&self, graph: &LiveMixerGraph, revision: u64) -> Result<()> {
+        let input = self.begin_graph_build(graph, revision)?;
+        self.publish_build(input)
+    }
+
+    pub(super) fn load_resolved_mixer_graph(&self, graph: ResolvedMixerGraph) -> Result<()> {
+        let input = self.begin_resolved_build(graph)?;
+        self.publish_build(input)
+    }
+
+    fn publish_build(&self, input: GraphBuildInput) -> Result<()> {
         let built = compile_graph_build(input)?;
         match self.publish_mixer_runtime(built)? {
             PublishOutcome::Published | PublishOutcome::Superseded => Ok(()),
@@ -230,7 +259,7 @@ impl AudioEngine {
         instance_id: &str,
         latency_samples: u32,
         tail_samples: Option<u32>,
-    ) -> Result<Option<NativeMixerGraph>> {
+    ) -> Result<Option<ResolvedMixerGraph>> {
         let mut guard = self
             .last_native_graph
             .lock()
@@ -253,28 +282,55 @@ impl AudioEngine {
         Ok(Some(graph.clone()))
     }
 
-    /// Replaces one plug-in endpoint in the control-plane graph and returns a
-    /// same-revision graph for transactional retirement or reactivation.
+    pub(super) fn plugin_slots(&self) -> Result<HashMap<String, AudioPluginProcessorHandle>> {
+        self.plugin_slots
+            .lock()
+            .map(|slots| slots.clone())
+            .map_err(|_| audio_error("plugin slot lock", "poisoned"))
+    }
+
+    /// Replaces the plug-in endpoints the next build resolves against.
+    pub fn set_plugin_processors(&self, slots: HashMap<String, AudioPluginProcessorHandle>) {
+        if let Ok(mut guard) = self.plugin_slots.lock() {
+            *guard = slots;
+        }
+    }
+
+    /// Replaces one plug-in endpoint and returns a same-revision graph for
+    /// transactional retirement or reactivation.
     pub fn replace_plugin_processor(
         &self,
         instance_id: &str,
         processor: Option<heron_audio_plugin::AudioPluginProcessorHandle>,
-    ) -> Result<Option<NativeMixerGraph>> {
-        let mut guard = self
+    ) -> Result<Option<ResolvedMixerGraph>> {
+        {
+            let mut slots = self
+                .plugin_slots
+                .lock()
+                .map_err(|_| audio_error("plugin slot lock", "poisoned"))?;
+            match processor {
+                Some(handle) => {
+                    slots.insert(instance_id.to_owned(), handle);
+                }
+                None => {
+                    slots.remove(instance_id);
+                }
+            }
+        }
+        let guard = self
             .last_native_graph
             .lock()
             .map_err(|_| audio_error("last mixer graph lock", "poisoned"))?;
-        let Some(graph) = guard.as_mut() else {
+        let Some(graph) = guard.as_ref() else {
             return Ok(None);
         };
-        let Some(plugin) = graph
+        if !graph
             .plugins
-            .iter_mut()
-            .find(|plugin| plugin.instance_id == instance_id)
-        else {
+            .iter()
+            .any(|plugin| plugin.instance_id == instance_id)
+        {
             return Ok(None);
-        };
-        plugin.processor = processor;
+        }
         Ok(Some(graph.clone()))
     }
 
@@ -290,11 +346,11 @@ impl AudioEngine {
         else {
             return Ok(false);
         };
-        self.load_mixer_graph(replacement)?;
+        self.load_resolved_mixer_graph(replacement)?;
         Ok(true)
     }
 
-    pub fn preview_mixer_parameter(&self, preview: NativeMixerParameterPreview) -> Result<()> {
+    pub fn preview_mixer_parameter(&self, preview: MixerParameterPreview) -> Result<()> {
         let plugin_enabled = (preview.target == "plugin" && preview.parameter == "enabled")
             .then_some(preview.value >= 0.5);
         let command = RealtimeParameterCommand::from_preview(preview)?;
@@ -380,12 +436,12 @@ impl AudioEngine {
         Ok(())
     }
 
-    pub fn mixer_snapshot(&self) -> Result<NativeMixerSnapshot> {
+    pub fn mixer_snapshot(&self) -> Result<MixerSnapshot> {
         let guard = self
             .running
             .lock()
             .map_err(|_| audio_error("audio engine lock", "poisoned"))?;
-        Ok(NativeMixerSnapshot {
+        Ok(MixerSnapshot {
             meters: guard.as_ref().map_or_else(Vec::new, |engine| {
                 engine
                     .meter_bank
@@ -404,7 +460,7 @@ impl AudioEngine {
         loop_enabled: Option<bool>,
         loop_start_tick: Option<i64>,
         loop_end_tick: Option<i64>,
-    ) -> Result<NativeTransportSnapshot> {
+    ) -> Result<TransportSnapshot> {
         let mut guard = self
             .running
             .lock()
@@ -488,13 +544,13 @@ impl AudioEngine {
         })
     }
 
-    pub fn transport_snapshot(&self) -> Result<NativeTransportSnapshot> {
+    pub fn transport_snapshot(&self) -> Result<TransportSnapshot> {
         let guard = self
             .running
             .lock()
             .map_err(|_| audio_error("audio engine lock", "poisoned"))?;
         Ok(guard.as_ref().map_or(
-            NativeTransportSnapshot {
+            TransportSnapshot {
                 state: "stopped".to_owned(),
                 position_frames: 0,
                 position_ticks: 0,
@@ -542,7 +598,7 @@ impl AudioEngine {
     }
 
     #[cfg(any(test, feature = "bench-internals", feature = "test-support"))]
-    pub fn set_last_native_graph_for_test(&self, graph: Option<NativeMixerGraph>) {
+    pub fn set_last_native_graph_for_test(&self, graph: Option<ResolvedMixerGraph>) {
         *self
             .last_native_graph
             .lock()

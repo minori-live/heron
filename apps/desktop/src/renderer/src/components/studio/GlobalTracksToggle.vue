@@ -42,15 +42,15 @@ const { t } = useI18n()
   padding: 0 9px;
   align-items: center;
   gap: 7px;
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--ui-color-border);
   border-radius: 4px;
-  color: var(--text-muted);
-  background: var(--daw-control);
+  color: var(--ui-color-text-subtle);
+  background: var(--ui-daw-control);
 }
 .global-tracks-toggle[aria-pressed="true"] {
-  border-color: color-mix(in srgb, var(--accent) 58%, var(--line-soft));
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--accent) 13%, var(--daw-control));
+  border-color: color-mix(in srgb, var(--ui-color-action) 58%, var(--ui-color-border));
+  color: var(--ui-color-text);
+  background: color-mix(in srgb, var(--ui-color-action) 13%, var(--ui-daw-control));
 }
 .global-tracks-icon {
   display: grid;
@@ -61,15 +61,15 @@ const { t } = useI18n()
   display: block;
   height: 2px;
   border-radius: 1px;
-  background: var(--text-faint);
+  background: var(--ui-color-text-faint);
 }
 .global-tracks-icon i:nth-child(1) {
-  background: var(--ui-domain-color-65a8ff);
+  background: var(--ui-domain-lane-tempo);
 }
 .global-tracks-icon i:nth-child(2) {
-  background: var(--ui-domain-color-f2a65a);
+  background: var(--ui-domain-lane-meter);
 }
 .global-tracks-icon i:nth-child(3) {
-  background: var(--ui-domain-color-b894ff);
+  background: var(--ui-domain-lane-key);
 }
 </style>

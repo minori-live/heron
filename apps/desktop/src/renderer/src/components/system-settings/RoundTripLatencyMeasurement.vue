@@ -213,7 +213,7 @@ onBeforeUnmount(() => polling.pause())
   display: flex;
   align-items: flex-start;
   gap: var(--ui-space-3);
-  color: var(--text-secondary);
+  color: var(--ui-color-text-muted);
 }
 
 .loopback-copy p {
@@ -232,7 +232,7 @@ onBeforeUnmount(() => polling.pause())
 .loopback-field {
   display: grid;
   gap: var(--ui-space-2);
-  color: var(--text-secondary);
+  color: var(--ui-color-text-muted);
   font-size: var(--ui-font-size-xs);
 }
 

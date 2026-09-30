@@ -7,8 +7,8 @@ import type {
   MidiNoteState,
   MidiSourceState,
   TempoMapSnapshot
-} from "./midi"
-import type { PluginInstanceRole, PluginInstanceState } from "./plugins"
+} from "./midi.ts"
+import type { PluginInstanceRole, PluginInstanceState } from "./plugins.ts"
 
 export const MIXER_BUS_COUNT = 256
 export const DEFAULT_LIVE_CHANNEL_COLORS = {

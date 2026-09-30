@@ -1,6 +1,10 @@
+use std::collections::HashMap;
+
+use heron_audio_plugin::AudioPluginProcessorHandle;
+
 use super::{
     ChannelKind, ChannelSpec, LivePlugin, LivePluginAuxInput, LowLatencyPlan,
-    MAX_PLUGIN_BLOCK_FRAMES, MixerGraph, NativeMixerSend, NativePluginInstance, RenderRuntime,
+    MAX_PLUGIN_BLOCK_FRAMES, MixerGraph, RenderRuntime, ResolvedMixerSend, ResolvedPluginInstance,
     Result, RouteTarget, SendSpec, StereoDelayLine, TempoMap, invalid_config,
 };
 
@@ -14,13 +18,14 @@ pub(super) struct PluginGraphBuild {
 pub(super) struct PluginGraphInput<'a> {
     pub(super) graph_revision: u64,
     pub(super) sample_rate: u32,
-    pub(super) native_plugins: Vec<NativePluginInstance>,
-    pub(super) native_sends: &'a [NativeMixerSend],
+    pub(super) native_plugins: Vec<ResolvedPluginInstance>,
+    pub(super) native_sends: &'a [ResolvedMixerSend],
     pub(super) channels: &'a [ChannelSpec],
     pub(super) sends: Vec<SendSpec>,
     pub(super) low_latency_plan: &'a LowLatencyPlan,
     pub(super) low_latency_bypassed: &'a std::collections::HashSet<String>,
     pub(super) tempo_map: &'a TempoMap,
+    pub(super) plugin_slots: &'a HashMap<String, AudioPluginProcessorHandle>,
 }
 
 pub(super) fn build_plugin_graph(input: PluginGraphInput<'_>) -> Result<PluginGraphBuild> {
@@ -34,6 +39,7 @@ pub(super) fn build_plugin_graph(input: PluginGraphInput<'_>) -> Result<PluginGr
         low_latency_plan,
         low_latency_bypassed,
         tempo_map,
+        plugin_slots,
     } = input;
     let mut sidechain_edges = Vec::new();
     for plugin in &native_plugins {
@@ -93,11 +99,20 @@ pub(super) fn build_plugin_graph(input: PluginGraphInput<'_>) -> Result<PluginGr
             None => has_infinite_tail = true,
         }
         let is_low_latency_bypassed = low_latency_bypassed.contains(&plugin.instance_id);
+        // Mono duplication is a property of the endpoint, derived from the
+        // project's audio mode for this instance.
+        let processor = plugin_slots.get(&plugin.instance_id).map(|handle| {
+            if plugin.duplicate_mono_output {
+                handle.clone().with_mono_output_duplication()
+            } else {
+                handle.clone()
+            }
+        });
         plugins_by_channel[channel_index].push(LivePlugin {
             instance_id: plugin.instance_id,
             instance_generation: plugin.instance_generation,
             graph_revision,
-            processor: plugin.processor,
+            processor,
             audio_mode: plugin.audio_mode,
             enabled: plugin.enabled,
             is_instrument,

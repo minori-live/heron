@@ -11,7 +11,7 @@ import type {
 } from "@heron/contracts"
 import { useAudioPreferencesStore } from "./audioPreferences"
 import { useAudioRuntimeStore } from "./audioRuntime"
-import { rpcFailure, rpcSuccess } from "../test/ipc"
+import { rpcFailure, rpcSuccess, stubApi } from "../test/ipc"
 
 const STORAGE_KEY = "heron.audio-preferences.v1"
 
@@ -98,10 +98,6 @@ function device(id: string, isDefault = false) {
     maxBufferSize: 2_048,
     channelCount: 2
   }
-}
-
-function stubApi(overrides: Record<string, unknown>): void {
-  Object.assign(window.heron as unknown as Record<string, unknown>, overrides)
 }
 
 /**

@@ -1,24 +1,8 @@
 import { defineConfig } from "oxlint"
 
-export const generatedAndBuildPaths = [
-  ".agents/skills/",
-  ".pnpm-store/",
-  "apm_modules/",
-  "**/.vitepress/cache/",
-  "**/node_modules/",
-  "**/dist/",
-  "**/out/",
-  "**/playwright-report/",
-  "**/release/",
-  "**/target/",
-  "**/test-results/",
-  "**/third_party/",
-  "crates/dsp-node/index.d.ts",
-  "crates/dsp-node/index.js",
-  "crates/audio-host-client/index.d.ts",
-  "crates/audio-host-client/index.js",
-  "packages/project-db/drizzle/meta/"
-]
+import { generatedAndBuildPaths } from "./scripts/repository-ignores.ts"
+
+export { generatedAndBuildPaths }
 
 export default defineConfig({
   plugins: ["typescript", "vue", "unicorn"],

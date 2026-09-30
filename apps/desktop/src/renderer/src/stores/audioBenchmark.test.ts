@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { AudioBenchmarkReport, RpcRequestMeta, RpcResult } from "@heron/contracts"
 import { useAudioBenchmarkStore } from "./audioBenchmark"
 import { useAudioRuntimeStore } from "./audioRuntime"
-import { rpcFailure, rpcSuccess, testBootstrap, TEST_AUDIO_HOST_REF } from "../test/ipc"
+import { TEST_AUDIO_HOST_REF, rpcFailure, rpcSuccess, stubApi, testBootstrap } from "../test/ipc"
 import { useProjectStore } from "./project"
 
 const report: AudioBenchmarkReport = {
@@ -29,10 +29,6 @@ const report: AudioBenchmarkReport = {
     messagePackBodyBytes: 128,
     scenarios: []
   }
-}
-
-function stubApi(overrides: Record<string, unknown>): void {
-  Object.assign(window.heron as unknown as Record<string, unknown>, overrides)
 }
 
 beforeEach(() => {

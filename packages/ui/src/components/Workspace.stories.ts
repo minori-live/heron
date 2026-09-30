@@ -173,14 +173,14 @@ export const GlobalTrackFields: Story = {
         <label style="display: grid; min-width: 0; gap: 4px">
           <span>Tempo</span>
           <UiNumberInput v-model="tempo" size="compact" appearance="workspace"
-            suffix="BPM" accent-color="var(--ui-domain-color-65a8ff)"
+            suffix="BPM" accent-color="var(--ui-domain-lane-tempo)"
             :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false }"
             :min="20" :max="300" :step="0.01" aria-label="Tempo" />
         </label>
         <div role="group" aria-label="Time signature" style="display: flex; align-items: center; gap: 4px; min-width: 0">
           <div style="flex: 1 1 0; min-width: 0; display: grid">
             <UiNumberInput v-model="numerator" size="compact" appearance="workspace"
-              accent-color="var(--ui-domain-color-f2a65a)" :min="1" :max="32" aria-label="Numerator" />
+              accent-color="var(--ui-domain-lane-meter)" :min="1" :max="32" aria-label="Numerator" />
           </div>
           <span aria-hidden="true">/</span>
           <div style="flex: 1 1 0; min-width: 0; display: grid">

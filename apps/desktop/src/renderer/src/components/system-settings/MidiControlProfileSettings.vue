@@ -194,8 +194,8 @@ function removeAccelerationPoint(index: number): void {
   height: 28px;
   place-items: center;
   border-radius: 5px;
-  color: var(--accent);
-  background: var(--surface-sunken);
+  color: var(--ui-color-action);
+  background: var(--ui-color-surface-sunken);
 }
 
 .profile-editor-header span:first-child {
@@ -205,7 +205,7 @@ function removeAccelerationPoint(index: number): void {
 }
 
 .profile-editor-header strong {
-  color: var(--text-primary);
+  color: var(--ui-color-text);
   font-size: var(--ui-type-size-body-compact);
 }
 
@@ -214,21 +214,21 @@ function removeAccelerationPoint(index: number): void {
 .edit-label,
 .draft-label,
 .acceleration-heading {
-  color: var(--text-faint);
+  color: var(--ui-color-text-faint);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 
 .edit-label {
-  color: var(--accent);
+  color: var(--ui-color-action);
 }
 
 .profile-editor {
   gap: 16px;
   margin-top: 8px;
   padding: 14px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 7px;
-  background: var(--surface-1);
+  background: var(--ui-color-surface);
 }
 
 .profile-editor-header {
@@ -237,14 +237,14 @@ function removeAccelerationPoint(index: number): void {
   justify-content: space-between;
   gap: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--ui-color-border);
 }
 
 .draft-label {
   padding: 3px 6px;
-  border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--line-soft));
+  border: 1px solid color-mix(in srgb, var(--ui-color-action) 36%, var(--ui-color-border));
   border-radius: 4px;
-  color: var(--accent);
+  color: var(--ui-color-action);
   text-transform: uppercase;
 }
 

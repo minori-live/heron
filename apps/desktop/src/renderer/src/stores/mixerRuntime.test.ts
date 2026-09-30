@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { MixerRuntimeSnapshot } from "@heron/contracts"
 import { useMixerRuntimeStore } from "./mixerRuntime"
 import { useAudioRuntimeStore } from "./audioRuntime"
-import { rpcFailure, rpcSuccess, testBootstrap, TEST_AUDIO_HOST_REF } from "../test/ipc"
+import { TEST_AUDIO_HOST_REF, rpcFailure, rpcSuccess, stubApi, testBootstrap } from "../test/ipc"
 import { useProjectStore } from "./project"
 
 const snapshot: MixerRuntimeSnapshot = {
@@ -24,10 +24,6 @@ const audioEngine = {
   id: "engine",
   epoch: TEST_AUDIO_HOST_REF.epoch,
   generation: 1
-}
-
-function stubApi(overrides: Record<string, unknown>): void {
-  Object.assign(window.heron as unknown as Record<string, unknown>, overrides)
 }
 
 beforeEach(() => {

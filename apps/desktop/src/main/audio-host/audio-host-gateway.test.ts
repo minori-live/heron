@@ -46,4 +46,52 @@ describe("AudioHostGateway", () => {
       }
     })
   })
+
+  it("rejects a response whose envelope the native side could not have produced", async () => {
+    const respondWith = (payload: unknown) =>
+      ({
+        request: async () => ({ body: Buffer.from(encode(payload)), attachments: [] })
+      }) as unknown as AudioHostRuntime
+    const gatewayFor = (payload: unknown) =>
+      new AudioHostGateway(
+        () => respondWith(payload),
+        () => null,
+        async () => {},
+        new Set()
+      )
+
+    // A result that is not an object used to reach `response.result.type` and
+    // surface as a TypeError from inside the caller.
+    await expect(
+      gatewayFor({ request_id: 1, result: null }).request({ type: "ping" })
+    ).rejects.toThrow("errors.audioEngineUnavailable")
+    await expect(
+      gatewayFor({ request_id: 1, result: { type: 7 } }).request({ type: "ping" })
+    ).rejects.toThrow("errors.audioEngineUnavailable")
+    await expect(
+      gatewayFor({ request_id: 1, result: "accepted" }).request({ type: "ping" })
+    ).rejects.toThrow("errors.audioEngineUnavailable")
+    await expect(gatewayFor(null).request({ type: "ping" })).rejects.toThrow(
+      "errors.audioEngineUnavailable"
+    )
+  })
+
+  it("rejects a response that answers a different request", async () => {
+    const client = {
+      request: async () => ({
+        body: Buffer.from(encode({ request_id: 99, result: { type: "accepted" } })),
+        attachments: []
+      })
+    } as unknown as AudioHostRuntime
+    const gateway = new AudioHostGateway(
+      () => client,
+      () => null,
+      async () => {},
+      new Set()
+    )
+
+    await expect(gateway.request({ type: "ping" })).rejects.toThrow(
+      "audio host returned an out-of-order response"
+    )
+  })
 })

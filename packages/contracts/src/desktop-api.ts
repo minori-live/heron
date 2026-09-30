@@ -1,10 +1,10 @@
-import type { ApplicationBootstrapSnapshot, ProjectCloseResult } from "./bootstrap"
+import type { ApplicationBootstrapSnapshot, ProjectCloseResult } from "./bootstrap.ts"
 import type {
   ApplicationUpdateCommand,
   ApplicationUpdateResult,
   ApplicationUpdateSnapshot
-} from "./updates"
-import type { BounceOutputRequest, BounceStartResult } from "./bounce"
+} from "./updates.ts"
+import type { BounceOutputRequest, BounceStartResult } from "./bounce.ts"
 import type {
   ApplicationCommandId,
   ApplicationWindowCommandId,
@@ -12,7 +12,7 @@ import type {
   NativeEngineInfo,
   ProcessGainRequest,
   ProcessGainResult
-} from "./application"
+} from "./application.ts"
 import type {
   AudioBackend,
   AudioBackendDescriptor,
@@ -28,8 +28,8 @@ import type {
   DesktopLifecycleSnapshot,
   RoundTripLatencyMeasurement,
   RoundTripLatencyMeasurementRequest
-} from "./audio"
-import type { AudioBenchmarkReport, SystemPerformanceSnapshot } from "./performance"
+} from "./audio.ts"
+import type { AudioBenchmarkReport, SystemPerformanceSnapshot } from "./performance.ts"
 import type {
   CompiledAudioGraphSnapshot,
   LowLatencyModeConfiguration,
@@ -41,7 +41,7 @@ import type {
   ProjectCommandResult,
   TransportCommand,
   TransportSnapshot
-} from "./mixer"
+} from "./mixer.ts"
 import type {
   MidiImportCommitResult,
   MidiImportPlan,
@@ -49,9 +49,9 @@ import type {
   MidiImportPreview,
   MidiRuntimeResourceSnapshot,
   MidiSyncPreferences
-} from "./midi"
-import type { MidiControlPreferences } from "./midi-control"
-import type { OperationEvent, OperationStatusSnapshot } from "./operations"
+} from "./midi.ts"
+import type { MidiControlPreferences } from "./midi-control.ts"
+import type { OperationEvent, OperationStatusSnapshot } from "./operations.ts"
 import type {
   PluginCatalogSnapshot,
   AraCallbackNotification,
@@ -63,7 +63,7 @@ import type {
   PluginRuntimeStatus,
   PluginScanEvent,
   PluginScanRequest
-} from "./plugins"
+} from "./plugins.ts"
 import type {
   CreateProjectRequest,
   ProjectAssetSummary,
@@ -76,27 +76,27 @@ import type {
   StartupProgressSnapshot,
   WaveformPeakWindow,
   WaveformWindowRequest
-} from "./project"
+} from "./project.ts"
 import type {
   PendingRecording,
   RecordingResourceSnapshot,
   RecordingRecoveryResult,
   RecordingStartRequest,
   RecordingStopResult
-} from "./recording"
+} from "./recording.ts"
 import type {
   ApplicationSettingsResourceSnapshot,
   ApplicationSettingsPatch,
   AudioHostRuntimePreferences
-} from "./settings"
-import type { ShortcutPreferences } from "./shortcuts"
+} from "./settings.ts"
+import type { ShortcutPreferences } from "./shortcuts.ts"
 import type {
   DocumentOpenPreparation,
   LiveDocumentConfiguration,
   LiveEditCommand,
   LiveWorkspaceSnapshot
-} from "./live"
-import type { RpcEvent, RpcRequestMeta, RpcResult, RpcWarning } from "./rpc"
+} from "./live.ts"
+import type { RpcEvent, RpcRequestMeta, RpcResult, RpcWarning } from "./rpc.ts"
 
 export interface ExternalProjectCommandNotification {
   result: ProjectCommandResult

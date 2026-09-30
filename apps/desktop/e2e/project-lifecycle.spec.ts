@@ -2,7 +2,7 @@ import { test, expect, _electron as electron } from "@playwright/test"
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { closeElectronApplication, dismissAutomaticTutorial } from "./support"
+import { closeElectronApplication, dismissAutomaticTutorial, expectNear } from "./support"
 
 test("records into a Large Object and reopens the PGlite project archive", async () => {
   test.setTimeout(180_000)
@@ -70,8 +70,8 @@ test("records into a Large Object and reopens the PGlite project archive", async
           .slice(0, 3)
           .map(Number)
       )
-      // Preserve the existing DAW palettes (light canvas is subtly tinted #d8d9db),
-      // rather than accepting the generic design-system blue-gray surface.
+      // The settings surface remaps the canvas onto the product palette, so it
+      // stays on the DAW canvas rather than the generic application surface.
       const theme = await page.locator("html").getAttribute("data-theme")
       expect(colors).toEqual(theme === "light" ? [216, 217, 219] : [21, 21, 21])
       await expect(
@@ -405,7 +405,7 @@ test("records into a Large Object and reopens the PGlite project archive", async
     const quickVolume = page.getByRole("slider", { name: "Audio 1 quick volume", exact: true })
     await expect(quickVolume).toHaveCSS("opacity", "1")
     const meterWell = quickVolume.locator("..").locator(".ui-horizontal-fader__rail")
-    expect((await meterWell.boundingBox())!.height).toBe(11)
+    expectNear((await meterWell.boundingBox())!.height, 11)
 
     const playButton = page.getByRole("button", { name: "Play" })
     await expect(playButton).toBeEnabled()

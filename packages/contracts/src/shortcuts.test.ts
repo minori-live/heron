@@ -6,7 +6,7 @@ import {
   keyboardCodeLabel,
   resolveKeyboardShortcuts,
   type ShortcutPreferences
-} from "./shortcuts"
+} from "./shortcuts.ts"
 
 describe("defaultKeyboardShortcuts", () => {
   it("uses platform-specific full-screen bindings", () => {

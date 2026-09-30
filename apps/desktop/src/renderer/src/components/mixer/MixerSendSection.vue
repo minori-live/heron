@@ -276,8 +276,8 @@ function createSend(value: string): void {
   align-content: start;
   min-width: 0;
   padding: 6px 7px;
-  border-bottom: 1px solid var(--ui-domain-color-444);
-  background: var(--ui-domain-color-585858);
+  border-bottom: 1px solid var(--ui-domain-mixer-divider);
+  background: var(--ui-domain-mixer-section);
 }
 .send-row {
   display: grid;
@@ -287,10 +287,10 @@ function createSend(value: string): void {
   height: 25px;
   min-width: 0;
   padding: 0;
-  border: 1px solid var(--ui-domain-color-4a6b80);
+  border: 1px solid var(--ui-domain-face-send-border);
   border-radius: 4px;
-  color: var(--ui-domain-color-f5f5f5);
-  background: linear-gradient(var(--ui-domain-color-4f83a4), var(--ui-domain-color-3f6b87));
+  color: var(--ui-domain-face-send-ink);
+  background: linear-gradient(var(--ui-domain-face-send-top), var(--ui-domain-face-send-bottom));
   font-size: var(--ui-type-size-caption);
 }
 .send-row.tap-post,
@@ -329,10 +329,10 @@ function createSend(value: string): void {
   display: grid;
   grid-template-columns: 1fr;
   place-items: center;
-  border-color: var(--ui-domain-color-494949);
-  color: var(--ui-domain-color-929292);
-  background: var(--ui-domain-color-4d4d4d);
-  box-shadow: 0 1px 2px var(--ui-domain-color-00000038) inset;
+  border-color: var(--ui-domain-face-empty-border);
+  color: var(--ui-domain-face-empty-ink);
+  background: var(--ui-domain-face-empty-fill);
+  box-shadow: 0 1px 2px var(--ui-domain-face-inset) inset;
   font: var(--ui-type-size-micro) var(--ui-type-family-data);
   cursor: default;
 }
@@ -357,11 +357,11 @@ function createSend(value: string): void {
   width: 250px;
   gap: 10px;
   padding: 11px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 6px;
-  color: var(--text-primary);
-  background: var(--surface-1);
-  box-shadow: 0 14px 36px var(--ui-domain-color-00000075);
+  color: var(--ui-color-text);
+  background: var(--ui-color-surface);
+  box-shadow: 0 14px 36px var(--ui-domain-popover-shadow);
 }
 .send-popover header {
   display: flex;
@@ -373,7 +373,7 @@ function createSend(value: string): void {
   display: block;
 }
 .send-popover header span {
-  color: var(--accent);
+  color: var(--ui-color-action);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
 }
@@ -386,15 +386,15 @@ function createSend(value: string): void {
   place-items: center;
   width: 25px;
   height: 25px;
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--ui-color-border);
   border-radius: 3px;
-  color: var(--record);
-  background: var(--daw-control);
+  color: var(--ui-signal-record);
+  background: var(--ui-daw-control);
 }
 .send-popover label {
   display: grid;
   gap: 5px;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-control);
 }
 .send-popover label > span {

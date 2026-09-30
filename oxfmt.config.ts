@@ -1,5 +1,7 @@
 import { defineConfig } from "oxfmt"
 
+import { formatIgnorePatterns } from "./scripts/repository-ignores.ts"
+
 export default defineConfig({
   arrowParens: "always",
   endOfLine: "lf",
@@ -12,29 +14,5 @@ export default defineConfig({
   trailingComma: "none",
   useTabs: false,
   vueIndentScriptAndStyle: false,
-  ignorePatterns: [
-    ".agents/skills/",
-    ".pnpm-store/",
-    "apm_modules/",
-    "**/node_modules/",
-    "**/.napi-rs-filesystem-transaction.swp/",
-    "**/.vitepress/cache/",
-    "**/dist/",
-    "**/out/",
-    "**/playwright-report/",
-    "**/release/",
-    "**/target/",
-    "**/test-results/",
-    "**/third_party/",
-    "**/*.toml",
-    "Cargo.lock",
-    "apm.lock.yaml",
-    "mise.lock",
-    "pnpm-lock.yaml",
-    "crates/dsp-node/index.d.ts",
-    "crates/dsp-node/index.js",
-    "crates/audio-host-client/index.d.ts",
-    "crates/audio-host-client/index.js",
-    "packages/project-db/drizzle/meta/"
-  ]
+  ignorePatterns: formatIgnorePatterns
 })

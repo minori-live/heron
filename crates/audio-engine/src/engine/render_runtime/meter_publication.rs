@@ -1,6 +1,6 @@
-use super::{ChannelPeak, NativeMixerRuntime};
+use super::{ChannelPeak, MixerRuntime};
 
-impl NativeMixerRuntime {
+impl MixerRuntime {
     pub(in crate::runtime) fn publish_peaks(&mut self, elapsed_frames: usize) {
         self.graph.write_meters(&mut self.peak_scratch);
         self.input_peaks.take_all(&mut self.input_peak_scratch);

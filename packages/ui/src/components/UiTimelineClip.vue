@@ -320,7 +320,7 @@ function keydown(event: KeyboardEvent): void {
   top: 2px;
   width: 6px;
   height: 6px;
-  border: 1px solid var(--ui-domain-color-fff);
+  border: 1px solid var(--ui-domain-clip-outline);
   border-radius: 50%;
   background: var(--ui-clip-color);
   content: "";
@@ -348,11 +348,11 @@ function keydown(event: KeyboardEvent): void {
   align-items: center;
   gap: 5px;
   padding: 4px 6px 5px;
-  color: var(--ui-domain-color-f7f8f8);
+  color: var(--ui-domain-clip-ink);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--ui-clip-color) 34%, var(--ui-domain-color-111111e8)) 0%,
-    color-mix(in srgb, var(--ui-clip-color) 24%, var(--ui-domain-color-111111b8)) 72%,
+    color-mix(in srgb, var(--ui-clip-color) 34%, var(--ui-domain-clip-tint-hi)) 0%,
+    color-mix(in srgb, var(--ui-clip-color) 24%, var(--ui-domain-clip-tint-lo)) 72%,
     transparent 100%
   );
   z-index: var(--ui-z-local-selection);
@@ -364,15 +364,15 @@ function keydown(event: KeyboardEvent): void {
   min-width: 12px;
   border: 1px solid color-mix(in srgb, var(--ui-clip-color) 72%, white);
   border-radius: 4px;
-  color: var(--ui-domain-color-f7f8f8);
+  color: var(--ui-domain-clip-ink);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--ui-clip-color) 65%, var(--ui-domain-color-303436)),
-    color-mix(in srgb, var(--ui-clip-color) 38%, var(--ui-domain-color-17191a))
+    color-mix(in srgb, var(--ui-clip-color) 65%, var(--ui-domain-clip-body-top)),
+    color-mix(in srgb, var(--ui-clip-color) 38%, var(--ui-domain-clip-body-bottom))
   );
   box-shadow:
-    0 1px 0 var(--ui-domain-color-ffffff24) inset,
-    0 7px 18px var(--shadow);
+    0 1px 0 var(--ui-domain-clip-body-sheen) inset,
+    0 7px 18px var(--ui-color-shadow);
   text-align: left;
 }
 .ui-timeline-clip--audio:hover {
@@ -384,14 +384,14 @@ function keydown(event: KeyboardEvent): void {
 .ui-timeline-clip--audio.ui-timeline-clip--recording .ui-timeline-clip__heading {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--ui-signal-record) 34%, var(--ui-domain-color-111111e8)) 0%,
-    color-mix(in srgb, var(--ui-signal-record) 24%, var(--ui-domain-color-111111b8)) 72%,
+    color-mix(in srgb, var(--ui-signal-record) 34%, var(--ui-domain-clip-tint-hi)) 0%,
+    color-mix(in srgb, var(--ui-signal-record) 24%, var(--ui-domain-clip-tint-lo)) 72%,
     transparent 100%
   );
 }
 .ui-timeline-clip--audio.ui-timeline-clip--selected {
   z-index: var(--ui-z-local-selection);
-  border-color: var(--ui-domain-color-fff);
+  border-color: var(--ui-domain-clip-outline);
   outline: none;
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--ui-clip-color) 60%, transparent) inset,
@@ -401,8 +401,8 @@ function keydown(event: KeyboardEvent): void {
   border-color: color-mix(in srgb, var(--ui-signal-record) 72%, white);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--ui-signal-record) 72%, var(--ui-domain-color-303436)),
-    color-mix(in srgb, var(--ui-signal-record) 42%, var(--ui-domain-color-17191a))
+    color-mix(in srgb, var(--ui-signal-record) 72%, var(--ui-domain-clip-body-top)),
+    color-mix(in srgb, var(--ui-signal-record) 42%, var(--ui-domain-clip-body-bottom))
   );
   box-shadow: 0 0 18px color-mix(in srgb, var(--ui-signal-record) 35%, transparent);
 }

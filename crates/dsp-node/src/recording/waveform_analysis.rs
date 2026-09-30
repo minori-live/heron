@@ -62,6 +62,12 @@ pub struct FinalizeRecordingTask {
     config: NativeFinalizeRecordingConfig,
 }
 
+impl FinalizeRecordingTask {
+    pub fn new(config: NativeFinalizeRecordingConfig) -> Self {
+        Self { config }
+    }
+}
+
 #[napi]
 impl Task for FinalizeRecordingTask {
     type Output = NativeFinalizedRecording;

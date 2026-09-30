@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
+import { IPC_PROTOCOL_VERSION } from "@heron/contracts"
 import { decode } from "@msgpack/msgpack"
 import { describe, expect, it } from "vitest"
 
@@ -35,4 +36,24 @@ describe("Rust MessagePack fixtures", () => {
       expect(normalizeWireValue(decoded)).toEqual(fixture.normalized)
     })
   }
+})
+
+describe("cross-language protocol constants", () => {
+  // The Rust side owns the wire. These assert the TypeScript mirror still
+  // agrees with bytes the Rust encoder produced, which a hand-maintained
+  // constant alone cannot.
+  it("agrees with the protocol version the Rust fixtures carry", () => {
+    const versions = fixtures
+      .filter(({ producer }) => producer === "rust")
+      .flatMap((fixture) => {
+        const decoded = normalizeWireValue(decode(Buffer.from(fixture.base64, "base64"))) as {
+          command?: { meta?: { protocolVersion?: unknown } }
+        }
+        const version = decoded.command?.meta?.protocolVersion
+        return typeof version === "number" ? [version] : []
+      })
+
+    expect(versions.length).toBeGreaterThan(0)
+    for (const version of versions) expect(version).toBe(IPC_PROTOCOL_VERSION)
+  })
 })

@@ -20,7 +20,7 @@ function formatLatency(value: number | null): string {
 
 <template>
   <footer
-    class="statusbar col-span-full flex min-w-0 items-center gap-ui-4 border-t border-t-solid bg-[var(--daw-statusbar)] py-0 pe-[6px] ps-[13px] text-[var(--text-muted)] [border-top-color:var(--line-strong)]"
+    class="statusbar col-span-full flex min-w-0 items-center gap-ui-4 border-t border-t-solid bg-[var(--ui-daw-statusbar)] py-0 pe-[6px] ps-[13px] text-[var(--ui-color-text-subtle)] [border-top-color:var(--ui-color-border-strong)]"
   >
     <span class="engine-state"
       ><i :class="{ active: runtime.state === 'running' }" />{{
@@ -74,22 +74,22 @@ function formatLatency(value: number | null): string {
   white-space: nowrap;
 }
 .engine-state {
-  color: var(--text-secondary);
+  color: var(--ui-color-text-muted);
 }
 .engine-state i {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--text-faint);
+  background: var(--ui-color-text-faint);
 }
 .engine-state i.active {
-  background: var(--signal-cyan);
-  box-shadow: 0 0 6px var(--signal-cyan);
+  background: var(--ui-signal-audio);
+  box-shadow: 0 0 6px var(--ui-signal-audio);
 }
 .status-spacer {
   flex: 1;
 }
 .statusbar .alert {
-  color: var(--record);
+  color: var(--ui-signal-record);
 }
 </style>

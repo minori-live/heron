@@ -4,8 +4,8 @@ use std::{
 };
 
 use heron_audio_host::engine::{
-    AudioEngine, NativeAudioEngineConfig, NativeMixerChannel, NativeMixerGraph,
-    NativeTransportSnapshot, compile_graph_build,
+    AudioEngine, AudioEngineConfig, ResolvedMixerChannel, ResolvedMixerGraph, TransportSnapshot,
+    compile_graph_build,
 };
 use heron_audio_host::mock;
 use heron_dsp_runtime::tempo::{TempoEvent, TimeSignatureEvent};
@@ -16,7 +16,7 @@ const PROJECT_SAMPLE_RATE: u64 = 44_100;
 const CALLBACKS_TO_OBSERVE: u64 = 128;
 const MAX_CLOCK_RATE_ERROR_PERCENT: u64 = 2;
 
-fn stable_transport_snapshot(engine: &AudioEngine) -> (u64, NativeTransportSnapshot) {
+fn stable_transport_snapshot(engine: &AudioEngine) -> (u64, TransportSnapshot) {
     loop {
         let (generation_before, _) = engine.heartbeat_snapshot();
         let transport = engine.transport_snapshot().unwrap();
@@ -32,7 +32,7 @@ fn stable_transport_snapshot(engine: &AudioEngine) -> (u64, NativeTransportSnaps
 fn mock_backend_uses_the_project_clock_over_native_48_khz_io() {
     let engine = AudioEngine::new();
     let runtime = engine
-        .start_audio_engine(NativeAudioEngineConfig {
+        .start_audio_engine(AudioEngineConfig {
             backend: mock::BACKEND_ID.to_owned(),
             input_device_id: "custom:mock-input".to_owned(),
             output_device_id: "custom:mock-output".to_owned(),
@@ -44,13 +44,13 @@ fn mock_backend_uses_the_project_clock_over_native_48_khz_io() {
     assert_eq!(runtime.input_sample_rate, Some(48_000));
     assert_eq!(runtime.output_sample_rate, Some(48_000));
 
-    let graph = NativeMixerGraph {
+    let graph = ResolvedMixerGraph {
         generation: 1,
         sample_rate: 44_100,
         project_end_tick: 61_440,
-        latency_policy: heron_audio_engine::NativeLatencyPolicy::Normal,
+        latency_policy: heron_audio_engine::ResolvedLatencyPolicy::Normal,
         channels: vec![
-            NativeMixerChannel {
+            ResolvedMixerChannel {
                 id: "master".to_owned(),
                 name: "Master".to_owned(),
                 color: String::new(),
@@ -71,7 +71,7 @@ fn mock_backend_uses_the_project_clock_over_native_48_khz_io() {
                 midi_input_port_id: None,
                 midi_input_channel: None,
             },
-            NativeMixerChannel {
+            ResolvedMixerChannel {
                 id: "output".to_owned(),
                 name: "Output".to_owned(),
                 color: String::new(),
@@ -107,7 +107,7 @@ fn mock_backend_uses_the_project_clock_over_native_48_khz_io() {
             denominator: 4,
         }],
     };
-    let built = compile_graph_build(engine.begin_graph_build(graph).unwrap()).unwrap();
+    let built = compile_graph_build(engine.begin_resolved_build(graph).unwrap()).unwrap();
     engine.publish_mixer_runtime(built).unwrap();
     engine
         .transport_command("play".to_owned(), None, None, None, None)

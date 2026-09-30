@@ -6,7 +6,7 @@ import type {
   RpcRequestMeta,
   RpcResult
 } from "@heron/contracts"
-import { rpcFailure, rpcSuccess, settingsSnapshot, testBootstrap } from "../test/ipc"
+import { rpcFailure, rpcSuccess, settingsSnapshot, stubApi, testBootstrap } from "../test/ipc"
 import { useApplicationSettingsStore } from "./applicationSettings"
 
 function settings(overrides: Partial<ApplicationSettings> = {}): ApplicationSettings {
@@ -31,10 +31,6 @@ function settings(overrides: Partial<ApplicationSettings> = {}): ApplicationSett
     recentProjects: [],
     ...overrides
   }
-}
-
-function stubApi(overrides: Record<string, unknown>): void {
-  Object.assign(window.heron as unknown as Record<string, unknown>, overrides)
 }
 
 beforeEach(() => {

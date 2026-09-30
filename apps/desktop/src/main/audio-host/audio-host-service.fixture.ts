@@ -1,5 +1,9 @@
 import { decode, encode } from "@msgpack/msgpack"
-import type { PluginInstanceState, ProjectGraphSnapshot } from "@heron/contracts"
+import {
+  DEFAULT_PROJECT_END_TICK,
+  type PluginInstanceState,
+  type ProjectGraphSnapshot
+} from "@heron/contracts"
 import { vi } from "vitest"
 
 const fakeHostInternal = vi.hoisted(() => {
@@ -495,6 +499,8 @@ export function graph(sampleRate: number): {
     } as unknown as ProjectGraphSnapshot,
     runtime: {
       sample_rate: sampleRate,
+      project_end_tick: DEFAULT_PROJECT_END_TICK,
+      latency_policy: { type: "normal" },
       channels: [],
       sends: [],
       clips: [],

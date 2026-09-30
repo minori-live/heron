@@ -1,8 +1,9 @@
 use super::*;
+use std::collections::HashMap;
 use std::time::Instant;
 
-fn recovery_config() -> NativeAudioEngineConfig {
-    NativeAudioEngineConfig {
+fn recovery_config() -> AudioEngineConfig {
+    AudioEngineConfig {
         backend: "mock".to_owned(),
         input_device_id: "custom:mock-duplex".to_owned(),
         output_device_id: "custom:mock-duplex".to_owned(),
@@ -14,8 +15,8 @@ fn recovery_config() -> NativeAudioEngineConfig {
 fn inject_fault(
     engine: &AudioEngine,
     incarnation: u64,
-    direction: NativeStreamDirection,
-    kind: NativeDeviceFaultKind,
+    direction: AudioStreamDirection,
+    kind: AudioDeviceFaultKind,
 ) {
     engine
         .current_stream_incarnation
@@ -39,34 +40,42 @@ fn recovery_merges_duplicate_directions_and_ignores_old_streams() {
     inject_fault(
         &engine,
         7,
-        NativeStreamDirection::Input,
-        NativeDeviceFaultKind::DeviceNotAvailable,
+        AudioStreamDirection::Input,
+        AudioDeviceFaultKind::DeviceNotAvailable,
     );
     engine
         .device_fault_sender
         .try_send(super::super::DeviceFaultSignal {
             stream_incarnation: 6,
-            direction: NativeStreamDirection::Output,
-            kind: NativeDeviceFaultKind::BackendError,
+            direction: AudioStreamDirection::Output,
+            kind: AudioDeviceFaultKind::BackendError,
         })
         .unwrap();
     engine
         .device_fault_sender
         .try_send(super::super::DeviceFaultSignal {
             stream_incarnation: 7,
-            direction: NativeStreamDirection::Output,
-            kind: NativeDeviceFaultKind::StreamInvalidated,
+            direction: AudioStreamDirection::Output,
+            kind: AudioDeviceFaultKind::StreamInvalidated,
         })
         .unwrap();
 
     assert!(engine.observe_device_faults());
     let recovery = engine.device_recovery_snapshot().unwrap();
-    assert!(recovery.lost_input);
-    assert!(recovery.lost_output);
-    assert_eq!(recovery.fault, NativeDeviceFaultKind::StreamInvalidated);
+    assert!(
+        recovery
+            .lost_directions
+            .contains(&AudioStreamDirection::Input)
+    );
+    assert!(
+        recovery
+            .lost_directions
+            .contains(&AudioStreamDirection::Output)
+    );
+    assert_eq!(recovery.fault, AudioDeviceFaultKind::StreamInvalidated);
     assert_eq!(
         recovery.phase,
-        NativeDeviceRecoveryPhase::WaitingForAuthorization
+        AudioDeviceRecoveryPhase::WaitingForAuthorization
     );
 }
 
@@ -78,8 +87,8 @@ fn authorized_recovery_restores_original_and_requires_explicit_keep() {
     inject_fault(
         &engine,
         11,
-        NativeStreamDirection::Output,
-        NativeDeviceFaultKind::DeviceNotAvailable,
+        AudioStreamDirection::Output,
+        AudioDeviceFaultKind::DeviceNotAvailable,
     );
     engine.observe_device_faults();
     let recovery_id = engine.device_recovery_snapshot().unwrap().recovery_id;
@@ -88,7 +97,7 @@ fn authorized_recovery_restores_original_and_requires_explicit_keep() {
     assert!(engine.poll_device_recovery());
     assert_eq!(
         engine.device_recovery_snapshot().unwrap().phase,
-        NativeDeviceRecoveryPhase::OriginalRestored
+        AudioDeviceRecoveryPhase::OriginalRestored
     );
     assert_eq!(engine.audio_engine_snapshot().unwrap().state, "running");
 
@@ -105,8 +114,8 @@ fn explicit_selection_supersedes_the_recovery_generation() {
     inject_fault(
         &engine,
         17,
-        NativeStreamDirection::Input,
-        NativeDeviceFaultKind::DeviceBusy,
+        AudioStreamDirection::Input,
+        AudioDeviceFaultKind::DeviceBusy,
     );
     engine.observe_device_faults();
     let recovery_id = engine.device_recovery_snapshot().unwrap().recovery_id;
@@ -128,8 +137,8 @@ fn recovery_poll_does_not_supersede_an_in_flight_explicit_selection() {
     inject_fault(
         &engine,
         19,
-        NativeStreamDirection::Output,
-        NativeDeviceFaultKind::DeviceNotAvailable,
+        AudioStreamDirection::Output,
+        AudioDeviceFaultKind::DeviceNotAvailable,
     );
     engine.observe_device_faults();
     let recovery_id = engine.device_recovery_snapshot().unwrap().recovery_id;
@@ -142,13 +151,13 @@ fn recovery_poll_does_not_supersede_an_in_flight_explicit_selection() {
     });
     let deadline = Instant::now() + Duration::from_millis(250);
     while engine.device_recovery_snapshot().unwrap().phase
-        != NativeDeviceRecoveryPhase::ApplyingSelection
+        != AudioDeviceRecoveryPhase::ApplyingSelection
         && Instant::now() < deadline
     {
         thread::yield_now();
     }
     let applying = engine.device_recovery_snapshot().unwrap();
-    assert_eq!(applying.phase, NativeDeviceRecoveryPhase::ApplyingSelection);
+    assert_eq!(applying.phase, AudioDeviceRecoveryPhase::ApplyingSelection);
 
     let polling_engine = Arc::clone(&engine);
     let poll = thread::spawn(move || polling_engine.poll_device_recovery());
@@ -161,7 +170,7 @@ fn recovery_poll_does_not_supersede_an_in_flight_explicit_selection() {
 
     assert_eq!(
         while_polling.phase,
-        NativeDeviceRecoveryPhase::ApplyingSelection
+        AudioDeviceRecoveryPhase::ApplyingSelection
     );
     assert_eq!(
         while_polling.attempt_generation,
@@ -193,13 +202,13 @@ fn mock_stream_error_callback_opens_recovery_and_dynamic_enumeration_hides_loss(
         thread::sleep(Duration::from_millis(2));
     }
     let recovery = engine.device_recovery_snapshot().unwrap();
-    assert_eq!(recovery.fault, NativeDeviceFaultKind::DeviceNotAvailable);
+    assert_eq!(recovery.fault, AudioDeviceFaultKind::DeviceNotAvailable);
     engine
         .authorize_device_recovery(recovery.recovery_id)
         .unwrap();
     engine.poll_device_recovery();
     let recovery = engine.device_recovery_snapshot().unwrap();
-    assert_eq!(recovery.phase, NativeDeviceRecoveryPhase::WaitingForChange);
+    assert_eq!(recovery.phase, AudioDeviceRecoveryPhase::WaitingForChange);
     assert!(
         !recovery
             .candidates
@@ -253,23 +262,20 @@ fn clamps_a_request_outside_the_device_range_to_a_fixed_supported_size() {
 #[test]
 fn only_output_stream_xruns_are_user_visible() {
     assert_eq!(
-        stream_error_impact(NativeStreamDirection::Input, cpal::ErrorKind::Xrun),
+        stream_error_impact(AudioStreamDirection::Input, cpal::ErrorKind::Xrun),
         StreamErrorImpact::Ignore
     );
     assert_eq!(
-        stream_error_impact(NativeStreamDirection::Output, cpal::ErrorKind::Xrun),
+        stream_error_impact(AudioStreamDirection::Output, cpal::ErrorKind::Xrun),
         StreamErrorImpact::CountXrun
     );
     assert_eq!(
-        stream_error_impact(
-            NativeStreamDirection::Output,
-            cpal::ErrorKind::DeviceChanged
-        ),
+        stream_error_impact(AudioStreamDirection::Output, cpal::ErrorKind::DeviceChanged),
         StreamErrorImpact::Ignore
     );
     assert_eq!(
-        stream_error_impact(NativeStreamDirection::Output, cpal::ErrorKind::BackendError),
-        StreamErrorImpact::Recover(NativeDeviceFaultKind::BackendError)
+        stream_error_impact(AudioStreamDirection::Output, cpal::ErrorKind::BackendError),
+        StreamErrorImpact::Recover(AudioDeviceFaultKind::BackendError)
     );
 }
 
@@ -286,9 +292,9 @@ fn heartbeat_does_not_wait_for_the_audio_runtime_lock() {
 
 #[test]
 fn matched_loopback_probe_reports_the_synthetic_physical_delay() {
-    let measurement = Arc::new(RoundTripLatencyMeasurement::new(2, 2, 48_000));
+    let measurement = Arc::new(RoundTripLatencyState::new(2, 2, 48_000));
     measurement
-        .start(NativeRoundTripLatencyMeasurementRequest {
+        .start(RoundTripLatencyMeasurementRequest {
             input_channel: 2,
             output_channel: 2,
         })
@@ -505,7 +511,7 @@ fn streaming_clip_prefetches_and_restarts_after_a_seek_generation() {
         std::process::id()
     ));
     write_deterministic_test_recording(
-        NativeRecordingStartConfig {
+        RecordingStartConfig {
             path: path.to_string_lossy().into_owned(),
             asset_id: "streaming-test".to_owned(),
             originator: "Heron test".to_owned(),
@@ -554,6 +560,7 @@ fn build_mixer_runtime_rejects_zero_sample_rate() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         ),
         "sample rate must be positive",
     );
@@ -572,6 +579,7 @@ fn build_mixer_runtime_rejects_invalid_armed_input_mapping() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         ),
         "armed track has an invalid input mapping",
     );
@@ -589,6 +597,7 @@ fn build_mixer_runtime_rejects_invalid_monitor_input_mapping() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         ),
         "monitored track has an invalid input mapping",
     );

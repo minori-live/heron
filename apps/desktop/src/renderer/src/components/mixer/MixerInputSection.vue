@@ -78,8 +78,8 @@ const inputSummary = computed(() => {
   align-items: center;
   min-width: 0;
   padding: 7px;
-  border-bottom: 1px solid var(--ui-domain-color-444);
-  background: var(--ui-domain-color-595959);
+  border-bottom: 1px solid var(--ui-domain-mixer-divider);
+  background: var(--ui-domain-mixer-section);
 }
 .section-control {
   display: flex;
@@ -90,10 +90,13 @@ const inputSummary = computed(() => {
   min-width: 0;
   padding: 0 7px;
   overflow: hidden;
-  border: 1px solid var(--ui-domain-color-777);
+  border: 1px solid var(--ui-domain-face-neutral-border);
   border-radius: 4px;
-  color: var(--ui-domain-color-ededed);
-  background: linear-gradient(var(--ui-domain-color-707070), var(--ui-domain-color-606060));
+  color: var(--ui-domain-face-neutral-ink);
+  background: linear-gradient(
+    var(--ui-domain-face-neutral-top),
+    var(--ui-domain-face-neutral-bottom)
+  );
   font: var(--ui-type-size-control) var(--ui-type-family-data);
   text-overflow: ellipsis;
   white-space: nowrap;

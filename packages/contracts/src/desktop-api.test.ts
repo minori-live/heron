@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest"
 
-import { APPLICATION_COMMAND_IDS, APPLICATION_WINDOW_COMMAND_IDS } from "./application"
-import { AUDIO_BACKENDS, AUDIO_BUFFER_SIZES, DEFAULT_AUDIO_PREFERENCES } from "./audio"
-import { IPC_CHANNELS } from "./desktop-api"
-import { MIXER_BUS_COUNT } from "./mixer"
+import { APPLICATION_COMMAND_IDS, APPLICATION_WINDOW_COMMAND_IDS } from "./application.ts"
+import { AUDIO_BACKENDS, AUDIO_BUFFER_SIZES, DEFAULT_AUDIO_PREFERENCES } from "./audio.ts"
+import { IPC_CHANNELS } from "./desktop-api.ts"
+import { MIXER_BUS_COUNT } from "./mixer.ts"
 import {
   MIDI_CLOCKS_PER_QUARTER,
   MUSICAL_TICKS_PER_MIDI_CLOCK,
   MUSICAL_TICKS_PER_QUARTER,
   MUSICAL_TICKS_PER_SONG_POSITION,
   MUSICAL_TICKS_PER_WHOLE_NOTE
-} from "./midi"
-import { PROJECT_SAMPLE_RATES } from "./project"
+} from "./midi.ts"
+import { PROJECT_SAMPLE_RATES } from "./project.ts"
 
 describe("IPC_CHANNELS", () => {
   const entries = Object.entries(IPC_CHANNELS)

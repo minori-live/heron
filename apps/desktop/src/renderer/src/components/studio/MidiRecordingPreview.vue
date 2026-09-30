@@ -63,14 +63,14 @@ function noteStyle(note: MidiRecordingPreviewTake["notes"][number]) {
   bottom: 5px;
   min-width: 12px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--record) 76%, white);
+  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 76%, white);
   border-radius: 3px;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--record) 24%, var(--surface-sunken)),
-    color-mix(in srgb, var(--record) 12%, var(--surface-sunken))
+    color-mix(in srgb, var(--ui-signal-record) 24%, var(--ui-color-surface-sunken)),
+    color-mix(in srgb, var(--ui-signal-record) 12%, var(--ui-color-surface-sunken))
   );
-  box-shadow: 0 0 14px color-mix(in srgb, var(--record) 24%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--ui-signal-record) 24%, transparent);
   pointer-events: none;
 }
 .preview-heading {
@@ -85,7 +85,7 @@ function noteStyle(note: MidiRecordingPreviewTake["notes"][number]) {
   height: 20px;
   padding: 3px 5px;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--ui-domain-color-111111b8), transparent);
+  background: linear-gradient(180deg, var(--ui-domain-clip-tint-lo), transparent);
   white-space: nowrap;
 }
 .preview-heading i {
@@ -93,12 +93,12 @@ function noteStyle(note: MidiRecordingPreviewTake["notes"][number]) {
   height: 6px;
   flex: none;
   border-radius: 50%;
-  background: var(--record);
-  box-shadow: 0 0 5px var(--record);
+  background: var(--ui-signal-record);
+  box-shadow: 0 0 5px var(--ui-signal-record);
 }
 .preview-heading strong {
   overflow: hidden;
-  color: var(--ui-domain-color-f7f8f8);
+  color: var(--ui-domain-clip-ink);
   font: var(--ui-type-weight-semibold) var(--ui-type-size-caption) var(--ui-type-family-data);
   text-overflow: ellipsis;
 }
@@ -107,12 +107,12 @@ function noteStyle(note: MidiRecordingPreviewTake["notes"][number]) {
   height: 3px;
   min-width: 2px;
   border-radius: 1px;
-  background: color-mix(in srgb, var(--track-color) 45%, var(--ui-domain-color-fff));
+  background: color-mix(in srgb, var(--track-color) 45%, var(--ui-domain-clip-outline));
   box-shadow: 0 0 3px color-mix(in srgb, var(--track-color) 45%, transparent);
 }
 .preview-note.active {
-  background: var(--ui-domain-color-fff);
-  box-shadow: 0 0 5px color-mix(in srgb, var(--record) 70%, transparent);
+  background: var(--ui-domain-clip-outline);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--ui-signal-record) 70%, transparent);
 }
 .capture-edge {
   position: absolute;
@@ -120,7 +120,7 @@ function noteStyle(note: MidiRecordingPreviewTake["notes"][number]) {
   right: 0;
   bottom: 0;
   width: 2px;
-  background: color-mix(in srgb, var(--record) 80%, white);
-  box-shadow: 0 0 7px var(--record);
+  background: color-mix(in srgb, var(--ui-signal-record) 80%, white);
+  box-shadow: 0 0 7px var(--ui-signal-record);
 }
 </style>

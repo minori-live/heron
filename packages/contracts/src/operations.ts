@@ -1,4 +1,4 @@
-import type { ResourceRef, RpcError } from "./rpc"
+import type { ResourceRef, RpcError } from "./rpc.ts"
 
 export type OperationPhase =
   | "closing-recording"

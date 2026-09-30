@@ -1,6 +1,7 @@
 use super::*;
-use crate::NativeApplicationCaptureTarget;
+use crate::ApplicationCaptureLogicalTarget;
 use heron_audio_plugin::{AudioPluginProcessor, AudioPluginProcessorHandle, SidechainSource};
+use std::collections::HashMap;
 
 #[derive(Clone)]
 struct MutatingFailedProcessor;
@@ -140,8 +141,8 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
         id: &str,
         output_index: Option<u32>,
         input_channels: Vec<u32>,
-    ) -> NativeMixerChannel {
-        NativeMixerChannel {
+    ) -> ResolvedMixerChannel {
+        ResolvedMixerChannel {
             id: id.to_owned(),
             name: id.to_owned(),
             color: "#000000".to_owned(),
@@ -163,18 +164,18 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
             midi_input_channel: None,
         }
     }
-    let graph = NativeMixerGraph {
+    let graph = ResolvedMixerGraph {
         generation: 17,
         sample_rate: 48_000,
         project_end_tick: 61_440,
-        latency_policy: NativeLatencyPolicy::Normal,
+        latency_policy: ResolvedLatencyPolicy::Normal,
         channels: vec![
             channel("wet", Some(3), vec![1]),
             channel("send-source", None, vec![2, 3]),
             channel("dry", Some(3), vec![4, 5]),
             channel("output", None, Vec::new()),
         ],
-        sends: vec![NativeMixerSend {
+        sends: vec![ResolvedMixerSend {
             id: "parallel".to_owned(),
             source_index: 1,
             target_output_index: Some(3),
@@ -185,31 +186,31 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
         }],
         clips: Vec::new(),
         plugins: vec![
-            NativePluginInstance {
+            ResolvedPluginInstance {
                 instance_id: "missing".to_owned(),
                 instance_generation: 1,
                 channel_index: 0,
                 role: "insert".to_owned(),
                 slot_order: 0,
                 audio_mode: PluginAudioMode::Stereo,
+                duplicate_mono_output: false,
                 enabled: true,
                 aux_input_buses: Vec::new(),
                 latency_samples: 64,
                 tail_samples: Some(0),
-                processor: None,
             },
-            NativePluginInstance {
+            ResolvedPluginInstance {
                 instance_id: "bypassed".to_owned(),
                 instance_generation: 1,
                 channel_index: 1,
                 role: "insert".to_owned(),
                 slot_order: 0,
                 audio_mode: PluginAudioMode::Stereo,
+                duplicate_mono_output: false,
                 enabled: false,
                 aux_input_buses: Vec::new(),
                 latency_samples: 32,
                 tail_samples: Some(0),
-                processor: None,
             },
         ],
         midi_clips: Vec::new(),
@@ -217,7 +218,7 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
         time_signature_events: Vec::new(),
     };
 
-    let snapshot = compiled_graph_snapshot(&graph, 23);
+    let snapshot = compiled_graph_snapshot(&graph, 23, &HashMap::new());
 
     assert_eq!(snapshot.graph_revision, 17);
     assert_eq!(snapshot.build_generation, 23);
@@ -290,6 +291,7 @@ fn build_mixer_runtime_rejects_unknown_channel_kinds() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         ),
         "unknown mixer channel kind",
     );
@@ -306,6 +308,7 @@ fn build_mixer_runtime_rejects_dual_output_targets() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         ),
         "either a BUS or an Output",
     );
@@ -314,18 +317,18 @@ fn build_mixer_runtime_rejects_dual_output_targets() {
 #[test]
 fn build_mixer_runtime_rejects_instrument_plugin_on_audio_track() {
     let mut graph = simple_native_graph();
-    graph.plugins.push(NativePluginInstance {
+    graph.plugins.push(ResolvedPluginInstance {
         instance_id: "synth".into(),
         instance_generation: 1,
         channel_index: 0,
         role: "instrument".into(),
         slot_order: 0,
         audio_mode: PluginAudioMode::Stereo,
+        duplicate_mono_output: false,
         enabled: true,
         aux_input_buses: Vec::new(),
         latency_samples: 0,
         tail_samples: Some(0),
-        processor: None,
     });
     assert_build_err(
         build_mixer_runtime(
@@ -333,6 +336,7 @@ fn build_mixer_runtime_rejects_instrument_plugin_on_audio_track() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         ),
         "instrument plugin is assigned to a non-instrument track",
     );
@@ -342,24 +346,25 @@ fn build_mixer_runtime_rejects_instrument_plugin_on_audio_track() {
 fn build_mixer_runtime_compiles_a_simple_graph_with_monitoring_and_pdc() {
     let mut graph = simple_native_graph();
     graph.channels[0].input_monitoring = true;
-    graph.plugins.push(NativePluginInstance {
+    graph.plugins.push(ResolvedPluginInstance {
         instance_id: "fx".into(),
         instance_generation: 1,
         channel_index: 0,
         role: "insert".into(),
         slot_order: 0,
         audio_mode: PluginAudioMode::Mono,
+        duplicate_mono_output: false,
         enabled: true,
         aux_input_buses: Vec::new(),
         latency_samples: 32,
         tail_samples: Some(64),
-        processor: None,
     });
     let runtime = build_mixer_runtime(
         graph,
         9,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("simple graph");
     assert_eq!(runtime.generation, 3);
@@ -380,7 +385,7 @@ fn build_mixer_runtime_keeps_a_silent_route_for_an_unsupported_application_targe
     let mut graph = simple_native_graph();
     graph.channels[0].input_source = Some("application".to_owned());
     graph.channels[0].input_monitoring = true;
-    graph.channels[0].application_capture = Some(NativeApplicationCaptureTarget {
+    graph.channels[0].application_capture = Some(ApplicationCaptureLogicalTarget {
         platform: if cfg!(target_os = "macos") {
             "windows".to_owned()
         } else {
@@ -397,6 +402,7 @@ fn build_mixer_runtime_keeps_a_silent_route_for_an_unsupported_application_targe
         10,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("unsupported application capture must not reject the graph");
 
@@ -426,28 +432,29 @@ fn sidechain_pdc_aligns_at_the_target_plugin_slot() {
     );
     graph.channels[0].output_index = Some(3);
     graph.plugins = vec![
-        NativePluginInstance {
+        ResolvedPluginInstance {
             instance_id: "source-latency".into(),
             instance_generation: 1,
             channel_index: 0,
             role: "insert".into(),
             slot_order: 0,
             audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
             enabled: true,
             aux_input_buses: Vec::new(),
             latency_samples: 64,
             tail_samples: Some(0),
-            processor: None,
         },
-        NativePluginInstance {
+        ResolvedPluginInstance {
             instance_id: "sidechain-target".into(),
             instance_generation: 1,
             channel_index: 1,
             role: "insert".into(),
             slot_order: 0,
             audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
             enabled: true,
-            aux_input_buses: vec![NativePluginAuxInputBus {
+            aux_input_buses: vec![ResolvedPluginAuxInputBus {
                 input_port_key: "test:audio:input:1".into(),
                 input_port_token: 1,
                 name: "Side-chain".into(),
@@ -456,11 +463,10 @@ fn sidechain_pdc_aligns_at_the_target_plugin_slot() {
             }],
             latency_samples: 0,
             tail_samples: Some(0),
-            processor: None,
         },
     ];
 
-    let snapshot = compiled_graph_snapshot(&graph, 1);
+    let snapshot = compiled_graph_snapshot(&graph, 1, &HashMap::new());
     let route = snapshot
         .edges
         .iter()
@@ -483,6 +489,7 @@ fn sidechain_pdc_aligns_at_the_target_plugin_slot() {
         1,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("side-chain graph");
     let target = &runtime.plugins_by_channel[1][0];
@@ -507,28 +514,29 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
     );
     graph.channels[0].output_index = Some(3);
     graph.plugins = vec![
-        NativePluginInstance {
+        ResolvedPluginInstance {
             instance_id: "target-latency".into(),
             instance_generation: 1,
             channel_index: 1,
             role: "insert".into(),
             slot_order: 0,
             audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
             enabled: true,
             aux_input_buses: Vec::new(),
             latency_samples: 64,
             tail_samples: Some(0),
-            processor: None,
         },
-        NativePluginInstance {
+        ResolvedPluginInstance {
             instance_id: "sidechain-target".into(),
             instance_generation: 1,
             channel_index: 1,
             role: "insert".into(),
             slot_order: 1,
             audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
             enabled: true,
-            aux_input_buses: vec![NativePluginAuxInputBus {
+            aux_input_buses: vec![ResolvedPluginAuxInputBus {
                 input_port_key: "test:audio:input:2".into(),
                 input_port_token: 2,
                 name: "Key".into(),
@@ -537,11 +545,10 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
             }],
             latency_samples: 0,
             tail_samples: Some(0),
-            processor: None,
         },
     ];
 
-    let snapshot = compiled_graph_snapshot(&graph, 2);
+    let snapshot = compiled_graph_snapshot(&graph, 2, &HashMap::new());
     assert!(snapshot.nodes.iter().any(|node| {
         node.id == "pdc:sidechain:sidechain-target:2" && node.latency_samples == 64
     }));
@@ -562,6 +569,7 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
         2,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("side-chain graph");
     let target = &runtime.plugins_by_channel[1][1];
@@ -573,15 +581,16 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
 fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
     for (target, source, channels) in [(3, 0, 2), (0, 3, 2), (0, 0, 2), (1, 0, 3)] {
         let mut graph = simple_native_graph();
-        graph.plugins.push(NativePluginInstance {
+        graph.plugins.push(ResolvedPluginInstance {
             instance_id: "invalid-sidechain".into(),
             instance_generation: 1,
             channel_index: target,
             role: "insert".into(),
             slot_order: 0,
             audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
             enabled: true,
-            aux_input_buses: vec![NativePluginAuxInputBus {
+            aux_input_buses: vec![ResolvedPluginAuxInputBus {
                 input_port_key: "test:audio:input:1".into(),
                 input_port_token: 1,
                 name: "Invalid".into(),
@@ -590,7 +599,6 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
             }],
             latency_samples: 0,
             tail_samples: Some(0),
-            processor: None,
         });
 
         let result = build_mixer_runtime(
@@ -598,6 +606,7 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         );
         let Err(error) = result else {
             panic!("invalid side-chain route was accepted");
@@ -606,15 +615,16 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
     }
 
     let mut disconnected = simple_native_graph();
-    disconnected.plugins.push(NativePluginInstance {
+    disconnected.plugins.push(ResolvedPluginInstance {
         instance_id: "disconnected-sidechain".into(),
         instance_generation: 1,
         channel_index: 0,
         role: "insert".into(),
         slot_order: 0,
         audio_mode: PluginAudioMode::Stereo,
+        duplicate_mono_output: false,
         enabled: true,
-        aux_input_buses: vec![NativePluginAuxInputBus {
+        aux_input_buses: vec![ResolvedPluginAuxInputBus {
             input_port_key: "test:audio:input:1".into(),
             input_port_token: 1,
             name: "Disconnected".into(),
@@ -623,13 +633,13 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
         }],
         latency_samples: 0,
         tail_samples: Some(0),
-        processor: None,
     });
     let runtime = build_mixer_runtime(
         disconnected,
         1,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("inactive aux buses are ignored");
     assert!(runtime.plugins_by_channel[0][0].aux_inputs.is_empty());
@@ -652,13 +662,13 @@ fn build_mixer_runtime_schedules_midi_notes_and_controller_events() {
     );
     // Remap audio/master/output after inserting the instrument track.
     graph.channels[1].output_index = Some(3);
-    graph.midi_clips.push(NativeMidiClip {
+    graph.midi_clips.push(DecodedMidiClip {
         id: "clip".into(),
         channel_index: 0,
         start_tick: 0,
         source_offset_ticks: 0,
         length_ticks: 1_920,
-        notes: vec![NativeMidiNote {
+        notes: vec![DecodedMidiNote {
             start_tick: 0,
             duration_ticks: 480,
             channel: 0,
@@ -667,41 +677,41 @@ fn build_mixer_runtime_schedules_midi_notes_and_controller_events() {
             release_velocity: 0,
         }],
         events: vec![
-            NativeMidiEvent {
+            DecodedMidiEvent {
                 tick: 240,
                 channel: 0,
-                kind: NativeMidiEventKind::ControlChange {
+                kind: DecodedMidiEventKind::ControlChange {
                     controller: 1,
                     value: 64,
                 },
             },
-            NativeMidiEvent {
+            DecodedMidiEvent {
                 tick: 480,
                 channel: 0,
-                kind: NativeMidiEventKind::PitchBend { value: 8_192 },
+                kind: DecodedMidiEventKind::PitchBend { value: 8_192 },
             },
-            NativeMidiEvent {
+            DecodedMidiEvent {
                 tick: 720,
                 channel: 0,
-                kind: NativeMidiEventKind::ProgramChange { program: 12 },
+                kind: DecodedMidiEventKind::ProgramChange { program: 12 },
             },
-            NativeMidiEvent {
+            DecodedMidiEvent {
                 tick: 960,
                 channel: 0,
-                kind: NativeMidiEventKind::ChannelPressure { pressure: 40 },
+                kind: DecodedMidiEventKind::ChannelPressure { pressure: 40 },
             },
-            NativeMidiEvent {
+            DecodedMidiEvent {
                 tick: 1_200,
                 channel: 0,
-                kind: NativeMidiEventKind::PolyPressure {
+                kind: DecodedMidiEventKind::PolyPressure {
                     key: 61,
                     pressure: 50,
                 },
             },
-            NativeMidiEvent {
+            DecodedMidiEvent {
                 tick: 1_440,
                 channel: 0,
-                kind: NativeMidiEventKind::SysEx {
+                kind: DecodedMidiEventKind::SysEx {
                     data: vec![0xF0, 0x7E, 0xF7],
                 },
             },
@@ -712,6 +722,7 @@ fn build_mixer_runtime_schedules_midi_notes_and_controller_events() {
         2,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("midi graph");
     assert!(runtime.midi_events.len() >= 8);
@@ -733,11 +744,11 @@ fn build_mixer_runtime_schedules_midi_notes_and_controller_events() {
 
 #[test]
 fn build_mixer_runtime_routes_bus_sends_and_metronome_channels() {
-    let graph = NativeMixerGraph {
+    let graph = ResolvedMixerGraph {
         generation: 5,
         sample_rate: 48_000,
         project_end_tick: 61_440,
-        latency_policy: NativeLatencyPolicy::Normal,
+        latency_policy: ResolvedLatencyPolicy::Normal,
         channels: vec![
             {
                 let mut channel = mixer_channel(
@@ -777,7 +788,7 @@ fn build_mixer_runtime_routes_bus_sends_and_metronome_channels() {
             mixer_channel("master", "master", None, None, None, Vec::new(), Vec::new()),
             mixer_channel("output", "output", None, None, None, Vec::new(), vec![1, 2]),
         ],
-        sends: vec![NativeMixerSend {
+        sends: vec![ResolvedMixerSend {
             id: "to-aux".into(),
             source_index: 0,
             target_output_index: None,
@@ -804,6 +815,7 @@ fn build_mixer_runtime_routes_bus_sends_and_metronome_channels() {
         4,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("bus graph");
     assert!(matches!(runtime.channel_input_widths[0], SignalWidth::Mono));
@@ -814,11 +826,11 @@ fn build_mixer_runtime_routes_bus_sends_and_metronome_channels() {
 
 #[test]
 fn compiled_snapshot_covers_instrument_bus_master_and_active_plugin_paths() {
-    let graph = NativeMixerGraph {
+    let graph = ResolvedMixerGraph {
         generation: 11,
         sample_rate: 48_000,
         project_end_tick: 61_440,
-        latency_policy: NativeLatencyPolicy::Normal,
+        latency_policy: ResolvedLatencyPolicy::Normal,
         channels: vec![
             mixer_channel(
                 "instrument-0",
@@ -849,7 +861,7 @@ fn compiled_snapshot_covers_instrument_bus_master_and_active_plugin_paths() {
             ),
             mixer_channel("output", "output", None, None, None, Vec::new(), vec![1, 2]),
         ],
-        sends: vec![NativeMixerSend {
+        sends: vec![ResolvedMixerSend {
             id: "bus-send".into(),
             source_index: 0,
             target_output_index: None,
@@ -859,24 +871,24 @@ fn compiled_snapshot_covers_instrument_bus_master_and_active_plugin_paths() {
             level_db: -3.0,
         }],
         clips: Vec::new(),
-        plugins: vec![NativePluginInstance {
+        plugins: vec![ResolvedPluginInstance {
             instance_id: "active".into(),
             instance_generation: 1,
             channel_index: 0,
             role: "instrument".into(),
             slot_order: 0,
             audio_mode: PluginAudioMode::DualMono,
+            duplicate_mono_output: false,
             enabled: true,
             aux_input_buses: Vec::new(),
             latency_samples: 0,
             tail_samples: None,
-            processor: None,
         }],
         midi_clips: Vec::new(),
         tempo_events: Vec::new(),
         time_signature_events: Vec::new(),
     };
-    let snapshot = compiled_graph_snapshot(&graph, 12);
+    let snapshot = compiled_graph_snapshot(&graph, 12, &HashMap::new());
     assert_eq!(snapshot.graph_revision, 11);
     assert_eq!(snapshot.build_generation, 12);
     assert!(snapshot.nodes.iter().any(|node| {

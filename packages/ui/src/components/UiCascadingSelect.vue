@@ -199,24 +199,30 @@ function choose(value: string): void {
 }
 
 .ui-cascading-select--workspace {
-  border-color: var(--ui-domain-color-747474);
-  color: var(--ui-domain-color-f2f2f2);
-  background: linear-gradient(var(--ui-domain-color-6d6d6d), var(--ui-domain-color-5d5d5d));
+  border-color: var(--ui-domain-face-neutral-border);
+  color: var(--ui-domain-face-neutral-ink);
+  background: linear-gradient(
+    var(--ui-domain-face-neutral-top),
+    var(--ui-domain-face-neutral-bottom)
+  );
 }
 
 .ui-cascading-select--workspace.ui-cascading-select--hover-surface:hover:not(:disabled),
 .ui-cascading-select--workspace.ui-cascading-select--hover-surface[data-state="open"] {
-  border-color: var(--ui-domain-color-929292);
-  background: linear-gradient(var(--ui-domain-color-747474), var(--ui-domain-color-626262));
+  border-color: var(--ui-domain-face-neutral-hover-border);
+  background: linear-gradient(
+    var(--ui-domain-face-neutral-border),
+    var(--ui-domain-face-neutral-hover-bottom)
+  );
 }
 
 .ui-cascading-select--workspace:focus-visible {
-  outline-color: var(--focus);
+  outline-color: var(--ui-color-focus);
   box-shadow: none;
 }
 
 .ui-cascading-select--workspace .ui-cascading-select__chevron {
-  color: var(--ui-domain-color-b8b8b8);
+  color: var(--ui-domain-face-neutral-muted-ink);
 }
 
 .ui-cascading-select--embedded {
@@ -239,7 +245,7 @@ function choose(value: string): void {
 .ui-cascading-select--embedded.ui-cascading-select--hover-host-tint:hover:not(:disabled),
 .ui-cascading-select--embedded.ui-cascading-select--hover-host-tint[data-state="open"] {
   border-color: transparent;
-  background: var(--ui-domain-color-ffffff22);
+  background: var(--ui-domain-surface-hover-tint);
 }
 
 .ui-cascading-select--embedded:focus-visible {

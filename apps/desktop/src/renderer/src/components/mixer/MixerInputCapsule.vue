@@ -264,16 +264,16 @@ function toggleStereo(): void {
   height: 28px;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--ui-domain-color-2e5d86);
+  border: 1px solid var(--ui-domain-face-audio-border);
   border-radius: 4px;
-  color: var(--ui-domain-color-fff);
-  background: linear-gradient(var(--ui-domain-color-3f91d4), var(--ui-domain-color-2871ae));
-  box-shadow: 0 1px 0 var(--ui-domain-color-ffffff28) inset;
+  color: var(--ui-domain-signal-ink);
+  background: linear-gradient(var(--ui-domain-face-audio-top), var(--ui-domain-face-audio-bottom));
+  box-shadow: 0 1px 0 var(--ui-domain-face-sheen) inset;
 }
 
 .input-capsule__status {
   margin: 0;
-  color: var(--warning);
+  color: var(--ui-color-warning);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   line-height: var(--ui-type-leading-compact);
 }

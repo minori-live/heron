@@ -26,7 +26,7 @@ import {
   type PluginSelection,
   type PluginSignalWidth
 } from "../components/plugins/plugin-audio-mode"
-import { i18n } from "../i18n"
+import { t } from "../i18n"
 import { rpcErrorMessage } from "../rpc"
 import { useLiveStore } from "../stores/live"
 import { useLiveDiscoveryStore } from "../stores/liveDiscovery"
@@ -41,10 +41,6 @@ const CHANNEL_COLORS = {
   output: UI_DOMAIN_COLORS.outputChannel
 } as const
 type CreatableChannelKind = Exclude<MixerChannelKind, "master">
-
-function t(key: string, values?: Record<string, string | number>): string {
-  return i18n.global.t(key, values ?? {})
-}
 
 /** Adapts the shared Mixer surface to root-owned Live document commands. */
 export function useLiveMixer() {

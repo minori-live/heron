@@ -57,7 +57,7 @@ fn audition_preparation_validates_outputs_and_decodes_canonical_audio() {
         std::process::id()
     ));
     write_deterministic_test_recording(
-        NativeRecordingStartConfig {
+        RecordingStartConfig {
             path: path.to_string_lossy().into_owned(),
             asset_id: "audition-test".to_owned(),
             originator: "Heron test".to_owned(),
@@ -109,7 +109,7 @@ fn running_engine_accepts_and_processes_asset_audition_commands() {
         std::process::id()
     ));
     write_deterministic_test_recording(
-        NativeRecordingStartConfig {
+        RecordingStartConfig {
             path: path.to_string_lossy().into_owned(),
             asset_id: "running-audition-test".to_owned(),
             originator: "Heron test".to_owned(),
@@ -123,7 +123,7 @@ fn running_engine_accepts_and_processes_asset_audition_commands() {
         64,
     )
     .expect("write audition fixture");
-    let config = || NativeAudioEngineConfig {
+    let config = || AudioEngineConfig {
         backend: "mock".to_owned(),
         input_device_id: "custom:mock-duplex".to_owned(),
         output_device_id: "custom:mock-duplex".to_owned(),
@@ -162,10 +162,10 @@ fn begin_graph_build_allocates_monotonic_generations_without_a_running_engine() 
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     let engine = AudioEngine::new();
     let first = engine
-        .begin_graph_build(simple_native_graph())
+        .begin_resolved_build(simple_native_graph())
         .expect("first build input");
     let second = engine
-        .begin_graph_build(simple_native_graph())
+        .begin_resolved_build(simple_native_graph())
         .expect("second build input");
     assert_eq!(first.build_generation() + 1, second.build_generation());
     assert_eq!(
@@ -181,10 +181,10 @@ fn stale_compiled_builds_are_superseded_before_publication() {
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     let engine = AudioEngine::new();
     let stale = engine
-        .begin_graph_build(simple_native_graph())
+        .begin_resolved_build(simple_native_graph())
         .expect("stale build input");
     let _fresh = engine
-        .begin_graph_build(simple_native_graph())
+        .begin_resolved_build(simple_native_graph())
         .expect("fresh build input");
     let built = compile_graph_build(stale).expect("compile stale build");
     let outcome = engine
@@ -201,10 +201,10 @@ fn publication_generation_never_moves_backward_after_a_newer_build_is_published(
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     let engine = AudioEngine::new();
     let stale = engine
-        .begin_graph_build(simple_native_graph())
+        .begin_resolved_build(simple_native_graph())
         .expect("stale build input");
     let fresh = engine
-        .begin_graph_build(simple_native_graph())
+        .begin_resolved_build(simple_native_graph())
         .expect("fresh build input");
     let stale_generation = stale.build_generation();
     let fresh_generation = fresh.build_generation();
@@ -232,24 +232,24 @@ fn same_revision_rebuild_preserves_a_newer_plugin_bypass_preview() {
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     let engine = AudioEngine::new();
     let mut stale_graph = simple_native_graph();
-    stale_graph.plugins.push(NativePluginInstance {
+    stale_graph.plugins.push(ResolvedPluginInstance {
         instance_id: "fx".to_owned(),
         instance_generation: 1,
         channel_index: 0,
         role: "insert".to_owned(),
         slot_order: 0,
         audio_mode: PluginAudioMode::Stereo,
+        duplicate_mono_output: false,
         enabled: true,
         aux_input_buses: Vec::new(),
         latency_samples: 0,
         tail_samples: Some(0),
-        processor: None,
     });
     engine
-        .load_mixer_graph(stale_graph.clone())
+        .load_resolved_mixer_graph(stale_graph.clone())
         .expect("publish initial graph");
     engine
-        .preview_mixer_parameter(NativeMixerParameterPreview {
+        .preview_mixer_parameter(MixerParameterPreview {
             target: "plugin".to_owned(),
             id: "fx".to_owned(),
             parameter: "enabled".to_owned(),
@@ -258,7 +258,7 @@ fn same_revision_rebuild_preserves_a_newer_plugin_bypass_preview() {
         .expect("preview bypass");
 
     let stale_build = engine
-        .begin_graph_build(stale_graph)
+        .begin_resolved_build(stale_graph)
         .and_then(compile_graph_build)
         .expect("compile stale same-revision graph");
     assert_eq!(
@@ -281,26 +281,26 @@ fn apply_plugin_timing_returns_replacement_only_when_values_change() {
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     let engine = AudioEngine::new();
-    engine.set_last_native_graph_for_test(Some(NativeMixerGraph {
+    engine.set_last_native_graph_for_test(Some(ResolvedMixerGraph {
         generation: 1,
         sample_rate: 48_000,
         project_end_tick: 61_440,
-        latency_policy: NativeLatencyPolicy::Normal,
+        latency_policy: ResolvedLatencyPolicy::Normal,
         channels: Vec::new(),
         sends: Vec::new(),
         clips: Vec::new(),
-        plugins: vec![NativePluginInstance {
+        plugins: vec![ResolvedPluginInstance {
             instance_id: "session-fx".to_owned(),
             instance_generation: 1,
             channel_index: 0,
             role: "insert".to_owned(),
             slot_order: 0,
             audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
             enabled: true,
             aux_input_buses: Vec::new(),
             latency_samples: 0,
             tail_samples: Some(0),
-            processor: None,
         }],
         midi_clips: Vec::new(),
         tempo_events: Vec::new(),

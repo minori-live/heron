@@ -10,7 +10,7 @@ import {
   pluginSupportsHostedAudioMode,
   resolvePluginProcessorAudioMode,
   type PluginDescriptor
-} from "./plugins"
+} from "./plugins.ts"
 
 function descriptor(overrides: Partial<PluginDescriptor> = {}): PluginDescriptor {
   return {

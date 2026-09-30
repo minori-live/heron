@@ -108,8 +108,8 @@ function close(): void {
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  border-top: 1px solid var(--line-strong);
-  background: var(--daw-workspace);
+  border-top: 1px solid var(--ui-color-border-strong);
+  background: var(--ui-daw-workspace);
 }
 
 .toolbar-area {
@@ -146,6 +146,6 @@ function close(): void {
   margin: 0;
   padding: var(--ui-space-2);
   color: var(--ui-color-danger);
-  background: var(--surface-1);
+  background: var(--ui-color-surface);
 }
 </style>

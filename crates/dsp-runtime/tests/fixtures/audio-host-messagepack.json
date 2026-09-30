@@ -183,5 +183,224 @@
         "message": "fixture host panic"
       }
     }
+  },
+  {
+    "name": "prepare-graph-populated",
+    "producer": "rust",
+    "wireType": "control-request",
+    "base64": "gqpyZXF1ZXN0X2lkL6djb21tYW5kg6R0eXBlrXByZXBhcmUtZ3JhcGikbWV0YYWvcHJvdG9jb2xWZXJzaW9uAqlyZXF1ZXN0SWStZml4dHVyZS1ncmFwaKZ0YXJnZXSEpGtpbmSsYXVkaW8tZW5naW5lomlkqGVuZ2luZS0xpWVwb2NotDE4NDQ2NzQ0MDczNzA5NTUxNjE1qmdlbmVyYXRpb24CsGV4cGVjdGVkUmV2aXNpb24HqG11dGF0aW9ugqtvcGVyYXRpb25JZK9vcGVyYXRpb24tZ3JhcGiuaWRlbXBvdGVuY3lLZXmvZ3JhcGg6cHJlcGFyZTo4p3JlcXVlc3SFq2hlbHBlckVwb2NotDE4NDQ2NzQ0MDczNzA5NTUxNjE1rHByb2plY3RHcmFwaISka2luZK1wcm9qZWN0LWdyYXBoomlkp2dyYXBoLTGlZXBvY2itcHJvamVjdC1lcG9jaKpnZW5lcmF0aW9uBKxiYXNlUmV2aXNpb24HrWdyYXBoUmV2aXNpb24IpWdyYXBoiqtzYW1wbGVfcmF0Zc27gLBwcm9qZWN0X2VuZF90aWNrzgAB4ACubGF0ZW5jeV9wb2xpY3mDpHR5cGWrbG93LWxhdGVuY3m4dGFyZ2V0X291dHB1dF9jaGFubmVsX2lkrmNoYW5uZWwtb3V0cHV0tXBsdWdpbl9idWRnZXRfc2FtcGxlc80CAKhjaGFubmVsc5PeABSiaWStY2hhbm5lbC1hdWRpb6RuYW1lqkxlYWQgVm9jYWylY29sb3KnIzRmOGVmN6RraW5kpWF1ZGlvq3N5c3RlbV9yb2xlwKdnYWluX2Riy8AaAAAAAAAAo3Bhbss/0AAAAAAAAKVtdXRlZMKmc29sb2Vkw7FvdXRwdXRfY2hhbm5lbF9pZKtjaGFubmVsLWJ1c6pvdXRwdXRfYnVzwKxyZWNvcmRfYXJtZWTDsGlucHV0X21vbml0b3JpbmfDsm1pZGlfaW5wdXRfcG9ydF9pZKlwb3J0LWtleXO0bWlkaV9pbnB1dF9wb3J0X25hbWWkS2V5c7JtaWRpX2lucHV0X2NoYW5uZWwDrGlucHV0X3NvdXJjZapkZXZpY2UtMTowrmlucHV0X2NoYW5uZWxzkgABs2FwcGxpY2F0aW9uX2NhcHR1cmWFqHBsYXRmb3JtpW1hY29zsWJ1bmRsZV9pZGVudGlmaWVysmNvbS5leGFtcGxlLnBsYXllcq9leGVjdXRhYmxlX3BhdGi4L0FwcGxpY2F0aW9ucy9QbGF5ZXIuYXBwr2V4ZWN1dGFibGVfbmFtZaZQbGF5ZXK0aW5jbHVkZV9wcm9jZXNzX3RyZWXDuGhhcmR3YXJlX291dHB1dF9jaGFubmVsc5IAAd4AFKJpZKtjaGFubmVsLWJ1c6RuYW1lqlJldmVyYiBCdXOlY29sb3KnI2I4OTRmZqRraW5ko2F1eKtzeXN0ZW1fcm9sZcCnZ2Fpbl9kYssAAAAAAAAAAKNwYW7Lv+AAAAAAAAClbXV0ZWTDpnNvbG9lZMKxb3V0cHV0X2NoYW5uZWxfaWTAqm91dHB1dF9idXMCrHJlY29yZF9hcm1lZMKwaW5wdXRfbW9uaXRvcmluZ8KybWlkaV9pbnB1dF9wb3J0X2lkwLRtaWRpX2lucHV0X3BvcnRfbmFtZcCybWlkaV9pbnB1dF9jaGFubmVswKxpbnB1dF9zb3VyY2XArmlucHV0X2NoYW5uZWxzkLNhcHBsaWNhdGlvbl9jYXB0dXJlwLhoYXJkd2FyZV9vdXRwdXRfY2hhbm5lbHOQ3gAUomlkrmNoYW5uZWwtb3V0cHV0pG5hbWWqT3V0cHV0IDEtMqVjb2xvcqcjNzNkNmEypGtpbmSmb3V0cHV0q3N5c3RlbV9yb2xlqW1ldHJvbm9tZadnYWluX2Riyz/0AAAAAAAAo3BhbssAAAAAAAAAAKVtdXRlZMKmc29sb2VkwrFvdXRwdXRfY2hhbm5lbF9pZMCqb3V0cHV0X2J1c8CscmVjb3JkX2FybWVkwrBpbnB1dF9tb25pdG9yaW5nwrJtaWRpX2lucHV0X3BvcnRfaWTAtG1pZGlfaW5wdXRfcG9ydF9uYW1lwLJtaWRpX2lucHV0X2NoYW5uZWzArGlucHV0X3NvdXJjZcCuaW5wdXRfY2hhbm5lbHOQs2FwcGxpY2F0aW9uX2NhcHR1cmXAuGhhcmR3YXJlX291dHB1dF9jaGFubmVsc5IDBKVzZW5kc5GHomlkpnNlbmQtMbFzb3VyY2VfY2hhbm5lbF9pZK1jaGFubmVsLWF1ZGlvsXRhcmdldF9jaGFubmVsX2lkq2NoYW5uZWwtYnVzqnRhcmdldF9idXPAp2VuYWJsZWTDo3RhcKhwb3N0LXBhbqhsZXZlbF9kYsvAKAAAAAAAAKVjbGlwc5GIomlkpmNsaXAtMapjaGFubmVsX2lkrWNoYW5uZWwtYXVkaW+rc3RhcnRfZnJhbWUAtHNvdXJjZV9vZmZzZXRfZnJhbWVzzQEArWxlbmd0aF9mcmFtZXPNu4CuZmFkZV9pbl9mcmFtZXPNAgCvZmFkZV9vdXRfZnJhbWVzzQQApHBhdGixL21lZGlhL3Rha2UtMS53YXancGx1Z2luc5GLq2luc3RhbmNlX2lkqHBsdWdpbi0xs2luc3RhbmNlX2dlbmVyYXRpb24CqmNoYW5uZWxfaWStY2hhbm5lbC1hdWRpb6Ryb2xlpmVmZmVjdKpzbG90X29yZGVyAaphdWRpb19tb2RlpnN0ZXJlb7VkdXBsaWNhdGVfbW9ub19vdXRwdXTCp2VuYWJsZWTDr2F1eF9pbnB1dF9idXNlc5GErmlucHV0X3BvcnRfa2V5qXNpZGVjaGFpbqRuYW1lqlNpZGUgQ2hhaW6oY2hhbm5lbHMCsXNvdXJjZV9jaGFubmVsX2lkq2NoYW5uZWwtYnVzr2xhdGVuY3lfc2FtcGxlc8yArHRhaWxfc2FtcGxlc80QAKptaWRpX2NsaXBzkYeiaWSrbWlkaS1jbGlwLTGqY2hhbm5lbF9pZK1jaGFubmVsLWF1ZGlvqnN0YXJ0X3RpY2vNA8Czc291cmNlX29mZnNldF90aWNrcwCsbGVuZ3RoX3RpY2tzzQeApW5vdGVzgqdzdG9yYWdlpmlubGluZaVub3Rlc5GGqnN0YXJ0X3RpY2sArmR1cmF0aW9uX3RpY2tzzQHgp2NoYW5uZWwAo2tleTyodmVsb2NpdHlksHJlbGVhc2VfdmVsb2NpdHlApmV2ZW50c4Knc3RvcmFnZaZpbmxpbmWmZXZlbnRzkYSkdGljawCnY2hhbm5lbACka2luZK5jb250cm9sLWNoYW5nZaRkYXRhgqdzdG9yYWdlpmlubGluZaVieXRlc8QDAUpArHRlbXBvX2V2ZW50c5KCpHRpY2sAsGJlYXRzX3Blcl9taW51dGXLQF4AAAAAAACCpHRpY2vNHgCwYmVhdHNfcGVyX21pbnV0ZctAWCAAAAAAALV0aW1lX3NpZ25hdHVyZV9ldmVudHORg6R0aWNrAKludW1lcmF0b3IGq2Rlbm9taW5hdG9yCA==",
+    "normalized": {
+      "command": {
+        "meta": {
+          "expectedRevision": 7,
+          "mutation": {
+            "idempotencyKey": "graph:prepare:8",
+            "operationId": "operation-graph"
+          },
+          "protocolVersion": 2,
+          "requestId": "fixture-graph",
+          "target": {
+            "epoch": "18446744073709551615",
+            "generation": 2,
+            "id": "engine-1",
+            "kind": "audio-engine"
+          }
+        },
+        "request": {
+          "baseRevision": 7,
+          "graph": {
+            "channels": [
+              {
+                "application_capture": {
+                  "bundle_identifier": "com.example.player",
+                  "executable_name": "Player",
+                  "executable_path": "/Applications/Player.app",
+                  "include_process_tree": true,
+                  "platform": "macos"
+                },
+                "color": "#4f8ef7",
+                "gain_db": -6.5,
+                "hardware_output_channels": [0, 1],
+                "id": "channel-audio",
+                "input_channels": [0, 1],
+                "input_monitoring": true,
+                "input_source": "device-1:0",
+                "kind": "audio",
+                "midi_input_channel": 3,
+                "midi_input_port_id": "port-keys",
+                "midi_input_port_name": "Keys",
+                "muted": false,
+                "name": "Lead Vocal",
+                "output_bus": null,
+                "output_channel_id": "channel-bus",
+                "pan": 0.25,
+                "record_armed": true,
+                "soloed": true,
+                "system_role": null
+              },
+              {
+                "application_capture": null,
+                "color": "#b894ff",
+                "gain_db": 0.0,
+                "hardware_output_channels": [],
+                "id": "channel-bus",
+                "input_channels": [],
+                "input_monitoring": false,
+                "input_source": null,
+                "kind": "aux",
+                "midi_input_channel": null,
+                "midi_input_port_id": null,
+                "midi_input_port_name": null,
+                "muted": true,
+                "name": "Reverb Bus",
+                "output_bus": 2,
+                "output_channel_id": null,
+                "pan": -0.5,
+                "record_armed": false,
+                "soloed": false,
+                "system_role": null
+              },
+              {
+                "application_capture": null,
+                "color": "#73d6a2",
+                "gain_db": 1.25,
+                "hardware_output_channels": [3, 4],
+                "id": "channel-output",
+                "input_channels": [],
+                "input_monitoring": false,
+                "input_source": null,
+                "kind": "output",
+                "midi_input_channel": null,
+                "midi_input_port_id": null,
+                "midi_input_port_name": null,
+                "muted": false,
+                "name": "Output 1-2",
+                "output_bus": null,
+                "output_channel_id": null,
+                "pan": 0.0,
+                "record_armed": false,
+                "soloed": false,
+                "system_role": "metronome"
+              }
+            ],
+            "clips": [
+              {
+                "channel_id": "channel-audio",
+                "fade_in_frames": 512,
+                "fade_out_frames": 1024,
+                "id": "clip-1",
+                "length_frames": 48000,
+                "path": "/media/take-1.wav",
+                "source_offset_frames": 256,
+                "start_frame": 0
+              }
+            ],
+            "latency_policy": {
+              "plugin_budget_samples": 512,
+              "target_output_channel_id": "channel-output",
+              "type": "low-latency"
+            },
+            "midi_clips": [
+              {
+                "channel_id": "channel-audio",
+                "events": {
+                  "events": [
+                    {
+                      "channel": 0,
+                      "data": {
+                        "bytes": [1, 74, 64],
+                        "storage": "inline"
+                      },
+                      "kind": "control-change",
+                      "tick": 0
+                    }
+                  ],
+                  "storage": "inline"
+                },
+                "id": "midi-clip-1",
+                "length_ticks": 1920,
+                "notes": {
+                  "notes": [
+                    {
+                      "channel": 0,
+                      "duration_ticks": 480,
+                      "key": 60,
+                      "release_velocity": 64,
+                      "start_tick": 0,
+                      "velocity": 100
+                    }
+                  ],
+                  "storage": "inline"
+                },
+                "source_offset_ticks": 0,
+                "start_tick": 960
+              }
+            ],
+            "plugins": [
+              {
+                "audio_mode": "stereo",
+                "aux_input_buses": [
+                  {
+                    "channels": 2,
+                    "input_port_key": "sidechain",
+                    "name": "Side Chain",
+                    "source_channel_id": "channel-bus"
+                  }
+                ],
+                "channel_id": "channel-audio",
+                "duplicate_mono_output": false,
+                "enabled": true,
+                "instance_generation": 2,
+                "instance_id": "plugin-1",
+                "latency_samples": 128,
+                "role": "effect",
+                "slot_order": 1,
+                "tail_samples": 4096
+              }
+            ],
+            "project_end_tick": 122880,
+            "sample_rate": 48000,
+            "sends": [
+              {
+                "enabled": true,
+                "id": "send-1",
+                "level_db": -12.0,
+                "source_channel_id": "channel-audio",
+                "tap": "post-pan",
+                "target_bus": null,
+                "target_channel_id": "channel-bus"
+              }
+            ],
+            "tempo_events": [
+              {
+                "beats_per_minute": 120.0,
+                "tick": 0
+              },
+              {
+                "beats_per_minute": 96.5,
+                "tick": 7680
+              }
+            ],
+            "time_signature_events": [
+              {
+                "denominator": 8,
+                "numerator": 6,
+                "tick": 0
+              }
+            ]
+          },
+          "graphRevision": 8,
+          "helperEpoch": "18446744073709551615",
+          "projectGraph": {
+            "epoch": "project-epoch",
+            "generation": 4,
+            "id": "graph-1",
+            "kind": "project-graph"
+          }
+        },
+        "type": "prepare-graph"
+      },
+      "request_id": 47
+    }
   }
 ]

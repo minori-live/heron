@@ -15,18 +15,18 @@ pub(crate) async fn compile(input: GraphBuildInput) -> Result<CompiledGraphBuild
 mod tests {
     use super::*;
     use crate::engine::{
-        AudioEngine, GRAPH_TEST_LOCK, NativeMixerChannel, NativeMixerGraph, PublishOutcome,
+        AudioEngine, GRAPH_TEST_LOCK, PublishOutcome, ResolvedMixerChannel, ResolvedMixerGraph,
     };
     use heron_dsp_runtime::tempo::{TempoEvent, TimeSignatureEvent};
 
-    fn minimal_graph(generation: u64) -> NativeMixerGraph {
-        NativeMixerGraph {
+    fn minimal_graph(generation: u64) -> ResolvedMixerGraph {
+        ResolvedMixerGraph {
             generation,
             sample_rate: 48_000,
             project_end_tick: 61_440,
-            latency_policy: heron_audio_engine::NativeLatencyPolicy::Normal,
+            latency_policy: heron_audio_engine::ResolvedLatencyPolicy::Normal,
             channels: vec![
-                NativeMixerChannel {
+                ResolvedMixerChannel {
                     id: "audio".into(),
                     name: "Audio".into(),
                     color: String::new(),
@@ -47,7 +47,7 @@ mod tests {
                     midi_input_port_id: None,
                     midi_input_channel: None,
                 },
-                NativeMixerChannel {
+                ResolvedMixerChannel {
                     id: "master".into(),
                     name: "Master".into(),
                     color: String::new(),
@@ -68,7 +68,7 @@ mod tests {
                     midi_input_port_id: None,
                     midi_input_channel: None,
                 },
-                NativeMixerChannel {
+                ResolvedMixerChannel {
                     id: "output".into(),
                     name: "Output".into(),
                     color: String::new(),
@@ -113,12 +113,12 @@ mod tests {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let engine = AudioEngine::new();
         let first = engine
-            .begin_graph_build(minimal_graph(1))
+            .begin_resolved_build(minimal_graph(1))
             .expect("first begin");
         let first_generation = first.build_generation();
         // A newer begin must win publication even if the older compile finishes later.
         let second = engine
-            .begin_graph_build(minimal_graph(2))
+            .begin_resolved_build(minimal_graph(2))
             .expect("second begin");
         assert!(second.build_generation() > first_generation);
         assert_eq!(
@@ -147,7 +147,9 @@ mod tests {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let engine = AudioEngine::new();
-        let input = engine.begin_graph_build(minimal_graph(3)).expect("begin");
+        let input = engine
+            .begin_resolved_build(minimal_graph(3))
+            .expect("begin");
         let built = tokio::runtime::Builder::new_current_thread()
             .build()
             .unwrap()
@@ -167,7 +169,7 @@ mod tests {
         let engine = AudioEngine::new();
         engine.set_last_native_graph_for_test(None);
         let input = engine
-            .begin_graph_build(minimal_graph(41))
+            .begin_resolved_build(minimal_graph(41))
             .expect("prepare");
         assert_eq!(engine.last_native_graph_generation_for_test(), None);
 

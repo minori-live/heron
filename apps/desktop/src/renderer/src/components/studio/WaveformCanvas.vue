@@ -68,8 +68,8 @@ function draw(): void {
       )
     : buildWaveformGeometry(props.window, props.displayMode, width, height, props.amplitudeScale)
   context.strokeStyle = props.recording
-    ? canvasColor(element, "--ui-domain-color-ffb3be")
-    : canvasColor(element, "--ui-domain-color-87a8b7")
+    ? canvasColor(element, "--ui-domain-waveform-record-guide")
+    : canvasColor(element, "--ui-domain-waveform-guide")
   context.globalAlpha = 0.28
   context.lineWidth = 1
   context.beginPath()
@@ -80,8 +80,8 @@ function draw(): void {
   }
   context.stroke()
   context.strokeStyle = props.recording
-    ? canvasColor(element, "--ui-domain-color-ffd2d8")
-    : canvasColor(element, "--ui-domain-color-b7e9fa")
+    ? canvasColor(element, "--ui-domain-waveform-record-peak")
+    : canvasColor(element, "--ui-domain-waveform-peak")
   context.globalAlpha = 0.86
   context.lineWidth = 1
   context.beginPath()

@@ -4,7 +4,7 @@ import {
   isMeterReturnRate,
   METER_RETURN_RATE_DB_PER_SECOND,
   METER_RETURN_RATES
-} from "./settings"
+} from "./settings.ts"
 
 describe("meter return rates", () => {
   it("keeps every option ordered from slowest to fastest", () => {

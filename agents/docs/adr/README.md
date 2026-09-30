@@ -18,6 +18,7 @@ evidence belong in their owning documents rather than being copied into each ADR
 | [0008 — Root Live bootstrap and Capture](0008-root-live-bootstrap-and-capture.md)                      | Accepted; runtime delivery pending | Independent Live documents, mode exit, instance generations and selective Capture                   |
 | [0009 — PGlite binary transfer and bounded project reads](0009-pglite-data-transfer-and-read-reuse.md) | Accepted                           | Binary media transfer, cache commit boundaries, bounded MIDI and asset metadata queries             |
 | [0010 — Dependency toolchain compatibility](0010-dependency-toolchain-compatibility.md)                | Accepted                           | Native TypeScript with compiler API compatibility, scoped Storybook runner, coupled dependency APIs |
+| [0011 — Protocol owns the wire shape](0011-protocol-owns-the-wire-shape.md)                            | Accepted                           | Wire, resolved and real-time layers; one model per concept; generated TypeScript declarations       |
 
 Accepted means the architecture is chosen, not that every feature or release
 acceptance test is complete. Each record states its implementation scope; the
@@ -25,6 +26,10 @@ acceptance test is complete. Each record states its implementation scope; the
 used as permission to implement or claim an accepted compatibility commitment.
 
 ## 2026-09-06 baseline reset
+
+The numbers in this section's mapping table belong to a **superseded series**.
+Current records are 0001–0011; 0009 in the table below refers to the retired
+record, not to any record in this series.
 
 At the maintainer's request, the previous 16 records were consolidated into this
 seven-record baseline. Numbers restart at 0001. **Old numbers in earlier commits,
@@ -57,6 +62,28 @@ proposal. It does not accept that proposal or mark Live documents delivered.
 | 0015 — Tagged updates                              | 0006; dependency versions remain in manifests/locks              |
 | 0016 — Project and graph transaction consolidation | 0001 transactions; 0002 persistence; 0004 Mixer; 0005 validation |
 
+## 2026-09-30 review
+
+The refactor in pull request #176 was checked against every record. The set was
+reviewed for consolidation and kept as it stands, with one addition:
+
+- 0004 and 0008 decide different things — the eventual Project/Set/Patch
+  hierarchy, and the root-only bootstrap subset with its Perform and Capture
+  semantics. They are sequential stages of one milestone, not competing accounts
+  of it, and merging them would produce a record doing two jobs.
+- The thirteen type pairs the refactor merged, and the `audio-plugin` identity
+  set it deleted, were duplication rather than recorded decisions: no record
+  argued for them, and `architecture.md` named the protocol crate as the owner
+  already.
+- Everything else the records decide — runtimes, receipts, persistence, MIDI,
+  updates, editor compatibility — was unaffected. The branch is behaviour
+  preserving for all of it.
+
+The new record is 0009. Numbers 0001–0008 keep their identities, because each
+still decides one thing and eight documents link to them by number; renumbering
+would have changed their names without changing what they say. The next record
+starts at 0010.
+
 ## When a decision record is required
 
 Create an ADR before changing process/thread ownership, persistence or project
@@ -70,7 +97,8 @@ Prefer one cohesive decision over a record for each implementation step.
 
 ## Lifecycle and review
 
-Use four digits and a short kebab-case title, starting the next record at **0011**.
+Use four digits and a short kebab-case title, starting the next record at **0012**.
+Use four digits and a short kebab-case title, starting the next record at **0010**.
 Copy [the template](template.md). Status is Proposed, Accepted, Superseded by
 ADR-NNNN, or Rejected. Accepted records change only for editorial corrections,
 links and explicit implementation-scope clarification; changing a decision

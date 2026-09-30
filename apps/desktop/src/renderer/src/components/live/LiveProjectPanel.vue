@@ -10,7 +10,7 @@ const { t } = useI18n()
 
 <template>
   <aside
-    class="live-project-panel flex min-h-0 min-w-0 flex-col border-r border-r-solid border-ui-border bg-[var(--surface-panel)]"
+    class="live-project-panel flex min-h-0 min-w-0 flex-col border-r border-r-solid border-ui-border bg-[var(--ui-color-surface-sunken)]"
     :aria-label="t('live.document')"
   >
     <header
@@ -19,7 +19,7 @@ const { t } = useI18n()
       {{ t("live.document") }}
     </header>
     <div
-      class="flex min-w-0 items-center gap-ui-3 border-b border-b-solid border-ui-border bg-[var(--surface-active)] px-ui-4 py-ui-3"
+      class="flex min-w-0 items-center gap-ui-3 border-b border-b-solid border-ui-border bg-[var(--ui-color-surface-active)] px-ui-4 py-ui-3"
       aria-current="page"
     >
       <FileAudio :size="14" class="flex-none text-ui-text-muted" />

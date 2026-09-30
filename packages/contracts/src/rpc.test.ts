@@ -6,8 +6,8 @@ import {
   isRpcRequestMeta,
   rpcFailure,
   rpcSuccess
-} from "./rpc"
-import type { RpcError, RpcRequestMeta } from "./rpc"
+} from "./rpc.ts"
+import type { RpcError, RpcRequestMeta } from "./rpc.ts"
 
 const desktop = {
   kind: "desktop-session",

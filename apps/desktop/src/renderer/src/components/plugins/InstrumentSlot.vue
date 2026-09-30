@@ -83,10 +83,10 @@ function drop(data: UiDragData[]): void {
   display: grid;
   gap: 7px;
   padding: 11px 13px;
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--ui-color-border);
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--ui-domain-color-73d6a2) 5%, transparent),
+    color-mix(in srgb, var(--ui-domain-signal-healthy) 5%, transparent),
     transparent 55%
   );
 }
@@ -94,12 +94,12 @@ function drop(data: UiDragData[]): void {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--ui-domain-color-73d6a2);
+  color: var(--ui-domain-signal-healthy);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
 }
 .slot-heading b {
-  color: var(--text-faint);
+  color: var(--ui-color-text-faint);
   font-size: var(--ui-type-size-micro);
 }
 .slot-body {
@@ -109,27 +109,27 @@ function drop(data: UiDragData[]): void {
   gap: 5px;
   min-height: 34px;
   padding: 5px 5px 5px 7px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 4px;
-  background: var(--surface-sunken);
-  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--ui-domain-color-73d6a2) 72%, transparent);
+  background: var(--ui-color-surface-sunken);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--ui-domain-signal-healthy) 72%, transparent);
 }
 .slot-body i {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--ui-domain-color-73d6a2);
-  box-shadow: 0 0 5px color-mix(in srgb, var(--ui-domain-color-73d6a2) 60%, transparent);
+  background: var(--ui-domain-signal-healthy);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--ui-domain-signal-healthy) 60%, transparent);
 }
 .slot-body i.bypassed {
-  background: var(--text-faint);
+  background: var(--ui-color-text-faint);
   box-shadow: none;
 }
 .slot-body i.failed,
 .slot-body i.missing,
 .slot-body i.quarantined {
-  background: var(--record);
-  box-shadow: 0 0 5px color-mix(in srgb, var(--record) 55%, transparent);
+  background: var(--ui-signal-record);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--ui-signal-record) 55%, transparent);
 }
 .slot-body strong,
 .slot-body small {
@@ -143,17 +143,17 @@ function drop(data: UiDragData[]): void {
 }
 .slot-body small {
   margin-top: 2px;
-  color: var(--text-faint);
+  color: var(--ui-color-text-faint);
   font-size: var(--ui-type-size-micro);
 }
 .instrument-slot > p {
   margin: 0;
-  color: var(--text-faint);
+  color: var(--ui-color-text-faint);
   font-size: var(--ui-type-size-control);
   line-height: var(--ui-type-leading-normal);
 }
 .slot-error {
-  color: var(--record);
+  color: var(--ui-signal-record);
   font-size: var(--ui-type-size-caption);
 }
 </style>

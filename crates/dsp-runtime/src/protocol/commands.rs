@@ -9,18 +9,21 @@ use super::{
     RoundTripLatencyMeasurementRequest, RpcRequestMeta, TransportControl,
 };
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControlRequest {
     pub request_id: u64,
     pub command: ControlCommand,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PriorityRequest {
     pub request_id: u64,
     pub command: PriorityCommand,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum PriorityCommand {
@@ -32,6 +35,7 @@ pub enum PriorityCommand {
     TelemetryPageReady { epoch: u64, generation: u64 },
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum ControlCommand {

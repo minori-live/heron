@@ -69,9 +69,9 @@ const resetToken = shallowRef(0)
 .compiled-effect-graph-panel {
   min-height: 560px;
   overflow: hidden;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 7px;
-  background: var(--surface-1);
+  background: var(--ui-color-surface);
 }
 
 .graph-toolbar {
@@ -80,8 +80,8 @@ const resetToken = shallowRef(0)
   justify-content: space-between;
   min-height: 48px;
   padding: 0 12px;
-  border-bottom: 1px solid var(--line-strong);
-  background: var(--surface-2);
+  border-bottom: 1px solid var(--ui-color-border-strong);
+  background: var(--ui-color-surface-raised);
 }
 
 .graph-toolbar div {
@@ -90,23 +90,23 @@ const resetToken = shallowRef(0)
 }
 
 .graph-toolbar span {
-  color: var(--mixer-input);
+  color: var(--ui-signal-mixer-input);
   font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
   letter-spacing: var(--ui-type-tracking-wider);
 }
 
 .graph-toolbar strong {
-  color: var(--text-secondary);
+  color: var(--ui-color-text-muted);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 
 .graph-toolbar button,
 .graph-state button {
   padding: 6px 10px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--ui-color-border-strong);
   border-radius: 4px;
-  color: var(--text-secondary);
-  background: var(--daw-control);
+  color: var(--ui-color-text-muted);
+  background: var(--ui-daw-control);
 }
 
 .graph-toolbar button:disabled {
@@ -121,11 +121,11 @@ const resetToken = shallowRef(0)
   min-height: 510px;
   gap: 8px;
   padding: 30px;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   text-align: center;
 }
 
 .graph-state b {
-  color: var(--text-primary);
+  color: var(--ui-color-text);
 }
 </style>

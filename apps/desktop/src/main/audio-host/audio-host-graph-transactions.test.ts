@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { IPC_PROTOCOL_VERSION, rpcFailure, rpcSuccess } from "@heron/contracts"
+import {
+  DEFAULT_PROJECT_END_TICK,
+  IPC_PROTOCOL_VERSION,
+  rpcFailure,
+  rpcSuccess
+} from "@heron/contracts"
 import type {
   PluginInstanceState,
   ProjectGraphRef,
@@ -124,16 +129,20 @@ function project(): ProjectGraphSnapshot {
 function runtimeGraph(): AudioHostGraph {
   return {
     sample_rate: 48_000,
+    project_end_tick: DEFAULT_PROJECT_END_TICK,
+    latency_policy: { type: "normal" },
     channels: [],
     sends: [],
     clips: [],
     plugins: [
       {
         instance_id: "plugin-1",
+        instance_generation: 1,
         channel_id: "audio-1",
         role: "insert",
         slot_order: 0,
         audio_mode: "stereo",
+        duplicate_mono_output: false,
         enabled: true,
         aux_input_buses: [],
         latency_samples: 0,

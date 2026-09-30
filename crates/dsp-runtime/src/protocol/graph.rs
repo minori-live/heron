@@ -1,19 +1,20 @@
 use serde::{Deserialize, Serialize};
 
-use super::{
-    LiveMidiClip, LivePluginInstance, LiveTempoEvent, LiveTimeSignatureEvent, ResourceRef,
-};
+use super::{ApplicationCaptureLogicalTarget, LiveMidiClip, LivePluginInstance, ResourceRef};
+use crate::tempo::{TempoEvent, TimeSignatureEvent};
 
 const fn default_project_end_tick() -> u64 {
     61_440
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum LiveMixerSystemRole {
     Metronome,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LiveMixerChannel {
     pub id: String,
@@ -41,20 +42,11 @@ pub struct LiveMixerChannel {
     pub input_source: Option<String>,
     pub input_channels: Vec<u32>,
     #[serde(default)]
-    pub application_capture: Option<ApplicationCaptureTarget>,
+    pub application_capture: Option<ApplicationCaptureLogicalTarget>,
     pub hardware_output_channels: Vec<u32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ApplicationCaptureTarget {
-    pub platform: String,
-    #[serde(default)]
-    pub bundle_identifier: Option<String>,
-    pub executable_path: String,
-    pub executable_name: String,
-    pub include_process_tree: bool,
-}
-
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum LiveMixerSendTap {
@@ -63,6 +55,7 @@ pub enum LiveMixerSendTap {
     PostPan,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LiveMixerSend {
     pub id: String,
@@ -74,6 +67,7 @@ pub struct LiveMixerSend {
     pub level_db: f64,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LiveMixerClip {
     pub id: String,
@@ -86,6 +80,7 @@ pub struct LiveMixerClip {
     pub path: String,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum LiveLatencyPolicy {
@@ -97,6 +92,7 @@ pub enum LiveLatencyPolicy {
     },
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LiveMixerGraph {
     pub sample_rate: u32,
@@ -109,10 +105,11 @@ pub struct LiveMixerGraph {
     pub clips: Vec<LiveMixerClip>,
     pub plugins: Vec<LivePluginInstance>,
     pub midi_clips: Vec<LiveMidiClip>,
-    pub tempo_events: Vec<LiveTempoEvent>,
-    pub time_signature_events: Vec<LiveTimeSignatureEvent>,
+    pub tempo_events: Vec<TempoEvent>,
+    pub time_signature_events: Vec<TimeSignatureEvent>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PrepareGraphRequest {
@@ -123,6 +120,7 @@ pub struct PrepareGraphRequest {
     pub graph: LiveMixerGraph,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphTransactionRequest {
@@ -131,6 +129,7 @@ pub struct GraphTransactionRequest {
     pub base_revision: u64,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum GraphDeploymentStatus {
@@ -140,6 +139,7 @@ pub enum GraphDeploymentStatus {
     Degraded,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphCandidateSnapshot {
@@ -149,6 +149,7 @@ pub struct GraphCandidateSnapshot {
     pub graph_revision: u64,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum GraphOperationOutcome {
@@ -157,6 +158,7 @@ pub enum GraphOperationOutcome {
     Quarantined,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphOperationSnapshot {
@@ -165,6 +167,7 @@ pub struct GraphOperationSnapshot {
     pub graph_revision: u64,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphDeploymentSnapshot {
@@ -178,6 +181,7 @@ pub struct GraphDeploymentSnapshot {
     pub last_operation: Option<GraphOperationSnapshot>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(
     tag = "type",
@@ -201,6 +205,7 @@ pub enum GraphTransactionValue {
     },
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MixerParameterPreview {
     pub target: String,
@@ -209,6 +214,7 @@ pub struct MixerParameterPreview {
     pub value: f64,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MixerChannelMeter {
     pub channel_id: String,
@@ -221,6 +227,7 @@ pub struct MixerChannelMeter {
     pub clipped: bool,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum CompiledGraphSignalWidth {
@@ -228,6 +235,7 @@ pub enum CompiledGraphSignalWidth {
     Stereo,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum CompiledGraphPluginState {
@@ -236,6 +244,7 @@ pub enum CompiledGraphPluginState {
     Unavailable,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum CompiledGraphNodeKind {
@@ -253,6 +262,7 @@ pub enum CompiledGraphNodeKind {
     PdcDelay,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum CompiledGraphEdgeKind {
@@ -263,6 +273,7 @@ pub enum CompiledGraphEdgeKind {
     HardwareRoute,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompiledGraphNode {
     pub id: String,
@@ -279,6 +290,7 @@ pub struct CompiledGraphNode {
     pub low_latency_bypassed: bool,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompiledGraphEdge {
     pub id: String,
@@ -290,6 +302,7 @@ pub struct CompiledGraphEdge {
     pub target_input_port_key: Option<String>,
 }
 
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompiledAudioGraphSnapshot {
     pub graph_revision: u64,

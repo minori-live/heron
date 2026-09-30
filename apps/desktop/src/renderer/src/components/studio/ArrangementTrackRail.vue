@@ -81,14 +81,14 @@ function relayChannelUpdate(channelId: string, patch: MixerChannelPatch): void {
   row-gap: 1px;
   padding: 1px 8px;
   border: 0;
-  border-bottom: 1px solid var(--line-strong);
-  color: var(--text-primary);
-  background: var(--daw-track-header);
+  border-bottom: 1px solid var(--ui-color-border-strong);
+  color: var(--ui-color-text);
+  background: var(--ui-daw-track-header);
   text-align: left;
 }
 .track-header.selected {
-  background: var(--daw-track-header-selected);
-  box-shadow: 3px 0 0 var(--accent) inset;
+  background: var(--ui-daw-track-header-selected);
+  box-shadow: 3px 0 0 var(--ui-color-action) inset;
 }
 .track-color {
   grid-row: 1/3;
@@ -98,7 +98,7 @@ function relayChannelUpdate(channelId: string, patch: MixerChannelPatch): void {
 .track-header > strong {
   grid-column: 2;
   grid-row: 1;
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
 }
 .track-copy {
@@ -118,7 +118,7 @@ function relayChannelUpdate(channelId: string, patch: MixerChannelPatch): void {
   grid-row: 2;
 }
 .track-spacer {
-  background: var(--daw-ruler);
+  background: var(--ui-daw-ruler);
 }
 .track-name-editor {
   display: block;

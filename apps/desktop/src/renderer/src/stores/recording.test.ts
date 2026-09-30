@@ -13,6 +13,7 @@ import type {
 import { useAudioRuntimeStore } from "./audioRuntime"
 import { useProjectStore } from "./project"
 import { useRecordingStore } from "./recording"
+import { stubApi } from "../test/ipc"
 
 function session(overrides: Partial<RecordingSession> = {}): RecordingSession {
   return {
@@ -135,10 +136,6 @@ function configureDependencies(): void {
   projectStore.projectGraphRef = structuredClone(projectGraph)
   projectStore.projectRevision = 1
   useAudioRuntimeStore().audioEngineRef = structuredClone(audioEngine)
-}
-
-function stubApi(overrides: Record<string, unknown>): void {
-  Object.assign(window.heron as unknown as Record<string, unknown>, overrides)
 }
 
 beforeEach(() => {

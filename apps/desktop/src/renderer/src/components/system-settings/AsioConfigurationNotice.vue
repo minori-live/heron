@@ -30,11 +30,11 @@ const { t } = useI18n()
   gap: 14px;
   margin-top: 12px;
   padding: 14px;
-  border: 1px solid var(--line-soft);
-  border-left: var(--ui-signal-rail-width) solid var(--signal-cyan);
+  border: 1px solid var(--ui-color-border);
+  border-left: var(--ui-signal-rail-width) solid var(--ui-signal-audio);
   border-radius: 7px;
-  color: var(--text-strong);
-  background: var(--surface-1);
+  color: var(--ui-color-text);
+  background: var(--ui-color-surface);
 }
 
 .asio-compatible-logo {
@@ -58,7 +58,7 @@ const { t } = useI18n()
 }
 
 .asio-configuration-statement {
-  color: var(--text-muted);
+  color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-control);
   line-height: var(--ui-type-leading-normal);
 }

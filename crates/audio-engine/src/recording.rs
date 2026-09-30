@@ -1,3 +1,7 @@
+// Owned by the protocol crate; this module keeps the engine-facing path stable.
+use heron_dsp_runtime::protocol::BinaryPayload;
+pub use heron_dsp_runtime::protocol::{RecordingResult, RecordingStartConfig, RecordingWaveform};
+
 use std::{
     fs::{File, OpenOptions},
     io::BufWriter,
@@ -26,39 +30,6 @@ const RECORDING_RING_SECONDS: usize = 8;
 const WRITER_BLOCK_FRAMES: usize = 2_048;
 const WAVEFORM_BASE_FRAMES: usize = 64;
 const WAVEFORM_LEVEL_FACTOR: usize = 4;
-
-#[derive(Debug, Clone)]
-pub struct NativeRecordingStartConfig {
-    pub path: String,
-    pub asset_id: String,
-    pub originator: String,
-    pub origination_date: String,
-    pub origination_time: String,
-    pub time_reference: i64,
-    pub sample_rate: u32,
-    pub channels: u32,
-}
-
-#[derive(Debug, Clone)]
-pub struct NativeRecordingResult {
-    pub path: String,
-    pub sample_rate: u32,
-    pub channels: u32,
-    pub frame_count: i64,
-    pub dropout_frames: i64,
-}
-
-#[derive(Debug, Clone)]
-pub struct NativeWaveformSnapshot {
-    pub sample_rate: u32,
-    pub channels: u32,
-    pub frame_count: i64,
-    pub start_frame: i64,
-    pub end_frame: i64,
-    pub frames_per_bucket: u32,
-    pub bucket_count: u32,
-    pub peaks: Vec<u8>,
-}
 
 fn error(context: &str, value: impl std::fmt::Display) -> HostError {
     HostError::new(Status::GenericFailure, format!("{context}: {value}"))
@@ -144,7 +115,7 @@ impl LiveWaveform {
         }
     }
 
-    fn snapshot(&self, start: usize, end: usize, max_buckets: usize) -> NativeWaveformSnapshot {
+    fn snapshot(&self, start: usize, end: usize, max_buckets: usize) -> RecordingWaveform {
         let end = end.min(self.frame_count).max(start.min(self.frame_count));
         let start = start.min(end);
         let stride = self.channels * 2;
@@ -164,7 +135,7 @@ impl LiveWaveform {
             values = aggregate_peak_level(&values, self.channels);
             frames_per_bucket *= WAVEFORM_LEVEL_FACTOR;
         }
-        NativeWaveformSnapshot {
+        RecordingWaveform {
             sample_rate: self.sample_rate,
             channels: self.channels as u32,
             frame_count: self.frame_count.min(i64::MAX as usize) as i64,
@@ -174,7 +145,7 @@ impl LiveWaveform {
                 .min(i64::MAX as usize) as i64,
             frames_per_bucket: frames_per_bucket as u32,
             bucket_count: (values.len() / stride.max(1)) as u32,
-            peaks: encode_peaks(&values),
+            peaks: BinaryPayload::inline(encode_peaks(&values)),
         }
     }
 }
@@ -193,7 +164,7 @@ fn float_format(sample_rate: u32, channels: usize) -> WaveFmt {
     }
 }
 
-fn metadata(config: &NativeRecordingStartConfig, sample_rate: u32, channels: usize) -> Bext {
+fn metadata(config: &RecordingStartConfig, sample_rate: u32, channels: usize) -> Bext {
     Bext {
         description: format!("Heron recording {}", config.asset_id),
         originator: config.originator.clone(),
@@ -262,11 +233,11 @@ pub(crate) fn recording_tap_for_test(
 
 enum WriterCommand {
     Start {
-        config: NativeRecordingStartConfig,
+        config: RecordingStartConfig,
         reply: SyncSender<Result<(), String>>,
     },
     Stop {
-        reply: SyncSender<Result<NativeRecordingResult, String>>,
+        reply: SyncSender<Result<RecordingResult, String>>,
     },
     Shutdown,
 }
@@ -389,7 +360,7 @@ fn writer_thread(
                         .open(&path)
                         .and_then(|file| file.sync_all())
                         .map_err(|value| value.to_string())?;
-                    Ok(NativeRecordingResult {
+                    Ok(RecordingResult {
                         path,
                         sample_rate: writer.sample_rate,
                         channels: writer.channel_count as u32,
@@ -475,7 +446,7 @@ impl RecorderController {
         )
     }
 
-    pub fn start(&self, config: NativeRecordingStartConfig) -> HostResult<()> {
+    pub fn start(&self, config: RecordingStartConfig) -> HostResult<()> {
         let (reply, response) = mpsc::sync_channel(1);
         self.sender
             .send(WriterCommand::Start { config, reply })
@@ -486,7 +457,7 @@ impl RecorderController {
             .map_err(|value| error("failed to start recording", value))
     }
 
-    pub fn stop(&self) -> HostResult<NativeRecordingResult> {
+    pub fn stop(&self) -> HostResult<RecordingResult> {
         self.active.store(false, Ordering::Release);
         let (reply, response) = mpsc::sync_channel(1);
         self.sender
@@ -503,7 +474,7 @@ impl RecorderController {
         start_frame: i64,
         end_frame: i64,
         max_buckets: u32,
-    ) -> HostResult<NativeWaveformSnapshot> {
+    ) -> HostResult<RecordingWaveform> {
         if start_frame < 0 || end_frame < start_frame || max_buckets == 0 {
             return Err(HostError::new(
                 Status::InvalidArg,
@@ -534,10 +505,10 @@ impl Drop for RecorderController {
 
 #[cfg(test)]
 pub fn write_deterministic_test_recording(
-    config: NativeRecordingStartConfig,
+    config: RecordingStartConfig,
     sample_rate: u32,
     frame_count: u32,
-) -> HostResult<NativeRecordingResult> {
+) -> HostResult<RecordingResult> {
     if sample_rate == 0 || frame_count == 0 {
         return Err(HostError::new(
             Status::InvalidArg,
@@ -570,7 +541,7 @@ pub fn write_deterministic_test_recording(
         .open(&config.path)
         .and_then(|file| file.sync_all())
         .map_err(|value| error("failed to flush deterministic BWF", value))?;
-    Ok(NativeRecordingResult {
+    Ok(RecordingResult {
         path: config.path,
         sample_rate,
         channels: 2,
@@ -603,8 +574,8 @@ mod tests {
         ))
     }
 
-    fn start_config(path: &std::path::Path) -> NativeRecordingStartConfig {
-        NativeRecordingStartConfig {
+    fn start_config(path: &std::path::Path) -> RecordingStartConfig {
+        RecordingStartConfig {
             path: path.to_string_lossy().into_owned(),
             asset_id: "asset-42".to_owned(),
             originator: "Heron test".to_owned(),
@@ -746,7 +717,7 @@ mod tests {
         assert_eq!(snapshot.channels, 2);
         assert_eq!(snapshot.frame_count, (WAVEFORM_BASE_FRAMES + 1) as i64);
         assert_eq!(snapshot.bucket_count, 2);
-        let peaks = decode_peaks(&snapshot.peaks);
+        let peaks = decode_peaks(snapshot.peaks.as_inline().expect("inline peaks"));
         assert_eq!(peaks.len(), 8);
         assert_eq!(peaks[0], -0.75);
         assert_eq!(peaks[1], 0.25);
@@ -767,7 +738,7 @@ mod tests {
         let snapshot = waveform.snapshot(0, frames, 1);
         assert_eq!(snapshot.bucket_count, 1);
         assert!(snapshot.frames_per_bucket >= WAVEFORM_BASE_FRAMES as u32);
-        let peaks = decode_peaks(&snapshot.peaks);
+        let peaks = decode_peaks(snapshot.peaks.as_inline().expect("inline peaks"));
         assert_eq!(peaks, vec![0.5, 0.5]);
     }
 

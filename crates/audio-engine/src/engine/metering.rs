@@ -1,7 +1,7 @@
 use super::{
     Arc, AtomicBool, AtomicU32, AtomicU64, AtomicUsize, ChannelPeak, MAX_INPUT_CHANNELS,
-    NativeMixerChannelMeter, NativeTransportSnapshot, Ordering, StereoFrame, TRANSPORT_COUNTING_IN,
-    TRANSPORT_PLAYING, TRANSPORT_RECORDING, TRANSPORT_WAITING,
+    MixerChannelMeter, Ordering, StereoFrame, TRANSPORT_COUNTING_IN, TRANSPORT_PLAYING,
+    TRANSPORT_RECORDING, TRANSPORT_WAITING, TransportSnapshot,
 };
 
 pub(super) struct TransportShared {
@@ -28,8 +28,8 @@ pub struct TransportClockHandle {
 }
 
 impl TransportShared {
-    pub(super) fn snapshot(&self) -> NativeTransportSnapshot {
-        NativeTransportSnapshot {
+    pub(super) fn snapshot(&self) -> TransportSnapshot {
+        TransportSnapshot {
             state: match self.state.load(Ordering::Relaxed) {
                 TRANSPORT_PLAYING => "playing",
                 TRANSPORT_RECORDING => "recording",
@@ -118,8 +118,8 @@ impl MeterAtomics {
         }
     }
 
-    pub(super) fn snapshot(&self) -> NativeMixerChannelMeter {
-        NativeMixerChannelMeter {
+    pub(super) fn snapshot(&self) -> MixerChannelMeter {
+        MixerChannelMeter {
             channel_id: self.id.clone(),
             pre_left: f64::from(f32::from_bits(self.pre_left.load(Ordering::Relaxed))),
             pre_right: f64::from(f32::from_bits(self.pre_right.load(Ordering::Relaxed))),
