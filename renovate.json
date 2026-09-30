@@ -16,6 +16,7 @@
   "packageRules": [
     {
       "matchManagers": ["github-actions"],
+      "pinDigests": false,
       "schedule": ["* * 1 * *"]
     },
     {
