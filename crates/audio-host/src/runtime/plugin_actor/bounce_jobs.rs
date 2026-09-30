@@ -4,9 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use heron_audio_engine::{
-    BounceFormat, BounceProgress, BounceRequest, ResolvedMixerGraph, render_bounce_output,
-};
+use heron_audio_engine::{BounceFormat, BounceProgress, BounceRequest, render_bounce_output};
 use heron_audio_plugin::AudioPluginProcessorHandle;
 use heron_dsp_runtime::protocol::{
     BounceChannelMode, BounceDither, BounceEncoding, BounceJobPhase, BounceJobState,
@@ -65,7 +63,6 @@ impl BounceJobRegistry {
     pub(super) fn start(
         &self,
         request: BounceOutputRenderRequest,
-        graph: ResolvedMixerGraph,
         plugin_slots: HashMap<String, AudioPluginProcessorHandle>,
     ) -> Result<BounceJobStatus, String> {
         let operation_id = request.operation_id.clone();
@@ -126,7 +123,8 @@ impl BounceJobRegistry {
             .name(format!("heron-bounce-{operation_id}"))
             .spawn(move || {
                 let native = BounceRequest {
-                    graph,
+                    graph: request.graph,
+                    revision: request.graph_revision,
                     plugin_slots,
                     output_channel_id: request.output_channel_id,
                     start_frame: request.start_frame,
@@ -243,13 +241,12 @@ impl BounceJobRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use heron_audio_engine::{ResolvedLatencyPolicy, ResolvedMixerChannel};
-    use heron_dsp_runtime::protocol::{LiveLatencyPolicy, LiveMixerGraph};
+    use heron_dsp_runtime::protocol::{LiveLatencyPolicy, LiveMixerChannel, LiveMixerGraph};
     use heron_dsp_runtime::tempo::{TempoEvent, TimeSignatureEvent};
     use std::time::Duration;
 
-    fn channel(id: &str, kind: &str, hardware_output_channels: Vec<u32>) -> ResolvedMixerChannel {
-        ResolvedMixerChannel {
+    fn channel(id: &str, kind: &str, hardware_output_channels: Vec<u32>) -> LiveMixerChannel {
+        LiveMixerChannel {
             id: id.to_owned(),
             name: id.to_owned(),
             color: "#000000".to_owned(),
@@ -259,7 +256,7 @@ mod tests {
             pan: 0.0,
             muted: false,
             soloed: false,
-            output_index: None,
+            output_channel_id: None,
             output_bus: None,
             record_armed: false,
             input_monitoring: false,
@@ -268,16 +265,16 @@ mod tests {
             application_capture: None,
             hardware_output_channels,
             midi_input_port_id: None,
+            midi_input_port_name: None,
             midi_input_channel: None,
         }
     }
 
-    fn native_graph() -> ResolvedMixerGraph {
-        ResolvedMixerGraph {
-            generation: 1,
+    fn wire_graph() -> LiveMixerGraph {
+        LiveMixerGraph {
             sample_rate: 48_000,
             project_end_tick: 3_840,
-            latency_policy: ResolvedLatencyPolicy::Normal,
+            latency_policy: LiveLatencyPolicy::Normal,
             channels: vec![
                 channel("master", "master", Vec::new()),
                 channel("output", "output", vec![1, 2]),
@@ -308,18 +305,7 @@ mod tests {
         BounceOutputRenderRequest {
             operation_id: operation_id.to_owned(),
             graph_revision: 1,
-            graph: LiveMixerGraph {
-                sample_rate: 48_000,
-                project_end_tick: 3_840,
-                latency_policy: LiveLatencyPolicy::Normal,
-                channels: Vec::new(),
-                sends: Vec::new(),
-                clips: Vec::new(),
-                plugins: Vec::new(),
-                midi_clips: Vec::new(),
-                tempo_events: Vec::new(),
-                time_signature_events: Vec::new(),
-            },
+            graph: wire_graph(),
             output_channel_id: "output".to_owned(),
             start_frame: 0,
             end_frame,
@@ -408,11 +394,11 @@ mod tests {
         let encoded_path = PathBuf::from(&request.encoded_path);
 
         let initial = registry
-            .start(request.clone(), native_graph(), HashMap::new())
+            .start(request.clone(), HashMap::new())
             .expect("start bounce job");
         assert_eq!(initial.state, BounceJobState::Running);
         let duplicate = registry
-            .start(request, native_graph(), HashMap::new())
+            .start(request, HashMap::new())
             .expect("reconcile duplicate bounce job");
         assert_eq!(duplicate.operation_id, "complete");
 
@@ -435,7 +421,7 @@ mod tests {
         let failed_request = request("failed", 0);
         let failed_encoded_path = PathBuf::from(&failed_request.encoded_path);
         registry
-            .start(failed_request, native_graph(), HashMap::new())
+            .start(failed_request, HashMap::new())
             .expect("start invalid bounce job");
         let failed = wait_for_terminal(&registry, "failed");
         assert_eq!(failed.state, BounceJobState::Failed);
@@ -450,15 +436,15 @@ mod tests {
         let long_request = request("long", 48_000_000);
         let long_encoded_path = PathBuf::from(&long_request.encoded_path);
         registry
-            .start(long_request.clone(), native_graph(), HashMap::new())
+            .start(long_request.clone(), HashMap::new())
             .expect("start cancellable bounce job");
         let duplicate = registry
-            .start(long_request, native_graph(), HashMap::new())
+            .start(long_request, HashMap::new())
             .expect("reconcile running bounce job");
         assert_eq!(duplicate.state, BounceJobState::Running);
         assert_eq!(
             registry
-                .start(request("parallel", 512), native_graph(), HashMap::new())
+                .start(request("parallel", 512), HashMap::new())
                 .expect_err("reject parallel bounce job"),
             "another offline bounce is active"
         );

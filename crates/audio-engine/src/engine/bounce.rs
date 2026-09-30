@@ -1,5 +1,7 @@
-pub use heron_dsp_runtime::protocol::{BounceChannelMode, BounceDither, BounceNormalization};
+pub use heron_dsp_runtime::protocol::{BounceChannelMode, BounceDither, BounceNormalization, LiveMixerGraph};
 
+use super::lifecycle_types::invalid_config;
+use super::resolve::resolve_graph;
 use super::{
     AudioEngine, EngineCommand, MAX_OUTPUT_CHANNELS, MAX_PLUGIN_BLOCK_FRAMES,
     ResolvedLatencyPolicy, ResolvedMixerGraph, TransportAction, compile_graph_build,
@@ -45,7 +47,9 @@ pub enum BounceFormat {
 }
 
 pub struct BounceRequest {
-    pub graph: ResolvedMixerGraph,
+    pub graph: LiveMixerGraph,
+    /// Project graph revision the wire graph belongs to.
+    pub revision: u64,
     /// Endpoints for the graph's plug-in instances. The offline render builds
     /// its own engine, so it carries them rather than reading the live slots.
     pub plugin_slots: HashMap<String, AudioPluginProcessorHandle>,
@@ -574,7 +578,7 @@ fn encode_mp3(
 }
 
 pub fn render_bounce_output(
-    mut request: BounceRequest,
+    request: BounceRequest,
     cancel: &AtomicBool,
     mut progress: impl FnMut(BounceProgress),
 ) -> EngineResult<BounceResult> {
@@ -585,10 +589,13 @@ pub fn render_bounce_output(
     }
     progress(BounceProgress::Preparing);
     let source_rate = request.graph.sample_rate;
-    request.graph = prepare_graph(request.graph, &request.output_channel_id)?;
+    // Resolving also picks the output channel's index, which the render needs
+    // before it can build.
+    let resolved = resolve_graph(request.revision, &request.graph).map_err(invalid_config)?;
+    let resolved = prepare_graph(resolved, &request.output_channel_id)?;
     let engine = AudioEngine::new();
     engine.set_plugin_processors(request.plugin_slots.clone());
-    let built = compile_graph_build(engine.begin_graph_build(request.graph.clone())?)?;
+    let built = compile_graph_build(engine.begin_resolved_build(resolved)?)?;
     let mut runtime = built.runtime;
     let (known_tail, maximum_tail) = tail_render_limits(
         request.include_tail,
@@ -721,16 +728,14 @@ pub fn render_bounce_output(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ResolvedMixerChannel;
-    use heron_dsp_runtime::protocol::LiveMixerSystemRole;
+    use heron_dsp_runtime::protocol::{LiveLatencyPolicy, LiveMixerChannel, LiveMixerSystemRole};
     use heron_dsp_runtime::tempo::{TempoEvent, TimeSignatureEvent};
 
-    fn empty_graph() -> ResolvedMixerGraph {
-        ResolvedMixerGraph {
-            generation: 0,
+    fn wire_graph() -> LiveMixerGraph {
+        LiveMixerGraph {
             sample_rate: 48_000,
             project_end_tick: 0,
-            latency_policy: ResolvedLatencyPolicy::Normal,
+            latency_policy: LiveLatencyPolicy::Normal,
             channels: Vec::new(),
             sends: Vec::new(),
             clips: Vec::new(),
@@ -741,13 +746,18 @@ mod tests {
         }
     }
 
+    fn resolved(graph: &LiveMixerGraph) -> ResolvedMixerGraph {
+        resolve_graph(0, graph).expect("bounce fixture graph should resolve")
+    }
+
     fn encoder_request(
         scratch_path: PathBuf,
         encoded_path: PathBuf,
         format: BounceFormat,
     ) -> BounceRequest {
         BounceRequest {
-            graph: empty_graph(),
+            graph: wire_graph(),
+            revision: 0,
             plugin_slots: HashMap::new(),
             output_channel_id: "output".to_owned(),
             start_frame: 0,
@@ -762,8 +772,8 @@ mod tests {
         }
     }
 
-    fn channel(id: &str, kind: &str, hardware_output_channels: Vec<u32>) -> ResolvedMixerChannel {
-        ResolvedMixerChannel {
+    fn channel(id: &str, kind: &str, hardware_output_channels: Vec<u32>) -> LiveMixerChannel {
+        LiveMixerChannel {
             id: id.to_owned(),
             name: id.to_owned(),
             color: "#000000".to_owned(),
@@ -773,7 +783,7 @@ mod tests {
             pan: 0.0,
             muted: false,
             soloed: false,
-            output_index: None,
+            output_channel_id: None,
             output_bus: None,
             record_armed: false,
             input_monitoring: false,
@@ -782,6 +792,7 @@ mod tests {
             application_capture: None,
             hardware_output_channels,
             midi_input_port_id: None,
+            midi_input_port_name: None,
             midi_input_channel: None,
         }
     }
@@ -875,14 +886,13 @@ mod tests {
         let other = channel("other", "output", vec![3, 4]);
         let mut metronome = channel("metronome", "aux", Vec::new());
         metronome.system_role = Some(LiveMixerSystemRole::Metronome);
-        let graph = ResolvedMixerGraph {
-            latency_policy: ResolvedLatencyPolicy::LowLatency {
-                target_output_index: 0,
-                plugin_budget_samples: 128,
-            },
-            channels: vec![selected, other, metronome],
-            ..empty_graph()
+        let mut wire = wire_graph();
+        wire.latency_policy = LiveLatencyPolicy::LowLatency {
+            target_output_channel_id: "selected".to_owned(),
+            plugin_budget_samples: 128,
         };
+        wire.channels = vec![selected, other, metronome];
+        let graph = resolved(&wire);
 
         let prepared = prepare_graph(graph.clone(), "selected").expect("prepare bounce graph");
 
@@ -970,7 +980,7 @@ mod tests {
     #[test]
     fn complete_render_runs_the_bounded_two_stage_pipeline_without_tail() {
         let (scratch_path, encoded_path) = unique_paths("complete-render");
-        let mut graph = empty_graph();
+        let mut graph = wire_graph();
         graph.project_end_tick = 3_840;
         graph.channels = vec![
             channel("master", "master", Vec::new()),
@@ -987,6 +997,7 @@ mod tests {
         }];
         let request = BounceRequest {
             graph,
+            revision: 0,
             plugin_slots: HashMap::new(),
             output_channel_id: "output".to_owned(),
             start_frame: 0,

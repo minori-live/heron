@@ -5,7 +5,7 @@ use super::{
     GraphTransactionRequest, GraphTransactionState, GraphTransactionValue, LiveMixerGraph,
     PreparedGraphCandidate, UiMailboxWaker, Vst3ActorDeps, engine, forward_to_ui, graph_busy_error,
     graph_conflict_error, graph_dependency_error, graph_failure, graph_stale_error, graph_success,
-    graph_timeout_error, graph_validation_error, live_graph, mpsc, oneshot, publish_built_graph,
+    graph_timeout_error, graph_validation_error, mpsc, oneshot, publish_built_graph,
     refresh_graph_handles, std_mpsc, validate_graph_meta, validate_graph_request,
     wait_for_graph_publication,
 };
@@ -156,13 +156,10 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                             .lock()
                             .map_err(|_| "VST3 processor registry is poisoned".to_owned())?
                             .clone();
-                        let graph = live_graph(request.graph_revision, &request.graph)?;
                         audio_engine.set_plugin_processors(slots.clone());
-                        Ok((graph, slots))
+                        Ok(slots)
                     })();
-                    match native
-                        .and_then(|(graph, slots)| bounce_jobs.start(*request, graph, slots))
-                    {
+                    match native.and_then(|slots| bounce_jobs.start(*request, slots)) {
                         Ok(status) => ControlResult::BounceOutput { status },
                         Err(message) => control_error! { message },
                     }
@@ -264,19 +261,18 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                     }
 
                     let graph = request.graph;
-                    let native = (|| {
-                        let processors = candidate_processors
-                            .lock()
-                            .map_err(|_| "VST3 processor registry is poisoned".to_owned())?
-                            .clone();
-                        let resolved = live_graph(request.graph_revision, &graph);
-                        if resolved.is_ok() {
-                            audio_engine.set_plugin_processors(processors.clone());
+                    // The engine resolves the wire graph inside `begin_graph_build`,
+                    // so the endpoints this graph refers to must be registered
+                    // first. A failed build retires them with the candidate.
+                    let input = match candidate_processors
+                        .lock()
+                        .map(|processors| processors.clone())
+                        .map_err(|_| "VST3 processor registry is poisoned".to_owned())
+                    {
+                        Ok(processors) => {
+                            audio_engine.set_plugin_processors(processors);
+                            audio_engine.begin_graph_build(&graph, request.graph_revision)
                         }
-                        resolved
-                    })();
-                    let native = match native {
-                        Ok(native) => native,
                         Err(error) => {
                             let _ = dispatch_ui_actor_command(
                                 &ui_sender,
@@ -294,7 +290,7 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                             continue;
                         }
                     };
-                    let input = match audio_engine.begin_graph_build(native) {
+                    let input = match input {
                         Ok(input) => input,
                         Err(error) => {
                             let _ = dispatch_ui_actor_command(

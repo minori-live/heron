@@ -208,6 +208,8 @@ mod publication;
 mod recording;
 #[path = "engine/render_runtime.rs"]
 mod render_runtime;
+#[path = "engine/resolve.rs"]
+mod resolve;
 #[path = "engine/resampling.rs"]
 mod resampling;
 #[path = "engine/spec.rs"]
@@ -253,6 +255,7 @@ pub use device_recovery::{
 };
 pub use metering::TransportClockHandle;
 pub use publication::{CompiledGraphBuild, GraphBuildInput, PublishOutcome, compile_graph_build};
+pub use resolve::resolve_graph;
 pub use spec::{
     ApplicationCaptureLogicalTarget, AudioEngineConfig, AudioRuntime, DecodedMidiClip,
     DecodedMidiEvent, DecodedMidiEventKind, DecodedMidiNote, MixerChannelMeter,

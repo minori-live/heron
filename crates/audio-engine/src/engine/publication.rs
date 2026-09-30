@@ -1,4 +1,6 @@
+use heron_dsp_runtime::protocol::LiveMixerGraph;
 use super::{
+    resolve,
     Arc, AtomicBool, AtomicU32, AtomicU64, AudioEngine, AudioPluginProcessorHandle,
     AuditionPlayback, CompiledAudioGraphSnapshot, EngineCommand, HashMap, InputPeakBank,
     MAX_OUTPUT_CHANNELS, MeterAtomics, MixerParameterPreview, MixerRuntime, MixerSnapshot,
@@ -99,7 +101,23 @@ impl AudioEngine {
     /// Allocate a build generation and capture transport handles. Heavy compile
     /// work must run on a supervised graph worker via
     /// [`compile_graph_build`].
-    pub fn begin_graph_build(&self, graph: ResolvedMixerGraph) -> Result<GraphBuildInput> {
+    pub fn begin_graph_build(
+        &self,
+        graph: &LiveMixerGraph,
+        revision: u64,
+    ) -> Result<GraphBuildInput> {
+        let graph = resolve::resolve_graph(revision, graph).map_err(invalid_config)?;
+        self.begin_resolved_build(graph)
+    }
+
+    /// Begins a build from a graph the engine already resolved.
+    ///
+    /// A latency change mutates the published graph in place, so that path
+    /// rebuilds from the resolved form rather than re-resolving the wire.
+    pub fn begin_resolved_build(
+        &self,
+        graph: ResolvedMixerGraph,
+    ) -> Result<GraphBuildInput> {
         let build_generation = self.next_build_generation.fetch_add(1, Ordering::Relaxed);
         let (transport, input_peaks) = self.engine_transport_handles(graph.sample_rate)?;
         Ok(GraphBuildInput {
@@ -221,8 +239,17 @@ impl AudioEngine {
     }
 
     /// Synchronous build+publish helper for the MessagePack compatibility path.
-    pub fn load_mixer_graph(&self, graph: ResolvedMixerGraph) -> Result<()> {
-        let input = self.begin_graph_build(graph)?;
+    pub fn load_mixer_graph(&self, graph: &LiveMixerGraph, revision: u64) -> Result<()> {
+        let input = self.begin_graph_build(graph, revision)?;
+        self.publish_build(input)
+    }
+
+    pub(super) fn load_resolved_mixer_graph(&self, graph: ResolvedMixerGraph) -> Result<()> {
+        let input = self.begin_resolved_build(graph)?;
+        self.publish_build(input)
+    }
+
+    fn publish_build(&self, input: GraphBuildInput) -> Result<()> {
         let built = compile_graph_build(input)?;
         match self.publish_mixer_runtime(built)? {
             PublishOutcome::Published | PublishOutcome::Superseded => Ok(()),
@@ -323,7 +350,7 @@ impl AudioEngine {
         else {
             return Ok(false);
         };
-        self.load_mixer_graph(replacement)?;
+        self.load_resolved_mixer_graph(replacement)?;
         Ok(true)
     }
 

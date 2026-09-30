@@ -233,7 +233,7 @@ async fn build_graph_on_worker(
     audio_engine: &engine::AudioEngine,
 ) -> ControlResult {
     let revision = graph.generation;
-    let input = match audio_engine.begin_graph_build(graph) {
+    let input = match audio_engine.begin_resolved_build(graph) {
         Ok(input) => input,
         Err(error) => {
             return control_error! {

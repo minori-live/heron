@@ -107,7 +107,7 @@ fn mock_backend_uses_the_project_clock_over_native_48_khz_io() {
             denominator: 4,
         }],
     };
-    let built = compile_graph_build(engine.begin_graph_build(graph).unwrap()).unwrap();
+    let built = compile_graph_build(engine.begin_resolved_build(graph).unwrap()).unwrap();
     engine.publish_mixer_runtime(built).unwrap();
     engine
         .transport_command("play".to_owned(), None, None, None, None)

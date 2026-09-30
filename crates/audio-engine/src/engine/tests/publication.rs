@@ -162,10 +162,10 @@ fn begin_graph_build_allocates_monotonic_generations_without_a_running_engine() 
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     let engine = AudioEngine::new();
     let first = engine
-        .begin_graph_build(simple_native_graph())
+        .begin_resolved_build(simple_native_graph())
         .expect("first build input");
     let second = engine
-        .begin_graph_build(simple_native_graph())
+        .begin_resolved_build(simple_native_graph())
         .expect("second build input");
     assert_eq!(first.build_generation() + 1, second.build_generation());
     assert_eq!(
@@ -181,10 +181,10 @@ fn stale_compiled_builds_are_superseded_before_publication() {
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     let engine = AudioEngine::new();
     let stale = engine
-        .begin_graph_build(simple_native_graph())
+        .begin_resolved_build(simple_native_graph())
         .expect("stale build input");
     let _fresh = engine
-        .begin_graph_build(simple_native_graph())
+        .begin_resolved_build(simple_native_graph())
         .expect("fresh build input");
     let built = compile_graph_build(stale).expect("compile stale build");
     let outcome = engine
@@ -201,10 +201,10 @@ fn publication_generation_never_moves_backward_after_a_newer_build_is_published(
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     let engine = AudioEngine::new();
     let stale = engine
-        .begin_graph_build(simple_native_graph())
+        .begin_resolved_build(simple_native_graph())
         .expect("stale build input");
     let fresh = engine
-        .begin_graph_build(simple_native_graph())
+        .begin_resolved_build(simple_native_graph())
         .expect("fresh build input");
     let stale_generation = stale.build_generation();
     let fresh_generation = fresh.build_generation();
@@ -246,7 +246,7 @@ fn same_revision_rebuild_preserves_a_newer_plugin_bypass_preview() {
         tail_samples: Some(0),
     });
     engine
-        .load_mixer_graph(stale_graph.clone())
+        .load_resolved_mixer_graph(stale_graph.clone())
         .expect("publish initial graph");
     engine
         .preview_mixer_parameter(MixerParameterPreview {
@@ -258,7 +258,7 @@ fn same_revision_rebuild_preserves_a_newer_plugin_bypass_preview() {
         .expect("preview bypass");
 
     let stale_build = engine
-        .begin_graph_build(stale_graph)
+        .begin_resolved_build(stale_graph)
         .and_then(compile_graph_build)
         .expect("compile stale same-revision graph");
     assert_eq!(

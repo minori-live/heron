@@ -154,7 +154,7 @@ fn graph_activation_rollback_and_competing_refreshes_preserve_the_commit_boundar
             let mut refresh_replies = Vec::new();
             for _ in 0..2 {
                 let (reply, response) = tokio::sync::oneshot::channel();
-                let graph = crate::runtime::live_graph(0, &empty_graph()).unwrap();
+                let graph = heron_audio_engine::resolve_graph(0, &empty_graph()).unwrap();
                 background_sender.send(ActorRequest { command: ActorCommand::BuildGraph { graph }, reply }).await.unwrap();
                 refresh_replies.push(response);
             }

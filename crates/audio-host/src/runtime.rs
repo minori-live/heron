@@ -31,13 +31,12 @@ use heron_dsp_runtime::protocol::{
     AudioDeviceRecoveryPhase, AudioEngineConfig, AudioStreamDirection, BinaryPayload,
     ControlCommand, ControlResult, GraphCandidateSnapshot, GraphDeploymentSnapshot,
     GraphDeploymentStatus, GraphOperationOutcome, GraphOperationSnapshot, GraphTransactionRequest,
-    GraphTransactionValue, HostEvent, IPC_PROTOCOL_VERSION, LiveLatencyPolicy, LiveMixerGraph,
-    MidiNoteBatch, MixerChannelMeter, PluginFailureCategory, PluginFailureOutcome,
+    GraphTransactionValue, HostEvent, IPC_PROTOCOL_VERSION, LiveMixerGraph, MixerChannelMeter,
+    PluginFailureCategory, PluginFailureOutcome,
     PluginFailureStage, PluginRuntimeFailure, RecordingStartConfig, ResourceKind, ResourceRef,
     RpcError, RpcErrorCategory, RpcErrorCode, RpcErrorDetails, RpcFailure, RpcMutationOutcome,
     RpcRequestMeta, RpcResult, RpcRetry, RpcSuccess, TransportState,
 };
-use heron_dsp_runtime::tempo::{TempoEvent, TimeSignatureEvent};
 use heron_vst3_host::Vst3HostRequest;
 use tokio::sync::{mpsc, oneshot};
 
@@ -68,6 +67,6 @@ use plugin_actor::{
 };
 use runtime_config::RuntimeConfig;
 use ui_runtime::{EmbeddedUiHost, UiEvent, UiMailboxWaker};
-use wire_adapters::{engine_command, live_graph};
+use wire_adapters::engine_command;
 
 static MIDI_INPUT: OnceLock<MidiInputActor> = OnceLock::new();
