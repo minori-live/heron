@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::hint::black_box;
 
 use super::{
@@ -186,18 +187,18 @@ fn benchmark_graph(
         .iter()
         .take(spec.plugins)
         .enumerate()
-        .map(|(index, (instance_id, processor))| ResolvedPluginInstance {
+        .map(|(index, (instance_id, _))| ResolvedPluginInstance {
             instance_id: instance_id.clone(),
             instance_generation: 1,
             channel_index: (index % spec.tracks) as u32,
             role: "insert".into(),
             slot_order: (index / spec.tracks) as u32,
             audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
             enabled: true,
             aux_input_buses: Vec::new(),
             latency_samples: 0,
             tail_samples: Some(0),
-            processor: Some(processor.clone()),
         })
         .collect();
 
@@ -240,11 +241,13 @@ fn benchmark_runtime(
         loop_start_tick: AtomicU64::new(0),
         loop_end_tick: AtomicU64::new(0),
     });
+    let slots = processors.iter().cloned().collect::<HashMap<_, _>>();
     build_mixer_runtime(
         benchmark_graph(spec, processors),
         1,
         transport,
         Arc::new(InputPeakBank::new()),
+        &slots,
     )
     .map_err(|error| error.to_string())
 }

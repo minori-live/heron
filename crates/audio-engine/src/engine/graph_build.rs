@@ -21,6 +21,10 @@ mod routing;
 #[path = "graph_build/validation.rs"]
 mod validation;
 
+use std::collections::HashMap;
+
+use heron_audio_plugin::AudioPluginProcessorHandle;
+
 use clip_midi::{build_midi_events, load_audio_clips};
 use plugin_graph::{PluginGraphInput, build_plugin_graph};
 use routing::{RoutingBuild, build_routing};
@@ -31,6 +35,7 @@ pub(super) fn build_mixer_runtime(
     build_generation: u64,
     transport: Arc<TransportShared>,
     input_peaks: Arc<InputPeakBank>,
+    plugin_slots: &HashMap<String, AudioPluginProcessorHandle>,
 ) -> Result<MixerRuntime> {
     validate_sample_rate(native.sample_rate)?;
     transport
@@ -185,6 +190,7 @@ pub(super) fn build_mixer_runtime(
         low_latency_plan: &low_latency_plan,
         low_latency_bypassed: &low_latency_bypassed,
         tempo_map: &tempo_map,
+        plugin_slots,
     })?;
     let midi_build = build_midi_events(
         native.midi_clips,

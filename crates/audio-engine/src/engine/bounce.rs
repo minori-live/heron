@@ -12,10 +12,13 @@ use mp3lame_encoder::{
     Bitrate, Builder as Mp3Builder, FlushGap, InterleavedPcm, Mode as Mp3Mode, MonoPcm, Quality,
     VbrMode,
 };
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
+
+use heron_audio_plugin::AudioPluginProcessorHandle;
 
 const TAIL_SILENCE_AMPLITUDE: f32 = 0.000_031_622_777;
 const MONO_FOLD_GAIN: f32 = 0.501_187_2;
@@ -43,6 +46,9 @@ pub enum BounceFormat {
 
 pub struct BounceRequest {
     pub graph: ResolvedMixerGraph,
+    /// Endpoints for the graph's plug-in instances. The offline render builds
+    /// its own engine, so it carries them rather than reading the live slots.
+    pub plugin_slots: HashMap<String, AudioPluginProcessorHandle>,
     pub output_channel_id: String,
     pub start_frame: u64,
     pub end_frame: u64,
@@ -581,6 +587,7 @@ pub fn render_bounce_output(
     let source_rate = request.graph.sample_rate;
     request.graph = prepare_graph(request.graph, &request.output_channel_id)?;
     let engine = AudioEngine::new();
+    engine.set_plugin_processors(request.plugin_slots.clone());
     let built = compile_graph_build(engine.begin_graph_build(request.graph.clone())?)?;
     let mut runtime = built.runtime;
     let (known_tail, maximum_tail) = tail_render_limits(
@@ -741,6 +748,7 @@ mod tests {
     ) -> BounceRequest {
         BounceRequest {
             graph: empty_graph(),
+            plugin_slots: HashMap::new(),
             output_channel_id: "output".to_owned(),
             start_frame: 0,
             end_frame: 4_608,
@@ -979,6 +987,7 @@ mod tests {
         }];
         let request = BounceRequest {
             graph,
+            plugin_slots: HashMap::new(),
             output_channel_id: "output".to_owned(),
             start_frame: 0,
             end_frame: 512,

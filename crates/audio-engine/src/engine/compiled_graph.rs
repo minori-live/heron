@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use heron_audio_plugin::AudioPluginProcessorHandle;
+
 use super::{
     CompiledAudioGraphSnapshot, CompiledGraphEdge, CompiledGraphEdgeKind, CompiledGraphNode,
     CompiledGraphNodeKind, CompiledGraphPluginState, CompiledGraphSignalWidth, PluginAudioMode,
@@ -7,6 +11,7 @@ use super::{
 pub(super) fn compiled_graph_snapshot(
     native: &ResolvedMixerGraph,
     build_generation: u64,
+    plugin_slots: &HashMap<String, AudioPluginProcessorHandle>,
 ) -> CompiledAudioGraphSnapshot {
     let low_latency_plan = plan_native_low_latency(native);
     let low_latency_bypassed = low_latency_plan
@@ -330,7 +335,7 @@ pub(super) fn compiled_graph_snapshot(
             let plugin_id = format!("effect:{}", plugin.instance_id);
             let plugin_state = if !plugin.enabled {
                 CompiledGraphPluginState::Bypassed
-            } else if plugin.processor.is_none() {
+            } else if !plugin_slots.contains_key(&plugin.instance_id) {
                 CompiledGraphPluginState::Unavailable
             } else {
                 CompiledGraphPluginState::Active

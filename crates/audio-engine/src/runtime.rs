@@ -1,5 +1,5 @@
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     fs,
     sync::{
         Arc, Mutex, OnceLock, TryLockError,
@@ -100,6 +100,7 @@ pub struct AudioEngine {
     running: Mutex<Option<RunningAudioEngine>>,
     pending_mixer: Mutex<Option<Box<MixerRuntime>>>,
     last_native_graph: Mutex<Option<ResolvedMixerGraph>>,
+    plugin_slots: Mutex<HashMap<String, AudioPluginProcessorHandle>>,
     compiled_graph_snapshots: Mutex<BTreeMap<u64, CompiledAudioGraphSnapshot>>,
     next_build_generation: AtomicU64,
     device_fault_sender: mpsc::SyncSender<DeviceFaultSignal>,
@@ -123,6 +124,7 @@ impl AudioEngine {
             running: Mutex::new(None),
             pending_mixer: Mutex::new(None),
             last_native_graph: Mutex::new(None),
+            plugin_slots: Mutex::new(HashMap::new()),
             compiled_graph_snapshots: Mutex::new(BTreeMap::new()),
             next_build_generation: AtomicU64::new(1),
             device_fault_sender,

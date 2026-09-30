@@ -7,6 +7,7 @@ use std::thread;
 use heron_audio_engine::{
     BounceFormat, BounceProgress, BounceRequest, ResolvedMixerGraph, render_bounce_output,
 };
+use heron_audio_plugin::AudioPluginProcessorHandle;
 use heron_dsp_runtime::protocol::{
     BounceChannelMode, BounceDither, BounceEncoding, BounceJobPhase, BounceJobState,
     BounceJobStatus, BounceNormalization, BounceOutputRenderRequest,
@@ -65,6 +66,7 @@ impl BounceJobRegistry {
         &self,
         request: BounceOutputRenderRequest,
         graph: ResolvedMixerGraph,
+        plugin_slots: HashMap<String, AudioPluginProcessorHandle>,
     ) -> Result<BounceJobStatus, String> {
         let operation_id = request.operation_id.clone();
         let mut jobs = self
@@ -125,6 +127,7 @@ impl BounceJobRegistry {
             .spawn(move || {
                 let native = BounceRequest {
                     graph,
+                    plugin_slots,
                     output_channel_id: request.output_channel_id,
                     start_frame: request.start_frame,
                     end_frame: request.end_frame,
@@ -405,11 +408,11 @@ mod tests {
         let encoded_path = PathBuf::from(&request.encoded_path);
 
         let initial = registry
-            .start(request.clone(), native_graph())
+            .start(request.clone(), native_graph(), HashMap::new())
             .expect("start bounce job");
         assert_eq!(initial.state, BounceJobState::Running);
         let duplicate = registry
-            .start(request, native_graph())
+            .start(request, native_graph(), HashMap::new())
             .expect("reconcile duplicate bounce job");
         assert_eq!(duplicate.operation_id, "complete");
 
@@ -432,7 +435,7 @@ mod tests {
         let failed_request = request("failed", 0);
         let failed_encoded_path = PathBuf::from(&failed_request.encoded_path);
         registry
-            .start(failed_request, native_graph())
+            .start(failed_request, native_graph(), HashMap::new())
             .expect("start invalid bounce job");
         let failed = wait_for_terminal(&registry, "failed");
         assert_eq!(failed.state, BounceJobState::Failed);
@@ -447,15 +450,15 @@ mod tests {
         let long_request = request("long", 48_000_000);
         let long_encoded_path = PathBuf::from(&long_request.encoded_path);
         registry
-            .start(long_request.clone(), native_graph())
+            .start(long_request.clone(), native_graph(), HashMap::new())
             .expect("start cancellable bounce job");
         let duplicate = registry
-            .start(long_request, native_graph())
+            .start(long_request, native_graph(), HashMap::new())
             .expect("reconcile running bounce job");
         assert_eq!(duplicate.state, BounceJobState::Running);
         assert_eq!(
             registry
-                .start(request("parallel", 512), native_graph())
+                .start(request("parallel", 512), native_graph(), HashMap::new())
                 .expect_err("reject parallel bounce job"),
             "another offline bounce is active"
         );

@@ -239,11 +239,11 @@ fn same_revision_rebuild_preserves_a_newer_plugin_bypass_preview() {
         role: "insert".to_owned(),
         slot_order: 0,
         audio_mode: PluginAudioMode::Stereo,
+        duplicate_mono_output: false,
         enabled: true,
         aux_input_buses: Vec::new(),
         latency_samples: 0,
         tail_samples: Some(0),
-        processor: None,
     });
     engine
         .load_mixer_graph(stale_graph.clone())
@@ -296,11 +296,11 @@ fn apply_plugin_timing_returns_replacement_only_when_values_change() {
             role: "insert".to_owned(),
             slot_order: 0,
             audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
             enabled: true,
             aux_input_buses: Vec::new(),
             latency_samples: 0,
             tail_samples: Some(0),
-            processor: None,
         }],
         midi_clips: Vec::new(),
         tempo_events: Vec::new(),

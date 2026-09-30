@@ -5,9 +5,8 @@ pub use heron_dsp_runtime::protocol::{
 };
 
 use super::{
-    AudioPluginProcessorHandle, LiveMixerSendTap, LiveMixerSystemRole, LowLatencyChannel,
-    LowLatencyPlan, LowLatencyPlugin, PluginAudioMode, TempoEvent, TimeSignatureEvent,
-    plan_low_latency,
+    LiveMixerSendTap, LiveMixerSystemRole, LowLatencyChannel, LowLatencyPlan, LowLatencyPlugin,
+    PluginAudioMode, TempoEvent, TimeSignatureEvent, plan_low_latency,
 };
 
 #[derive(Clone)]
@@ -73,11 +72,11 @@ pub struct ResolvedPluginInstance {
     pub role: String,
     pub slot_order: u32,
     pub audio_mode: PluginAudioMode,
+    pub duplicate_mono_output: bool,
     pub enabled: bool,
     pub aux_input_buses: Vec<ResolvedPluginAuxInputBus>,
     pub latency_samples: u32,
     pub tail_samples: Option<u32>,
-    pub processor: Option<AudioPluginProcessorHandle>,
 }
 
 #[derive(Clone)]

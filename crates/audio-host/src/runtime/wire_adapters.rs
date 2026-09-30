@@ -2,13 +2,11 @@ use super::{
     AudioBackend, ControlCommand, ControlResult, HashMap, LiveLatencyPolicy, LiveMixerGraph,
     MIDI_INPUT, MidiNoteBatch, MixerChannelMeter, RecordingStartConfig, TempoEvent,
     TimeSignatureEvent, TransportState, audio_device_list, audio_device_recovery, device, engine,
-    vst3,
 };
 
 pub(super) fn live_graph(
     generation: u64,
     value: &LiveMixerGraph,
-    processors: Option<&HashMap<String, vst3::AudioPluginProcessorHandle>>,
 ) -> Result<engine::ResolvedMixerGraph, String> {
     let channel_indexes = value
         .channels
@@ -116,24 +114,14 @@ pub(super) fn live_graph(
         .plugins
         .iter()
         .map(|plugin| {
-            let processor = processors
-                .and_then(|processors| processors.get(&plugin.instance_id))
-                .cloned()
-                .map(|processor| {
-                    if plugin.duplicate_mono_output {
-                        processor.with_mono_output_duplication()
-                    } else {
-                        processor
-                    }
-                });
             Ok(engine::ResolvedPluginInstance {
-                processor,
                 instance_id: plugin.instance_id.clone(),
                 instance_generation: plugin.instance_generation,
                 channel_index: channel_index(&plugin.channel_id)?,
                 role: plugin.role.clone(),
                 slot_order: plugin.slot_order,
                 audio_mode: plugin.audio_mode,
+                duplicate_mono_output: plugin.duplicate_mono_output,
                 enabled: plugin.enabled,
                 aux_input_buses: plugin
                     .aux_input_buses
@@ -634,7 +622,6 @@ pub(super) fn engine_command(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use heron_audio_plugin::{AudioPluginProcessor, ProcessContext, SidechainSource};
     use heron_dsp_runtime::protocol::{
         ApplicationCaptureLogicalTarget, BinaryPayload, LiveLatencyPolicy, LiveMidiClip,
         LiveMidiEvent, LiveMidiNote, LiveMixerChannel, LiveMixerClip, LiveMixerGraph,
@@ -643,24 +630,6 @@ mod tests {
     };
 
     type InvalidGraphCase = (&'static str, fn(&mut LiveMixerGraph));
-
-    #[derive(Clone)]
-    struct TestProcessor;
-
-    impl AudioPluginProcessor for TestProcessor {
-        fn clone_box(&self) -> Box<dyn AudioPluginProcessor> {
-            Box::new(self.clone())
-        }
-
-        fn process_block(
-            &mut self,
-            _frames: &mut [[f32; 2]],
-            _sidechains: &dyn SidechainSource,
-            _context: &ProcessContext,
-        ) -> bool {
-            true
-        }
-    }
 
     #[test]
     fn audition_commands_map_acceptance_and_engine_errors_to_wire_results() {
@@ -893,7 +862,7 @@ mod tests {
 
     #[test]
     fn live_graph_materializes_every_supported_wire_value() {
-        let converted = live_graph(9, &graph_with_every_wire_value(), None)
+        let converted = live_graph(9, &graph_with_every_wire_value())
             .expect("representative graph should convert");
 
         assert_eq!(converted.generation, 9);
@@ -906,19 +875,20 @@ mod tests {
     }
 
     #[test]
-    fn live_graph_applies_mono_duplication_only_when_requested() {
-        let processor = vst3::AudioPluginProcessorHandle::new(TestProcessor);
-        let processors = HashMap::from([("effect".to_owned(), processor)]);
-        let graph = graph_with_every_wire_value();
+    fn live_graph_carries_the_mono_duplication_decision_to_the_engine() {
+        // The endpoint itself lives in the engine's slots, so the adapter's job
+        // is to hand the resolved decision across. Applying it to the processor
+        // is covered by the build and by `heron-audio-plugin`'s own test.
+        let mut graph = graph_with_every_wire_value();
+        graph.plugins[0].duplicate_mono_output = false;
+        assert!(
+            !live_graph(1, &graph).expect("graph should convert").plugins[0].duplicate_mono_output
+        );
 
-        let native = live_graph(1, &graph, Some(&processors)).expect("graph should convert");
-        assert!(native.plugins[0].processor.is_some());
-
-        let mut fallback_graph = graph;
-        fallback_graph.plugins[0].duplicate_mono_output = true;
-        let native =
-            live_graph(2, &fallback_graph, Some(&processors)).expect("graph should convert");
-        assert!(native.plugins[0].processor.is_some());
+        graph.plugins[0].duplicate_mono_output = true;
+        assert!(
+            live_graph(2, &graph).expect("graph should convert").plugins[0].duplicate_mono_output
+        );
     }
 
     #[test]
@@ -980,7 +950,7 @@ mod tests {
         for (label, mutate) in cases {
             let mut graph = graph_with_every_wire_value();
             mutate(&mut graph);
-            assert!(live_graph(1, &graph, None).is_err(), "{label}");
+            assert!(live_graph(1, &graph).is_err(), "{label}");
         }
     }
 }

@@ -1,11 +1,11 @@
 use super::{
-    Arc, AtomicBool, AtomicU32, AtomicU64, AudioEngine, AuditionPlayback,
-    CompiledAudioGraphSnapshot, EngineCommand, InputPeakBank, MAX_OUTPUT_CHANNELS, MeterAtomics,
-    MixerParameterPreview, MixerRuntime, MixerSnapshot, Ordering, Producer,
-    RealtimeParameterCommand, ResolvedMixerGraph, Result, RunningAudioEngine, TRANSPORT_RECORDING,
-    TRANSPORT_STOPPED, TransportAction, TransportClockHandle, TransportShared, TransportSnapshot,
-    TryLockError, audio_error, build_mixer_runtime, compiled_graph_snapshot, decode_clip_audio,
-    invalid_config,
+    Arc, AtomicBool, AtomicU32, AtomicU64, AudioEngine, AudioPluginProcessorHandle,
+    AuditionPlayback, CompiledAudioGraphSnapshot, EngineCommand, HashMap, InputPeakBank,
+    MAX_OUTPUT_CHANNELS, MeterAtomics, MixerParameterPreview, MixerRuntime, MixerSnapshot,
+    Ordering, Producer, RealtimeParameterCommand, ResolvedMixerGraph, Result, RunningAudioEngine,
+    TRANSPORT_RECORDING, TRANSPORT_STOPPED, TransportAction, TransportClockHandle, TransportShared,
+    TransportSnapshot, TryLockError, audio_error, build_mixer_runtime, compiled_graph_snapshot,
+    decode_clip_audio, invalid_config,
 };
 
 /// Immutable input for a supervised graph-worker compile.
@@ -14,6 +14,9 @@ pub struct GraphBuildInput {
     pub(super) build_generation: u64,
     pub(super) transport: Arc<TransportShared>,
     pub(super) input_peaks: Arc<InputPeakBank>,
+    /// The plug-in endpoints the graph's instances refer to, keyed by instance
+    /// id. A handle cannot be serialised, so it is not part of the graph.
+    pub(super) plugin_slots: HashMap<String, AudioPluginProcessorHandle>,
 }
 
 impl GraphBuildInput {
@@ -104,6 +107,7 @@ impl AudioEngine {
             build_generation,
             transport,
             input_peaks,
+            plugin_slots: self.plugin_slots()?,
         })
     }
 }
@@ -112,13 +116,15 @@ impl AudioEngine {
 /// background worker; must not touch controllers, winit, devices, or the active
 /// graph.
 pub fn compile_graph_build(input: GraphBuildInput) -> Result<CompiledGraphBuild> {
-    let snapshot = compiled_graph_snapshot(&input.graph, input.build_generation);
+    let snapshot =
+        compiled_graph_snapshot(&input.graph, input.build_generation, &input.plugin_slots);
     let source_graph = input.graph.clone();
     let runtime = Box::new(build_mixer_runtime(
         input.graph,
         input.build_generation,
         input.transport,
         input.input_peaks,
+        &input.plugin_slots,
     )?);
     Ok(CompiledGraphBuild {
         runtime,
@@ -253,28 +259,55 @@ impl AudioEngine {
         Ok(Some(graph.clone()))
     }
 
-    /// Replaces one plug-in endpoint in the control-plane graph and returns a
-    /// same-revision graph for transactional retirement or reactivation.
+    pub(super) fn plugin_slots(&self) -> Result<HashMap<String, AudioPluginProcessorHandle>> {
+        self.plugin_slots
+            .lock()
+            .map(|slots| slots.clone())
+            .map_err(|_| audio_error("plugin slot lock", "poisoned"))
+    }
+
+    /// Replaces the plug-in endpoints the next build resolves against.
+    pub fn set_plugin_processors(&self, slots: HashMap<String, AudioPluginProcessorHandle>) {
+        if let Ok(mut guard) = self.plugin_slots.lock() {
+            *guard = slots;
+        }
+    }
+
+    /// Replaces one plug-in endpoint and returns a same-revision graph for
+    /// transactional retirement or reactivation.
     pub fn replace_plugin_processor(
         &self,
         instance_id: &str,
         processor: Option<heron_audio_plugin::AudioPluginProcessorHandle>,
     ) -> Result<Option<ResolvedMixerGraph>> {
-        let mut guard = self
+        {
+            let mut slots = self
+                .plugin_slots
+                .lock()
+                .map_err(|_| audio_error("plugin slot lock", "poisoned"))?;
+            match processor {
+                Some(handle) => {
+                    slots.insert(instance_id.to_owned(), handle);
+                }
+                None => {
+                    slots.remove(instance_id);
+                }
+            }
+        }
+        let guard = self
             .last_native_graph
             .lock()
             .map_err(|_| audio_error("last mixer graph lock", "poisoned"))?;
-        let Some(graph) = guard.as_mut() else {
+        let Some(graph) = guard.as_ref() else {
             return Ok(None);
         };
-        let Some(plugin) = graph
+        if !graph
             .plugins
-            .iter_mut()
-            .find(|plugin| plugin.instance_id == instance_id)
-        else {
+            .iter()
+            .any(|plugin| plugin.instance_id == instance_id)
+        {
             return Ok(None);
-        };
-        plugin.processor = processor;
+        }
         Ok(Some(graph.clone()))
     }
 

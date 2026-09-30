@@ -1,6 +1,7 @@
 use super::*;
 use crate::ApplicationCaptureLogicalTarget;
 use heron_audio_plugin::{AudioPluginProcessor, AudioPluginProcessorHandle, SidechainSource};
+use std::collections::HashMap;
 
 #[derive(Clone)]
 struct MutatingFailedProcessor;
@@ -192,11 +193,11 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
                 role: "insert".to_owned(),
                 slot_order: 0,
                 audio_mode: PluginAudioMode::Stereo,
+                duplicate_mono_output: false,
                 enabled: true,
                 aux_input_buses: Vec::new(),
                 latency_samples: 64,
                 tail_samples: Some(0),
-                processor: None,
             },
             ResolvedPluginInstance {
                 instance_id: "bypassed".to_owned(),
@@ -205,11 +206,11 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
                 role: "insert".to_owned(),
                 slot_order: 0,
                 audio_mode: PluginAudioMode::Stereo,
+                duplicate_mono_output: false,
                 enabled: false,
                 aux_input_buses: Vec::new(),
                 latency_samples: 32,
                 tail_samples: Some(0),
-                processor: None,
             },
         ],
         midi_clips: Vec::new(),
@@ -217,7 +218,7 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
         time_signature_events: Vec::new(),
     };
 
-    let snapshot = compiled_graph_snapshot(&graph, 23);
+    let snapshot = compiled_graph_snapshot(&graph, 23, &HashMap::new());
 
     assert_eq!(snapshot.graph_revision, 17);
     assert_eq!(snapshot.build_generation, 23);
@@ -290,6 +291,7 @@ fn build_mixer_runtime_rejects_unknown_channel_kinds() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         ),
         "unknown mixer channel kind",
     );
@@ -306,6 +308,7 @@ fn build_mixer_runtime_rejects_dual_output_targets() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         ),
         "either a BUS or an Output",
     );
@@ -321,11 +324,11 @@ fn build_mixer_runtime_rejects_instrument_plugin_on_audio_track() {
         role: "instrument".into(),
         slot_order: 0,
         audio_mode: PluginAudioMode::Stereo,
+        duplicate_mono_output: false,
         enabled: true,
         aux_input_buses: Vec::new(),
         latency_samples: 0,
         tail_samples: Some(0),
-        processor: None,
     });
     assert_build_err(
         build_mixer_runtime(
@@ -333,6 +336,7 @@ fn build_mixer_runtime_rejects_instrument_plugin_on_audio_track() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         ),
         "instrument plugin is assigned to a non-instrument track",
     );
@@ -349,17 +353,18 @@ fn build_mixer_runtime_compiles_a_simple_graph_with_monitoring_and_pdc() {
         role: "insert".into(),
         slot_order: 0,
         audio_mode: PluginAudioMode::Mono,
+        duplicate_mono_output: false,
         enabled: true,
         aux_input_buses: Vec::new(),
         latency_samples: 32,
         tail_samples: Some(64),
-        processor: None,
     });
     let runtime = build_mixer_runtime(
         graph,
         9,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("simple graph");
     assert_eq!(runtime.generation, 3);
@@ -397,6 +402,7 @@ fn build_mixer_runtime_keeps_a_silent_route_for_an_unsupported_application_targe
         10,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("unsupported application capture must not reject the graph");
 
@@ -433,11 +439,11 @@ fn sidechain_pdc_aligns_at_the_target_plugin_slot() {
             role: "insert".into(),
             slot_order: 0,
             audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
             enabled: true,
             aux_input_buses: Vec::new(),
             latency_samples: 64,
             tail_samples: Some(0),
-            processor: None,
         },
         ResolvedPluginInstance {
             instance_id: "sidechain-target".into(),
@@ -446,6 +452,7 @@ fn sidechain_pdc_aligns_at_the_target_plugin_slot() {
             role: "insert".into(),
             slot_order: 0,
             audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
             enabled: true,
             aux_input_buses: vec![ResolvedPluginAuxInputBus {
                 input_port_key: "test:audio:input:1".into(),
@@ -456,11 +463,10 @@ fn sidechain_pdc_aligns_at_the_target_plugin_slot() {
             }],
             latency_samples: 0,
             tail_samples: Some(0),
-            processor: None,
         },
     ];
 
-    let snapshot = compiled_graph_snapshot(&graph, 1);
+    let snapshot = compiled_graph_snapshot(&graph, 1, &HashMap::new());
     let route = snapshot
         .edges
         .iter()
@@ -483,6 +489,7 @@ fn sidechain_pdc_aligns_at_the_target_plugin_slot() {
         1,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("side-chain graph");
     let target = &runtime.plugins_by_channel[1][0];
@@ -514,11 +521,11 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
             role: "insert".into(),
             slot_order: 0,
             audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
             enabled: true,
             aux_input_buses: Vec::new(),
             latency_samples: 64,
             tail_samples: Some(0),
-            processor: None,
         },
         ResolvedPluginInstance {
             instance_id: "sidechain-target".into(),
@@ -527,6 +534,7 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
             role: "insert".into(),
             slot_order: 1,
             audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
             enabled: true,
             aux_input_buses: vec![ResolvedPluginAuxInputBus {
                 input_port_key: "test:audio:input:2".into(),
@@ -537,11 +545,10 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
             }],
             latency_samples: 0,
             tail_samples: Some(0),
-            processor: None,
         },
     ];
 
-    let snapshot = compiled_graph_snapshot(&graph, 2);
+    let snapshot = compiled_graph_snapshot(&graph, 2, &HashMap::new());
     assert!(snapshot.nodes.iter().any(|node| {
         node.id == "pdc:sidechain:sidechain-target:2" && node.latency_samples == 64
     }));
@@ -562,6 +569,7 @@ fn sidechain_pdc_delays_an_earlier_aux_source_at_a_later_slot() {
         2,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("side-chain graph");
     let target = &runtime.plugins_by_channel[1][1];
@@ -580,6 +588,7 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
             role: "insert".into(),
             slot_order: 0,
             audio_mode: PluginAudioMode::Stereo,
+            duplicate_mono_output: false,
             enabled: true,
             aux_input_buses: vec![ResolvedPluginAuxInputBus {
                 input_port_key: "test:audio:input:1".into(),
@@ -590,7 +599,6 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
             }],
             latency_samples: 0,
             tail_samples: Some(0),
-            processor: None,
         });
 
         let result = build_mixer_runtime(
@@ -598,6 +606,7 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         );
         let Err(error) = result else {
             panic!("invalid side-chain route was accepted");
@@ -613,6 +622,7 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
         role: "insert".into(),
         slot_order: 0,
         audio_mode: PluginAudioMode::Stereo,
+        duplicate_mono_output: false,
         enabled: true,
         aux_input_buses: vec![ResolvedPluginAuxInputBus {
             input_port_key: "test:audio:input:1".into(),
@@ -623,13 +633,13 @@ fn sidechain_graph_validation_rejects_every_invalid_bus_shape() {
         }],
         latency_samples: 0,
         tail_samples: Some(0),
-        processor: None,
     });
     let runtime = build_mixer_runtime(
         disconnected,
         1,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("inactive aux buses are ignored");
     assert!(runtime.plugins_by_channel[0][0].aux_inputs.is_empty());
@@ -712,6 +722,7 @@ fn build_mixer_runtime_schedules_midi_notes_and_controller_events() {
         2,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("midi graph");
     assert!(runtime.midi_events.len() >= 8);
@@ -804,6 +815,7 @@ fn build_mixer_runtime_routes_bus_sends_and_metronome_channels() {
         4,
         test_transport(48_000),
         Arc::new(InputPeakBank::new()),
+        &HashMap::new(),
     )
     .expect("bus graph");
     assert!(matches!(runtime.channel_input_widths[0], SignalWidth::Mono));
@@ -866,17 +878,17 @@ fn compiled_snapshot_covers_instrument_bus_master_and_active_plugin_paths() {
             role: "instrument".into(),
             slot_order: 0,
             audio_mode: PluginAudioMode::DualMono,
+            duplicate_mono_output: false,
             enabled: true,
             aux_input_buses: Vec::new(),
             latency_samples: 0,
             tail_samples: None,
-            processor: None,
         }],
         midi_clips: Vec::new(),
         tempo_events: Vec::new(),
         time_signature_events: Vec::new(),
     };
-    let snapshot = compiled_graph_snapshot(&graph, 12);
+    let snapshot = compiled_graph_snapshot(&graph, 12, &HashMap::new());
     assert_eq!(snapshot.graph_revision, 11);
     assert_eq!(snapshot.build_generation, 12);
     assert!(snapshot.nodes.iter().any(|node| {

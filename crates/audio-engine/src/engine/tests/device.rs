@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::HashMap;
 use std::time::Instant;
 
 fn recovery_config() -> AudioEngineConfig {
@@ -551,6 +552,7 @@ fn build_mixer_runtime_rejects_zero_sample_rate() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         ),
         "sample rate must be positive",
     );
@@ -569,6 +571,7 @@ fn build_mixer_runtime_rejects_invalid_armed_input_mapping() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         ),
         "armed track has an invalid input mapping",
     );
@@ -586,6 +589,7 @@ fn build_mixer_runtime_rejects_invalid_monitor_input_mapping() {
             1,
             test_transport(48_000),
             Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
         ),
         "monitored track has an invalid input mapping",
     );

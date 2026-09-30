@@ -152,13 +152,17 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                 }
                 ControlCommand::StartBounceOutput { request } => {
                     let native = (|| {
-                        let processors = processors
+                        let slots = processors
                             .lock()
                             .map_err(|_| "VST3 processor registry is poisoned".to_owned())?
                             .clone();
-                        live_graph(request.graph_revision, &request.graph, Some(&processors))
+                        let graph = live_graph(request.graph_revision, &request.graph)?;
+                        audio_engine.set_plugin_processors(slots.clone());
+                        Ok((graph, slots))
                     })();
-                    match native.and_then(|graph| bounce_jobs.start(*request, graph)) {
+                    match native
+                        .and_then(|(graph, slots)| bounce_jobs.start(*request, graph, slots))
+                    {
                         Ok(status) => ControlResult::BounceOutput { status },
                         Err(message) => control_error! { message },
                     }
@@ -265,7 +269,11 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                             .lock()
                             .map_err(|_| "VST3 processor registry is poisoned".to_owned())?
                             .clone();
-                        live_graph(request.graph_revision, &graph, Some(&processors))
+                        let resolved = live_graph(request.graph_revision, &graph);
+                        if resolved.is_ok() {
+                            audio_engine.set_plugin_processors(processors.clone());
+                        }
+                        resolved
                     })();
                     let native = match native {
                         Ok(native) => native,
