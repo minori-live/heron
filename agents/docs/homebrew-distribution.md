@@ -13,7 +13,7 @@ Application versions and build artifacts remain owned here. See
 3. Publish the reviewed Release. `notify-homebrew-tap.yml` notifies the Tap for
    non-prerelease v-prefixed releases independently of update-manifest promotion.
 4. The Tap re-reads the latest stable Release, verifies the downloaded DMG,
-   and updates its single release PR. Protected macOS checks gate auto-merge.
+   and updates its single release PR. The required Tap utility check gates auto-merge.
 
 Preparing an unreleased development version does not update the Cask. Drafts
 and prereleases do not advance it. Preserve published assets; the Tap rejects

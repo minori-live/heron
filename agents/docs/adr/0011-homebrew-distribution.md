@@ -20,8 +20,9 @@ independently. The Tap installs the existing Universal DMG for both architecture
 After publication Heron sends a repository-dispatch event. A fine-grained PAT
 limited to the Tap grants notification and PR-write authority. The Tap ignores
 event payloads when selecting a version, re-reads the latest stable Release,
-verifies assets, and updates one fixed PR. Required checks on both Mac
-architectures gate auto-merge.
+verifies assets, and updates one fixed PR. The required Tap utility check gates
+auto-merge. Tap CI checks utility types, formatting, and Cask Ruby syntax;
+Heron's release pipeline owns application builds, signing, and notarization.
 
 Synchronization rejects drafts, prereleases, downgrades, incomplete assets, and
 same-version replacements. Failures preserve the previous Cask; retries reconcile
@@ -41,15 +42,16 @@ is deliberately omitted.
 
 The Tap can temporarily lag a Release; missed notifications or expired credentials
 require manual retry. Maintainers must renew the PAT and preserve required checks.
-Installation/startup checks do not prove physical audio-device behavior or a
-complete installed-version upgrade.
+Tap checks do not duplicate application installation or startup validation.
+Physical audio-device behavior and installed-version upgrades require validation
+on a Mac with the relevant devices.
 
 ## Verification
 
-Run Tap type and policy tests, verify the actual published DMG without modifying
-the Cask, and lint both repositories' workflows. Mac CI must pass installation,
-Universal binary, signature, Gatekeeper, notarization, startup, and uninstall
-checks on Apple Silicon and Intel before merging updates.
+Run Tap formatting and type checks, check the Cask's Ruby syntax, and lint both
+repositories' workflows. Synchronization verifies the published DMG's size and
+checksum before proposing a new version. Repeated notifications compare release
+checksums without downloading the installer again.
 
 ## Reconsider when
 

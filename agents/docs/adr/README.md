@@ -19,7 +19,7 @@ evidence belong in their owning documents rather than being copied into each ADR
 | [0009 — PGlite binary transfer and bounded project reads](0009-pglite-data-transfer-and-read-reuse.md) | Accepted                           | Binary media transfer, cache commit boundaries, bounded MIDI and asset metadata queries             |
 | [0010 — Dependency toolchain compatibility](0010-dependency-toolchain-compatibility.md)                | Accepted                           | Native TypeScript with compiler API compatibility, scoped Storybook runner, coupled dependency APIs |
 | [0011 — Protocol owns the wire shape](0011-protocol-owns-the-wire-shape.md)                            | Accepted                           | Wire, resolved and real-time layers; one model per concept; generated TypeScript declarations       |
-| [0011 — Homebrew distribution](0011-homebrew-distribution.md)                                          | Accepted                           | Published-release authority, scoped Tap automation and checked macOS installation                   |
+| [0011 — Homebrew distribution](0011-homebrew-distribution.md)                                          | Accepted                           | Published-release authority, scoped Tap automation and utility validation                           |
 
 Accepted means the architecture is chosen, not that every feature or release
 acceptance test is complete. Each record states its implementation scope; the
