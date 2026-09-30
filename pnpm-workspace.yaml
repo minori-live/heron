@@ -50,7 +50,7 @@ overrides:
   "ajv@8.20.0>fast-uri": 4.2.1
   "config-chain>ini": 7.0.0
   # minimatch 3 calls the CommonJS function export removed in brace-expansion 3+.
-  "minimatch@3.1.5>brace-expansion": 1.1.18
+  "minimatch@3.1.5>brace-expansion": 1.1.21
 allowBuilds:
   electron: true
   electron-winstaller: false
