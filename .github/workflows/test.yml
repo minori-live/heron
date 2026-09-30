@@ -171,7 +171,7 @@ jobs:
 
   e2e:
     name: Electron end-to-end
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:
       - name: Check out source

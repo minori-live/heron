@@ -26,9 +26,9 @@ jobs:
           ref: main
 
       - name: Install locked toolchain
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@v5
         with:
-          version: 2026.9.15
+          version: 2026.9.17
           cache: true
 
       - name: Install workspace dependencies
