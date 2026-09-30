@@ -3,7 +3,7 @@
 Heron's macOS Cask is maintained in
 [`minori-live/homebrew-tap`](https://github.com/minori-live/homebrew-tap).
 Application versions and build artifacts remain owned here. See
-[ADR-0011](adr/0011-homebrew-distribution.md) for the publication contract.
+[ADR-0012](adr/0012-homebrew-distribution.md) for the publication contract.
 
 ## Release flow
 

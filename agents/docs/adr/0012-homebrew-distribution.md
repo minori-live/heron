@@ -1,4 +1,4 @@
-# ADR-0011: Homebrew distribution
+# ADR-0012: Homebrew distribution
 
 - Status: Accepted
 - Date: 2026-09-30
