@@ -15,7 +15,11 @@ reintroduce them as compatibility layers.
 Shared Mixer tables live in `mixer-schema.ts`, with fresh common Channel column
 builders in `mixer-core-schema.ts`. Studio adds recording/system columns, tracks,
 clips, media and musical timing. Live owns only its root Mixer, configuration,
-MIDI bindings and captured plug-in parameter values. These Drizzle declarations
+MIDI bindings, Set/Patch scalar overrides, complete plug-in state headers/chunks
+and captured plug-in parameter values. Layer state uses bytea chunks and an
+independent header so an explicit empty state remains distinguishable from
+inheritance. Baseline replacement restores layer state after replacing root
+plug-in rows in the same transaction. These Drizzle declarations
 are the structural source of truth. Shared Mixer readers must not query Studio tables.
 
 - Define every table, column, default, primary key, foreign key, unique

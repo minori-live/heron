@@ -2,7 +2,10 @@ import { randomUUID } from "node:crypto"
 import { rpcFailure, rpcSuccess } from "@heron/contracts"
 import type {
   LiveDocumentConfiguration,
+  LiveCapturePreview,
+  LiveCloseDisposition,
   LiveEditCommand,
+  LivePerformCommand,
   LiveSession,
   LiveWorkspaceSnapshot,
   ProjectGraphRef,
@@ -12,8 +15,9 @@ import type {
   RpcResult
 } from "@heron/contracts"
 import type { ApplicationStateStore, OperationService } from "../kernel"
-import type { ProjectService, LiveDocumentService } from "../project"
+import { LiveRuntimeFailure, type ProjectService, type LiveDocumentService } from "../project"
 import type { ApplicationSettingsStore } from "../settings"
+import type { LivePerformanceSession } from "./live-performance-session"
 import {
   sameResourceRef,
   validateMutationTarget,
@@ -79,20 +83,45 @@ function codeOf(error: unknown): RpcError["code"] {
   const code = error && typeof error === "object" && "code" in error ? error.code : null
   if (code === "format-mismatch") return "document-format-mismatch"
   if (code === "unsupported-version") return "unsupported-document-version"
-  if (code === "revision-conflict") return code
+  if (code === "revision-conflict" || code === "validation-failed") return code
   if (code === "operation-outcome-unknown") return "invariant-violation"
   return "resource-unavailable"
 }
 
 export class LiveDocumentCoordinator {
   private quarantined = false
+  private performancePending = 0
+  private activationPending = 0
   constructor(
     private readonly documents: LiveDocumentService,
     private readonly studio: ProjectService,
     private readonly state: ApplicationStateStore,
     private readonly operations: OperationService,
-    private readonly settings?: ApplicationSettingsStore
+    private readonly settings?: ApplicationSettingsStore,
+    private readonly performance?: LivePerformanceSession
   ) {}
+
+  private recordedResult<T>(meta: RpcRequestMeta): RpcResult<T> | null {
+    const mutation = meta.mutation
+    if (!mutation || !meta.target) return validationFailure(meta, "mutation")
+    const found = this.operations.registry.find({
+      operationId: mutation.operationId,
+      idempotencyKey: mutation.idempotencyKey,
+      target: meta.target
+    })
+    if (!found.ok) return validationFailure(meta, "operation")
+    if (!found.value) return null
+    if (found.value.result) return found.value.result as RpcResult<T>
+    return rpcFailure(meta, {
+      code: "resource-busy",
+      category: "busy",
+      outcome: "not-committed",
+      retry: "safe",
+      correlationId: randomUUID(),
+      userMessageKey: "errors.projectUnavailable",
+      details: { type: "resource-busy", activeOperationId: mutation.operationId }
+    })
+  }
 
   private begin<T>(meta: RpcRequestMeta): RpcResult<T> | null {
     const mutation = meta.mutation
@@ -153,6 +182,8 @@ export class LiveDocumentCoordinator {
   ): Promise<RpcResult<LiveWorkspaceSnapshot>> {
     const invalid = validateMutationTarget(meta, this.state.desktopSession)
     if (invalid) return invalid
+    const recorded = this.recordedResult<LiveWorkspaceSnapshot>(meta)
+    if (recorded) return recorded
     if (this.studio.current || this.state.workspaceSnapshot() || this.documents.current) {
       return rpcFailure(meta, {
         code: "resource-busy",
@@ -170,10 +201,9 @@ export class LiveDocumentCoordinator {
     let committed = false
     try {
       const candidate = await prepare()
-      const [graph, bindings] = await Promise.all([
-        this.documents.mixerSnapshot(true),
-        this.documents.midiBindings(true)
-      ])
+      const baseline = await this.documents.baseline(true)
+      const { graph, parameterValues } = baseline.snapshot
+      const { bindings, hierarchy, revision } = baseline
       const registry = this.state.resources
       const projectResource = registry.create({
         kind: "project-session",
@@ -189,24 +219,26 @@ export class LiveDocumentCoordinator {
       })
       if (!graphResource.ok) throw new Error("Could not allocate Live graph resource")
       const projectGraph = graphResource.value.ref as ProjectGraphRef
-      const session = this.documents.commitCandidate()
-      committed = true
-      const projectCommit = registry.commit(project, session)
+      const projectCommit = registry.commit(project, candidate)
       const graphCommit = registry.commit(projectGraph, {
-        revision: await this.documents.baseline().then((value) => value.revision),
+        revision,
         graph
       })
       if (!projectCommit.ok || !graphCommit.ok) throw new Error("Could not commit Live resources")
+      const session = this.documents.commitCandidate()
+      committed = true
       const workspace: LiveWorkspaceSnapshot = {
         kind: "live",
         project,
         projectGraph,
-        revision: await this.documents.baseline().then((value) => value.revision),
+        revision,
         mode: "edit",
         history: this.documents.history,
         session,
         graph,
-        bindings
+        bindings,
+        parameterValues,
+        hierarchy
       }
       this.state.setLiveWorkspace(workspace)
       await this.settings
@@ -217,7 +249,7 @@ export class LiveDocumentCoordinator {
         rpcSuccess(meta, workspace, { resourceRevision: projectCommit.value.revision })
       )
     } catch (error) {
-      if (committed) await this.documents.close("discard").catch(() => undefined)
+      if (committed) await this.documents.close("preserve").catch(() => undefined)
       else await this.documents.abortCandidate().catch(() => undefined)
       if (project) await this.state.resources.drop(project).catch(() => undefined)
       console.error("Live document candidate failed", error)
@@ -235,11 +267,36 @@ export class LiveDocumentCoordinator {
   private currentMutation(
     meta: RpcRequestMeta
   ): RpcResult<LiveWorkspaceSnapshot> | LiveWorkspaceSnapshot {
+    const recorded = this.recordedResult<LiveWorkspaceSnapshot>(meta)
+    if (recorded) return recorded
     if (this.quarantined) return failure(meta, "invariant-violation")
+    if (this.performancePending) return this.busy(meta)
     const workspace = this.state.liveWorkspaceSnapshot()
     if (!workspace) return failure(meta)
-    const invalid = validateMutationTarget(meta, workspace.project, workspace.revision)
-    return invalid ?? workspace
+    const invalid = validateMutationTarget(meta, workspace.project)
+    return invalid ?? (this.activeDocumentOperations(workspace) ? this.busy(meta) : workspace)
+  }
+
+  private activeDocumentOperations(workspace: LiveWorkspaceSnapshot): number {
+    return this.operations.registry
+      .snapshot()
+      .filter(
+        (operation) =>
+          (operation.state === "running" || operation.state === "cancel-requested") &&
+          sameResourceRef(operation.target, workspace.project)
+      ).length
+  }
+
+  private busy(meta: RpcRequestMeta): RpcResult<never> {
+    return rpcFailure(meta, {
+      code: "resource-busy",
+      category: "busy",
+      outcome: "not-committed",
+      retry: "safe",
+      correlationId: randomUUID(),
+      userMessageKey: "errors.resourceBusy",
+      details: { type: "resource-busy" }
+    })
   }
 
   private async updateWorkspace(
@@ -247,7 +304,9 @@ export class LiveDocumentCoordinator {
     session: LiveSession,
     graph = workspace.graph,
     bindings = workspace.bindings,
-    revision = workspace.revision
+    revision = workspace.revision,
+    hierarchy = workspace.hierarchy,
+    parameterValues = workspace.parameterValues
   ): Promise<LiveWorkspaceSnapshot> {
     const registry = this.state.resources
     const currentProject = registry.resolve(workspace.project)
@@ -273,6 +332,14 @@ export class LiveDocumentCoordinator {
       graph,
       bindings,
       revision,
+      hierarchy,
+      parameterValues,
+      mode: this.quarantined
+        ? ("quarantined" as const)
+        : (this.performance?.mode ?? workspace.mode),
+      performance: this.performance
+        ? this.performance.performance
+        : (workspace.performance ?? null),
       history: this.documents.history
     }
     this.state.setLiveWorkspace(next)
@@ -284,6 +351,8 @@ export class LiveDocumentCoordinator {
     if ("ok" in current) return current
     const existing = this.begin<LiveWorkspaceSnapshot>(meta)
     if (existing) return existing
+    const invalid = validateMutationTarget(meta, current.project, current.revision)
+    if (invalid) return this.finish(meta, invalid)
     try {
       const session = await this.documents.save(meta.mutation!.operationId)
       const next = await this.updateWorkspace(current, session)
@@ -304,6 +373,8 @@ export class LiveDocumentCoordinator {
     if (current.mode !== "edit") return validationFailure(meta, "mode")
     const existing = this.begin<LiveWorkspaceSnapshot>(meta)
     if (existing) return existing
+    const invalid = validateMutationTarget(meta, current.project, current.revision)
+    if (invalid) return this.finish(meta, invalid)
     try {
       const edited =
         command === "undo"
@@ -318,7 +389,9 @@ export class LiveDocumentCoordinator {
         session,
         edited.snapshot.graph,
         edited.bindings,
-        edited.revision
+        edited.revision,
+        edited.hierarchy,
+        edited.snapshot.parameterValues
       )
       return this.finish(meta, rpcSuccess(meta, next))
     } catch (error) {
@@ -337,6 +410,8 @@ export class LiveDocumentCoordinator {
     if (current.mode !== "edit") return validationFailure(meta, "mode")
     const existing = this.begin<LiveWorkspaceSnapshot>(meta)
     if (existing) return existing
+    const invalid = validateMutationTarget(meta, current.project, current.revision)
+    if (invalid) return this.finish(meta, invalid)
     try {
       const session = await this.documents.updateConfiguration(configuration, current.revision)
       const baseline = await this.documents.baseline()
@@ -345,7 +420,9 @@ export class LiveDocumentCoordinator {
         session,
         baseline.snapshot.graph,
         baseline.bindings,
-        baseline.revision
+        baseline.revision,
+        baseline.hierarchy,
+        baseline.snapshot.parameterValues
       )
       return this.finish(meta, rpcSuccess(meta, next))
     } catch (error) {
@@ -357,25 +434,189 @@ export class LiveDocumentCoordinator {
 
   async close(
     meta: RpcRequestMeta,
-    disposition: "save" | "discard" | "cancel"
+    disposition: LiveCloseDisposition
   ): Promise<RpcResult<boolean>> {
+    const recorded = this.recordedResult<boolean>(meta)
+    if (recorded) return recorded
     const workspace = this.state.liveWorkspaceSnapshot()
     if (!workspace || !sameResourceRef(meta.target, workspace.project))
       return validationFailure(meta, "target")
     const invalid = validateMutationTarget(meta, workspace.project)
     if (invalid) return invalid
+    if (this.performancePending || this.activeDocumentOperations(workspace)) return this.busy(meta)
+    if (workspace.mode !== "edit" && !this.quarantined && disposition !== "cancel")
+      return validationFailure(meta, "mode")
+    if (this.quarantined && disposition !== "preserve" && disposition !== "cancel")
+      return failure(meta, "invariant-violation")
     const existing = this.begin<boolean>(meta)
     if (existing) return existing
+    let documentClosed = false
     try {
+      if (disposition !== "cancel") await this.performance?.close()
       const closed = await this.documents.close(disposition)
       if (!closed) return this.finish(meta, rpcSuccess(meta, false))
-      await this.state.resources.drop(workspace.project)
+      documentClosed = true
+      const dropped = await this.state.resources.drop(workspace.project)
+      if (!dropped.ok || dropped.value.quarantined.length) {
+        throw new Error("Closed Live resources require cleanup")
+      }
       this.state.setLiveWorkspace(null)
       this.quarantined = false
       return this.finish(meta, rpcSuccess(meta, true))
     } catch (error) {
       console.error("Live close failed", error)
+      if (documentClosed || (disposition !== "cancel" && !this.documents.current)) {
+        this.state.resources.quarantine(workspace.project)
+        this.state.setLiveWorkspace(null)
+        this.quarantined = false
+        return this.finish(
+          meta,
+          rpcSuccess(meta, true, {
+            warnings: [
+              {
+                code: "live-resource-cleanup-quarantined",
+                userMessageKey: "errors.internalInvariant",
+                resource: workspace.project
+              }
+            ]
+          })
+        )
+      }
+      if (error instanceof LiveRuntimeFailure) {
+        if (error.error.outcome !== "not-committed") this.quarantined = true
+        if (this.quarantined) this.state.setLiveWorkspace({ ...workspace, mode: "quarantined" })
+        return this.finish(meta, rpcFailure(meta, error.error))
+      }
+      if (codeOf(error) === "invariant-violation") {
+        this.quarantined = true
+        this.state.setLiveWorkspace({ ...workspace, mode: "quarantined" })
+      }
       return this.finish(meta, failure(meta, codeOf(error)))
+    }
+  }
+
+  async perform(
+    meta: RpcRequestMeta,
+    command: LivePerformCommand
+  ): Promise<RpcResult<LiveWorkspaceSnapshot>> {
+    return this.performanceOperation(
+      meta,
+      command.type === "activate",
+      async (workspace, committed) => {
+        if (
+          command.type === "enter" ||
+          (command.type === "leave" && command.disposition !== "cancel")
+        ) {
+          this.state.setLiveWorkspace({
+            ...workspace,
+            mode: command.type === "enter" ? "preparing-perform" : "leaving-perform"
+          })
+        }
+        await this.performance!.execute(workspace, command)
+        committed()
+        return this.refreshPerformanceWorkspace(
+          command.type === "enter" || command.type === "capture"
+        )
+      },
+      "generation" in command ? command.generation : undefined
+    )
+  }
+
+  async previewCapture(meta: RpcRequestMeta): Promise<RpcResult<LiveCapturePreview>> {
+    return this.performanceOperation(meta, false, async (_workspace, committed) => {
+      const preview = await this.performance!.previewCapture()
+      committed()
+      await this.refreshPerformanceWorkspace()
+      return preview
+    })
+  }
+
+  private async refreshPerformanceWorkspace(readBaseline = false): Promise<LiveWorkspaceSnapshot> {
+    const workspace = this.state.liveWorkspaceSnapshot()
+    const session = this.documents.current
+    if (!workspace || !session) throw new TypeError("Live document is closed")
+    if (!readBaseline) {
+      const next: LiveWorkspaceSnapshot = {
+        ...workspace,
+        session,
+        mode: this.quarantined ? "quarantined" : (this.performance?.mode ?? workspace.mode),
+        performance: this.performance?.performance ?? null,
+        history: this.documents.history
+      }
+      this.state.setLiveWorkspace(next)
+      return next
+    }
+    const baseline = await this.documents.baseline()
+    return this.updateWorkspace(
+      workspace,
+      session,
+      baseline.snapshot.graph,
+      baseline.bindings,
+      baseline.revision,
+      baseline.hierarchy,
+      baseline.snapshot.parameterValues
+    )
+  }
+
+  private async performanceOperation<T>(
+    meta: RpcRequestMeta,
+    activating: boolean,
+    run: (workspace: LiveWorkspaceSnapshot, committed: () => void) => Promise<T>,
+    generation?: number
+  ): Promise<RpcResult<T>> {
+    const recorded = this.recordedResult<T>(meta)
+    if (recorded) return recorded
+    if (this.quarantined) return failure(meta, "invariant-violation")
+    const workspace = this.state.liveWorkspaceSnapshot()
+    if (!workspace || !this.performance) return failure(meta)
+    const invalid = validateMutationTarget(meta, workspace.project, workspace.revision)
+    if (invalid) return invalid
+    if (generation !== undefined && this.performance.performance?.generation !== generation) {
+      return validationFailure(meta, "generation")
+    }
+    if (
+      this.activeDocumentOperations(workspace) > 0 &&
+      (!activating || this.activeDocumentOperations(workspace) !== this.activationPending)
+    )
+      return this.busy(meta)
+    const existing = this.begin<T>(meta)
+    if (existing) return existing
+    this.performancePending += 1
+    if (activating) this.activationPending += 1
+    let committed = false
+    try {
+      return this.finish(
+        meta,
+        rpcSuccess(
+          meta,
+          await run(workspace, () => {
+            committed = true
+          })
+        )
+      )
+    } catch (error) {
+      console.error("Live performance operation failed", error)
+      const result =
+        error instanceof LiveRuntimeFailure
+          ? rpcFailure(meta, error.error)
+          : failure(meta, codeOf(error))
+      if (committed || (!result.ok && result.error.outcome !== "not-committed"))
+        this.quarantined = true
+      try {
+        // Enter can commit synchronized state before runtime preparation fails.
+        await this.refreshPerformanceWorkspace(true)
+      } catch {
+        this.quarantined = true
+      }
+      if (this.quarantined) {
+        const current = this.state.liveWorkspaceSnapshot()
+        if (current) this.state.setLiveWorkspace({ ...current, mode: "quarantined" })
+        return this.finish(meta, failure(meta, "invariant-violation"))
+      }
+      return this.finish(meta, result)
+    } finally {
+      this.performancePending -= 1
+      if (activating) this.activationPending -= 1
     }
   }
 }

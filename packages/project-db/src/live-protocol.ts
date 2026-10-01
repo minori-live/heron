@@ -1,5 +1,6 @@
 import type {
   LiveDocumentConfiguration,
+  LiveHierarchy,
   LiveMidiBinding,
   LivePluginParameterValue,
   LiveRuntimeSnapshot,
@@ -20,12 +21,14 @@ export type LiveWorkerRequest =
   | { id: number; type: "mixer-snapshot" }
   | { id: number; type: "midi-bindings" }
   | { id: number; type: "plugin-parameters" }
+  | { id: number; type: "hierarchy" }
   | {
       id: number
       type: "replace-baseline"
       snapshot: LiveRuntimeSnapshot
       bindings: LiveMidiBinding[]
       expectedRevision: number
+      hierarchy?: LiveHierarchy
     }
   | { id: number; type: "dump"; outputPath: string }
   | { id: number; type: "close" }
@@ -39,10 +42,18 @@ export interface LiveWorkerResultMap {
   "mixer-snapshot": MixerGraphSnapshot
   "midi-bindings": LiveMidiBinding[]
   "plugin-parameters": LivePluginParameterValue[]
+  hierarchy: LiveHierarchy
   "replace-baseline": number
   dump: void
   close: void
 }
+
+export type LiveWorkerFailureCode =
+  | "format-mismatch"
+  | "unsupported-version"
+  | "revision-conflict"
+  | "validation-failed"
+  | "live-worker-failed"
 
 export type LiveWorkerResponse =
   | {
@@ -55,5 +66,5 @@ export type LiveWorkerResponse =
       id: number
       type: LiveWorkerRequest["type"]
       ok: false
-      error: { code: string; message: string }
+      error: { code: LiveWorkerFailureCode; message: string }
     }

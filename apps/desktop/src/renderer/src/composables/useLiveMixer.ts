@@ -1,6 +1,7 @@
 import { computed, shallowRef, toRef, watch } from "vue"
 import type {
   LiveChannelPatch,
+  LiveMixerEditCommand,
   MixerChannelCoreState,
   MixerChannelKind,
   MixerChannelPatch,
@@ -15,6 +16,7 @@ import type {
 import { DEFAULT_INSTRUMENT_COLOR, pluginLocator } from "@heron/contracts"
 import {
   MIXER_BUSES,
+  resolveLiveLayer,
   availableOutputTargets,
   availableSendTargets,
   sendsFor
@@ -29,9 +31,11 @@ import {
 import { t } from "../i18n"
 import { rpcErrorMessage } from "../rpc"
 import { useLiveStore } from "../stores/live"
+import { useLiveWorkspaceStore } from "../stores/liveWorkspace"
 import { useLiveDiscoveryStore } from "../stores/liveDiscovery"
 import { useProjectStore } from "../stores/project"
 import { useMixerConfirmations } from "./useMixerConfirmations"
+import { livePerformanceGestures } from "./live-performance-gestures"
 
 const EMPTY_GRAPH: MixerGraphSnapshot = { sampleRate: 48_000, channels: [], sends: [], plugins: [] }
 const CHANNEL_COLORS = {
@@ -42,29 +46,56 @@ const CHANNEL_COLORS = {
 } as const
 type CreatableChannelKind = Exclude<MixerChannelKind, "master">
 
-/** Adapts the shared Mixer surface to root-owned Live document commands. */
+/** Adapts shared Mixer gestures to the selected Live editing layer. */
 export function useLiveMixer() {
   const live = useLiveStore()
+  const presentation = useLiveWorkspaceStore()
   const discovery = useLiveDiscoveryStore()
   const projects = useProjectStore()
+  const adjust = livePerformanceGestures(live)
   const { confirmChannelDeletion, confirmInstrumentReplacement } = useMixerConfirmations()
   const selectedChannelId = shallowRef<string | null>(null)
   const catalog = shallowRef<PluginDescriptor[]>([])
-  const graph = computed(() => live.workspace?.graph ?? EMPTY_GRAPH)
+  const resolved = computed(() => {
+    const workspace = live.workspace
+    if (workspace?.performance) return workspace.performance.snapshot
+    if (workspace && presentation.selectedLayerId === null)
+      return { graph: workspace.graph, parameterValues: workspace.parameterValues }
+    return workspace
+      ? resolveLiveLayer(
+          { graph: workspace.graph, parameterValues: workspace.parameterValues },
+          workspace.hierarchy,
+          presentation.selectedLayerId
+        )
+      : { graph: EMPTY_GRAPH, parameterValues: [] }
+  })
+  const graph = computed(() => resolved.value.graph)
   const channels = computed(() => graph.value.channels)
   const pluginRuntime = computed<Record<string, PluginRuntimeStatus>>(() =>
     Object.fromEntries(
-      graph.value.plugins.map((plugin) => [
-        plugin.id,
-        {
-          instanceId: plugin.id,
-          state: "unloaded",
-          editorOpen: false,
-          latencySamples: 0,
-          tailSamples: null,
-          error: null
-        }
-      ])
+      graph.value.plugins.map((plugin) => {
+        const failure = live.pluginFailures[plugin.id]
+        return [
+          plugin.id,
+          {
+            instanceId: plugin.id,
+            state:
+              failure?.outcome ??
+              (live.performing ? (plugin.enabled ? "active" : "bypassed") : "unloaded"),
+            editorOpen: false,
+            latencySamples: 0,
+            tailSamples: null,
+            error: failure ? t(`plugins.failure.${failure.category}`) : null,
+            ...(failure
+              ? {
+                  failure,
+                  failureStage:
+                    failure.stage === "ara" || failure.stage === "parameter" ? null : failure.stage
+                }
+              : {})
+          }
+        ]
+      })
     )
   )
   const orderedChannels = computed(() =>
@@ -91,6 +122,109 @@ export function useLiveMixer() {
       (plugin) => plugin.kind === "instrument" && plugin.compatibility === "compatible"
     )
   )
+
+  function edit(command: LiveMixerEditCommand): Promise<boolean> {
+    if (live.performing) return performEdit(command)
+    const layerId = presentation.selectedLayerId
+    if (layerId === null)
+      return rejectDependentOverrides(command) ? Promise.resolve(false) : live.edit(command)
+    const allowed =
+      command.type === "update-channel"
+        ? Object.keys(command.patch).every((field) =>
+            ["gainDb", "pan", "muted", "soloed"].includes(field)
+          )
+        : command.type === "update-send"
+          ? Object.keys(command.patch).every((field) => ["levelDb", "enabled"].includes(field))
+          : command.type === "update-plugin" &&
+            Object.keys(command.patch).every((field) => field === "enabled")
+    if (!allowed) {
+      live.error = t("live.layers.projectStructure")
+      return Promise.resolve(false)
+    }
+    return live.edit({ type: "edit-live-layer", layerId, command })
+  }
+
+  async function performEdit(command: LiveMixerEditCommand): Promise<boolean> {
+    if (command.type === "update-channel") {
+      if (
+        Object.keys(command.patch).some(
+          (key) => !["gainDb", "pan", "muted", "soloed"].includes(key)
+        )
+      )
+        return rejectPerformanceStructure()
+      for (const parameter of ["gainDb", "pan", "muted", "soloed"] as const) {
+        const value = command.patch[parameter]
+        if (
+          value !== undefined &&
+          !(await adjust({ type: "channel", id: command.channelId, parameter, value }))
+        )
+          return false
+      }
+      return true
+    }
+    if (command.type === "update-send") {
+      if (Object.keys(command.patch).some((key) => !["levelDb", "enabled"].includes(key)))
+        return rejectPerformanceStructure()
+      for (const parameter of ["levelDb", "enabled"] as const) {
+        const value = command.patch[parameter]
+        if (
+          value !== undefined &&
+          !(await adjust({ type: "send", id: command.sendId, parameter, value }))
+        )
+          return false
+      }
+      return true
+    }
+    if (
+      command.type === "update-plugin" &&
+      Object.keys(command.patch).every((key) => key === "enabled")
+    ) {
+      return command.patch.enabled === undefined
+        ? false
+        : adjust({
+            type: "plugin",
+            id: command.pluginId,
+            parameter: "enabled",
+            value: command.patch.enabled
+          })
+    }
+    return rejectPerformanceStructure()
+  }
+
+  function rejectPerformanceStructure(): false {
+    live.error = t("live.performance.structureLocked")
+    return false
+  }
+
+  function rejectDependentOverrides(command: LiveMixerEditCommand): boolean {
+    const workspace = live.workspace
+    if (!workspace) return false
+    const targets = new Set<string>()
+    if (command.type === "delete-channel") {
+      targets.add(`channel:${command.channelId}`)
+      for (const send of workspace.graph.sends.filter(
+        (value) => value.sourceChannelId === command.channelId
+      ))
+        targets.add(`send:${send.id}`)
+      for (const plugin of workspace.graph.plugins.filter(
+        (value) => value.channelId === command.channelId
+      ))
+        targets.add(`plugin:${plugin.id}`)
+    } else if (command.type === "delete-send") targets.add(`send:${command.sendId}`)
+    else if (command.type === "delete-plugin" || command.type === "replace-plugin")
+      targets.add(`plugin:${command.pluginId}`)
+    const layers = [...workspace.hierarchy.sets, ...workspace.hierarchy.patches].filter(
+      (layer) =>
+        layer.overrides.some((value) =>
+          targets.has(`${value.type === "plugin-parameter" ? "plugin" : value.type}:${value.id}`)
+        ) || layer.pluginStates?.some((state) => targets.has(`plugin:${state.pluginId}`))
+    )
+    if (!layers.length) return false
+    live.error = t("live.layers.dependentOverrides", {
+      names: layers.map((layer) => layer.name).join(", ")
+    })
+    return true
+  }
 
   watch(
     channels,
@@ -162,7 +296,7 @@ export function useLiveMixer() {
         kind === "audio" || kind === "aux" ? (inputFormat === "mono" ? [1] : [1, 2]) : [],
       hardwareOutputChannels
     }
-    const committed = await live.edit({ type: "create-channel", channel })
+    const committed = await edit({ type: "create-channel", channel })
     if (committed) selectedChannelId.value = channel.id
     return committed
   }
@@ -170,7 +304,7 @@ export function useLiveMixer() {
   function updateChannel(channelId: string, patch: MixerChannelPatch): Promise<boolean> {
     const { recordArmed: _recordArmed, ...livePatch } = patch
     if (Object.keys(livePatch).length === 0) return Promise.resolve(false)
-    return live.edit({
+    return edit({
       type: "update-channel",
       channelId,
       patch: livePatch satisfies LiveChannelPatch
@@ -178,18 +312,26 @@ export function useLiveMixer() {
   }
 
   async function deleteChannel(channelId: string): Promise<boolean> {
+    if (live.performing) return rejectPerformanceStructure()
+    if (presentation.selectedLayerId !== null) {
+      live.error = t("live.layers.projectStructure")
+      return false
+    }
     const channel = channels.value.find((candidate) => candidate.id === channelId)
     if (!channel || channel.kind === "master") return false
+    if (rejectDependentOverrides({ type: "delete-channel", channelId })) return false
+    const original = live.workspace
     const confirmed = await confirmChannelDeletion(channel.name)
-    return confirmed ? live.edit({ type: "delete-channel", channelId }) : false
+    if (live.workspace !== original || presentation.selectedLayerId !== null) return false
+    return confirmed ? edit({ type: "delete-channel", channelId }) : false
   }
 
   function updateSend(sendId: string, patch: MixerSendPatch): Promise<boolean> {
-    return live.edit({ type: "update-send", sendId, patch })
+    return edit({ type: "update-send", sendId, patch })
   }
 
   function addSend(sourceChannelId: string, target: MixerRouteTarget): Promise<boolean> {
-    return live.edit({
+    return edit({
       type: "create-send",
       send: {
         id: crypto.randomUUID(),
@@ -260,13 +402,18 @@ export function useLiveMixer() {
       live.error = t("rendererErrors.effectMode", { width })
       return Promise.resolve(false)
     }
-    return live.edit({
+    return edit({
       type: "insert-plugin",
       plugin: pluginInstance(channelId, selection, "insert", index)
     })
   }
 
   async function assignInstrument(channelId: string, selection: PluginSelection): Promise<boolean> {
+    if (live.performing) return rejectPerformanceStructure()
+    if (presentation.selectedLayerId !== null) {
+      live.error = t("live.layers.projectStructure")
+      return false
+    }
     const channel = channels.value.find((candidate) => candidate.id === channelId)
     if (!channel || channel.kind !== "instrument" || selection.descriptor.kind !== "instrument") {
       live.error = t("rendererErrors.instrumentTrack")
@@ -275,13 +422,17 @@ export function useLiveMixer() {
     const current = graph.value.plugins.find(
       (plugin) => plugin.channelId === channelId && plugin.role === "instrument"
     )
+    if (current && rejectDependentOverrides({ type: "delete-plugin", pluginId: current.id }))
+      return false
+    const original = live.workspace
     if (
       current &&
       !(await confirmInstrumentReplacement(current.descriptor.name, selection.descriptor.name))
     )
       return false
+    if (live.workspace !== original || presentation.selectedLayerId !== null) return false
     const plugin = pluginInstance(channelId, selection, "instrument", 0, current)
-    return live.edit(
+    return edit(
       current
         ? { type: "replace-plugin", pluginId: current.id, plugin }
         : { type: "create-plugin", plugin }
@@ -291,14 +442,20 @@ export function useLiveMixer() {
   function movePlugin(pluginId: string, channelId: string, slotOrder: number): Promise<boolean> {
     const plugin = graph.value.plugins.find((candidate) => candidate.id === pluginId)
     if (!plugin || plugin.role !== "insert") return Promise.resolve(false)
-    return live.edit({ type: "move-plugin", pluginId, channelId, slotOrder })
+    return edit({ type: "move-plugin", pluginId, channelId, slotOrder })
   }
 
-  // Shared controls own their temporary gesture value; Edit audio audition is not connected yet.
-  function preview(_preview: MixerParameterPreview): void {}
+  function preview(value: MixerParameterPreview): void {
+    if (!live.performing) return
+    if (value.target === "channel" && (value.parameter === "gainDb" || value.parameter === "pan"))
+      void adjust({ type: "channel", id: value.id, parameter: value.parameter, value: value.value })
+    else if (value.target === "send" && value.parameter === "levelDb")
+      void adjust({ type: "send", id: value.id, parameter: "levelDb", value: value.value })
+  }
 
   return {
     graph,
+    parameterValues: computed(() => resolved.value.parameterValues),
     orderedChannels,
     outputs,
     master,
@@ -324,10 +481,10 @@ export function useLiveMixer() {
     deleteChannel,
     updateSend,
     addSend,
-    deleteSend: (sendId: string) => live.edit({ type: "delete-send", sendId }),
+    deleteSend: (sendId: string) => edit({ type: "delete-send", sendId }),
     togglePlugin: (pluginId: string, enabled: boolean) =>
-      live.edit({ type: "update-plugin", pluginId, patch: { enabled } }),
-    removePlugin: (pluginId: string) => live.edit({ type: "delete-plugin", pluginId }),
+      edit({ type: "update-plugin", pluginId, patch: { enabled } }),
+    removePlugin: (pluginId: string) => edit({ type: "delete-plugin", pluginId }),
     insertPlugin,
     assignInstrument,
     movePlugin,

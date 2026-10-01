@@ -6,8 +6,9 @@ import type {
   MixerChannelCoreState,
   PluginDescriptor
 } from "@heron/contracts"
-import { applyLiveEdit } from "@heron/project-model"
+import { applyLiveLayerEdit } from "@heron/project-model"
 import { useLiveStore } from "../stores/live"
+import { useLiveWorkspaceStore } from "../stores/liveWorkspace"
 import { useProjectStore } from "../stores/project"
 import { rpcSuccess, TEST_DESKTOP_REF } from "../test/ipc"
 import { useLiveMixer } from "./useLiveMixer"
@@ -39,6 +40,8 @@ function channel(id: string, kind: MixerChannelCoreState["kind"]): MixerChannelC
 function workspace(): LiveWorkspaceSnapshot {
   return {
     kind: "live",
+    hierarchy: { sets: [], patches: [] },
+    parameterValues: [],
     revision: 0,
     mode: "edit",
     history: { canUndo: false, canRedo: false },
@@ -91,10 +94,20 @@ function setup() {
   const edit = vi.spyOn(live, "edit").mockImplementation(async (command) => {
     if (typeof command === "string") return false
     const current = live.workspace!
-    const edited = applyLiveEdit({ graph: current.graph, bindings: current.bindings }, command)
+    const edited = applyLiveLayerEdit(
+      {
+        snapshot: { graph: current.graph, parameterValues: current.parameterValues },
+        bindings: current.bindings,
+        hierarchy: current.hierarchy
+      },
+      command
+    )
     live.applyWorkspace({
       ...current,
-      ...edited,
+      graph: edited.snapshot.graph,
+      parameterValues: edited.snapshot.parameterValues,
+      bindings: edited.bindings,
+      hierarchy: edited.hierarchy,
       revision: current.revision + 1,
       session: { ...current.session, dirty: true }
     })
@@ -114,6 +127,37 @@ describe("Live Mixer adapter", () => {
   afterEach(() => {
     scopes.splice(0).forEach((scope) => scope.stop())
     vi.restoreAllMocks()
+  })
+
+  it("resolves the selected Patch, scopes inherited scalar edits and rejects inherited structural changes", async () => {
+    const { live, edit, mixer } = setup()
+    await live.edit({ type: "create-set", setId: "set", name: "Set" })
+    await live.edit({ type: "create-patch", patchId: "patch", setId: "set", name: "Patch" })
+    await live.edit({
+      type: "set-live-override",
+      layerId: "set",
+      override: { type: "channel", id: "audio", parameter: "gainDb", value: -6 }
+    })
+    useLiveWorkspaceStore().selectedLayerId = "patch"
+    expect(mixer.graph.value.channels.find((channel) => channel.id === "audio")?.gainDb).toBe(-6)
+    await mixer.updateChannel("audio", { gainDb: -9 })
+    expect(edit).toHaveBeenLastCalledWith({
+      type: "edit-live-layer",
+      layerId: "patch",
+      command: { type: "update-channel", channelId: "audio", patch: { gainDb: -9 } }
+    })
+    expect(live.workspace?.graph.channels.find((channel) => channel.id === "audio")?.gainDb).toBe(0)
+    expect(live.workspace?.hierarchy.sets[0]?.overrides[0]?.value).toBe(-9)
+    edit.mockClear()
+    expect(await mixer.createAudioChannel()).toBe(false)
+    expect(await mixer.updateChannel("audio", { name: "renamed" })).toBe(false)
+    expect(await mixer.deleteChannel("audio")).toBe(false)
+    expect(await mixer.addSend("audio", { kind: "bus", bus: 1 })).toBe(false)
+    expect(edit).not.toHaveBeenCalled()
+    expect(confirm).not.toHaveBeenCalled()
+    expect(live.error).not.toBe("")
+    useLiveWorkspaceStore().selectedLayerId = null
+    expect(mixer.graph.value.channels.find((channel) => channel.id === "audio")?.gainDb).toBe(0)
   })
 
   it("creates root channels without Studio recording or Track fields and selects only committed channels", async () => {
@@ -206,6 +250,43 @@ describe("Live Mixer adapter", () => {
         plugin: expect.objectContaining({ id: pluginId, channelId: id })
       })
     )
+  })
+
+  it("explains dependent layer overrides before deleting a channel or its Send", async () => {
+    const { live, edit, mixer } = setup()
+    await mixer.addSend("audio", { kind: "bus", bus: 1 })
+    const sendId = mixer.sendsFor("audio")[0]!.id
+    await live.edit({ type: "create-set", setId: "set", name: "Acoustic" })
+    await live.edit({
+      type: "set-live-override",
+      layerId: "set",
+      override: { type: "send", id: sendId, parameter: "enabled", value: false }
+    })
+    edit.mockClear()
+    expect(await mixer.deleteChannel("audio")).toBe(false)
+    expect(await mixer.deleteSend(sendId)).toBe(false)
+    expect(edit).not.toHaveBeenCalled()
+    expect(confirm).not.toHaveBeenCalled()
+    expect(live.error).toContain("Acoustic")
+    expect(mixer.sendsFor("audio")).toHaveLength(1)
+  })
+
+  it("does not commit an old confirmation after the workspace changes", async () => {
+    const { live, edit, mixer } = setup()
+    let settle!: (confirmed: boolean) => void
+    confirm.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          settle = resolve
+        })
+    )
+    const deletion = mixer.deleteChannel("audio")
+    await live.edit({ type: "create-set", setId: "set", name: "Acoustic" })
+    edit.mockClear()
+    settle(true)
+    expect(await deletion).toBe(false)
+    expect(edit).not.toHaveBeenCalled()
+    expect(mixer.graph.value.channels.some((channel) => channel.id === "audio")).toBe(true)
   })
 
   it("loads the read-only plugin catalog through the desktop resource", async () => {

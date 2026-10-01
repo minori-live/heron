@@ -23,6 +23,7 @@ import AudioBenchmarkHost from "./components/benchmark/AudioBenchmarkHost.vue"
 import AboutHeronHost from "./components/about/AboutHeronHost.vue"
 import CompiledEffectGraphHost from "./components/effect-graph/CompiledEffectGraphHost.vue"
 import GlobalDialogHost from "./components/dialog/GlobalDialogHost.vue"
+import LiveCaptureHost from "./components/live/LiveCaptureHost.vue"
 import AudioDeviceRecoveryHost from "./components/device-recovery/AudioDeviceRecoveryHost.vue"
 import TutorialHost from "./components/tutorial/TutorialHost.vue"
 import AppChrome from "./components/application/AppChrome.vue"
@@ -125,6 +126,7 @@ onUnmounted(() => {
     <AboutHeronHost />
     <CompiledEffectGraphHost />
     <GlobalDialogHost />
+    <LiveCaptureHost />
     <AudioDeviceRecoveryHost />
     <TutorialHost />
   </UiProvider>

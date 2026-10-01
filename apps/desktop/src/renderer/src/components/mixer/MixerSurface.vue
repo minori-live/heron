@@ -35,6 +35,7 @@ const props = withDefaults(
     canUndo?: boolean
     canRedo?: boolean
     busy?: boolean
+    structureEnabled?: boolean
     pluginRuntime?: Record<string, PluginRuntimeStatus>
     effectPlugins?: PluginDescriptor[]
     instrumentPlugins?: PluginDescriptor[]
@@ -51,6 +52,7 @@ const props = withDefaults(
   }>(),
   {
     selectedChannelId: null,
+    structureEnabled: true,
     pluginRuntime: () => ({}),
     effectPlugins: () => [],
     instrumentPlugins: () => [],
@@ -180,7 +182,7 @@ const sectionStyle = computed(() => ({
                 : 'mixer.console.actions.addAudioChannel'
             )
           "
-          :disabled="busy"
+          :disabled="busy || !structureEnabled"
           @click="emit('createChannel', 'audio')"
         >
           <Plus :size="12" />{{ t("mixer.console.actions.addAudioLabel") }}
@@ -194,7 +196,7 @@ const sectionStyle = computed(() => ({
                 : 'mixer.console.actions.addInstrumentChannel'
             )
           "
-          :disabled="busy"
+          :disabled="busy || !structureEnabled"
           @click="emit('createChannel', 'instrument')"
         >
           <Plus :size="12" />{{ t("mixer.console.actions.addInstrumentLabel") }}
@@ -202,7 +204,7 @@ const sectionStyle = computed(() => ({
         <UiButton
           size="sm"
           :aria-label="t('mixer.console.actions.addAux')"
-          :disabled="busy"
+          :disabled="busy || !structureEnabled"
           @click="emit('createChannel', 'aux')"
         >
           <Plus :size="12" />{{ t("mixer.console.actions.addAuxLabel") }}
@@ -210,7 +212,7 @@ const sectionStyle = computed(() => ({
         <UiButton
           size="sm"
           :aria-label="t('mixer.console.actions.addOutput')"
-          :disabled="busy"
+          :disabled="busy || !structureEnabled"
           @click="emit('createChannel', 'output')"
         >
           <Plus :size="12" />{{ t("mixer.console.actions.addOutputLabel") }}
@@ -253,6 +255,7 @@ const sectionStyle = computed(() => ({
         :send-slot-rows="sendSlotRows"
         :selected="channel.id === selectedChannelId"
         :studio-controls="studioControls"
+        :structure-enabled="structureEnabled"
         :application-capture-enabled="applicationCaptureEnabled"
         :plugin-editors-enabled="pluginEditorsEnabled"
         :hardware-input-count="hardwareInputCount"

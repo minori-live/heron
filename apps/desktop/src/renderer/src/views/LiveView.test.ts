@@ -9,10 +9,13 @@ import { useAudioRuntimeStore } from "../stores/audioRuntime"
 import { useLiveWorkspaceStore } from "../stores/liveWorkspace"
 import { i18n } from "../i18n"
 import MixerSurface from "../components/mixer/MixerSurface.vue"
+import { rpcFailure, rpcSuccess } from "../test/ipc"
 
 function workspace(): LiveWorkspaceSnapshot {
   return {
     kind: "live",
+    hierarchy: { sets: [], patches: [] },
+    parameterValues: [],
     mode: "edit",
     revision: 1,
     project: { kind: "project-session", id: "stage", epoch: "epoch", generation: 1 },
@@ -85,6 +88,55 @@ const label = (key: string) => `[aria-label="${i18n.global.t(key)}"]`
 beforeEach(() => setActivePinia(createPinia()))
 
 describe("Live workspace composition", () => {
+  it("preserves a quarantined document through the explicit close-and-recover action", async () => {
+    const { wrapper, live, router } = await fixture()
+    window.heron.executeLiveEdit = vi.fn(async () =>
+      rpcFailure("errors.projectUnavailable", { outcome: "quarantined" })
+    )
+    const close = vi.fn(async () => rpcSuccess(true))
+    window.heron.closeLiveDocument = close
+    expect(await live.edit({ type: "set-midi-bindings", bindings: [] })).toBe(false)
+    await flushPromises()
+    expect(wrapper.get('[role="status"]').text()).toContain(
+      i18n.global.t("live.layers.quarantined")
+    )
+    const recover = wrapper
+      .findAll("button")
+      .find((button) => button.text() === i18n.global.t("live.layers.closeForRecovery"))!
+    await recover.trigger("click")
+    await flushPromises()
+    expect(close).toHaveBeenCalledWith(
+      expect.objectContaining({ target: workspace().project }),
+      "preserve"
+    )
+    expect(router.currentRoute.value.name).toBe("welcome")
+    expect(live.workspace).toBeNull()
+    wrapper.unmount()
+  })
+
+  it("reopens navigation and offers reconciliation while further edits are locked", async () => {
+    const { wrapper, live } = await fixture()
+    const reconcile = vi.spyOn(live, "reconcile").mockResolvedValue(true)
+    useLiveWorkspaceStore().leftPanelOpen = false
+    window.heron.executeLiveEdit = vi.fn(async () =>
+      rpcFailure("errors.projectUnavailable", { outcome: "unknown" })
+    )
+    expect(await live.edit({ type: "set-midi-bindings", bindings: [] })).toBe(false)
+    await flushPromises()
+    expect(useLiveWorkspaceStore().leftPanelOpen).toBe(true)
+    const retry = wrapper
+      .findAll("button")
+      .find((button) => button.text() === i18n.global.t("live.layers.reconcile"))!
+    expect(retry.attributes("disabled")).toBeUndefined()
+    const create = wrapper
+      .findAll("button")
+      .find((button) => button.text() === i18n.global.t("live.layers.createSet"))!
+    expect(create.attributes("disabled")).toBeDefined()
+    await retry.trigger("click")
+    expect(reconcile).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
   it("settles Live pan edits after the document command completes or fails", async () => {
     const { wrapper, live } = await fixture()
     let complete!: (value: boolean) => void

@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { LiveDocumentConfiguration, LiveSession, RpcResult } from "@heron/contracts"
+import type { LiveDocumentConfiguration, LiveSession, RpcError, RpcResult } from "@heron/contracts"
 vi.mock("electron", () => ({ BrowserWindow: { getAllWindows: () => [] } }))
+// This boundary supplies document services; loading native audio belongs to runtime integration.
+vi.mock("../project", () => ({
+  LiveRuntimeFailure: class extends Error {
+    constructor(readonly error: RpcError) {
+      super(error.code)
+    }
+  }
+}))
 import { ApplicationStateStore, OperationRegistry, OperationService } from "../kernel"
 import { LiveDocumentCoordinator } from "./live-document-coordinator"
 import type { LiveDocumentService, ProjectService } from "../project"
@@ -28,7 +36,12 @@ function fixture() {
   }
   let revision = 0
   const graph = { sampleRate: 48000, channels: [], plugins: [], sends: [] }
-  const baseline = () => ({ snapshot: { graph, parameterValues: [] }, bindings: [], revision })
+  const baseline = () => ({
+    snapshot: { graph, parameterValues: [] },
+    bindings: [],
+    hierarchy: { sets: [], patches: [] },
+    revision
+  })
   const documents = {
     current: null as LiveSession | null,
     history: { canUndo: false, canRedo: false },
@@ -127,13 +140,49 @@ describe("Live document coordination", () => {
     expect(f.state.resources.resolve(opened.projectGraph).ok).toBe(false)
   })
 
+  it("replays an acknowledged layer edit even after its revision has advanced", async () => {
+    const f = fixture()
+    await f.create()
+    const request = f.request()
+    const command = { type: "create-set" as const, setId: "set", name: "Set" }
+    const result = await f.coordinator.edit(request, command)
+    expect(value(result).revision).toBe(1)
+    expect(await f.coordinator.edit(request, command)).toEqual(result)
+    expect(f.documents.executeEdit).toHaveBeenCalledTimes(1)
+  })
+
+  it("replays completed create and close results using their original resource handles", async () => {
+    const f = fixture()
+    const createRequest = f.request()
+    const created = await f.coordinator.create(createRequest, configuration, "Stage.hrl")
+    expect(await f.coordinator.create(createRequest, configuration, "Stage.hrl")).toEqual(created)
+    expect(f.documents.prepareCreate).toHaveBeenCalledTimes(1)
+    const closeRequest = f.request()
+    const closed = await f.coordinator.close(closeRequest, "discard")
+    expect(value(closed)).toBe(true)
+    expect(await f.coordinator.close(closeRequest, "discard")).toEqual(closed)
+    expect(f.documents.close).toHaveBeenCalledTimes(1)
+    expect(
+      await f.coordinator.close(
+        { ...closeRequest, target: { ...closeRequest.target!, generation: 99 } },
+        "discard"
+      )
+    ).toMatchObject({ ok: false, error: { code: "validation-failed" } })
+  })
+
   it("opens recovery candidates and treats recent-list failure as ancillary", async () => {
     const f = fixture()
     f.settings.addRecent.mockRejectedValueOnce(new Error("settings unavailable"))
     expect((await f.coordinator.open(f.request(), "Stage.hrl", true)).ok).toBe(true)
     expect(f.documents.prepareOpen).toHaveBeenCalledWith("Stage.hrl", true)
     expect(
-      await f.coordinator.create(mutationMeta(f.state.desktopSession), configuration, "a.hrl")
+      await f.coordinator.create(
+        mutationMeta(f.state.desktopSession, {
+          mutation: { operationId: "new-create", idempotencyKey: "new-create" }
+        }),
+        configuration,
+        "a.hrl"
+      )
     ).toMatchObject({ ok: false, error: { code: "resource-busy" } })
   })
 
@@ -212,11 +261,12 @@ describe("Live document coordination", () => {
     expect(f.operations.registry.activeCount).toBe(0)
   })
 
-  it("cleans up a committed candidate when baseline publication fails", async () => {
+  it("aborts the candidate before publication when its baseline cannot be read", async () => {
     const f = fixture()
     f.documents.baseline.mockRejectedValueOnce(new Error("read failed"))
     expect(await f.create()).toMatchObject({ ok: false })
-    expect(f.documents.close).toHaveBeenCalledWith("discard")
+    expect(f.documents.abortCandidate).toHaveBeenCalledOnce()
+    expect(f.documents.commitCandidate).not.toHaveBeenCalled()
     expect(f.documents.current).toBeNull()
     expect(f.state.liveWorkspaceSnapshot()).toBeNull()
   })
@@ -243,7 +293,12 @@ describe("Live document coordination", () => {
         ok: false,
         error: { outcome: "quarantined" }
       })
-      expect(value(await f.coordinator.close(f.request(), "discard"))).toBe(true)
+      expect(await f.coordinator.close(f.request(), "discard")).toMatchObject({
+        ok: false,
+        error: { outcome: "quarantined" }
+      })
+      expect(value(await f.coordinator.close(f.request(), "preserve"))).toBe(true)
+      expect(f.documents.close).toHaveBeenCalledWith("preserve")
       expect((await f.create()).ok).toBe(true)
       expect((await f.coordinator.save(f.request())).ok).toBe(true)
     }

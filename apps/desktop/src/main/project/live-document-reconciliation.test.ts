@@ -2,7 +2,11 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import type { LiveDocumentConfiguration, LiveRuntimeSnapshot } from "@heron/contracts"
+import type {
+  LiveDocumentConfiguration,
+  LiveHierarchy,
+  LiveRuntimeSnapshot
+} from "@heron/contracts"
 import { LiveDocumentService } from "./live-document-service"
 import type { LiveWorkerClient } from "./live-worker-client"
 
@@ -15,6 +19,7 @@ async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "heron-live-reconcile-"))
   roots.push(root)
   let revision = 0
+  let hierarchy: LiveHierarchy = { sets: [], patches: [] }
   let configuration: LiveDocumentConfiguration = {
     name: "Stage",
     sampleRate: 48000,
@@ -55,12 +60,22 @@ async function fixture() {
     mixerSnapshot: vi.fn(async () => structuredClone(snapshot.graph)),
     pluginParameterValues: vi.fn(async () => structuredClone(snapshot.parameterValues)),
     midiBindings: vi.fn(async () => []),
-    replaceBaseline: vi.fn(async (next: LiveRuntimeSnapshot) => {
-      snapshot = structuredClone(next)
-      return ++revision
-    }),
+    hierarchy: vi.fn(async () => structuredClone(hierarchy)),
+    replaceBaseline: vi.fn(
+      async (
+        next: LiveRuntimeSnapshot,
+        _bindings?: unknown,
+        _revision?: number,
+        layers?: LiveHierarchy
+      ) => {
+        snapshot = structuredClone(next)
+        if (layers) hierarchy = structuredClone(layers)
+        return ++revision
+      }
+    ),
     updateConfiguration: vi.fn(async (next: LiveDocumentConfiguration) => {
       configuration = structuredClone(next)
+      snapshot.graph.sampleRate = next.sampleRate
       return ++revision
     }),
     dump: vi.fn(async (path: string) => writeFile(path, "archive")),
@@ -96,6 +111,53 @@ describe("Live commit outcome reconciliation", () => {
     await service.shutdown()
   })
 
+  it("reconciles a lost layer commit reply and restores the hierarchy through undo/redo", async () => {
+    const { service, worker } = await fixture()
+    const commit = worker.replaceBaseline.getMockImplementation()!
+    worker.replaceBaseline.mockImplementationOnce(async (...args) => {
+      await commit(...args)
+      throw new Error("reply lost")
+    })
+    const created = await service.executeEdit(
+      { type: "create-set", setId: "set", name: "First set" },
+      0
+    )
+    expect(created.hierarchy.sets).toEqual([
+      { id: "set", name: "First set", sortOrder: 0, overrides: [] }
+    ])
+    expect(service.current?.dirty).toBe(true)
+    expect((await service.undoEdit(1)).hierarchy).toEqual({ sets: [], patches: [] })
+    expect((await service.redoEdit(2)).hierarchy).toEqual(created.hierarchy)
+    const patch = await service.executeEdit(
+      { type: "create-patch", patchId: "patch", setId: "set", name: "Verse" },
+      3
+    )
+    const deleted = await service.executeEdit({ type: "delete-live-layer", layerId: "set" }, 4)
+    expect(deleted.hierarchy).toEqual({ sets: [], patches: [] })
+    expect((await service.undoEdit(5)).hierarchy).toEqual(patch.hierarchy)
+    await service.shutdown()
+  })
+
+  it.each(["different", "unreadable"] as const)(
+    "quarantines a committed layer result when its hierarchy is %s",
+    async (outcome) => {
+      const { service, worker } = await fixture()
+      const commit = worker.replaceBaseline.getMockImplementation()!
+      worker.replaceBaseline.mockImplementationOnce(async (...args) => {
+        await commit(...args)
+        if (outcome === "different")
+          worker.hierarchy.mockResolvedValueOnce({ sets: [], patches: [] })
+        else worker.hierarchy.mockRejectedValueOnce(new Error("storage unavailable"))
+        throw new Error("reply lost")
+      })
+      await expect(
+        service.executeEdit({ type: "create-set", setId: "set", name: "First set" }, 0)
+      ).rejects.toMatchObject({ code: "operation-outcome-unknown" })
+      expect(service.history).toEqual({ canUndo: false, canRedo: false })
+      await service.shutdown()
+    }
+  )
+
   it.each(["unchanged", "unreadable", "advanced", "different"] as const)(
     "does not acknowledge a baseline when the result is %s",
     async (outcome) => {
@@ -113,12 +175,41 @@ describe("Live commit outcome reconciliation", () => {
       const operation = service.commitCapture(next, 0)
       if (outcome === "unchanged") await expect(operation).rejects.toBe(failure)
       else await expect(operation).rejects.toMatchObject({ code: "operation-outcome-unknown" })
-      expect(service.current?.dirty).toBe(false)
+      expect(service.current?.dirty).toBe(outcome !== "unchanged")
+      if (outcome !== "unchanged")
+        expect(await service.hasRecoverableWorkingCopy(service.current!.path)).toBe(true)
       expect(service.history).toEqual({ canUndo: false, canRedo: false })
       expect((await service.baseline()).revision).toBe(0)
       await service.shutdown()
     }
   )
+
+  it.each(["revision-conflict", "validation-failed"] as const)(
+    "does not reconcile a known rejected write as a committed mutation: %s",
+    async (code) => {
+      const { service, worker, next } = await fixture()
+      const baseline = await service.baseline()
+      const rejected = Object.assign(new Error("rejected before commit"), { code })
+      worker.replaceBaseline.mockRejectedValueOnce(rejected)
+      worker.revision.mockResolvedValue(1)
+      await expect(service.commitCapture(baseline.snapshot, 0)).rejects.toBe(rejected)
+      worker.updateConfiguration.mockRejectedValueOnce(rejected)
+      await expect(service.updateConfiguration(next, 0)).rejects.toBe(rejected)
+      expect(worker.revision).not.toHaveBeenCalled()
+      expect(service.history).toEqual({ canUndo: false, canRedo: false })
+      await service.shutdown()
+    }
+  )
+
+  it("publishes the committed sample rate when undoing and redoing configuration", async () => {
+    const { service, next } = await fixture()
+    await service.updateConfiguration({ ...next, sampleRate: 96000 }, 0)
+    expect((await service.undoEdit(1)).snapshot.graph.sampleRate).toBe(48000)
+    expect(service.current?.configuration.sampleRate).toBe(48000)
+    expect((await service.redoEdit(2)).snapshot.graph.sampleRate).toBe(96000)
+    expect(service.current?.configuration.sampleRate).toBe(96000)
+    await service.shutdown()
+  })
 
   it("recognizes committed configuration after a lost reply, then undoes it", async () => {
     const { service, worker, next } = await fixture()
@@ -156,11 +247,28 @@ describe("Live commit outcome reconciliation", () => {
       const operation = service.updateConfiguration(next, 0)
       if (outcome === "unchanged") await expect(operation).rejects.toBe(failure)
       else await expect(operation).rejects.toMatchObject({ code: "operation-outcome-unknown" })
-      expect(service.current).toEqual(initial)
+      expect(service.current).toEqual({ ...initial, dirty: outcome !== "unchanged" })
       expect(service.history).toEqual({ canUndo: false, canRedo: false })
       await service.shutdown()
     }
   )
+
+  it("preserves a quarantined working copy for recovery without saving its uncertain state", async () => {
+    const { service, worker } = await fixture()
+    const path = service.current!.path
+    const dumps = worker.dump.mock.calls.length
+    worker.replaceBaseline.mockRejectedValueOnce(new Error("reply lost"))
+    worker.revision.mockRejectedValueOnce(new Error("worker unavailable"))
+    await expect(
+      service.executeEdit({ type: "create-set", setId: "set", name: "Set" }, 0)
+    ).rejects.toMatchObject({ code: "operation-outcome-unknown" })
+    expect(await service.hasRecoverableWorkingCopy(path)).toBe(true)
+    expect(await service.close("preserve")).toBe(true)
+    expect(service.current).toBeNull()
+    expect(worker.dump).toHaveBeenCalledTimes(dumps)
+    expect(await service.hasRecoverableWorkingCopy(path)).toBe(true)
+    expect(worker.terminate).toHaveBeenCalledOnce()
+  })
 
   it("retains the active dirty document if saving fails, and cancellation preserves it", async () => {
     const { service, worker, next } = await fixture()

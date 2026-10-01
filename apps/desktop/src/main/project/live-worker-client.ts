@@ -1,6 +1,7 @@
 import { Worker } from "node:worker_threads"
 import type {
   LiveDocumentConfiguration,
+  LiveHierarchy,
   LiveMidiBinding,
   LivePluginParameterValue,
   LiveRuntimeSnapshot,
@@ -18,6 +19,8 @@ export class LiveWorkerClient {
   private readonly worker: Worker
   private nextId = 1
   private closed = false
+  private terminated = false
+  private termination: Promise<void> | null = null
   private readonly pending = new Map<
     number,
     {
@@ -37,6 +40,7 @@ export class LiveWorkerClient {
     })
     this.worker.on("error", (error: Error) => this.fail(error))
     this.worker.on("exit", (code: number) => {
+      this.terminated = true
       if (!this.closed) this.fail(new Error(`Live worker exited with code ${code}`))
     })
   }
@@ -96,12 +100,17 @@ export class LiveWorkerClient {
     return this.call({ type: "plugin-parameters" })
   }
 
+  hierarchy(): Promise<LiveHierarchy> {
+    return this.call({ type: "hierarchy" })
+  }
+
   replaceBaseline(
     snapshot: LiveRuntimeSnapshot,
     bindings: LiveMidiBinding[],
-    expectedRevision: number
+    expectedRevision: number,
+    hierarchy?: LiveHierarchy
   ): Promise<number> {
-    return this.call({ type: "replace-baseline", snapshot, bindings, expectedRevision })
+    return this.call({ type: "replace-baseline", snapshot, bindings, expectedRevision, hierarchy })
   }
 
   dump(outputPath: string): Promise<void> {
@@ -113,9 +122,18 @@ export class LiveWorkerClient {
   }
 
   async terminate(): Promise<void> {
-    if (this.closed) return
+    if (this.terminated) return
+    if (this.termination) return this.termination
     this.closed = true
     this.fail(new Error("Live worker was terminated"))
-    await this.worker.terminate()
+    this.termination = this.worker
+      .terminate()
+      .then(() => {
+        this.terminated = true
+      })
+      .finally(() => {
+        this.termination = null
+      })
+    return this.termination
   }
 }

@@ -16,6 +16,7 @@ use crate::application_capture::PreparedApplicationCapture;
 pub(super) struct MixerRuntime {
     pub(super) generation: u64,
     pub(super) build_generation: u64,
+    pub(super) cut_frames: u32,
     pub(super) graph: RenderRuntime,
     pub(super) clips: Vec<LoadedClip>,
     pub(super) channel_source_block: Vec<StereoFrame>,
@@ -76,7 +77,10 @@ impl AuditionPlayback {
 pub(super) enum RealtimeParameter {
     ChannelGain,
     ChannelPan,
+    ChannelMuted,
+    ChannelSoloed,
     SendLevel,
+    SendEnabled,
     PluginEnabled,
 }
 
@@ -93,7 +97,10 @@ impl RealtimeParameterCommand {
         let parameter = match (preview.target.as_str(), preview.parameter.as_str()) {
             ("channel", "gainDb") => RealtimeParameter::ChannelGain,
             ("channel", "pan") => RealtimeParameter::ChannelPan,
+            ("channel", "muted") => RealtimeParameter::ChannelMuted,
+            ("channel", "soloed") => RealtimeParameter::ChannelSoloed,
             ("send", "levelDb") => RealtimeParameter::SendLevel,
+            ("send", "enabled") => RealtimeParameter::SendEnabled,
             ("plugin", "enabled") => RealtimeParameter::PluginEnabled,
             _ => return Err(invalid_config("unknown mixer preview parameter")),
         };

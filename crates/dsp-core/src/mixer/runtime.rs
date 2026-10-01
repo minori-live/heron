@@ -103,6 +103,9 @@ impl MixerGraph {
             .max()
             .map_or(0, |maximum| maximum + 1);
         Ok(Self {
+            solo_upstream: vec![false; channels.len()],
+            solo_downstream: vec![false; channels.len()],
+            solo_edges: edges,
             accumulation: vec![[0.0, 0.0]; channels.len()],
             bus_accumulation: [0.0; MAX_BUS_CHANNELS],
             peaks: vec![ChannelPeak::default(); channels.len()],
@@ -166,6 +169,86 @@ impl MixerGraph {
             .gain
             .set_target(db_to_gain(level_db));
         Ok(())
+    }
+
+    pub fn set_channel_muted(&mut self, index: usize, value: bool) -> Result<(), GraphError> {
+        let channel = self
+            .channels
+            .get_mut(index)
+            .ok_or(GraphError::InvalidParameter)?;
+        channel.muted = value;
+        Ok(())
+    }
+
+    pub fn set_channel_soloed(&mut self, index: usize, value: bool) -> Result<(), GraphError> {
+        let channel = self
+            .channels
+            .get_mut(index)
+            .ok_or(GraphError::InvalidParameter)?;
+        channel.soloed = value;
+        self.refresh_solo_audibility();
+        Ok(())
+    }
+
+    pub fn set_send_enabled(&mut self, index: usize, value: bool) -> Result<(), GraphError> {
+        let send = self
+            .sends
+            .get_mut(index)
+            .ok_or(GraphError::InvalidParameter)?;
+        send.enabled = value;
+        Ok(())
+    }
+
+    /// The topology is a DAG. Two passes reuse the compile-time storage and never allocate.
+    fn refresh_solo_audibility(&mut self) {
+        let any_solo = self
+            .channels
+            .iter()
+            .any(|channel| channel.kind != ChannelKind::Master && channel.soloed);
+        if !any_solo {
+            self.audible.fill(true);
+            self.output_audible.fill(true);
+            self.send_audible.fill(true);
+            return;
+        }
+        for (index, channel) in self.channels.iter().enumerate() {
+            let solo = channel.kind != ChannelKind::Master && channel.soloed;
+            self.solo_upstream[index] = solo;
+            self.solo_downstream[index] = solo;
+        }
+        for &source in self.order.iter().rev() {
+            self.solo_upstream[source] |= self.solo_edges[source]
+                .iter()
+                .any(|&target| self.solo_upstream[target]);
+        }
+        for &source in &self.order {
+            if self.solo_downstream[source] {
+                for &target in &self.solo_edges[source] {
+                    self.solo_downstream[target] = true;
+                }
+            }
+        }
+        let upstream = &self.solo_upstream;
+        let downstream = &self.solo_downstream;
+        let edge = |source: usize, target: usize| {
+            (upstream[source] && upstream[target]) || (downstream[source] && downstream[target])
+        };
+        let route = |source: usize, target: RouteTarget| match target {
+            RouteTarget::Output(target) => edge(source, target),
+            RouteTarget::Bus(bus) => self.channels.iter().enumerate().any(|(target, channel)| {
+                channel
+                    .input_bus
+                    .is_some_and(|inputs| inputs.contains(&bus))
+                    && edge(source, target)
+            }),
+        };
+        for (index, channel) in self.channels.iter().enumerate() {
+            self.audible[index] = upstream[index] || downstream[index];
+            self.output_audible[index] = channel.output.is_none_or(|target| route(index, target));
+        }
+        for (index, send) in self.sends.iter().enumerate() {
+            self.send_audible[index] = route(send.source, send.target);
+        }
     }
 
     pub fn set_channel_output_delay(

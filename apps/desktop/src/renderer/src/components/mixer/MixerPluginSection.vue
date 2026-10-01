@@ -37,8 +37,9 @@ const props = withDefaults(
     slotRows: number
     initialInputWidth: PluginSignalWidth
     editorsEnabled?: boolean
+    structureEnabled?: boolean
   }>(),
-  { editorsEnabled: true }
+  { editorsEnabled: true, structureEnabled: true }
 )
 
 const emit = defineEmits<{
@@ -99,6 +100,7 @@ function pluginDragData(instanceId: string): UiDragData[] {
 }
 
 function dropInsert(data: UiDragData[], slotOrder: number): void {
+  if (!props.structureEnabled) return
   const payload = parsePluginDrag(
     data.find((entry) => entry.mime === PLUGIN_DRAG_TYPE)?.value ?? ""
   )
@@ -128,11 +130,13 @@ function confirmDrop(selection: PluginSelection): void {
     <template v-if="acceptsPlugins">
       <template v-for="(plugin, index) in orderedInserts" :key="plugin.id">
         <UiDropZone
+          :disabled="!structureEnabled"
           :label="t('mixer.pluginSection.dropAtSlot', { slot: index + 1 })"
           :mime-types="[PLUGIN_DRAG_TYPE]"
           @drop="dropInsert($event, index)"
         >
           <UiDraggableItem
+            :disabled="!structureEnabled"
             :data="pluginDragData(plugin.id)"
             effect-allowed="move"
             :label="t('plugins.pluginSlot.move', { name: plugin.descriptor.name })"
@@ -196,6 +200,7 @@ function confirmDrop(selection: PluginSelection): void {
                     size="sm"
                     density="compact"
                     variant="danger-ghost"
+                    :disabled="!structureEnabled"
                     stop-propagation
                     :label="t('mixer.pluginSection.remove', { name: plugin.descriptor.name })"
                     @click="emit('remove', plugin.id)"
@@ -211,6 +216,7 @@ function confirmDrop(selection: PluginSelection): void {
 
       <MixerPluginPicker
         v-if="emptyRows > 0"
+        :inert="!structureEnabled || undefined"
         :plugins="effectPlugins"
         :input-width="inputWidthAt(orderedInserts.length)"
         :title="t('mixer.pluginSection.addEffectTitle')"
@@ -219,11 +225,13 @@ function confirmDrop(selection: PluginSelection): void {
         @select="emit('insert', $event, orderedInserts.length)"
       >
         <UiDropZone
+          :disabled="!structureEnabled"
           :label="t('mixer.pluginSection.dropAtSlot', { slot: orderedInserts.length + 1 })"
           :mime-types="[PLUGIN_DRAG_TYPE]"
           @drop="dropInsert($event, orderedInserts.length)"
         >
           <UiButton
+            :disabled="!structureEnabled"
             class="plugin-row empty picker-trigger"
             size="sm"
             variant="ghost"

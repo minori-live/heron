@@ -8,7 +8,7 @@ import type {
   MixerSendPatch,
   PluginInstancePatch
 } from "./mixer.ts"
-import type { PluginInstanceState } from "./plugins.ts"
+import type { PluginInstanceState, PluginStateEnvelope } from "./plugins.ts"
 import type { ProjectGraphRef, ProjectSessionRef } from "./rpc.ts"
 
 export type DocumentKind = "studio" | "live"
@@ -16,7 +16,10 @@ export interface DocumentOpenPreparation {
   kind: DocumentKind
   path: string
 }
-export type LiveMode = "edit" | "preparing-perform" | "perform" | "leaving-perform"
+/** Preserve closes a quarantined document without saving or deleting its recovery copy. */
+export type LiveCloseDisposition = "save" | "discard" | "cancel" | "preserve"
+
+export type LiveMode = "edit" | "preparing-perform" | "perform" | "leaving-perform" | "quarantined"
 
 export interface LiveDocumentConfiguration {
   name: string
@@ -61,7 +64,10 @@ export interface LiveWorkspaceSnapshot {
   history: { canUndo: boolean; canRedo: boolean }
   session: LiveSession
   graph: MixerGraphSnapshot
+  parameterValues: LivePluginParameterValue[]
   bindings: LiveMidiBinding[]
+  hierarchy: LiveHierarchy
+  performance?: LivePerformanceSnapshot | null
 }
 
 export type LiveCaptureField =
@@ -75,12 +81,50 @@ export interface LiveCapturePreview {
   captureId: string
   documentRevision: number
   runtimeRevision: number
+  generation: number
+  activeLayerId: LiveLayerId
+  baseline: LiveRuntimeSnapshot
+  runtime: LiveRuntimeSnapshot
   fields: LiveCaptureField[]
+  /** Reserved for fields unavailable to the active Capture policy. */
+  blockedFields: LiveCaptureField[]
 }
+
+export interface LiveCaptureStateTarget {
+  pluginId: string
+  layerId: LiveLayerId
+}
+
+export interface LivePerformanceSnapshot {
+  activeLayerId: LiveLayerId
+  generation: number
+  runtimeRevision: number
+  snapshot: LiveRuntimeSnapshot
+  uncapturedFields: LiveCaptureField[]
+  /** Current generation document plug-in IDs mapped to native IDs for event attribution. */
+  runtimePluginIds?: Record<string, string>
+}
+
+export type LivePerformCommand =
+  | { type: "enter" }
+  | {
+      type: "activate"
+      layerId: LiveLayerId
+      disposition: "discard" | "cancel"
+      generation: number
+    }
+  | { type: "adjust"; command: LivePerformanceCommand; generation: number }
+  | {
+      type: "capture"
+      captureId: string
+      fields: LiveCaptureField[]
+      stateTargets?: LiveCaptureStateTarget[]
+    }
+  | { type: "leave"; disposition: "discard" | "cancel"; generation: number }
 
 export type LiveChannelPatch = Omit<MixerChannelPatch, "recordArmed">
 
-export type LiveEditCommand =
+export type LiveMixerEditCommand =
   | { type: "create-channel"; channel: MixerChannelCoreState }
   | { type: "update-channel"; channelId: string; patch: LiveChannelPatch }
   | { type: "delete-channel"; channelId: string }
@@ -116,3 +160,55 @@ export type LivePerformanceCommand =
   | { type: "send"; id: string; parameter: "levelDb" | "enabled"; value: number | boolean }
   | { type: "plugin"; id: string; parameter: "enabled"; value: boolean }
   | { type: "plugin-parameter"; id: string; parameterKey: string; value: number }
+
+/** Null addresses the Project layer. Layer IDs are unique within the document. */
+export type LiveLayerId = string | null
+export type LiveLayerField = LiveCaptureField
+
+export interface LivePluginStateOverride {
+  pluginId: string
+  state: PluginStateEnvelope
+}
+
+export interface LiveSet {
+  id: string
+  name: string
+  sortOrder: number
+  overrides: LivePerformanceCommand[]
+  /** Absent entries inherit; an entry with an empty envelope remains an explicit override. */
+  pluginStates?: LivePluginStateOverride[]
+}
+
+export interface LivePatch extends LiveSet {
+  setId: string
+}
+
+export interface LiveHierarchy {
+  sets: LiveSet[]
+  patches: LivePatch[]
+}
+
+export type LiveLayerEditCommand =
+  | { type: "create-set"; setId: string; name: string }
+  | { type: "create-patch"; patchId: string; setId: string; name: string }
+  | { type: "rename-live-layer"; layerId: string; name: string }
+  | { type: "delete-live-layer"; layerId: string }
+  | {
+      type: "copy-live-set"
+      sourceId: string
+      setId: string
+      patchIds: Record<string, string>
+      name: string
+    }
+  | { type: "copy-live-patch"; sourceId: string; patchId: string; setId: string; name: string }
+  | { type: "set-live-override"; layerId: string; override: LivePerformanceCommand }
+  | {
+      type: "set-live-plugin-state"
+      layerId: string
+      pluginId: string
+      state: PluginStateEnvelope
+    }
+  | { type: "revert-live-override"; layerId: string; field: LiveLayerField }
+  | { type: "edit-live-layer"; layerId: string; command: LiveMixerEditCommand }
+
+export type LiveEditCommand = LiveMixerEditCommand | LiveLayerEditCommand

@@ -285,6 +285,22 @@ impl RenderRuntime {
         self.mixer.set_send_level(send, level_db)
     }
 
+    pub fn preview_channel_muted(&mut self, channel: usize, value: bool) -> Result<(), GraphError> {
+        self.mixer.set_channel_muted(channel, value)
+    }
+
+    pub fn preview_channel_soloed(
+        &mut self,
+        channel: usize,
+        value: bool,
+    ) -> Result<(), GraphError> {
+        self.mixer.set_channel_soloed(channel, value)
+    }
+
+    pub fn preview_send_enabled(&mut self, send: usize, value: bool) -> Result<(), GraphError> {
+        self.mixer.set_send_enabled(send, value)
+    }
+
     pub fn preview_plugin_parameter(&mut self, plugin: usize, parameter_id: u32, normalized: f64) {
         if let Some(plugin) = self.plugins.get_mut(plugin) {
             let _ = plugin.processor.parameter(

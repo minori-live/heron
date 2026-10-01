@@ -153,8 +153,8 @@ export class AudioHostPluginClient {
     return status
   }
 
-  async unloadPlugin(instanceId: string): Promise<void> {
-    if (!this.loadedPlugins.has(instanceId)) return
+  async unloadPlugin(instanceId: string, force = false): Promise<void> {
+    if (!force && !this.loadedPlugins.has(instanceId)) return
     await this.request({
       type: "unload-plugin",
       instance_id: instanceId

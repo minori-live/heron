@@ -32,3 +32,11 @@ export {
   diffLiveCapture
 } from "./live"
 export type { LiveEditResult } from "./live"
+export {
+  applyLiveLayerEdit,
+  liveFieldDefiningLayer,
+  resolveLiveLayer,
+  validateLiveHierarchy
+} from "./live-layers"
+export type { LiveLayerDocument } from "./live-layers"
+export { applyLiveLayerCapture } from "./live-capture"

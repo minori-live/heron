@@ -88,6 +88,7 @@ describe("Live document lifecycle", () => {
       mixerSnapshot: vi.fn(async () => structuredClone(snapshot.graph)),
       pluginParameterValues: vi.fn(async () => structuredClone(snapshot.parameterValues)),
       midiBindings: vi.fn(async () => []),
+      hierarchy: vi.fn(async () => ({ sets: [], patches: [] })),
       replaceBaseline,
       dump: vi.fn(async (path: string) => writeFile(path, JSON.stringify(snapshot))),
       terminate: vi.fn(async () => undefined)
@@ -163,6 +164,7 @@ describe("Live document lifecycle", () => {
             }) satisfies MixerGraphSnapshot
         ),
         midiBindings: vi.fn(async () => []),
+        hierarchy: vi.fn(async () => ({ sets: [], patches: [] })),
         pluginParameterValues: vi.fn(async () => []),
         dump: vi.fn(async (outputPath: string) =>
           writeFile(outputPath, JSON.stringify(state.get(dataDir)))
