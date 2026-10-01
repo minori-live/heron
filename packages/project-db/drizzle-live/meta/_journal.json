@@ -15,6 +15,20 @@
       "when": 1790373024662,
       "tag": "0001_redundant_strong_guy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790871946198,
+      "tag": "0002_cultured_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790875886691,
+      "tag": "0003_calm_skrulls",
+      "breakpoints": true
     }
   ]
 }

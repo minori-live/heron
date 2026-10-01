@@ -16,8 +16,9 @@ const props = withDefaults(
     runtime: Record<string, PluginRuntimeStatus>
     plugins: PluginDescriptor[]
     editorsEnabled?: boolean
+    structureEnabled?: boolean
   }>(),
-  { editorsEnabled: true }
+  { editorsEnabled: true, structureEnabled: true }
 )
 
 const emit = defineEmits<{
@@ -47,6 +48,7 @@ function openOrRetry(): void {
 }
 
 function dropInstrument(data: UiDragData[]): void {
+  if (!props.structureEnabled) return
   const payload = parsePluginDrag(
     data.find((entry) => entry.mime === PLUGIN_DRAG_TYPE)?.value ?? ""
   )
@@ -65,6 +67,7 @@ function confirmDrop(selection: PluginSelection): void {
   <div class="instrument-input-wrapper">
     <UiDropZone
       v-if="instrument"
+      :disabled="!structureEnabled"
       :label="t('mixer.instrumentInput.assign')"
       :mime-types="[PLUGIN_DRAG_TYPE]"
       @drop="dropInstrument"
@@ -106,6 +109,7 @@ function confirmDrop(selection: PluginSelection): void {
               size="sm"
               density="compact"
               variant="danger-ghost"
+              :disabled="!structureEnabled"
               stop-propagation
               :label="t('mixer.instrumentInput.remove', { name: instrument.descriptor.name })"
               @click="emit('remove', instrument.id)"
@@ -119,6 +123,7 @@ function confirmDrop(selection: PluginSelection): void {
 
     <MixerPluginPicker
       v-else
+      :inert="!structureEnabled || undefined"
       :plugins="plugins"
       :title="t('mixer.instrumentInput.chooseTitle')"
       :search-label="t('mixer.instrumentInput.searchInstruments')"
@@ -126,11 +131,16 @@ function confirmDrop(selection: PluginSelection): void {
       @select="emit('assign', $event)"
     >
       <UiDropZone
+        :disabled="!structureEnabled"
         :label="t('mixer.instrumentInput.assign')"
         :mime-types="[PLUGIN_DRAG_TYPE]"
         @drop="dropInstrument"
       >
-        <UiButton class="instrument-input empty" :aria-label="t('mixer.instrumentInput.assign')" />
+        <UiButton
+          class="instrument-input empty"
+          :disabled="!structureEnabled"
+          :aria-label="t('mixer.instrumentInput.assign')"
+        />
       </UiDropZone>
     </MixerPluginPicker>
     <div v-if="pendingDrop" class="drop-mode-menu">

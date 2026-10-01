@@ -127,6 +127,8 @@ describe("route views", () => {
     const studio = workspace()
     useLiveStore().applyWorkspace({
       kind: "live",
+      hierarchy: { sets: [], patches: [] },
+      parameterValues: [],
       project: studio.project,
       projectGraph: studio.projectGraph,
       revision: 0,

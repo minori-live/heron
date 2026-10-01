@@ -3,7 +3,8 @@ import { parentPort } from "node:worker_threads"
 import type {
   LiveWorkerRequest,
   LiveWorkerResponse,
-  LiveWorkerResultMap
+  LiveWorkerResultMap,
+  LiveWorkerFailureCode
 } from "@heron/project-db/live-protocol"
 import type { LiveDatabase as LiveDatabaseInstance } from "@heron/project-db/live-node"
 
@@ -53,11 +54,14 @@ async function handle(
       return requireDatabase().midiBindings()
     case "plugin-parameters":
       return requireDatabase().pluginParameterValues()
+    case "hierarchy":
+      return requireDatabase().hierarchy()
     case "replace-baseline":
       return requireDatabase().replaceBaseline(
         request.snapshot,
         request.bindings,
-        request.expectedRevision
+        request.expectedRevision,
+        request.hierarchy
       )
     case "dump":
       return requireDatabase().dump(request.outputPath)
@@ -67,6 +71,21 @@ async function handle(
 }
 
 let queue = Promise.resolve()
+
+function failureCode(error: unknown): LiveWorkerFailureCode {
+  if (error instanceof TypeError || error instanceof RangeError) return "validation-failed"
+  if (error && typeof error === "object" && "code" in error) {
+    switch (error.code) {
+      case "format-mismatch":
+      case "unsupported-version":
+      case "revision-conflict":
+      case "validation-failed":
+        return error.code
+    }
+  }
+  return "live-worker-failed"
+}
+
 port.on("message", (request: LiveWorkerRequest) => {
   queue = queue.then(async () => {
     try {
@@ -85,10 +104,7 @@ port.on("message", (request: LiveWorkerRequest) => {
         type: request.type,
         ok: false,
         error: {
-          code:
-            error && typeof error === "object" && "code" in error && typeof error.code === "string"
-              ? error.code
-              : "live-worker-failed",
+          code: failureCode(error),
           message: correlationId
         }
       } satisfies LiveWorkerResponse)

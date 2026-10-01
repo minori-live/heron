@@ -81,6 +81,11 @@ pub enum ControlCommand {
         meta: RpcRequestMeta,
         request: GraphTransactionRequest,
     },
+    /// The same graph transaction, with bounded outgoing/incoming Live cut ramps.
+    ActivateGraphCut {
+        meta: RpcRequestMeta,
+        request: GraphTransactionRequest,
+    },
     AbortGraph {
         meta: RpcRequestMeta,
         request: GraphTransactionRequest,

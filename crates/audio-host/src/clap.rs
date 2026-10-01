@@ -62,6 +62,7 @@ pub(crate) struct ClapReconfigureCompletion {
 
 pub(crate) struct ClapRuntime {
     instances: HashMap<String, InstanceRecord>,
+    retired_instances: Vec<InstanceRecord>,
     next_runtime_handle: u32,
 }
 
@@ -69,12 +70,22 @@ impl Default for ClapRuntime {
     fn default() -> Self {
         Self {
             instances: HashMap::new(),
+            retired_instances: Vec::new(),
             next_runtime_handle: 1,
         }
     }
 }
 
 impl ClapRuntime {
+    pub(crate) fn has_retired_instances(&self) -> bool {
+        !self.retired_instances.is_empty()
+    }
+
+    pub(crate) fn reclaim_retired_instances(&mut self) {
+        self.retired_instances
+            .retain(|record| record.instance.processor_lease_count() != 0);
+    }
+
     pub(crate) fn contains(&self, instance_id: &str) -> bool {
         self.instances.contains_key(instance_id)
     }
@@ -157,7 +168,12 @@ impl ClapRuntime {
             }
             ControlCommand::UnloadPlugin { instance_id } => {
                 self.close_gui(&instance_id);
-                self.instances.remove(&instance_id);
+                if let Some(mut record) = self.instances.remove(&instance_id) {
+                    record.processor = None;
+                    if record.instance.processor_lease_count() != 0 {
+                        self.retired_instances.push(record);
+                    }
+                }
                 ControlResult::Accepted
             }
             ControlCommand::PluginParameters { instance_id } => {
@@ -215,9 +231,12 @@ impl ClapRuntime {
                 }
             }
             ControlCommand::SavePluginState { instance_id } => {
-                let Some(record) = self.instances.get(&instance_id) else {
+                let Some(record) = self.instances.get_mut(&instance_id) else {
                     return control_error_result("CLAP instance is not loaded");
                 };
+                if let Err(error) = flush_unpublished_parameters(record) {
+                    return control_error_result(error);
+                }
                 match record.instance.save_state() {
                     Ok(bytes) => ControlResult::PluginState {
                         state: PluginStateEnvelope {
@@ -584,6 +603,29 @@ impl ClapRuntime {
             control_error_result("CLAP realtime parameter queue is full")
         }
     }
+}
+
+fn flush_unpublished_parameters(record: &mut InstanceRecord) -> Result<(), String> {
+    let Some(processor) = record.processor.as_mut() else {
+        return Ok(());
+    };
+    if record.instance.processor_lease_count() != 1 || !processor.has_pending_parameters() {
+        return Ok(());
+    }
+    // Only the registry's endpoint exists: no prepared, active or retiring graph can use it.
+    // Inactive flush also supports CLAP_PARAM_REQUIRES_PROCESS without rendering the candidate.
+    record
+        .instance
+        .deactivate()
+        .map_err(|error| error.to_string())?;
+    let flushed = processor
+        .flush_parameters_while_inactive()
+        .map_err(str::to_owned);
+    let activated = record
+        .instance
+        .activate(record.sample_rate, 1, MAX_PLUGIN_BLOCK_FRAMES as u32)
+        .map_err(|error| error.to_string());
+    flushed.and(activated)
 }
 
 fn allocate_parameter_tokens(instance: &ClapInstance) -> Result<ParameterTokenMap<u32>, String> {

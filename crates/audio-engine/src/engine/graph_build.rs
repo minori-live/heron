@@ -211,6 +211,7 @@ pub(super) fn build_mixer_runtime(
         transport.position_frames.load(Ordering::Relaxed),
     );
     Ok(MixerRuntime {
+        cut_frames: 0,
         generation: native.generation,
         build_generation,
         peak_scratch: vec![

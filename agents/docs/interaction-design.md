@@ -59,6 +59,38 @@ identity, workspace controls, and controls needed during editing or performance.
 Live keeps the left/center/right layout with the Mixer in the right column and
 the center reserved for a future custom performance surface.
 
+Live's left panel selects the Project, Set or Patch being edited. This selection
+changes the effective Mixer shown and never starts audio or activates a Patch.
+Scalar controls edit the nearest layer defining that field; the panel shows the
+selected channel's field sources and explains the affected scope. Explicit
+**Override here** keeps the current value as an independent field at the selected
+layer, including when equal to its parent. **Revert** removes only that override.
+The override dialog exposes Send, plug-in enablement, complete state and stored parameter fields
+using the same provenance and commands. Structure and routing edits from a child
+explain Project ownership and provide navigation to Project. Layer deletion
+previews the subtree and override counts, requires confirmation and remains
+undoable. Copy preserves explicit overrides; inherited values follow the copy's
+containing Set. These staged semantics are recorded in
+[ADR-0013](adr/0013-live-layer-editing.md).
+
+**Perform** activates Project. Project and Patch rows expose an explicit
+**Activate** action and the committed active layer is indicated separately from
+editing selection. The Mixer shows the active runtime during Perform; scalar
+gestures are temporary, while structure, routing, device configuration and
+Undo/Redo are locked. Save persists the baseline. **Capture** opens a frozen
+preview with before/after values and defining layers, and commits only checked
+fields. Complete plug-in state offers its defining layer or an explicit new
+override in the active Patch. The preview identifies the destination and explains
+that complete state includes embedded parameters, while separately stored
+parameter overrides still apply afterward. See
+[ADR-0015](adr/0015-live-layer-plugin-state.md).
+Switching Patch, leaving Perform or closing the document offers Capture,
+discard or cancel when sampled changes exist. Capture completes separately and
+the performer retries the transition. Returning to Edit stops Live audio.
+A failed activation retains the committed selection; an ambiguous result locks
+mutations and provides the recovery-preserving close path. See
+[ADR-0014](adr/0014-live-runtime-activation.md).
+
 ## Parameter gestures
 
 Equivalent continuous parameters share a gesture grammar:

@@ -74,6 +74,8 @@ export async function inspectLiveArchive(client: PGlite): Promise<{
 
 export async function clearLiveMixer(executor: DatabaseMaintenanceExecutor): Promise<void> {
   await executor.execute(sql`truncate table
+    live_set_plugin_state_chunks, live_patch_plugin_state_chunks,
+    live_set_plugin_states, live_patch_plugin_states,
     live_plugin_parameter_values, live_midi_bindings,
     plugin_sidechain_routes, plugin_state_chunks, plugin_instances,
     mixer_sends, mixer_channels`)

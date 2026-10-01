@@ -114,6 +114,8 @@ const api: HeronDesktopApi = {
     invokeRpc(IPC_CHANNELS.liveConfigure, meta, configuration),
   undoLiveEdit: (meta) => invokeRpc(IPC_CHANNELS.liveUndo, meta),
   redoLiveEdit: (meta) => invokeRpc(IPC_CHANNELS.liveRedo, meta),
+  performLive: (meta, command) => invokeRpc(IPC_CHANNELS.livePerform, meta, command),
+  previewLiveCapture: (meta) => invokeRpc(IPC_CHANNELS.liveCapturePreview, meta),
   listProjectAssets: (meta) => invokeRpc(IPC_CHANNELS.projectAssetsList, meta),
   importProjectAudio: (meta, paths) => invokeRpc(IPC_CHANNELS.projectAudioImport, meta, paths),
   updateProjectConfiguration: (meta, configuration: ProjectConfiguration) =>

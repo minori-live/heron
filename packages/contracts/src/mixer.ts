@@ -301,13 +301,13 @@ export type MixerParameterPreview =
   | {
       target: "channel"
       id: string
-      parameter: "gainDb" | "pan"
+      parameter: "gainDb" | "pan" | "muted" | "soloed"
       value: number
     }
   | {
       target: "send"
       id: string
-      parameter: "levelDb"
+      parameter: "levelDb" | "enabled"
       value: number
     }
   | {

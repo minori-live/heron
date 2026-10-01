@@ -77,6 +77,11 @@ function failure(
   }
 }
 
+function liveOwnsAudio(context: IpcHandlerContext): boolean {
+  const workspace = context.lifecycle.applicationState.liveWorkspaceSnapshot()
+  return Boolean(workspace && workspace.mode !== "edit")
+}
+
 export function registerAudioHandlers(context: IpcHandlerContext): void {
   const {
     audioHost: audioHostService,
@@ -124,6 +129,7 @@ export function registerAudioHandlers(context: IpcHandlerContext): void {
 
   registerRpcHandler(IPC_CHANNELS.audioStart, async ({ meta }, value: unknown) => {
     const state = lifecycle.applicationState
+    if (liveOwnsAudio(context)) return rpcFailure(meta, failure(meta, "resource-busy"))
     if (!meta.mutation) return rpcFailure(meta, failure(meta, "validation-failed"))
     await reconcileAudioHost()
     if (state.currentAudioDeviceRecovery()) {
@@ -180,6 +186,7 @@ export function registerAudioHandlers(context: IpcHandlerContext): void {
 
   registerRpcHandler(IPC_CHANNELS.audioStop, async ({ meta }) => {
     const state = lifecycle.applicationState
+    if (liveOwnsAudio(context)) return rpcFailure(meta, failure(meta, "resource-busy"))
     if (!meta.mutation) return rpcFailure(meta, failure(meta, "validation-failed"))
     await reconcileAudioHost()
     const current = state.audioResourceSnapshot()
@@ -236,6 +243,7 @@ export function registerAudioHandlers(context: IpcHandlerContext): void {
 
   registerRpcHandler(IPC_CHANNELS.audioRecoverySelect, async ({ meta }, value: unknown) => {
     const state = lifecycle.applicationState
+    if (liveOwnsAudio(context)) return rpcFailure(meta, failure(meta, "resource-busy"))
     if (!meta.mutation) return rpcFailure(meta, failure(meta, "validation-failed"))
     const recovery = state.currentAudioDeviceRecovery()
     if (!sameRef(meta.target, recovery)) {
@@ -277,6 +285,7 @@ export function registerAudioHandlers(context: IpcHandlerContext): void {
   })
 
   registerRpcHandler(IPC_CHANNELS.audioRoundTripLatencyStart, async ({ meta }, value: unknown) => {
+    if (liveOwnsAudio(context)) return rpcFailure(meta, failure(meta, "resource-busy"))
     await reconcileAudioHost()
     const target = lifecycle.applicationState.audioHost
     const invalid = validateMutationTarget(meta, target)

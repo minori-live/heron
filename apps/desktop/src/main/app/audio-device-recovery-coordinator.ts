@@ -209,6 +209,9 @@ export class AudioDeviceRecoveryCoordinator {
   }
 
   private async restoreProjectAndTransport(decision: number): Promise<void> {
+    // Native device recovery retains Live's committed graph. Studio has no
+    // authority to replace it or resume an arrangement while Live owns the window.
+    if (this.lifecycle.applicationState.liveWorkspaceSnapshot()) return
     try {
       await this.projectGraph.load()
     } catch (error) {

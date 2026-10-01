@@ -28,6 +28,10 @@ pub(in crate::runtime) async fn audio_plugin_actor(
     let mut graph_snapshot: Option<LiveMixerGraph> = None;
     let mut graph_transactions = GraphTransactionState::new(session_epoch);
     while let Some(message) = inbox.recv().await {
+        let cut = matches!(
+            &message.command,
+            ActorCommand::Control(ControlCommand::ActivateGraphCut { .. })
+        );
         let result = match message.command {
             ActorCommand::BuildGraph { .. }
             | ActorCommand::PublishBuiltGraph { .. }
@@ -345,7 +349,8 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                         },
                     )
                 }
-                ControlCommand::ActivateGraph { meta, request } => {
+                ControlCommand::ActivateGraph { meta, request }
+                | ControlCommand::ActivateGraphCut { meta, request } => {
                     let validated = match validate_graph_request(
                         &meta,
                         &request,
@@ -461,10 +466,13 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                         project_graph,
                         graph_revision: candidate_revision,
                         graph,
-                        built,
+                        mut built,
                         build_guard: _build_guard,
                         ..
                     } = candidate;
+                    if cut {
+                        built.enable_live_cut();
+                    }
                     match publish_built_graph(&engine_sender, built).await {
                         ControlResult::Accepted => {
                             let _ = dispatch_ui_actor_command(

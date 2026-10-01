@@ -6,6 +6,7 @@ pub(in crate::runtime) fn is_vst3_command(command: &ControlCommand) -> bool {
         ControlCommand::Ping
             | ControlCommand::PrepareGraph { .. }
             | ControlCommand::ActivateGraph { .. }
+            | ControlCommand::ActivateGraphCut { .. }
             | ControlCommand::AbortGraph { .. }
             | ControlCommand::GraphDeploymentSnapshot { .. }
             | ControlCommand::LoadPlugin { .. }
@@ -46,6 +47,7 @@ pub(in crate::runtime) fn slow_request_threshold(command: &ControlCommand) -> st
         command,
         ControlCommand::PrepareGraph { .. }
             | ControlCommand::ActivateGraph { .. }
+            | ControlCommand::ActivateGraphCut { .. }
             | ControlCommand::AbortGraph { .. }
             | ControlCommand::LoadPlugin { .. }
             | ControlCommand::UnloadPlugin { .. }

@@ -3,6 +3,7 @@ import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { PanelLeft, Settings2, SlidersHorizontal } from "@lucide/vue"
 import { DEFAULT_METER_RETURN_RATE } from "@heron/contracts"
+import { UiButton } from "@heron/ui"
 import type {
   MixerChannelCoreState,
   MixerChannelMeter,
@@ -21,11 +22,21 @@ const props = defineProps<{
   leftPanelOpen: boolean
   mixerOpen: boolean
   master: MixerChannelCoreState | null
+  editingLayer?: string
+  performing?: boolean
+  activeLayer?: string
+  masterMeter?: MixerChannelMeter
+  uncapturedCount?: number
+  adjusting?: boolean
+  quarantined?: boolean
 }>()
 defineEmits<{
   toggleLeftPanel: []
   toggleMixer: []
   configure: []
+  enterPerform: []
+  leavePerform: []
+  capture: []
   preview: [value: MixerParameterPreview]
   updateChannel: [id: string, patch: MixerChannelPatch]
 }>()
@@ -53,13 +64,44 @@ const silentMasterMeter = computed<MixerChannelMeter>(() => ({
     <div class="live-document-title flex min-w-0 items-center justify-center gap-ui-3">
       <span class="truncate text-ui-sm text-ui-text" :title="name">{{ name }}</span>
       <span v-if="dirty" class="text-ui-text-muted" :aria-label="t('live.unsaved')">•</span>
-      <span class="text-ui-xs text-ui-text-muted">{{ t("live.editMode") }}</span>
+      <span
+        class="truncate text-ui-xs text-ui-text-muted"
+        :title="performing ? activeLayer : editingLayer"
+        >{{
+          t(
+            quarantined
+              ? "live.performance.recoveryMode"
+              : performing
+                ? "live.performance.mode"
+                : "live.editMode"
+          )
+        }}<template v-if="performing"> · {{ activeLayer }}</template
+        ><template v-else-if="editingLayer"> · {{ editingLayer }}</template></span
+      >
     </div>
     <div class="flex flex-none items-center gap-ui-3">
+      <UiButton
+        v-if="!performing"
+        size="sm"
+        variant="primary"
+        :disabled="pending"
+        @click="$emit('enterPerform')"
+      >
+        {{ t("live.performance.enter") }}
+      </UiButton>
+      <template v-else>
+        <UiButton size="sm" :disabled="pending" @click="$emit('capture')">
+          {{ t("live.performance.captureShort")
+          }}<template v-if="uncapturedCount"> · {{ uncapturedCount }}</template>
+        </UiButton>
+        <UiButton size="sm" :disabled="pending" @click="$emit('leavePerform')">{{
+          t("live.performance.leave")
+        }}</UiButton>
+      </template>
       <WorkspaceControlGroup>
         <WorkspaceControlButton
           :label="t('live.devices')"
-          :disabled="pending"
+          :disabled="pending || performing"
           @activate="$emit('configure')"
         >
           <Settings2 :size="16" />
@@ -74,8 +116,8 @@ const silentMasterMeter = computed<MixerChannelMeter>(() => ({
       </WorkspaceControlGroup>
       <WorkspaceMasterControl
         :channel="master"
-        :disabled="pending"
-        :meter="silentMasterMeter"
+        :disabled="pending && !adjusting"
+        :meter="masterMeter ?? silentMasterMeter"
         meter-peak-hold="800ms"
         :meter-return-rate="DEFAULT_METER_RETURN_RATE"
         @preview="$emit('preview', $event)"

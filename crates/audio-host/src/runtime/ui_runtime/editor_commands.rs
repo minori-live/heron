@@ -102,6 +102,13 @@ impl EmbeddedUiHost {
                             })
                         },
                     );
+                    if self
+                        .clap
+                        .as_ref()
+                        .is_some_and(clap::ClapRuntime::has_retired_instances)
+                    {
+                        self.next_retirement_tick = Some(Instant::now());
+                    }
                     let _ = reply.send(result);
                     return;
                 }

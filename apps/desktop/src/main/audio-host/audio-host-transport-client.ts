@@ -363,7 +363,12 @@ export class AudioHostTransportClient {
   }
 
   async previewMixerParameter(preview: MixerParameterPreview): Promise<void> {
-    if (preview.target === "plugin") {
+    if (
+      preview.target === "plugin" ||
+      preview.parameter === "muted" ||
+      preview.parameter === "soloed" ||
+      preview.parameter === "enabled"
+    ) {
       await this.request({
         type: "preview-mixer-parameter",
         preview

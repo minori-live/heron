@@ -12,14 +12,16 @@ impl EmbeddedUiHost {
             if let Err(error) = self.audio_engine.reclaim_retired_graphs() {
                 eprintln!("audio-host: could not reclaim retired audio graph: {error}");
             }
+            let mut pending_retirement = false;
             if let Some(runtime) = self.vst3.as_mut() {
                 runtime.reclaim_retired_instances();
-                self.next_retirement_tick = runtime
-                    .has_retired_instances()
-                    .then_some(now + Self::RETIREMENT_TICK);
-            } else {
-                self.next_retirement_tick = None;
+                pending_retirement |= runtime.has_retired_instances();
             }
+            if let Some(runtime) = self.clap.as_mut() {
+                runtime.reclaim_retired_instances();
+                pending_retirement |= runtime.has_retired_instances();
+            }
+            self.next_retirement_tick = pending_retirement.then_some(now + Self::RETIREMENT_TICK);
         }
         if self.next_ara_tick.is_some_and(|deadline| now >= deadline) {
             self.poll_ara_callbacks();

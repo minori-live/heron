@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { LiveHierarchy } from "@heron/contracts"
 const bridge = vi.hoisted(() => ({
   receive: null as null | ((message: unknown) => void),
   listeners: new Map<string, (value: unknown) => void>(),
@@ -33,6 +34,10 @@ vi.mock("@heron/project-db/live-node", () => ({
 }))
 const configuration = { name: "Stage", sampleRate: 48000, audio: null, enabledMidiDeviceIds: [] }
 const graph = { sampleRate: 48000, channels: [], sends: [], plugins: [] }
+const hierarchy: LiveHierarchy = {
+  sets: [{ id: "set", name: "First Set", sortOrder: 0, overrides: [] }],
+  patches: [{ id: "patch", setId: "set", name: "Opening", sortOrder: 0, overrides: [] }]
+}
 async function fixture() {
   const database = {
     close: vi.fn(async () => undefined),
@@ -42,6 +47,7 @@ async function fixture() {
     mixerSnapshot: vi.fn(async () => graph),
     midiBindings: vi.fn(async () => []),
     pluginParameterValues: vi.fn(async () => []),
+    hierarchy: vi.fn(async () => hierarchy),
     replaceBaseline: vi.fn(async () => 2),
     dump: vi.fn(async () => undefined)
   }
@@ -72,9 +78,12 @@ describe("Live worker message boundary", () => {
     expect(await client.mixerSnapshot()).toEqual(graph)
     expect(await client.midiBindings()).toEqual([])
     expect(await client.pluginParameterValues()).toEqual([])
+    expect(await client.hierarchy()).toEqual(hierarchy)
     const snapshot = { graph, parameterValues: [] }
     expect(await client.replaceBaseline(snapshot, [], 1)).toBe(2)
-    expect(database.replaceBaseline).toHaveBeenCalledWith(snapshot, [], 1)
+    expect(database.replaceBaseline).toHaveBeenCalledWith(snapshot, [], 1, undefined)
+    expect(await client.replaceBaseline(snapshot, [], 1, hierarchy)).toBe(2)
+    expect(database.replaceBaseline).toHaveBeenCalledWith(snapshot, [], 1, hierarchy)
     await client.dump("archive.hrl")
     expect(database.dump).toHaveBeenCalledWith("archive.hrl")
     await client.open("reopened", "archive.hrl")
@@ -103,6 +112,10 @@ describe("Live worker message boundary", () => {
     await expect(client.updateConfiguration(configuration, 99)).rejects.toMatchObject({
       code: "revision-conflict"
     })
+    database.replaceBaseline.mockRejectedValueOnce(new TypeError("invalid layer target"))
+    await expect(
+      client.replaceBaseline({ graph, parameterValues: [] }, [], 1, hierarchy)
+    ).rejects.toMatchObject({ code: "validation-failed" })
     expect(await client.configuration()).toEqual(configuration)
     await client.terminate()
   })

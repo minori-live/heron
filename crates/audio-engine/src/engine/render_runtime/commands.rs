@@ -60,6 +60,9 @@ impl MixerRuntime {
         match command {
             EngineCommand::LoadMixer(mut runtime) => {
                 self.all_notes_off();
+                if runtime.cut_frames > 0 {
+                    self.release_live_controllers();
+                }
                 runtime.external_sync_enabled = self.external_sync_enabled;
                 runtime.audition = self.audition.take();
                 let state = runtime.transport.state.load(Ordering::Relaxed);
@@ -102,6 +105,27 @@ impl MixerRuntime {
                     RealtimeParameter::ChannelPan => {
                         self.graph.channel_index(preview.id()).and_then(|index| {
                             self.graph.preview_channel_pan(index, preview.value).ok()
+                        })
+                    }
+                    RealtimeParameter::ChannelMuted => {
+                        self.graph.channel_index(preview.id()).and_then(|index| {
+                            self.graph
+                                .preview_channel_muted(index, preview.value >= 0.5)
+                                .ok()
+                        })
+                    }
+                    RealtimeParameter::ChannelSoloed => {
+                        self.graph.channel_index(preview.id()).and_then(|index| {
+                            self.graph
+                                .preview_channel_soloed(index, preview.value >= 0.5)
+                                .ok()
+                        })
+                    }
+                    RealtimeParameter::SendEnabled => {
+                        self.graph.send_index(preview.id()).and_then(|index| {
+                            self.graph
+                                .preview_send_enabled(index, preview.value >= 0.5)
+                                .ok()
                         })
                     }
                     RealtimeParameter::SendLevel => self

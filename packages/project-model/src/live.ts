@@ -1,6 +1,6 @@
 import type {
   LiveCaptureField,
-  LiveEditCommand,
+  LiveMixerEditCommand,
   LiveMidiBinding,
   LivePluginParameterValue,
   LivePerformanceCommand,
@@ -60,7 +60,10 @@ function removePlugin(graph: MixerGraphSnapshot, pluginId: string): PluginInstan
   return plugin
 }
 
-export function applyLiveEdit(current: LiveEditResult, command: LiveEditCommand): LiveEditResult {
+export function applyLiveEdit(
+  current: LiveEditResult,
+  command: LiveMixerEditCommand
+): LiveEditResult {
   const next = structuredClone(current)
   switch (command.type) {
     case "create-channel":
