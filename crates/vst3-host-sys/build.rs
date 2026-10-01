@@ -42,6 +42,7 @@ fn main() {
 
     let target = env::var("TARGET").expect("Cargo target is set");
     let mut builder = bindgen::Builder::default()
+        .formatter(bindgen::Formatter::Rustfmt)
         .header(wrapper.to_string_lossy())
         .clang_arg("-x")
         .clang_arg("c++")
