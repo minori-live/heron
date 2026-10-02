@@ -1,3 +1,5 @@
+min_version = '2026.10.0'
+
 [tools]
 apm = "latest"
 node = "26"

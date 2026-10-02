@@ -213,7 +213,7 @@ jobs:
         uses: ./.github/actions/setup-build
         with:
           github-token: >-
-            ${{ github.event_name == 'pull_request' && '' || github.token }}
+            ${{ github.event_name != 'pull_request' && github.token || '' }}
 
       - name: Build and package unsigned application
         if: >-
