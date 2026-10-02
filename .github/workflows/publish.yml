@@ -90,9 +90,9 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install locked toolchain
-        uses: jdx/mise-action@v5
+        uses: jdx/mise-action@v5.0.1
         with:
-          version: 2026.9.18
+          version: 2026.10.0
           cache: true
 
       - name: Install workspace dependencies

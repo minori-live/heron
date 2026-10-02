@@ -64,7 +64,7 @@ jobs:
         uses: ./.github/actions/setup-build
         with:
           github-token: >-
-            ${{ github.event_name == 'pull_request' && '' || github.token }}
+            ${{ github.event_name != 'pull_request' && github.token || '' }}
           cache-rust-build: "true"
 
       - name: Install Playwright Chromium and Linux dependencies

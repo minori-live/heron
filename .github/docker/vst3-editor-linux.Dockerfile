@@ -1,6 +1,6 @@
 FROM ubuntu:26.04
 
-ARG MISE_VERSION=2026.7.13
+ARG MISE_VERSION=2026.10.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH=/root/.local/share/mise/shims:/root/.local/bin:/usr/local/bin/mise/bin:/usr/local/bin:/usr/bin:/bin
