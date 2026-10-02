@@ -172,7 +172,7 @@ impl RenderRuntime {
                     pan: channel.pan,
                     muted: channel.muted,
                     soloed: channel.soloed,
-                    output: channel.output.as_ref().map(&route).transpose()?,
+                    output: channel.output.as_ref().map(route).transpose()?,
                     input_bus: channel.input_bus,
                     hardware_output: channel.hardware_output,
                 })
