@@ -1,11 +1,19 @@
 import { shallowMount, type VueWrapper } from "@vue/test-utils"
 import { nextTick } from "vue"
 import { describe, expect, it } from "vitest"
-import { UiButton, UiCheckbox, UiNumberInput, UiSegmentedControl, UiSelect } from "@heron/ui"
+import {
+  UiAnalysisPlot,
+  UiButton,
+  UiCheckbox,
+  UiNumberInput,
+  UiSegmentedControl,
+  UiSelect
+} from "@heron/ui"
 import { analysisReport } from "../../test/plugin-analysis"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
 import PluginAnalysisLinear from "./PluginAnalysisLinear.vue"
 import PluginAnalysisHarmonics from "./PluginAnalysisHarmonics.vue"
+import PluginAnalysisDynamics from "./PluginAnalysisDynamics.vue"
 import PluginAnalysisModel from "./PluginAnalysisModel.vue"
 
 // Shared UI owns gestures; these tests exercise the normalized control intents and
@@ -110,8 +118,10 @@ describe("harmonic analysis presentation", () => {
     expect(plot.props("colorDomain")).toEqual([-80, 0])
   })
 
-  it("converts harmonic dBc to percent without inventing unavailable bins and keeps THD in percent", async () => {
-    const wrapper = shallowMount(PluginAnalysisHarmonics, { props: { report: analysisReport() } })
+  it("keeps harmonic levels and THD in percent while preserving fundamental gain in dB", async () => {
+    const report = analysisReport()
+    report.harmonics[1]!.fundamental_gain_db = [-0.003, 0.0002]
+    const wrapper = shallowMount(PluginAnalysisHarmonics, { props: { report } })
     const plot = wrapper.getComponent(PluginAnalysisPlot)
     await select(wrapper, "Harmonic view", "1d")
     expect(plot.props()).toMatchObject({ yLabel: "dBc", logarithmic: true, heatmap: undefined })
@@ -127,6 +137,55 @@ describe("harmonic analysis presentation", () => {
     await select(wrapper, "Harmonic view", "thd")
     expect(plot.props("series")).toEqual([{ label: "R", x: [100, 1000], y: [1, null] }])
     expect(plot.props("yLabel")).toBe("%")
+    await select(wrapper, "Harmonic view", "fundamental")
+    expect(plot.props()).toMatchObject({ xUnit: "Hz", yLabel: "dB", yUnit: "dB" })
+    expect(plot.props("series")).toMatchObject([{ x: [100, 1000], y: [-0.003, 0.0002] }])
+  })
+})
+
+describe("dynamics analysis presentation", () => {
+  it("pairs ramp and envelope measurements with their units and display resolution", async () => {
+    const report = analysisReport()
+    report.dynamics = [
+      {
+        channel: 0,
+        ramp: [
+          { input_dbfs: -60, output_dbfs: -60.004 },
+          { input_dbfs: -6, output_dbfs: -12.003 }
+        ],
+        time_seconds: [0, 0.0125],
+        input_envelope: [1, 0.1],
+        output_envelope: [0.5, 0.25],
+        segment_seconds: [0.01, 0.02, 0.01]
+      }
+    ]
+    const wrapper = shallowMount(PluginAnalysisDynamics, {
+      props: { report },
+      global: { stubs: { PluginAnalysisPlot: false } }
+    })
+    const plot = wrapper.getComponent(UiAnalysisPlot)
+    expect(plot.props()).toMatchObject({
+      xLabel: "Input level (dBFS)",
+      yLabel: "Output level (dBFS)",
+      xUnit: "dBFS",
+      yUnit: "dBFS",
+      xMinimumStep: 1,
+      yMinimumStep: 1
+    })
+    expect(plot.props("series")[0]).toMatchObject({ x: [-60, -6], y: [-60.004, -12.003] })
+
+    await select(wrapper, "Dynamics view", "attack")
+    expect(plot.props()).toMatchObject({
+      xLabel: "ms",
+      yLabel: "Output level (dBFS)",
+      xUnit: "ms",
+      yUnit: "dBFS",
+      xMinimumStep: 0.01,
+      yMinimumStep: 1
+    })
+    expect(plot.props("series")[0]).toMatchObject({ x: [0, 12.5], y: [0, -20] })
+    expect(plot.props("series")[1]?.y[0]).toBeCloseTo(-6.0206, 4)
+    expect(plot.props("series")[1]?.y[1]).toBeCloseTo(-12.0412, 4)
   })
 })
 

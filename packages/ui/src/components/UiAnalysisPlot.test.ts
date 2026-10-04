@@ -223,10 +223,16 @@ describe("UiAnalysisPlot navigation", () => {
     const { plot, drag, wheel, domains } = await mountInteractivePlot()
     await plot.setProps({
       xUnit: "Hz",
-      yUnit: "°",
+      yUnit: "FS",
       xMinimumStep: 1,
-      yMinimumStep: 1,
+      yMinimumStep: 0.01,
       yDomain: undefined,
+      series: [{ label: "L", x: [20, 20000], y: [0, 0] }]
+    })
+    expect(domains().y).toEqual([-0.03, 0.03])
+    await plot.setProps({
+      yUnit: "°",
+      yMinimumStep: 1,
       series: [{ label: "L", x: [20, 20000], y: [-1e-8, 1e-8] }]
     })
     expect(domains().y).toEqual([-3, 3])
@@ -253,11 +259,24 @@ describe("UiAnalysisPlot navigation", () => {
     expect(domains().x[1]! / domains().x[0]!).toBeCloseTo(1000)
   })
 
-  it("maps a selection in a scaled plot to both measurement axes and restores the full view", async () => {
+  it("maps a scaled spectrum selection with units to measurements and restores the full view", async () => {
     const { plot, drag, domains } = await mountInteractivePlot()
+    await plot.setProps({
+      xDomain: [0, 6],
+      yDomain: [0, 24000],
+      xUnit: "s",
+      yUnit: "Hz",
+      heatmap: { columns: 2, rows: 1, values: [-60, -30] }
+    })
     const initial = domains()
-    await drag([267.5, 112], [674.5, 300])
-    expect(domains()).toEqual({ x: [200, 600], y: [-45, -15] })
+    const { left, top, width, height } = option().grid as {
+      left: number
+      top: number
+      width: number
+      height: number
+    }
+    await drag([left + width / 4, top + height / 4], [left + width * 0.75, top + height * 0.75])
+    expect(domains()).toEqual({ x: [1.5, 4.5], y: [6000, 18000] })
     await plot.trigger("dblclick")
     expect(domains()).toEqual(initial)
   })
