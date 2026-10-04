@@ -4,6 +4,9 @@ Heron uses Criterion for repeatable microbenchmarks of the native mixer, render
 path, media cache, and recorder. These results describe code performance on one
 machine; they are not portable scores and do not run as a pull-request gate.
 
+For native analysis stages, plug-in preparation, report transport, and chart
+latency, see [Plugin Analysis performance measurements](plugin-analysis-performance.md).
+
 ## Commands
 
 ```text
