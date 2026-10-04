@@ -25,6 +25,11 @@ env:
   CARGO_INCREMENTAL: "0"
   CARGO_PROFILE_DEV_DEBUG: line-tables-only
   CARGO_PROFILE_TEST_DEBUG: line-tables-only
+  HERON_LIVE_MIXER_DIAGNOSTICS: >-
+    ${{ ((github.event_name == 'pull_request' &&
+      github.head_ref == 'codex/live-mixer-phase-diagnostics') ||
+      (github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/codex/live-mixer-phase-diagnostics')) && '1' || '0' }}
 
 jobs:
   checks:
@@ -40,19 +45,13 @@ jobs:
         # Oxfmt, Oxlint, Vue ESLint, design audits, TypeScript-only checks, and
         # Storybook produce identical results on every platform and would otherwise
         # dominate the slower runners.
-        include:
-          - name: Linux x64
-            os: ubuntu-24.04
-            check-task: ci:check:coverage
-            codecov-rust-flag: rust-linux
-          - name: Windows x64
-            os: windows-latest
-            check-task: ci:check:native-coverage
-            codecov-rust-flag: rust-windows
-          - name: macOS
-            os: macos-latest
-            check-task: ci:check:native-coverage
-            codecov-rust-flag: rust-macos
+        # Preserve the failed commit's workload when newer main changes make
+        # the draft PR conflict. Only this branch's manual dispatch is Windows-only.
+        include: >-
+          ${{ fromJSON(github.event_name == 'workflow_dispatch' &&
+            github.ref == 'refs/heads/codex/live-mixer-phase-diagnostics' &&
+            '[{"name":"Windows x64","os":"windows-latest","check-task":"ci:check:native-coverage","codecov-rust-flag":"rust-windows"}]' ||
+            '[{"name":"Linux x64","os":"ubuntu-24.04","check-task":"ci:check:coverage","codecov-rust-flag":"rust-linux"},{"name":"Windows x64","os":"windows-latest","check-task":"ci:check:native-coverage","codecov-rust-flag":"rust-windows"},{"name":"macOS","os":"macos-latest","check-task":"ci:check:native-coverage","codecov-rust-flag":"rust-macos"}]') }}
     steps:
       - name: Check out source
         uses: actions/checkout@v7
@@ -136,19 +135,15 @@ jobs:
 
       - name: Run repository checks
         if: >-
-          ${{ !(runner.os == 'Windows' &&
-            github.event_name == 'pull_request' &&
-            github.head_ref == 'codex/live-mixer-phase-diagnostics') }}
+          ${{ !(runner.os == 'Windows' && env.HERON_LIVE_MIXER_DIAGNOSTICS == '1') }}
         run: mise run ${{ matrix.check-task }}
 
-      # Temporary experiment for the diagnostic draft PR only. Keep the normal
+      # Temporary experiment for the diagnostic branch only. Keep the normal
       # native/desktop/database workload before collecting additional samples.
       - name: Capture Windows Mixer diagnostic baseline
         id: live_mixer_baseline
         if: >-
-          ${{ runner.os == 'Windows' &&
-            github.event_name == 'pull_request' &&
-            github.head_ref == 'codex/live-mixer-phase-diagnostics' }}
+          ${{ runner.os == 'Windows' && env.HERON_LIVE_MIXER_DIAGNOSTICS == '1' }}
         shell: pwsh
         env:
           HERON_LIVE_DIAGNOSTICS_DIR: ${{ runner.temp }}/live-mixer-diagnostics
@@ -158,9 +153,7 @@ jobs:
 
       - name: Collect bounded Windows Mixer samples
         if: >-
-          ${{ runner.os == 'Windows' &&
-            github.event_name == 'pull_request' &&
-            github.head_ref == 'codex/live-mixer-phase-diagnostics' &&
+          ${{ runner.os == 'Windows' && env.HERON_LIVE_MIXER_DIAGNOSTICS == '1' &&
             steps.live_mixer_baseline.outcome == 'success' }}
         timeout-minutes: 16
         shell: pwsh
@@ -173,9 +166,7 @@ jobs:
 
       - name: Upload Windows Mixer diagnostic evidence
         if: >-
-          ${{ always() && runner.os == 'Windows' &&
-            github.event_name == 'pull_request' &&
-            github.head_ref == 'codex/live-mixer-phase-diagnostics' }}
+          ${{ always() && runner.os == 'Windows' && env.HERON_LIVE_MIXER_DIAGNOSTICS == '1' }}
         uses: actions/upload-artifact@v7
         with:
           name: live-mixer-windows-${{ github.run_id }}-${{ github.run_attempt }}
