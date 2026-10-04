@@ -4,7 +4,7 @@ import { useI18n } from "vue-i18n"
 import { UiNumberInput, UiSegmentedControl, UiSelect, type UiAnalysisHeatmap } from "@heron/ui"
 import type { PluginAnalysisReport } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
-const props = defineProps<{ report: PluginAnalysisReport }>()
+const props = defineProps<{ report: PluginAnalysisReport; comparison?: PluginAnalysisReport }>()
 const { t } = useI18n()
 const channel = ref("0")
 const view = ref("2d")
@@ -20,7 +20,8 @@ const channels = computed(() => [
 const views = computed(() => [
   { value: "2d", label: t("pluginAnalysis.spectrum2d") },
   { value: "1d", label: t("pluginAnalysis.orders1d") },
-  { value: "thd", label: t("pluginAnalysis.thd") }
+  { value: "thd", label: t("pluginAnalysis.thd") },
+  { value: "fundamental", label: t("pluginAnalysis.fundamental") }
 ])
 const scales = computed(() => [
   { value: "linear", label: t("pluginAnalysis.scaleLinear") },
@@ -30,7 +31,6 @@ const magnitudeScales = computed(() => [
   { value: "linear", label: t("pluginAnalysis.magnitudeLinear") },
   { value: "log", label: t("pluginAnalysis.magnitudeLog") }
 ])
-const harmonic = computed(() => props.report.harmonics[Number(channel.value)]!)
 const spectrum = computed(() =>
   props.report.spectrograms.find(
     (p) => p.channel === Number(channel.value) && p.logarithmic_sweep === (sweep.value === "log")
@@ -54,40 +54,61 @@ const colors = [
   "var(--ui-signal-record)",
   "var(--ui-signal-meter-safe)"
 ]
-const series = computed(() =>
-  view.value === "2d"
+const makeSeries = (report: PluginAnalysisReport) => {
+  const harmonic = report.harmonics[Number(channel.value)]!
+  return view.value === "2d"
     ? []
-    : view.value === "thd"
+    : view.value === "fundamental"
       ? [
           {
-            label: props.report.settings.mid_side
-              ? channel.value === "0"
-                ? "M"
-                : "S"
-              : channel.value === "0"
-                ? "L"
-                : "R",
-            x: harmonic.value.frequency_hz,
-            y: harmonic.value.thd_percent
+            label: t("pluginAnalysis.fundamental"),
+            x: harmonic.frequency_hz,
+            y: harmonic.fundamental_gain_db
           }
         ]
-      : harmonic.value.orders_db.map((values, index) => ({
-          label: `H${index + 2}`,
-          x: harmonic.value.frequency_hz,
-          y:
-            magnitudeScale.value === "log"
-              ? values
-              : values.map((db) => (db === null ? null : 100 * 10 ** (db / 20))),
-          color: colors[index]
-        }))
-)
+      : view.value === "thd"
+        ? [
+            {
+              label: props.report.settings.mid_side
+                ? channel.value === "0"
+                  ? "M"
+                  : "S"
+                : channel.value === "0"
+                  ? "L"
+                  : "R",
+              x: harmonic.frequency_hz,
+              y: harmonic.thd_percent
+            }
+          ]
+        : harmonic.orders_db.map((values, index) => ({
+            label: `H${index + 2}`,
+            x: harmonic.frequency_hz,
+            y:
+              magnitudeScale.value === "log"
+                ? values
+                : values.map((db) => (db === null ? null : 100 * 10 ** (db / 20))),
+            color: colors[index]
+          }))
+}
+const series = computed(() => [
+  ...makeSeries(props.report),
+  ...(props.comparison
+    ? makeSeries(props.comparison).map((s) => ({
+        ...s,
+        label: `${t("pluginAnalysis.chain2")} · ${s.label}`,
+        dashed: true
+      }))
+    : [])
+])
 const title = computed(() =>
   t(
     view.value === "2d"
       ? "pluginAnalysis.spectrum2d"
       : view.value === "thd"
         ? "pluginAnalysis.thd"
-        : "pluginAnalysis.harmonicResponse"
+        : view.value === "fundamental"
+          ? "pluginAnalysis.fundamental"
+          : "pluginAnalysis.harmonicResponse"
   )
 )
 </script>
@@ -99,9 +120,11 @@ const title = computed(() =>
       :y-label="
         view === '2d'
           ? 'Hz'
-          : view === 'thd' || magnitudeScale === 'linear'
-            ? '%'
-            : t('pluginAnalysis.units.dbc')
+          : view === 'fundamental'
+            ? 'dB'
+            : view === 'thd' || magnitudeScale === 'linear'
+              ? '%'
+              : t('pluginAnalysis.units.dbc')
       "
       :series="series"
       :logarithmic="view !== '2d' && frequencyScale === 'log'"

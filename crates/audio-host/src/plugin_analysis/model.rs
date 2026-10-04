@@ -1,36 +1,12 @@
-use super::signal::{convolve, inverse, spectrum};
-use heron_dsp_runtime::protocol::PluginAnalysisFailure;
-use heron_dsp_runtime::protocol::PluginAnalysisModel;
-use std::sync::atomic::{AtomicBool, Ordering};
+use super::signal::{convolve, spectrum};
+use heron_dsp_runtime::protocol::{PluginAnalysisFailure, PluginAnalysisModel};
+use rustfft::{Fft, FftPlanner, num_complex::Complex};
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 
-const MAX_ORDER: usize = 7;
 const TAPS: usize = 512;
-
-fn solve(matrix: &mut [Vec<f64>], order: usize) -> Option<Vec<f64>> {
-    for col in 0..order {
-        let pivot =
-            (col..order).max_by(|a, b| matrix[*a][col].abs().total_cmp(&matrix[*b][col].abs()))?;
-        matrix.swap(col, pivot);
-        let scale = matrix[col][col];
-        if scale.abs() < 1e-15 {
-            return None;
-        }
-        for item in &mut matrix[col][col..] {
-            *item /= scale;
-        }
-        let pivot_values = matrix[col].clone();
-        for (row, values) in matrix.iter_mut().enumerate() {
-            if row == col {
-                continue;
-            }
-            let gain = values[col];
-            for (value, pivot) in values[col..].iter_mut().zip(&pivot_values[col..]) {
-                *value -= gain * pivot;
-            }
-        }
-    }
-    Some((0..order).map(|i| matrix[i][order]).collect())
-}
 
 pub(super) struct FitData<'a> {
     pub channel: u32,
@@ -41,6 +17,59 @@ pub(super) struct FitData<'a> {
     pub scale: f64,
     pub delay: u32,
     pub order: u32,
+}
+
+/// FFT convolution and its adjoint define the actual finite causal regression.
+/// Solve all independent order filters together rather than fitting a single H.
+struct Regression {
+    basis: Vec<Vec<Complex<f64>>>,
+    forward: Arc<dyn Fft<f64>>,
+    inverse: Arc<dyn Fft<f64>>,
+    count: usize,
+    regularization: f64,
+}
+impl Regression {
+    fn fft(&self, samples: &[f64]) -> Vec<Complex<f64>> {
+        let mut bins = vec![Complex::default(); self.forward.len()];
+        for (bin, value) in bins.iter_mut().zip(samples) {
+            bin.re = *value;
+        }
+        self.forward.process(&mut bins);
+        bins
+    }
+    fn adjoint(&self, output: &[f64]) -> Vec<f64> {
+        let bins = self.fft(output);
+        self.basis
+            .iter()
+            .flat_map(|basis| {
+                let mut values: Vec<_> =
+                    bins.iter().zip(basis).map(|(y, x)| y * x.conj()).collect();
+                self.inverse.process(&mut values);
+                values[..TAPS]
+                    .iter()
+                    .map(|v| v.re / values.len() as f64)
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    }
+    fn apply(&self, filters: &[f64]) -> Vec<f64> {
+        let mut output = vec![Complex::default(); self.forward.len()];
+        for (filter, basis) in filters.chunks(TAPS).zip(&self.basis) {
+            for (out, (h, x)) in output.iter_mut().zip(self.fft(filter).iter().zip(basis)) {
+                *out += h * x;
+            }
+        }
+        self.inverse.process(&mut output);
+        let samples: Vec<_> = output[..self.count]
+            .iter()
+            .map(|v| v.re / output.len() as f64)
+            .collect();
+        self.adjoint(&samples)
+            .iter()
+            .zip(filters)
+            .map(|(a, h)| a + self.regularization * h)
+            .collect()
+    }
 }
 
 pub(super) fn fit(
@@ -57,79 +86,87 @@ pub(super) fn fit(
         delay,
         order,
     } = data;
-    let order = (order as usize).clamp(1, MAX_ORDER);
     let delay = delay as usize;
     let count = input.len().min(output.len().saturating_sub(delay));
-    let input = &input[..count];
+    if count < TAPS || scale <= 0.0 {
+        return Err(PluginAnalysisFailure::InvalidSettings);
+    }
     let target = &output[delay..delay + count];
-    let basis: Vec<Vec<f64>> = (1..=order)
-        .map(|order| {
-            input
+    let size = (count + TAPS).next_power_of_two();
+    let powers: Vec<Vec<f64>> = (1..=order)
+        .map(|k| {
+            input[..count]
                 .iter()
-                .map(|v| (v / scale).powi(order as i32))
+                .map(|x| (x / scale).powi(k as i32))
                 .collect()
         })
         .collect();
-    let mut coefficients = vec![0.0; order];
-    coefficients[0] = 1.0;
-    let mut filter = vec![0.0; TAPS];
-    filter[0] = scale;
-    for _ in 0..12 {
+    // Center each power so an even-order DC component cannot overwhelm the fit.
+    let means: Vec<_> = powers
+        .iter()
+        .map(|p| p.iter().sum::<f64>() / count as f64)
+        .collect();
+    let mean_y = target.iter().sum::<f64>() / count as f64;
+    let mut planner = FftPlanner::new();
+    let regression = Regression {
+        basis: powers
+            .iter()
+            .zip(&means)
+            .map(|(p, mean)| spectrum(&p.iter().map(|x| x - mean).collect::<Vec<_>>(), size))
+            .collect(),
+        forward: planner.plan_fft_forward(size),
+        inverse: planner.plan_fft_inverse(size),
+        count,
+        regularization: count as f64 * 1e-9,
+    };
+    let mut residual = regression.adjoint(&target.iter().map(|y| y - mean_y).collect::<Vec<_>>());
+    let mut direction = residual.clone();
+    let mut filters = vec![0.0; direction.len()];
+    let dot = |a: &[f64], b: &[f64]| a.iter().zip(b).map(|(x, y)| x * y).sum::<f64>();
+    let initial = dot(&residual, &residual).max(1e-30);
+    let mut energy = initial;
+    // Fixed iteration and filter bounds keep identification and cancellation bounded.
+    for _ in 0..96 {
         if cancel.load(Ordering::Acquire) {
             return Err(PluginAnalysisFailure::Cancelled);
         }
-        let filtered: Vec<_> = basis.iter().map(|b| convolve(b, &filter)).collect();
-        let mut matrix = vec![vec![0.0; order + 1]; order];
-        for row in 0..order {
-            for col in 0..order {
-                matrix[row][col] = filtered[row]
-                    .iter()
-                    .zip(&filtered[col])
-                    .map(|(a, b)| a * b)
-                    .sum();
-            }
-            matrix[row][row] += 1e-8 * count as f64;
-            matrix[row][order] = filtered[row].iter().zip(target).map(|(a, b)| a * b).sum();
+        let product = regression.apply(&direction);
+        let denominator = dot(&direction, &product);
+        if denominator <= 1e-30 || energy / initial < 1e-12 {
+            break;
         }
-        if let Some(next) = solve(&mut matrix, order) {
-            coefficients = next;
+        let alpha = energy / denominator;
+        for ((h, r), (d, a)) in filters
+            .iter_mut()
+            .zip(&mut residual)
+            .zip(direction.iter().zip(product))
+        {
+            *h += alpha * d;
+            *r -= alpha * a;
         }
-        let nonlinear: Vec<_> = (0..count)
-            .map(|i| (0..order).map(|k| coefficients[k] * basis[k][i]).sum())
+        let next = dot(&residual, &residual);
+        for (d, r) in direction.iter_mut().zip(&residual) {
+            *d = r + next / energy * *d;
+        }
+        energy = next;
+    }
+    let filters: Vec<Vec<f64>> = filters.chunks(TAPS).map(<[f64]>::to_vec).collect();
+    let dc_offset = mean_y
+        - filters
+            .iter()
+            .zip(&means)
+            .map(|(h, m)| h.iter().sum::<f64>() * m)
+            .sum::<f64>();
+    let mut predicted = vec![dc_offset; validation_input.len()];
+    for (k, filter) in filters.iter().enumerate() {
+        let power: Vec<_> = validation_input
+            .iter()
+            .map(|x| (x / scale).powi(k as i32 + 1))
             .collect();
-        let size = (count * 2).next_power_of_two();
-        let x = spectrum(&nonlinear, size);
-        let y = spectrum(target, size);
-        let regularization = x.iter().map(|v| v.norm_sqr()).fold(0.0_f64, f64::max) * 1e-9 + 1e-15;
-        filter = inverse(
-            x.iter()
-                .zip(y)
-                .map(|(x, y)| y * x.conj() / (x.norm_sqr() + regularization))
-                .collect(),
-        );
-        filter.truncate(TAPS);
-    }
-    // Pin the linear coefficient to one when identifiable; move its scale to H.
-    if coefficients[0].abs() > 1e-8 {
-        let gain = coefficients[0];
-        for c in &mut coefficients {
-            *c /= gain;
-        }
-        for h in &mut filter {
-            *h *= gain;
+        for (y, v) in predicted.iter_mut().zip(convolve(&power, filter)) {
+            *y += v;
         }
     }
-    let nonlinear: Vec<_> = validation_input
-        .iter()
-        .map(|x| {
-            coefficients
-                .iter()
-                .enumerate()
-                .map(|(i, c)| c * (x / scale).powi((i + 1) as i32))
-                .sum()
-        })
-        .collect();
-    let mut predicted = convolve(&nonlinear, &filter);
     let observed = &validation_output[delay.min(validation_output.len())..];
     predicted.truncate(observed.len());
     let observed = &observed[..predicted.len()];
@@ -143,9 +180,9 @@ pub(super) fn fit(
     let stride = predicted.len().div_ceil(1024).max(1);
     Ok(PluginAnalysisModel {
         channel,
-        coefficients: coefficients.to_vec(),
+        filters,
+        dc_offset,
         input_scale: scale,
-        filter,
         delay_samples: delay as u32,
         validation_error_percent: percent,
         suitable: energy > 1e-16 && percent < 10.0,

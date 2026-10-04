@@ -4,7 +4,7 @@ import { useI18n } from "vue-i18n"
 import { UiNumberInput, UiSegmentedControl, type UiAnalysisSeries } from "@heron/ui"
 import type { PluginAnalysisReport } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
-const props = defineProps<{ report: PluginAnalysisReport }>()
+const props = defineProps<{ report: PluginAnalysisReport; comparison?: PluginAnalysisReport }>()
 const { t } = useI18n()
 const channel = ref("0")
 const waveform = ref("sine")
@@ -25,17 +25,14 @@ const domains = computed(() => [
   { value: "time", label: t("pluginAnalysis.time") },
   { value: "waveshaping", label: t("pluginAnalysis.waveshaping") }
 ])
-const active = computed(
-  () => scope.value?.waveforms.find((w) => w.waveform === waveform.value) ?? null
-)
 const effectiveDelay = computed(() => delay.value ?? scope.value?.delay_samples ?? 0)
-const series = computed<UiAnalysisSeries[]>(() => {
-  const selected = active.value
-  const source = scope.value
+const makeSeries = (report: PluginAnalysisReport): UiAnalysisSeries[] => {
+  const source = report.oscilloscopes[Number(channel.value)]
+  const selected = source?.waveforms.find((w) => w.waveform === waveform.value)
   if (!selected || !source) return []
   const count = Math.min(selected.input.length, selected.output.length)
   if (domain.value === "waveshaping") {
-    const shift = Math.max(0, Math.min(effectiveDelay.value, count - 1))
+    const shift = Math.max(0, Math.min(delay.value ?? source.delay_samples, count - 1))
     const points = count - shift
     return [
       {
@@ -57,7 +54,15 @@ const series = computed<UiAnalysisSeries[]>(() => {
     },
     { label: t("pluginAnalysis.output"), x, y: selected.output }
   ]
-})
+}
+const series = computed(() => [
+  ...makeSeries(props.report),
+  ...(props.comparison
+    ? makeSeries(props.comparison)
+        .filter((s) => s.label === t("pluginAnalysis.output"))
+        .map((s) => ({ ...s, label: t("pluginAnalysis.chain2"), color: "var(--ui-color-action)" }))
+    : [])
+])
 </script>
 <template>
   <section class="oscilloscope-panel">

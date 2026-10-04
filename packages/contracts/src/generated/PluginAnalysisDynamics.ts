@@ -4,4 +4,4 @@ import type { PluginAnalysisDynamicsPoint } from "./PluginAnalysisDynamicsPoint"
 /**
  * Static level ramp plus an attack/release envelope.
  */
-export type PluginAnalysisDynamics = { channel: number, ramp: Array<PluginAnalysisDynamicsPoint>, time_seconds: Array<number>, input_envelope: Array<number>, output_envelope: Array<number>, step_seconds: number, };
+export type PluginAnalysisDynamics = { channel: number, ramp: Array<PluginAnalysisDynamicsPoint>, time_seconds: Array<number>, input_envelope: Array<number>, output_envelope: Array<number>, segment_seconds: [number, number, number], };

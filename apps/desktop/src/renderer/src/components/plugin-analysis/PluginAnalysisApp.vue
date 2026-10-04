@@ -30,6 +30,7 @@ const quarantined = computed(() => snapshot.value?.status === "quarantined")
 const running = computed(
   () => snapshot.value?.status === "running" || snapshot.value?.status === "debouncing"
 )
+const activeChain = ref("0")
 const inputLevel = ref(-18)
 watch(
   () => snapshot.value?.settings.level_dbfs,
@@ -75,9 +76,32 @@ const channelModes = computed(() => [
         "
       />
       <div v-if="snapshot" class="workspace">
-        <PluginAnalysisChain :snapshot="snapshot" :catalog-busy="catalogBusy" @command="command" />
+        <aside class="chains">
+          <UiSegmentedControl
+            v-if="snapshot.comparisonEnabled"
+            v-model="activeChain"
+            :options="[
+              { value: '0', label: t('pluginAnalysis.chain1') },
+              { value: '1', label: t('pluginAnalysis.chain2') }
+            ]"
+            :label="t('pluginAnalysis.chain')"
+            required
+          />
+          <PluginAnalysisChain
+            :chain="snapshot.comparisonEnabled && activeChain === '1' ? 1 : 0"
+            :snapshot="snapshot"
+            :catalog-busy="catalogBusy"
+            @command="command"
+          />
+        </aside>
         <section class="analysis">
           <div class="analysis-heading">
+            <UiCheckbox
+              :model-value="snapshot.comparisonEnabled"
+              :label="t('pluginAnalysis.compareChains')"
+              :disabled="quarantined"
+              @update:model-value="command({ type: 'comparison', enabled: $event })"
+            />
             <span class="conditions">{{ conditions }}</span
             ><UiSegmentedControl
               :model-value="snapshot.settings.mid_side ? 'mid-side' : 'left-right'"
@@ -124,6 +148,11 @@ const channelModes = computed(() => [
               :label="t('pluginAnalysis.automatic')"
               @update:model-value="command({ type: 'automatic', enabled: $event })"
             />
+            <UiCheckbox
+              :model-value="snapshot.repeating"
+              :label="t('pluginAnalysis.repeat')"
+              @update:model-value="command({ type: 'repeat', enabled: $event })"
+            />
             <div class="measurement-actions">
               <UiButton
                 v-if="running"
@@ -153,6 +182,12 @@ const channelModes = computed(() => [
 }
 .analysis-titlebar {
   flex-shrink: 0;
+}
+.chains {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 0;
 }
 .workspace {
   display: flex;

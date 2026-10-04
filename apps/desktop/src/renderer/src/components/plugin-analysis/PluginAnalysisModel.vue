@@ -4,7 +4,7 @@ import { useI18n } from "vue-i18n"
 import { UiSegmentedControl, type UiAnalysisSeries } from "@heron/ui"
 import type { PluginAnalysisReport } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
-const props = defineProps<{ report: PluginAnalysisReport }>()
+const props = defineProps<{ report: PluginAnalysisReport; comparison?: PluginAnalysisReport }>()
 const { t } = useI18n()
 const channel = ref("0")
 const view = ref("static")
@@ -42,8 +42,8 @@ const orderColors = [
   "var(--ui-signal-record)",
   "var(--ui-signal-meter-safe)"
 ]
-const series = computed<UiAnalysisSeries[]>(() => {
-  const m = model.value
+const makeSeries = (report: PluginAnalysisReport): UiAnalysisSeries[] => {
+  const m = report.models[Number(channel.value)]!
   if (view.value === "static") {
     const x = Array.from({ length: 257 }, (_, i) => (i / 128 - 1) * m.input_scale)
     return [
@@ -51,9 +51,10 @@ const series = computed<UiAnalysisSeries[]>(() => {
         label: "f(x)",
         x,
         y: x.map((value) =>
-          m.coefficients.reduce(
-            (sum, coefficient, i) => sum + coefficient * (value / m.input_scale) ** (i + 1),
-            0
+          m.filters.reduce(
+            (sum, filter, i) =>
+              sum + filter.reduce((a, b) => a + b, 0) * (value / m.input_scale) ** (i + 1),
+            m.dc_offset
           )
         )
       }
@@ -63,13 +64,13 @@ const series = computed<UiAnalysisSeries[]>(() => {
     return [
       {
         label: "H",
-        x: m.filter.map((_, i) => (i / props.report.settings.sample_rate) * 1000),
-        y: m.filter
+        x: m.filters[0]!.map((_, i) => (i / report.settings.sample_rate) * 1000),
+        y: m.filters[0]!
       }
     ]
   if (view.value === "validation") {
     const x = m.predicted.map(
-      (_, i) => ((i * m.validation_stride) / props.report.settings.sample_rate) * 1000
+      (_, i) => ((i * m.validation_stride) / report.settings.sample_rate) * 1000
     )
     return [
       { label: t("pluginAnalysis.observed"), x, y: m.observed },
@@ -85,28 +86,38 @@ const series = computed<UiAnalysisSeries[]>(() => {
   const x = Array.from(
     { length: 192 },
     (_, i) =>
-      props.report.settings.start_hz *
-      (props.report.settings.end_hz / props.report.settings.start_hz) ** (i / 191)
+      report.settings.start_hz * (report.settings.end_hz / report.settings.start_hz) ** (i / 191)
   )
-  const base = x.map((hz) => {
-    let re = 0,
-      im = 0
-    m.filter.forEach((value, i) => {
-      const phase = (2 * Math.PI * hz * i) / props.report.settings.sample_rate
-      re += value * Math.cos(phase)
-      im -= value * Math.sin(phase)
+  const response = (filter: number[]) =>
+    x.map((hz) => {
+      let re = 0,
+        im = 0
+      filter.forEach((value, i) => {
+        const phase = (2 * Math.PI * hz * i) / report.settings.sample_rate
+        re += value * Math.cos(phase)
+        im -= value * Math.sin(phase)
+      })
+      return 20 * Math.log10(Math.max(1e-12, Math.hypot(re, im)))
     })
-    return Math.hypot(re, im)
-  })
   if (view.value === "orders")
-    return m.coefficients.map((coefficient, index) => ({
+    return m.filters.map((filter, index) => ({
       label: t("pluginAnalysis.orderLabel", { order: index + 1 }),
       x,
-      y: base.map((value) => 20 * Math.log10(Math.max(1e-12, Math.abs(coefficient) * value))),
+      y: response(filter),
       color: orderColors[index % orderColors.length]
     }))
-  return [{ label: "H", x, y: base.map((value) => 20 * Math.log10(Math.max(1e-12, value))) }]
-})
+  return [{ label: "H1", x, y: response(m.filters[0]!) }]
+}
+const series = computed(() => [
+  ...makeSeries(props.report),
+  ...(props.comparison
+    ? makeSeries(props.comparison).map((s) => ({
+        ...s,
+        label: `${t("pluginAnalysis.chain2")} · ${s.label}`,
+        dashed: true
+      }))
+    : [])
+])
 </script>
 <template>
   <section class="model-panel">

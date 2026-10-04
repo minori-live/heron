@@ -25,6 +25,8 @@ evidence belong in their owning documents rather than being copied into each ADR
 | [0015 — Live layer plug-in state](0015-live-layer-plugin-state.md)                                     | Accepted                           | Binary layer state, independent parameter precedence and explicit complete-state Capture destinations |
 | [0016 — Plugin Analysis measurement sessions](0016-plugin-analysis.md)                                 | Accepted                           | Independent experiment chain, floating point excitation, measurement worker and revisioned reports    |
 
+| [0017 — Plugin Analysis comparison](0017-plugin-analysis-comparison.md) | Accepted | Atomic two-chain reports, sample-domain difference, independent order FIRs and bounded measurement controls |
+
 Accepted means the architecture is chosen, not that every feature or release
 acceptance test is complete. Each record states its implementation scope; the
 [roadmap](../roadmap.md) owns delivery and evidence status. A proposal cannot be
@@ -33,7 +35,7 @@ used as permission to implement or claim an accepted compatibility commitment.
 ## 2026-09-06 baseline reset
 
 The numbers in this section's mapping table belong to a **superseded series**.
-Current records are 0001–0016; 0009 in the table below refers to the retired
+Current records are 0001–0017; 0009 in the table below refers to the retired
 record, not to any record in this series.
 
 At the maintainer's request, the previous 16 records were consolidated into this

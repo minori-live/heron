@@ -27,8 +27,11 @@ export const usePluginAnalysisStore = defineStore("plugin-analysis", () => {
       previous?.ref.id === value.ref.id &&
       previous.report &&
       previous.reportId === value.reportId
-    )
+    ) {
       value.report = previous.report
+      value.comparisonReport = previous.comparisonReport
+      value.differenceReport = previous.differenceReport
+    }
     snapshot.value = value
   }
 

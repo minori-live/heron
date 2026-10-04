@@ -22,6 +22,8 @@ fn settings() -> PluginAnalysisSettings {
         tone_hz: 1000.0,
         model_order: 5,
         mid_side: false,
+        ramp_step_db: 5.0,
+        ..PluginAnalysisSettings::default()
     }
 }
 
@@ -138,7 +140,7 @@ fn hammerstein_recovers_a_polynomial_followed_by_filtering() {
         "error={}",
         report.validation_error_percent
     );
-    assert!((report.coefficients[0] - 1.0).abs() < 0.001);
+    assert!((report.filters[0].iter().sum::<f64>() - 2.0).abs() < 0.05);
 }
 
 #[test]
@@ -164,7 +166,7 @@ fn hammerstein_honours_the_requested_order() {
             &AtomicBool::new(false),
         )
         .unwrap();
-        assert_eq!(report.coefficients.len(), order as usize);
+        assert_eq!(report.filters.len(), order as usize);
         assert!(report.suitable, "order={order}");
     }
 }
@@ -196,6 +198,7 @@ fn stable_sines_measure_the_second_harmonic_without_clamping_input() {
     settings.start_hz = 100.0;
     settings.end_hz = 1000.0;
     let mut chain = Chain {
+        comparison_processors: None,
         processors: vec![AudioPluginProcessorHandle::new(Square)],
         settings,
         cancel: Arc::new(AtomicBool::new(false)),
@@ -220,6 +223,7 @@ fn single_tone_distortion_matches_a_quadratic_nonlinearity() {
     let mut settings = settings();
     settings.tone_hz = 1000.0;
     let mut chain = Chain {
+        comparison_processors: None,
         processors: vec![AudioPluginProcessorHandle::new(Square)],
         settings,
         cancel: Arc::new(AtomicBool::new(false)),
@@ -237,6 +241,7 @@ fn single_tone_distortion_matches_a_quadratic_nonlinearity() {
 #[test]
 fn cancellation_is_observed_before_entering_a_processor() {
     let mut chain = Chain {
+        comparison_processors: None,
         processors: vec![AudioPluginProcessorHandle::new(Square)],
         settings: settings(),
         cancel: Arc::new(AtomicBool::new(true)),
@@ -279,13 +284,14 @@ fn runtime_teardown_cancels_and_joins_the_measurement_owner() {
             vec![AudioPluginProcessorHandle::new(Retiring(Arc::clone(
                 &retired
             )))],
+            None,
             settings(),
             0
         ),
         PluginAnalysisJobStatus::Running { .. }
     ));
     assert_eq!(
-        jobs.start("other".into(), vec![], settings(), 0),
+        jobs.start("other".into(), vec![], None, settings(), 0),
         PluginAnalysisJobStatus::Failed {
             failure: PluginAnalysisFailure::Busy
         }
@@ -316,6 +322,7 @@ impl AudioPluginProcessor for InvertRight {
 #[test]
 fn mid_side_routing_folds_stereo_outputs() {
     let mut chain = Chain {
+        comparison_processors: None,
         processors: vec![AudioPluginProcessorHandle::new(InvertRight)],
         settings: settings(),
         cancel: Arc::new(AtomicBool::new(false)),
@@ -352,6 +359,7 @@ fn mid_side_routing_folds_stereo_outputs() {
 #[test]
 fn oscilloscope_captures_the_standard_waveforms() {
     let mut chain = Chain {
+        comparison_processors: None,
         processors: Vec::new(),
         settings: settings(),
         cancel: Arc::new(AtomicBool::new(false)),
@@ -380,6 +388,7 @@ fn oscilloscope_captures_the_standard_waveforms() {
 #[test]
 fn dynamics_tracks_a_transparent_chain() {
     let mut chain = Chain {
+        comparison_processors: None,
         processors: Vec::new(),
         settings: settings(),
         cancel: Arc::new(AtomicBool::new(false)),
@@ -420,6 +429,7 @@ impl AudioPluginProcessor for InvalidOutput {
 #[test]
 fn invalid_samples_produce_a_typed_failure_instead_of_a_report() {
     let mut chain = Chain {
+        comparison_processors: None,
         processors: vec![AudioPluginProcessorHandle::new(InvalidOutput)],
         settings: settings(),
         cancel: Arc::new(AtomicBool::new(false)),
@@ -430,4 +440,224 @@ fn invalid_samples_produce_a_typed_failure_instead_of_a_report() {
         chain.capture(&[2.0], 0, 0, true),
         Err(PluginAnalysisFailure::InvalidOutput)
     );
+}
+
+fn test_chain(processors: Vec<AudioPluginProcessorHandle>) -> Chain {
+    Chain {
+        processors,
+        comparison_processors: None,
+        settings: settings(),
+        cancel: Arc::new(AtomicBool::new(false)),
+        clock: 0,
+        times: Vec::new(),
+    }
+}
+
+#[derive(Clone)]
+struct Gain(f32);
+impl AudioPluginProcessor for Gain {
+    fn clone_box(&self) -> Box<dyn AudioPluginProcessor> {
+        Box::new(self.clone())
+    }
+    fn process_block(
+        &mut self,
+        frames: &mut [[f32; 2]],
+        _: &dyn SidechainSource,
+        _: &ProcessContext,
+    ) -> bool {
+        for frame in frames {
+            for value in frame {
+                *value *= self.0;
+            }
+        }
+        true
+    }
+}
+
+#[test]
+fn comparison_subtracts_audio_not_magnitude_curves() {
+    let input = [1.0, -2.0, 0.5];
+    let mut chain = test_chain(vec![AudioPluginProcessorHandle::new(Gain(0.5))]);
+    chain.comparison_processors = Some(vec![AudioPluginProcessorHandle::new(Gain(-0.5))]);
+    let measured = chain.capture(&input, 0, 0, false).unwrap();
+    for (frame, sample) in measured.iter().zip(input) {
+        assert!((frame[0] - sample).abs() < 1e-6);
+    }
+    // Equal absolute gains have different phase and must not cancel.
+    chain.comparison_processors = Some(vec![AudioPluginProcessorHandle::new(Gain(0.5))]);
+    assert!(
+        chain
+            .capture(&input, 0, 0, false)
+            .unwrap()
+            .iter()
+            .all(|f| f[0].abs() < 1e-9)
+    );
+}
+
+#[test]
+fn delta_and_random_calibrate_delayed_gain_at_each_quality() {
+    for excitation in ["delta", "random"] {
+        for quality in [16384, 32768, 65536] {
+            let mut settings = settings();
+            settings.linear_excitation = excitation.into();
+            settings.fft_size = quality;
+            let input = signal::broadband_excitation(&settings);
+            let mut output = vec![0.0; 173];
+            output.extend(input.iter().map(|v| v * 0.25));
+            output.resize(input.len() + 12000, 0.0);
+            let report = signal::broadband_response(&input, &output, &settings, 0, 1);
+            assert_eq!(report.delay_samples, Some(173));
+            assert!(
+                report
+                    .magnitude_db
+                    .iter()
+                    .all(|v| (v + 12.0412).abs() < 0.01),
+                "{excitation}/{quality}"
+            );
+            for (frequency, phase) in report.frequency_hz.iter().zip(&report.phase_degrees) {
+                assert!((phase.unwrap() + 360.0 * frequency * 173.0 / 48000.0).abs() < 0.01);
+            }
+        }
+    }
+}
+
+#[test]
+fn single_tone_spectrum_retains_fundamental_and_second_harmonic() {
+    let mut chain = test_chain(vec![AudioPluginProcessorHandle::new(Square)]);
+    let report = chain.distortion(super::StereoRoute::Channel(0)).unwrap();
+    let spectrum = &report.tone_spectrum;
+    assert_eq!(
+        spectrum.frequency_hz.len(),
+        chain.settings.fft_size as usize / 2 + 1
+    );
+    let second = spectrum
+        .frequency_hz
+        .iter()
+        .enumerate()
+        .min_by(|(_, a), (_, b)| {
+            (*a - report.tone_hz * 2.0)
+                .abs()
+                .total_cmp(&(*b - report.tone_hz * 2.0).abs())
+        })
+        .unwrap()
+        .0;
+    // x + 0.5*x² produces an H2 peak of A²/4.
+    let expected = 20.0 * (10_f64.powf(chain.settings.level_dbfs / 10.0) / 2.0).log10();
+    assert!((spectrum.magnitude_dbfs[second] - expected).abs() < 0.1);
+    assert_eq!(
+        report.imd_spectrum.frequency_hz.len(),
+        spectrum.frequency_hz.len()
+    );
+}
+
+#[test]
+fn fundamental_sweep_records_gain_separately_from_thd() {
+    let mut chain = test_chain(vec![AudioPluginProcessorHandle::new(Gain(0.5))]);
+    let report = chain.harmonics(super::StereoRoute::Channel(0)).unwrap();
+    assert!(
+        report
+            .fundamental_gain_db
+            .iter()
+            .all(|v| (v.unwrap() + 6.0206).abs() < 0.01)
+    );
+    assert!(report.thd_percent.iter().flatten().all(|v| *v < 0.001));
+}
+
+#[test]
+fn hammerstein_identifies_distinct_filters_for_different_orders() {
+    let input = signal::white_noise(32768, 0x18472, 1.0);
+    let validation = signal::white_noise(16384, 0x82714, 1.0);
+    let render = |values: &[f64]| {
+        let linear = signal::convolve(values, &[0.75, 0.2]);
+        let quadratic = signal::convolve(
+            &values.iter().map(|x| x * x).collect::<Vec<_>>(),
+            &[0.3, -0.2],
+        );
+        linear
+            .iter()
+            .zip(quadratic)
+            .map(|(a, b)| a + b)
+            .collect::<Vec<_>>()
+    };
+    let report = model::fit(
+        model::FitData {
+            channel: 0,
+            input: &input,
+            output: &render(&input),
+            validation_input: &validation,
+            validation_output: &render(&validation),
+            scale: 1.0,
+            delay: 0,
+            order: 3,
+        },
+        &AtomicBool::new(false),
+    )
+    .unwrap();
+    assert!(
+        report.validation_error_percent < 1.0,
+        "error={}",
+        report.validation_error_percent
+    );
+    assert!((report.filters[0][0] - 0.75).abs() < 0.01);
+    assert!((report.filters[0][1] - 0.2).abs() < 0.01);
+    assert!((report.filters[1][0] - 0.3).abs() < 0.01);
+    assert!((report.filters[1][1] + 0.2).abs() < 0.01);
+}
+
+#[test]
+fn dynamics_uses_configured_range_and_unequal_level_segments() {
+    let mut chain = test_chain(Vec::new());
+    chain.settings.ramp_start_dbfs = -30.0;
+    chain.settings.ramp_end_dbfs = -10.0;
+    chain.settings.ramp_step_db = 5.0;
+    chain.settings.dynamics_levels_dbfs = [-30.0, -6.0, -20.0];
+    chain.settings.dynamics_seconds = [0.03, 0.05, 0.08];
+    let report = chain.dynamics(super::StereoRoute::Channel(0)).unwrap();
+    assert_eq!(
+        report.ramp.iter().map(|p| p.input_dbfs).collect::<Vec<_>>(),
+        [-30.0, -25.0, -20.0, -15.0, -10.0]
+    );
+    assert_eq!(report.segment_seconds, [0.03, 0.05, 0.08]);
+    for (time, peak) in [
+        (0.02, 10_f64.powf(-30.0 / 20.0)),
+        (0.06, 10_f64.powf(-6.0 / 20.0)),
+        (0.12, 0.1),
+    ] {
+        let index = report.time_seconds.iter().position(|v| *v >= time).unwrap();
+        // Envelope bins need not coincide with the sine's peak sample.
+        assert!((report.output_envelope[index] - peak).abs() < peak * 0.5);
+    }
+}
+
+#[test]
+fn performance_scan_keeps_selected_conditions_and_separate_timings() {
+    let mut chain = test_chain(Vec::new());
+    chain.times = vec![123.0];
+    let points = chain.performance_scan().unwrap();
+    assert_eq!(
+        points.iter().map(|p| p.block_size).collect::<Vec<_>>(),
+        [64, 128, 256, 512, 1024]
+    );
+    assert!(points.iter().all(|p| p.measured_blocks == 64
+        && p.maximum_block_us >= p.p99_block_us
+        && p.p99_block_us >= p.p95_block_us));
+    assert_eq!(chain.settings.block_size, 256);
+    assert_eq!(chain.times, [123.0]);
+}
+
+#[test]
+fn realtime_pacing_remains_cancellable_between_blocks() {
+    let mut chain = test_chain(Vec::new());
+    chain.settings.processing_speed = "realtime".into();
+    let cancel = Arc::clone(&chain.cancel);
+    let signal = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        cancel.store(true, Ordering::Release)
+    });
+    assert_eq!(
+        chain.capture(&vec![0.5; 48000], 0, 0, false),
+        Err(PluginAnalysisFailure::Cancelled)
+    );
+    signal.join().unwrap();
+    assert!(chain.clock < 48000);
 }

@@ -31,6 +31,7 @@ function report(): PluginAnalysisReport {
       budget_us: 1000,
       deadline_misses: 0,
       measured_blocks: 10,
+      block_sizes: [],
       buffer_bytes: 100
     }
   }
@@ -49,6 +50,10 @@ function snapshot(
     catalog: [],
     settings: { ...DEFAULT_PLUGIN_ANALYSIS_SETTINGS },
     automatic: true,
+    comparisonEnabled: false,
+    repeating: false,
+    comparisonReport: null,
+    differenceReport: null,
     status: "complete",
     phase: "",
     progress: 1,

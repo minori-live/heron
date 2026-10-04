@@ -4,11 +4,10 @@ import { useI18n } from "vue-i18n"
 import { UiSegmentedControl, type UiAnalysisSeries } from "@heron/ui"
 import type { PluginAnalysisReport } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
-const props = defineProps<{ report: PluginAnalysisReport }>()
+const props = defineProps<{ report: PluginAnalysisReport; comparison?: PluginAnalysisReport }>()
 const { t } = useI18n()
 const channel = ref("0")
 const view = ref("ramp")
-const dynamics = computed(() => props.report.dynamics[Number(channel.value)] ?? null)
 const channels = computed(() => [
   { value: "0", label: props.report.settings.mid_side ? "M" : "L" },
   { value: "1", label: props.report.settings.mid_side ? "S" : "R" }
@@ -18,8 +17,8 @@ const views = computed(() => [
   { value: "attack", label: t("pluginAnalysis.attackRelease") }
 ])
 const decibels = (value: number): number => 20 * Math.log10(Math.max(1e-12, value))
-const series = computed<UiAnalysisSeries[]>(() => {
-  const data = dynamics.value
+const makeSeries = (report: PluginAnalysisReport): UiAnalysisSeries[] => {
+  const data = report.dynamics[Number(channel.value)]
   if (!data) return []
   if (view.value === "ramp")
     return [
@@ -47,7 +46,20 @@ const series = computed<UiAnalysisSeries[]>(() => {
     },
     { label: t("pluginAnalysis.outputLevel"), x, y: data.output_envelope.map(decibels) }
   ]
-})
+}
+const series = computed(() => [
+  ...makeSeries(props.report),
+  ...(props.comparison
+    ? makeSeries(props.comparison)
+        .filter((s) => s.label !== "1:1")
+        .map((s) => ({
+          ...s,
+          label: `${t("pluginAnalysis.chain2")} · ${s.label}`,
+          color: "var(--ui-color-action)",
+          dashed: true
+        }))
+    : [])
+])
 </script>
 <template>
   <section class="dynamics-panel">

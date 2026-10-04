@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
 import { UiField, UiNumberInput, UiSelect } from "@heron/ui"
+import PluginAnalysisDynamicsSettings from "./PluginAnalysisDynamicsSettings.vue"
 import type { PluginAnalysisSettings } from "@heron/contracts"
 const props = defineProps<{ settings: PluginAnalysisSettings }>()
 const emit = defineEmits<{ configure: [patch: Partial<PluginAnalysisSettings>] }>()
@@ -20,6 +21,39 @@ function number(key: keyof PluginAnalysisSettings, value: number | null): void {
 <template>
   <section class="plugin-analysis-settings">
     <h2>{{ t("pluginAnalysis.measurementSettings") }}</h2>
+    <UiField v-slot="{ controlId }" :label="t('pluginAnalysis.excitation')"
+      ><UiSelect
+        :id="controlId"
+        :model-value="settings.linear_excitation"
+        :options="
+          ['sweep', 'delta', 'random'].map((value) => ({
+            value,
+            label: t(`pluginAnalysis.excitation_${value}`)
+          }))
+        "
+        @update:model-value="emit('configure', { linear_excitation: $event })"
+    /></UiField>
+    <UiField v-slot="{ controlId }" :label="t('pluginAnalysis.quality')"
+      ><UiSelect
+        :id="controlId"
+        :model-value="String(settings.fft_size)"
+        :options="
+          [16384, 32768, 65536].map((value) => ({ value: String(value), label: String(value) }))
+        "
+        @update:model-value="emit('configure', { fft_size: Number($event) })"
+    /></UiField>
+    <UiField v-slot="{ controlId }" :label="t('pluginAnalysis.speed')"
+      ><UiSelect
+        :id="controlId"
+        :model-value="settings.processing_speed"
+        :options="
+          ['realtime', 'x2', 'x4', 'ultra'].map((value) => ({
+            value,
+            label: t(`pluginAnalysis.speed_${value}`)
+          }))
+        "
+        @update:model-value="emit('configure', { processing_speed: $event })"
+    /></UiField>
     <UiField v-slot="{ controlId }" :label="t('pluginAnalysis.sampleRate')"
       ><UiSelect
         :id="controlId"
@@ -98,6 +132,7 @@ function number(key: keyof PluginAnalysisSettings, value: number | null): void {
         :step="1"
         @update:model-value="number('model_order', $event)"
     /></UiField>
+    <PluginAnalysisDynamicsSettings :settings="settings" @configure="emit('configure', $event)" />
   </section>
 </template>
 <style scoped>
@@ -105,7 +140,9 @@ function number(key: keyof PluginAnalysisSettings, value: number | null): void {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  width: 340px;
+  width: 420px;
+  max-height: min(80dvh, 780px);
+  overflow-y: auto;
   max-width: 100%;
 }
 h2 {

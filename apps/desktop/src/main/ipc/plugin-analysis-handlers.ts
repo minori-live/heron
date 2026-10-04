@@ -17,6 +17,7 @@ function isCommand(value: unknown): value is PluginAnalysisCommand {
     case "insert":
       return (
         typeof v.pluginKey === "string" &&
+        (v.chain === undefined || v.chain === 0 || v.chain === 1) &&
         ["mono", "mono-to-stereo", "stereo", "dual-mono"].includes(v.audioMode) &&
         Number.isSafeInteger(v.slotOrder) &&
         v.slotOrder >= 0 &&
@@ -36,6 +37,8 @@ function isCommand(value: unknown): value is PluginAnalysisCommand {
       return typeof v.instanceId === "string" && typeof v.enabled === "boolean"
     case "configure":
       return validPluginAnalysisSettings(v.settings)
+    case "comparison":
+    case "repeat":
     case "automatic":
       return typeof v.enabled === "boolean"
     case "analyze":

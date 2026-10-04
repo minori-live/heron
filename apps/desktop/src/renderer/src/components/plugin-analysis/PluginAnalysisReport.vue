@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
-import { UiTabs } from "@heron/ui"
+import { UiTabs, UiSegmentedControl } from "@heron/ui"
 import type { PluginAnalysisSnapshot } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
 import PluginAnalysisLinear from "./PluginAnalysisLinear.vue"
@@ -14,7 +14,27 @@ import PluginAnalysisPerformance from "./PluginAnalysisPerformance.vue"
 const props = defineProps<{ snapshot: PluginAnalysisSnapshot }>()
 const { t } = useI18n()
 const tab = ref("linear")
-const report = computed(() => props.snapshot.report)
+const comparisonMode = ref("parallel")
+const report = computed(() =>
+  !props.snapshot.comparisonEnabled
+    ? props.snapshot.report
+    : comparisonMode.value === "difference"
+      ? props.snapshot.differenceReport
+      : comparisonMode.value === "comparison"
+        ? props.snapshot.comparisonReport
+        : props.snapshot.report
+)
+const overlay = computed(() =>
+  props.snapshot.comparisonEnabled && comparisonMode.value === "parallel"
+    ? (props.snapshot.comparisonReport ?? undefined)
+    : undefined
+)
+const comparisonModes = computed(() =>
+  ["parallel", "difference", "primary", "comparison"].map((value) => ({
+    value,
+    label: t(`pluginAnalysis.compare_${value}`)
+  }))
+)
 const tabs = computed(() =>
   ["linear", "harmonics", "distortion", "oscilloscope", "dynamics", "model", "performance"].map(
     (id) => ({
@@ -26,9 +46,16 @@ const tabs = computed(() =>
 </script>
 <template>
   <section class="report">
+    <UiSegmentedControl
+      v-if="snapshot.comparisonEnabled"
+      v-model="comparisonMode"
+      :options="comparisonModes"
+      :label="t('pluginAnalysis.comparisonDisplay')"
+      required
+    />
     <UiTabs v-model="tab" :items="tabs" :label="t('pluginAnalysis.analysis')" appearance="analysis">
       <template #linear
-        ><PluginAnalysisLinear v-if="report" :report="report" />
+        ><PluginAnalysisLinear v-if="report" :report="report" :comparison="overlay" />
         <section v-else class="empty-panel">
           <PluginAnalysisPlot
             :title="t('pluginAnalysis.frequency')"
@@ -40,7 +67,7 @@ const tabs = computed(() =>
           /></section
       ></template>
       <template #harmonics
-        ><PluginAnalysisHarmonics v-if="report" :report="report" />
+        ><PluginAnalysisHarmonics v-if="report" :report="report" :comparison="overlay" />
         <section v-else class="empty-panel">
           <PluginAnalysisPlot
             :title="t('pluginAnalysis.spectrum2d')"
@@ -52,19 +79,19 @@ const tabs = computed(() =>
           /></section
       ></template>
       <template #distortion
-        ><PluginAnalysisDistortion v-if="report" :report="report" />
+        ><PluginAnalysisDistortion v-if="report" :report="report" :comparison="overlay" />
         <section v-else class="empty-panel"></section
       ></template>
       <template #oscilloscope
-        ><PluginAnalysisOscilloscope v-if="report" :report="report" />
+        ><PluginAnalysisOscilloscope v-if="report" :report="report" :comparison="overlay" />
         <section v-else class="empty-panel"></section
       ></template>
       <template #dynamics
-        ><PluginAnalysisDynamics v-if="report" :report="report" />
+        ><PluginAnalysisDynamics v-if="report" :report="report" :comparison="overlay" />
         <section v-else class="empty-panel"></section
       ></template>
       <template #model
-        ><PluginAnalysisModel v-if="report" :report="report" />
+        ><PluginAnalysisModel v-if="report" :report="report" :comparison="overlay" />
         <section v-else class="empty-panel">
           <PluginAnalysisPlot
             :title="t('pluginAnalysis.nonlinearity')"
@@ -76,7 +103,10 @@ const tabs = computed(() =>
           /></section
       ></template>
       <template #performance
-        ><PluginAnalysisPerformance v-if="report" :snapshot="snapshot" />
+        ><PluginAnalysisPerformance
+          v-if="report"
+          :snapshot="{ ...snapshot, report }"
+          :comparison="overlay" />
         <section v-else class="empty-performance"></section
       ></template>
     </UiTabs>

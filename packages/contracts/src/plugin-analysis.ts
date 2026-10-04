@@ -21,7 +21,16 @@ export const DEFAULT_PLUGIN_ANALYSIS_SETTINGS: PluginAnalysisSettings = {
   tail_seconds: 0.25,
   tone_hz: 1000,
   model_order: 5,
-  mid_side: false
+  mid_side: false,
+  linear_excitation: "sweep",
+  fft_size: 16384,
+  processing_speed: "ultra",
+  ramp_start_dbfs: -100,
+  ramp_end_dbfs: 0,
+  ramp_step_db: 1,
+  ramp_seconds: 0.4,
+  dynamics_levels_dbfs: [-60, 0, -60],
+  dynamics_seconds: [0.2, 0.2, 0.2]
 }
 
 export function validPluginAnalysisSettings(value: unknown): value is PluginAnalysisSettings {
@@ -50,18 +59,47 @@ export function validPluginAnalysisSettings(value: unknown): value is PluginAnal
     Number.isInteger(s.model_order) &&
     s.model_order >= 3 &&
     s.model_order <= 7 &&
-    typeof s.mid_side === "boolean"
+    typeof s.mid_side === "boolean" &&
+    ["sweep", "delta", "random"].includes(s.linear_excitation) &&
+    [16384, 32768, 65536].includes(s.fft_size) &&
+    ["realtime", "x2", "x4", "ultra"].includes(s.processing_speed) &&
+    Number.isFinite(s.ramp_start_dbfs) &&
+    s.ramp_start_dbfs >= -100 &&
+    s.ramp_start_dbfs <= 12 &&
+    Number.isFinite(s.ramp_end_dbfs) &&
+    s.ramp_end_dbfs > s.ramp_start_dbfs &&
+    s.ramp_end_dbfs <= 12 &&
+    Number.isFinite(s.ramp_step_db) &&
+    s.ramp_step_db >= 0.5 &&
+    s.ramp_step_db <= 12 &&
+    Number.isFinite(s.ramp_seconds) &&
+    s.ramp_seconds >= 0.4 &&
+    s.ramp_seconds <= 1.5 &&
+    Array.isArray(s.dynamics_levels_dbfs) &&
+    s.dynamics_levels_dbfs.length === 3 &&
+    s.dynamics_levels_dbfs.every((v) => Number.isFinite(v) && v >= -100 && v <= 12) &&
+    Array.isArray(s.dynamics_seconds) &&
+    s.dynamics_seconds.length === 3 &&
+    s.dynamics_seconds.every((v) => Number.isFinite(v) && v >= 0.01 && v <= 5)
   )
 }
 
 export type PluginAnalysisCommand =
-  | { type: "insert"; pluginKey: string; audioMode: PluginAudioMode; slotOrder: number }
+  | {
+      type: "insert"
+      pluginKey: string
+      audioMode: PluginAudioMode
+      slotOrder: number
+      chain?: 0 | 1
+    }
   | { type: "remove"; instanceId: string }
   | { type: "move"; instanceId: string; slotOrder: number }
   | { type: "toggle"; instanceId: string; enabled: boolean }
   | { type: "editor"; instanceId: string }
   | { type: "configure"; settings: PluginAnalysisSettings }
   | { type: "automatic"; enabled: boolean }
+  | { type: "comparison"; enabled: boolean }
+  | { type: "repeat"; enabled: boolean }
   | { type: "analyze" }
   | { type: "refresh-catalog" }
   | { type: "cancel" }
@@ -75,10 +113,14 @@ export interface PluginAnalysisSnapshot {
   catalog: PluginDescriptor[]
   settings: PluginAnalysisSettings
   automatic: boolean
+  comparisonEnabled: boolean
+  repeating: boolean
   status: "idle" | "debouncing" | "running" | "complete" | "cancelled" | "failed" | "quarantined"
   phase: string
   progress: number
   report: PluginAnalysisReport | null
+  comparisonReport: PluginAnalysisReport | null
+  differenceReport: PluginAnalysisReport | null
   reportId: string | null
   reportRevision: number | null
   memory: {

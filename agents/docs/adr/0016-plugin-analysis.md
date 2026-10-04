@@ -136,3 +136,28 @@ Revisit the model if longer memory or coupled-channel identification becomes a
 product requirement. Exact plug-in memory accounting requires a new measurement
 contract. Export/persistence and additional sample rates need separate delivery
 work. The accepted embedded failure boundary remains unchanged.
+
+## 2026-10 parity addendum
+
+The measurement contract gained additive report sections and one routing option;
+existing sweep, harmonic, spectrogram, model and performance data is unchanged:
+
+- `PluginAnalysisSettings` adds `tone_hz` (20 Hz to 0.45·sample rate),
+  `model_order` (3–7) and `mid_side`.
+- `PluginAnalysisReport` adds `distortion` (single-tone THD/THD+N and fixed
+  60 Hz / 7 kHz two-tone IMD), `oscilloscopes` (sine, square, saw and triangle
+  captures) and `dynamics` (level ramp and attack/release envelope).
+- Mid/Side folds the existing worker through a routing abstraction: the
+  excitation drives L±R and the output folds to M=(L+R)/2 or S=(L−R)/2. No new
+  job, thread or audio device is introduced, and the L/R path is byte-for-byte
+  the previous behaviour.
+- The Hammerstein fit accepts a configurable polynomial order up to seven. Each
+  order's response is `coefficient_k · H(f)`, derived from existing report state
+  without extra storage.
+- Plot zoom, pan and reset are renderer-only gestures over the retained report.
+
+[ADR-0017](0017-plugin-analysis-comparison.md) supersedes the single-chain,
+strict Hammerstein model and fixed measurement controls with two-chain comparison,
+independent order FIRs, selectable excitation, FFT quality, processing speed and
+configurable dynamics. Export/persistence and disk/command-line loading remain
+deferred.
