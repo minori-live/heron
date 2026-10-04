@@ -141,8 +141,6 @@ function number(key: keyof PluginAnalysisSettings, value: number | null): void {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   width: 420px;
-  max-height: min(80dvh, 780px);
-  overflow-y: auto;
   max-width: 100%;
 }
 h2 {

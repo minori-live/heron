@@ -2272,7 +2272,7 @@
     "compareChains": "比较实验链",
     "repeat": "循环测量",
     "comparisonDisplay": "比较显示",
-    "compare_parallel": "1 | 2",
+    "compare_parallel": "1 {'|'} 2",
     "compare_difference": "1 − 2",
     "compare_primary": "实验链 1",
     "compare_comparison": "实验链 2",

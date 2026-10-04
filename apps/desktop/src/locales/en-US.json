@@ -2272,7 +2272,7 @@
     "compareChains": "Compare chains",
     "repeat": "Repeat analysis",
     "comparisonDisplay": "Comparison display",
-    "compare_parallel": "1 | 2",
+    "compare_parallel": "1 {'|'} 2",
     "compare_difference": "1 − 2",
     "compare_primary": "Chain 1",
     "compare_comparison": "Chain 2",
