@@ -39,7 +39,7 @@ impl ClapProcessorHandle {
         let flush = extension
             .flush
             .ok_or("CLAP parameter flush is unavailable")?;
-        self.drain_parameters();
+        self.drain_parameters(false);
         let input = clap_input_events {
             ctx: (&mut self.events as *mut InputEventBuffer).cast(),
             size: Some(input_event_count),

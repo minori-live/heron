@@ -368,7 +368,7 @@ impl ClapProcessorHandle {
             .map(|(id, value, gesture, _)| (id, value, gesture))
     }
 
-    fn drain_parameters(&mut self) {
+    fn drain_parameters(&mut self, include_gestures: bool) {
         while self.events.events.len() < EVENT_CAPACITY {
             let Some((id, value, gesture, offset)) = self.parameters.pop() else {
                 break;
@@ -392,7 +392,9 @@ impl ClapProcessorHandle {
                             value,
                         }));
                 }
-                ClapParameterGesture::Begin | ClapParameterGesture::End => {
+                // `clap_plugin_params.flush` only accepts value events; dropping the
+                // gestures for the flush keeps the plugin's maximal checking happy.
+                ClapParameterGesture::Begin | ClapParameterGesture::End if include_gestures => {
                     self.events
                         .events
                         .push(InputEvent::Gesture(clap_event_param_gesture {
@@ -408,6 +410,7 @@ impl ClapProcessorHandle {
                             param_id: id,
                         }));
                 }
+                ClapParameterGesture::Begin | ClapParameterGesture::End => {}
             }
         }
     }
@@ -455,7 +458,7 @@ impl AudioPluginProcessor for ClapProcessorHandle {
         if frames.len() > self.maximum_frames || !self.start() {
             return false;
         }
-        self.drain_parameters();
+        self.drain_parameters(true);
         let process_requested = self.requests.take_process_request();
         if self.sleeping
             && !process_requested
