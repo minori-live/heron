@@ -86,13 +86,11 @@ export function registerPluginAnalysisHandlers(context: IpcHandlerContext): () =
         const invalid = validateReadTarget(meta, service.ref)
         if (invalid) return invalid
       } else if (meta.mutation) return validationFailure(meta, "mutation")
-      if (acknowledge !== undefined) {
-        if (typeof acknowledge !== "string" || !meta.target)
-          return validationFailure(meta, "acknowledge")
-        service.acknowledge(acknowledge)
-      }
+      if (acknowledge !== undefined && (typeof acknowledge !== "string" || !meta.target))
+        return validationFailure(meta, "acknowledge")
       if (knownReportId !== undefined && typeof knownReportId !== "string")
         return validationFailure(meta, "knownReportId")
+      if (acknowledge !== undefined) service.acknowledge(acknowledge)
       return service.snapshot(knownReportId)
     },
     { authenticate }

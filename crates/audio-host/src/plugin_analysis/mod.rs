@@ -1,4 +1,6 @@
 mod dynamics;
+#[cfg(test)]
+mod job_tests;
 mod model;
 mod tone;
 mod worker;

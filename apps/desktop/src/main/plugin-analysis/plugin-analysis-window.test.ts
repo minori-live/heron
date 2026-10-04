@@ -4,6 +4,7 @@ import type { IpcMainInvokeEvent } from "electron"
 const fake = vi.hoisted(() => {
   const close = vi.fn(async () => {})
   const snapshot = vi.fn(() => ({ status: "complete" }))
+  const load = vi.fn(async () => {})
   class Window {
     static instances: Window[] = []
     destroyed = false
@@ -15,6 +16,7 @@ const fake = vi.hoisted(() => {
     }
     loadURL = vi.fn(async (url: string) => {
       this.webContents.mainFrame.url = url
+      await load()
     })
     show = vi.fn()
     focus = vi.fn()
@@ -28,7 +30,7 @@ const fake = vi.hoisted(() => {
       Window.instances.push(this)
     }
   }
-  return { Window, close, snapshot }
+  return { Window, close, snapshot, load }
 })
 
 vi.mock("electron", () => ({
@@ -51,23 +53,27 @@ import { PluginAnalysisWindow } from "./plugin-analysis-window"
 
 function arrange() {
   let shutdown: (() => Promise<void>) | null = null
+  const settings = vi.fn(async () => ({ locale: "en-US", theme: "system" }))
+  const unsubscribe = vi.fn()
   const manager = new PluginAnalysisWindow({
     audioHost: {
       subscribePluginAnalysisShutdown: (listener: () => Promise<void>) => {
         shutdown = listener
-        return () => {}
+        return unsubscribe
       }
     },
     plugins: { list: () => ({ plugins: [] }) },
-    settings: { get: async () => ({ locale: "en-US", theme: "system" }) }
+    settings: { get: settings }
   } as never)
-  return { manager, shutdown: () => shutdown }
+  return { manager, settings, unsubscribe, shutdown: () => shutdown }
 }
 
 describe("Plugin Analysis window ownership", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     fake.Window.instances = []
+    fake.snapshot.mockReturnValue({ status: "complete" })
+    fake.load.mockReset()
   })
 
   it("reuses the experiment window and accepts only its main frame at the pluginAnalysis entrypoint", async () => {
@@ -130,5 +136,57 @@ describe("Plugin Analysis window ownership", () => {
     fake.snapshot.mockReturnValue({ status: "complete" })
     await shutdown()!()
     expect(await manager.open()).toBe(true)
+  })
+
+  it("abandons a pending open when runtime shutdown wins the settings load", async () => {
+    const { manager, settings, shutdown } = arrange()
+    let resolveSettings!: (value: { locale: string; theme: string }) => void
+    settings.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSettings = resolve
+        })
+    )
+    const opening = manager.open()
+    await shutdown()!()
+    resolveSettings({ locale: "en-US", theme: "system" })
+
+    expect(await opening).toBe(false)
+    expect(manager.service).toBeNull()
+    expect(fake.Window.instances).toHaveLength(0)
+    expect(await manager.open()).toBe(true)
+    await manager.close()
+  })
+
+  it("refuses pending and subsequent opens after disposal", async () => {
+    const { manager, settings, unsubscribe } = arrange()
+    let resolveSettings!: (value: { locale: string; theme: string }) => void
+    settings.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSettings = resolve
+        })
+    )
+    const opening = manager.open()
+    manager.dispose()
+    resolveSettings({ locale: "en-US", theme: "system" })
+
+    expect(await opening).toBe(false)
+    expect(await manager.open()).toBe(false)
+    expect(fake.Window.instances).toHaveLength(0)
+    expect(unsubscribe).toHaveBeenCalledOnce()
+  })
+
+  it("releases a candidate after renderer loading fails and allows a fresh session", async () => {
+    const { manager } = arrange()
+    fake.load.mockRejectedValueOnce(new Error("renderer load failed"))
+    expect(await manager.open()).toBe(false)
+    expect(fake.close).toHaveBeenCalledOnce()
+    expect(fake.Window.instances[0]!.destroyed).toBe(true)
+    expect(manager.service).toBeNull()
+
+    expect(await manager.open()).toBe(true)
+    expect(fake.Window.instances).toHaveLength(2)
+    await manager.close()
   })
 })

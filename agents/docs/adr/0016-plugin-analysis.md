@@ -93,6 +93,9 @@ are typed RPC results or recoverable/quarantined session failures.
 Application shutdown closes sessions before stopping native UI drains. Unknown
 worker outcomes prevent ordinary instance unload. Fatal native plug-in faults
 retain the application's existing same-process failure boundary.
+Offline bounce also closes analysis sessions before replacing the native runtime,
+while the outgoing client can still release their instances. Closing or disposing
+the window owner invalidates pending opens, including an in-flight settings load.
 
 ## Measurement contract
 

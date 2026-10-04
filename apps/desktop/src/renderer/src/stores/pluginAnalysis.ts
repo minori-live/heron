@@ -17,6 +17,7 @@ export const usePluginAnalysisStore = defineStore("plugin-analysis", () => {
   let pending = 0
   let queue: Promise<void> = Promise.resolve()
   let disposed = false
+  let pollGeneration = 0
 
   function accept(value: PluginAnalysisSnapshot): void {
     const previous = snapshot.value
@@ -38,13 +39,14 @@ export const usePluginAnalysisStore = defineStore("plugin-analysis", () => {
   async function refresh(): Promise<void> {
     if (refreshing || pending || disposed) return
     refreshing = true
+    const generation = pollGeneration
     try {
       const result = await window.heronPluginAnalysis.snapshot(
         readMeta(snapshot.value?.ref),
         undefined,
         snapshot.value?.reportId ?? undefined
       )
-      if (!disposed && !pending) {
+      if (!disposed && !pending && generation === pollGeneration) {
         if (result.ok) accept(result.value)
         else error.value = rpcErrorMessage(result.error)
       }
@@ -57,20 +59,28 @@ export const usePluginAnalysisStore = defineStore("plugin-analysis", () => {
     build: PluginAnalysisCommand | ((value: PluginAnalysisSnapshot) => PluginAnalysisCommand)
   ): void {
     pending += 1
+    // A read started before this intent cannot replace its acknowledged result,
+    // even when it arrives after the command queue has drained.
+    pollGeneration += 1
     queue = queue
       .then(async () => {
         if (!snapshot.value || disposed) return
-        const value = typeof build === "function" ? build(snapshot.value) : build
+        let value = typeof build === "function" ? build(snapshot.value) : build
         catalogBusy.value = value.type === "refresh-catalog"
         const meta = mutationMeta(snapshot.value.ref, "plugin-analysis", snapshot.value.revision)
         let result = await window.heronPluginAnalysis.command(meta, value)
+        if (disposed) return
         if (!result.ok && result.error.code === "revision-conflict") {
           const authoritative = await window.heronPluginAnalysis.snapshot(
             readMeta(snapshot.value.ref)
           )
+          if (disposed) return
           if (authoritative.ok) {
             accept(authoritative.value)
             meta.expectedRevision = authoritative.value.revision
+            // A configuration builder represents a patch; preserve unrelated
+            // settings from the authoritative revision when retrying it.
+            value = typeof build === "function" ? build(authoritative.value) : build
             result = await window.heronPluginAnalysis.command(meta, value)
           }
         }
@@ -103,6 +113,7 @@ export const usePluginAnalysisStore = defineStore("plugin-analysis", () => {
   }
   function stop(): void {
     disposed = true
+    pollGeneration += 1
     if (polling) clearInterval(polling)
   }
   return { snapshot, error, catalogBusy, command, configure, platform, start, stop }

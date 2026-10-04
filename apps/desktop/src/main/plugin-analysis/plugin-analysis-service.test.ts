@@ -44,7 +44,12 @@ const parameter: PluginParameterInfo = {
   defaultNormalized: 1
 }
 
-function arrange(options: { refreshCatalog?: () => Promise<unknown> } = {}) {
+function arrange(
+  options: {
+    refreshCatalog?: () => Promise<unknown>
+    resolveDescriptor?: (descriptor: PluginDescriptor) => Promise<PluginDescriptor>
+  } = {}
+) {
   let complete = false
   let cancelled = false
   const report: PluginAnalysisReport = {
@@ -109,7 +114,7 @@ function arrange(options: { refreshCatalog?: () => Promise<unknown> } = {}) {
     () => [descriptor],
     { locale: "en-US", theme: "dark" },
     () => 1000,
-    async (value) => value,
+    options.resolveDescriptor ?? (async (value) => value),
     options.refreshCatalog
   )
   return {
@@ -125,6 +130,13 @@ function arrange(options: { refreshCatalog?: () => Promise<unknown> } = {}) {
       for (const listener of notificationListeners) listener(event)
     }
   }
+}
+
+async function insertEffect(service: PluginAnalysisService, operationId = "insert", slotOrder = 0) {
+  return service.command(
+    { type: "insert", pluginKey: pluginDescriptorKey(descriptor), audioMode: "stereo", slotOrder },
+    operationId
+  )
 }
 
 describe("Plugin Analysis analysis session", () => {
@@ -245,8 +257,19 @@ describe("Plugin Analysis analysis session", () => {
       gesture: "end"
     })
     expect(host.unloadPluginAnalysisPlugin).not.toHaveBeenCalled()
+    let confirmRelease!: () => void
+    host.unloadPluginAnalysisPlugin.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          confirmRelease = resolve
+        })
+    )
     complete()
     await vi.advanceTimersByTimeAsync(100)
+    expect(service.snapshot().status).toBe("running")
+    expect(service.snapshot().report).toBeNull()
+    confirmRelease()
+    await vi.advanceTimersByTimeAsync(0)
     expect(service.snapshot().status).toBe("complete")
     expect(host.unloadPluginAnalysisPlugin).toHaveBeenCalledWith(frozen.id)
     expect(host.unloadPluginAnalysisPlugin).not.toHaveBeenCalledWith(original.id)
@@ -391,6 +414,133 @@ describe("Plugin Analysis analysis session", () => {
     expect(service.snapshot().failure).toBe("prepare-failed")
     await service.command({ type: "remove", instanceId }, "remove")
     expect(service.snapshot().failure).toBeNull()
+    await service.close()
+  })
+
+  it("rejects a newly incompatible catalog probe without allocating an instance, then recovers", async () => {
+    const resolveDescriptor = vi.fn(async (): Promise<PluginDescriptor> => ({
+      ...descriptor,
+      compatibility: "unsupported-buses"
+    }))
+    const { service, host } = arrange({ resolveDescriptor })
+    await service.command({ type: "automatic", enabled: false }, "manual")
+    await insertEffect(service, "incompatible")
+    expect(service.snapshot()).toMatchObject({
+      plugins: [],
+      failure: "prepare-failed",
+      status: "failed",
+      revision: 0
+    })
+    expect(host.loadPlugin).not.toHaveBeenCalled()
+
+    resolveDescriptor.mockResolvedValueOnce(descriptor)
+    await insertEffect(service, "compatible")
+    expect(service.snapshot().plugins).toHaveLength(1)
+    expect(service.snapshot().failure).toBeNull()
+    expect(service.snapshot().revision).toBe(1)
+    await service.close()
+  })
+
+  it("releases a partially loaded insert before returning a recoverable prepare failure", async () => {
+    const { service, host } = arrange()
+    await service.command({ type: "automatic", enabled: false }, "manual")
+    host.pluginParameters.mockRejectedValueOnce(new Error("parameters unavailable"))
+    await insertEffect(service)
+
+    const candidate = host.loadPlugin.mock.calls[0]![0]
+    expect(host.unloadPluginAnalysisPlugin).toHaveBeenCalledWith(candidate.id)
+    expect(service.snapshot()).toMatchObject({
+      plugins: [],
+      runtime: {},
+      revision: 0,
+      failure: "prepare-failed",
+      status: "failed"
+    })
+    await insertEffect(service, "retry")
+    expect(service.snapshot().plugins).toHaveLength(1)
+    expect(service.snapshot().failure).toBeNull()
+    await service.close()
+  })
+
+  it("retains the chain and quarantines commands when removal cannot confirm instance cleanup", async () => {
+    const { service, host } = arrange()
+    await service.command({ type: "automatic", enabled: false }, "manual")
+    await insertEffect(service)
+    const before = service.snapshot()
+    const instanceId = before.plugins[0]!.id
+    host.unloadPluginAnalysisPlugin.mockRejectedValueOnce(new Error("release outcome unknown"))
+    await service.command({ type: "remove", instanceId }, "remove")
+
+    expect(service.snapshot()).toMatchObject({
+      status: "quarantined",
+      failure: "cleanup-failed",
+      plugins: before.plugins,
+      revision: before.revision
+    })
+    await service.command({ type: "toggle", instanceId, enabled: false }, "quarantined-edit")
+    await service.command({ type: "analyze" }, "quarantined-analyze")
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(service.snapshot().plugins).toEqual(before.plugins)
+    expect(host.pluginAnalysisRequest).not.toHaveBeenCalled()
+    await service.close()
+    expect(host.unloadPluginAnalysisPlugin).toHaveBeenCalledTimes(1)
+  })
+
+  it("cancels preparation without starting a native job and releases the prepared candidate", async () => {
+    const { service, host } = arrange()
+    await service.command({ type: "automatic", enabled: false }, "manual")
+    await insertEffect(service)
+    const originalId = service.snapshot().plugins[0]!.id
+    let finishLoad!: (timing: { latencySamples: number; tailSamples: number }) => void
+    host.loadPlugin.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishLoad = resolve
+        })
+    )
+    await service.command({ type: "analyze" }, "analyze")
+    await vi.advanceTimersByTimeAsync(0)
+    const candidateId = host.loadPlugin.mock.calls[1]![0].id
+    await service.command({ type: "cancel" }, "cancel")
+    finishLoad({ latencySamples: 0, tailSamples: 0 })
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(service.snapshot()).toMatchObject({ status: "cancelled", report: null })
+    expect(host.pluginAnalysisRequest).not.toHaveBeenCalled()
+    expect(host.unloadPluginAnalysisPlugin).toHaveBeenCalledWith(candidateId)
+    expect(host.unloadPluginAnalysisPlugin).not.toHaveBeenCalledWith(originalId)
+    await service.close()
+  })
+
+  it("measures only enabled effects in committed rack order after move and bypass", async () => {
+    const { service, host, complete } = arrange()
+    await service.command({ type: "automatic", enabled: false }, "manual")
+    await insertEffect(service, "first")
+    await insertEffect(service, "second", 1)
+    const [first, second] = service.snapshot().plugins
+    await service.command({ type: "move", instanceId: second!.id, slotOrder: 0 }, "move")
+    await service.command({ type: "toggle", instanceId: first!.id, enabled: false }, "bypass")
+    expect(
+      service.snapshot().plugins.map(({ id, slotOrder, enabled }) => ({ id, slotOrder, enabled }))
+    ).toEqual([
+      { id: second!.id, slotOrder: 0, enabled: true },
+      { id: first!.id, slotOrder: 1, enabled: false }
+    ])
+    complete()
+    await service.command({ type: "analyze" }, "analyze")
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(host.savePluginState.mock.calls).toEqual([[second!.id]])
+    expect(host.loadPlugin).toHaveBeenCalledTimes(3)
+    const measured = host.loadPlugin.mock.calls[2]![0]
+    expect(measured.slotOrder).toBe(0)
+    expect(host.pluginAnalysisRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "start-plugin-analysis",
+        instance_ids: [measured.id]
+      })
+    )
+    expect(service.snapshot()).toMatchObject({ status: "complete", reportRevision: 4 })
     await service.close()
   })
 })
