@@ -349,6 +349,34 @@ fn mid_side_routing_folds_stereo_outputs() {
     );
 }
 
+#[test]
+fn oscilloscope_captures_the_standard_waveforms() {
+    let mut chain = Chain {
+        processors: Vec::new(),
+        settings: settings(),
+        cancel: Arc::new(AtomicBool::new(false)),
+        clock: 0,
+        times: Vec::new(),
+    };
+    let scope = chain
+        .oscilloscope(super::StereoRoute::Channel(0), 7)
+        .unwrap();
+    assert_eq!(scope.delay_samples, 7);
+    assert_eq!(scope.waveforms.len(), 4);
+    for waveform in &scope.waveforms {
+        assert_eq!(waveform.input.len(), waveform.output.len());
+        assert!(waveform.output.iter().any(|value| value.abs() > 0.5));
+        // A transparent chain returns the excitation unchanged.
+        assert!(
+            waveform
+                .input
+                .iter()
+                .zip(&waveform.output)
+                .all(|(a, b)| (a - b).abs() < 1e-3)
+        );
+    }
+}
+
 #[derive(Clone)]
 struct InvalidOutput;
 impl AudioPluginProcessor for InvalidOutput {

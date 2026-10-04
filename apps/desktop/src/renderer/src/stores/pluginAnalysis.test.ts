@@ -19,6 +19,7 @@ function report(): PluginAnalysisReport {
     harmonics: [],
     spectrograms: [],
     distortion: [],
+    oscilloscopes: [],
     models: [],
     performance: {
       reported_latency_samples: 0,

@@ -2192,7 +2192,8 @@
       "harmonics": "泛音",
       "model": "Hammerstein",
       "performance": "性能",
-      "distortion": "失真"
+      "distortion": "失真",
+      "oscilloscope": "示波器"
     },
     "failures": {
       "invalid-settings": "测量设置无效，或插件报告延迟超过采集窗口。请增加尾音时长。",
@@ -2248,6 +2249,15 @@
     "imdTones": "60 / 7000 Hz",
     "channelMode": "声道模式",
     "leftRight": "L/R",
-    "midSide": "M/S"
+    "midSide": "M/S",
+    "time": "时域",
+    "waveshaping": "波形整形",
+    "waveSine": "正弦",
+    "waveSquare": "方波",
+    "waveSaw": "锯齿",
+    "waveTriangle": "三角",
+    "delaySamples": "显示延迟",
+    "waveform": "波形",
+    "displayMode": "显示"
   }
 }

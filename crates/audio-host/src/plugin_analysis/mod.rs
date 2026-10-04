@@ -10,8 +10,8 @@ use heron_audio_plugin::{
 };
 use heron_dsp_runtime::protocol::{
     PluginAnalysisDistortion, PluginAnalysisFailure, PluginAnalysisHarmonics,
-    PluginAnalysisJobStatus, PluginAnalysisPerformance, PluginAnalysisReport,
-    PluginAnalysisSettings,
+    PluginAnalysisJobStatus, PluginAnalysisOscilloscope, PluginAnalysisOscilloscopeWaveform,
+    PluginAnalysisPerformance, PluginAnalysisReport, PluginAnalysisSettings,
 };
 use std::{
     collections::HashMap,
@@ -334,6 +334,57 @@ impl Chain {
             imd_percent,
         })
     }
+
+    fn oscilloscope(
+        &mut self,
+        route: StereoRoute,
+        latency: u32,
+    ) -> Result<PluginAnalysisOscilloscope, PluginAnalysisFailure> {
+        let rate = f64::from(self.settings.sample_rate);
+        let peak = 10_f64.powf(self.settings.level_dbfs / 20.0);
+        let period = ((rate / self.settings.tone_hz).round() as usize).max(2);
+        let cycles = 4usize;
+        let length = period * cycles;
+        let warmup = length.max((self.settings.tail_seconds * rate) as usize);
+        let points = 400usize;
+        let shape = |phase: f64, kind: &str| match kind {
+            "square" => {
+                if phase < 0.5 {
+                    1.0
+                } else {
+                    -1.0
+                }
+            }
+            "saw" => 2.0 * phase - 1.0,
+            "triangle" => 1.0 - 4.0 * (phase - 0.5).abs(),
+            _ => (std::f64::consts::TAU * phase).sin(),
+        };
+        let mut waveforms = Vec::with_capacity(4);
+        for kind in ["sine", "square", "saw", "triangle"] {
+            self.settle()?;
+            let input: Vec<f64> = (0..warmup + length)
+                .map(|index| peak * shape((index % period) as f64 / period as f64, kind))
+                .collect();
+            let output = self.capture_route(&input, route, 0, false)?;
+            let measured: Vec<f64> = output[warmup..]
+                .iter()
+                .map(|frame| route.measure(*frame))
+                .collect();
+            let stride = measured.len().div_ceil(points).max(1);
+            waveforms.push(PluginAnalysisOscilloscopeWaveform {
+                waveform: kind.to_owned(),
+                input: input[warmup..].iter().step_by(stride).copied().collect(),
+                output: measured.iter().step_by(stride).copied().collect(),
+            });
+        }
+        Ok(PluginAnalysisOscilloscope {
+            channel: route.index(),
+            sample_rate: rate,
+            duration_seconds: cycles as f64 / self.settings.tone_hz,
+            delay_samples: latency,
+            waveforms,
+        })
+    }
 }
 
 fn analyze(
@@ -357,6 +408,7 @@ fn analyze(
     let mut harmonics = Vec::new();
     let mut spectrograms = Vec::new();
     let mut distortion = Vec::new();
+    let mut oscilloscopes = Vec::new();
     let mut models = Vec::new();
     let routes: [StereoRoute; 2] = if settings.mid_side {
         [StereoRoute::Mid, StereoRoute::Side]
@@ -460,6 +512,7 @@ fn analyze(
             &chain.cancel,
         )?);
         distortion.push(chain.distortion(source)?);
+        oscilloscopes.push(chain.oscilloscope(source, latency)?);
         if chain.cancel.load(Ordering::Acquire) {
             return Err(PluginAnalysisFailure::Cancelled);
         }
@@ -510,6 +563,7 @@ fn analyze(
         harmonics,
         spectrograms,
         distortion,
+        oscilloscopes,
         models,
         performance,
     })

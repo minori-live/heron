@@ -2192,7 +2192,8 @@
       "harmonics": "Harmonics",
       "model": "Hammerstein",
       "performance": "Performance",
-      "distortion": "Distortion"
+      "distortion": "Distortion",
+      "oscilloscope": "Oscilloscope"
     },
     "failures": {
       "invalid-settings": "Invalid measurement settings, or reported delay exceeds the capture window. Increase tail duration.",
@@ -2248,6 +2249,15 @@
     "imdTones": "60 / 7000 Hz",
     "channelMode": "Channel mode",
     "leftRight": "L/R",
-    "midSide": "M/S"
+    "midSide": "M/S",
+    "time": "Time",
+    "waveshaping": "Waveshaping",
+    "waveSine": "Sine",
+    "waveSquare": "Square",
+    "waveSaw": "Saw",
+    "waveTriangle": "Triangle",
+    "delaySamples": "Display delay",
+    "waveform": "Waveform",
+    "displayMode": "Display"
   }
 }

@@ -2,9 +2,10 @@
 import type { PluginAnalysisDistortion } from "./PluginAnalysisDistortion";
 import type { PluginAnalysisHarmonics } from "./PluginAnalysisHarmonics";
 import type { PluginAnalysisModel } from "./PluginAnalysisModel";
+import type { PluginAnalysisOscilloscope } from "./PluginAnalysisOscilloscope";
 import type { PluginAnalysisPerformance } from "./PluginAnalysisPerformance";
 import type { PluginAnalysisResponse } from "./PluginAnalysisResponse";
 import type { PluginAnalysisSettings } from "./PluginAnalysisSettings";
 import type { PluginAnalysisSpectrogram } from "./PluginAnalysisSpectrogram";
 
-export type PluginAnalysisReport = { settings: PluginAnalysisSettings, responses: Array<PluginAnalysisResponse>, harmonics: Array<PluginAnalysisHarmonics>, spectrograms: Array<PluginAnalysisSpectrogram>, distortion: Array<PluginAnalysisDistortion>, models: Array<PluginAnalysisModel>, performance: PluginAnalysisPerformance, };
+export type PluginAnalysisReport = { settings: PluginAnalysisSettings, responses: Array<PluginAnalysisResponse>, harmonics: Array<PluginAnalysisHarmonics>, spectrograms: Array<PluginAnalysisSpectrogram>, distortion: Array<PluginAnalysisDistortion>, oscilloscopes: Array<PluginAnalysisOscilloscope>, models: Array<PluginAnalysisModel>, performance: PluginAnalysisPerformance, };

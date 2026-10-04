@@ -103,6 +103,27 @@ pub struct PluginAnalysisDistortion {
     pub imd_percent: Option<f64>,
 }
 
+/// One standard test waveform captured at the chain output. `input` and `output`
+/// are aligned and equally downsampled for time-domain and waveshaping views.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PluginAnalysisOscilloscopeWaveform {
+    pub waveform: String,
+    pub input: Vec<f64>,
+    pub output: Vec<f64>,
+}
+
+/// Captured standard waveforms plus the delay needed to align input and output.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PluginAnalysisOscilloscope {
+    pub channel: u32,
+    pub sample_rate: f64,
+    pub duration_seconds: f64,
+    pub delay_samples: u32,
+    pub waveforms: Vec<PluginAnalysisOscilloscopeWaveform>,
+}
+
 #[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginAnalysisPerformance {
@@ -125,6 +146,7 @@ pub struct PluginAnalysisReport {
     pub harmonics: Vec<PluginAnalysisHarmonics>,
     pub spectrograms: Vec<PluginAnalysisSpectrogram>,
     pub distortion: Vec<PluginAnalysisDistortion>,
+    pub oscilloscopes: Vec<PluginAnalysisOscilloscope>,
     pub models: Vec<PluginAnalysisModel>,
     pub performance: PluginAnalysisPerformance,
 }
