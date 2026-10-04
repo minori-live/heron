@@ -1,4 +1,5 @@
 import { publishSmokeGraph } from "./audio-graph-smoke.ts"
+import assert from "node:assert/strict"
 import { resolve } from "node:path"
 import { decode, encode } from "@msgpack/msgpack"
 import { AudioHostRuntime } from "@heron/dsp-node"
@@ -6,6 +7,8 @@ import { AudioHostRuntime } from "@heron/dsp-node"
 interface PluginParameter {
   parameter_key: string
   value: number
+  min_value: number
+  max_value: number
   read_only: boolean
 }
 
@@ -93,21 +96,49 @@ try {
   }
   const editable = parameters.find((parameter) => !parameter.read_only)
   if (!editable) throw new Error("official CLAP Gain has no editable parameter")
-  for (const gesture of ["begin", "perform", "end"] as const) {
-    await send({
-      type: "set-plugin-parameter",
-      instance_id: "effect-1",
-      parameter_key: editable.parameter_key,
-      value: editable.value,
-      gesture
-    })
+  const parameterKey = editable.parameter_key
+  const range = editable.max_value - editable.min_value
+  assert.ok(range > 0, "fixture parameter must have an editable range")
+  const lower = editable.min_value + range * 0.25
+  const upper = editable.min_value + range * 0.75
+  const polledValue = Math.abs(editable.value - lower) > range * 0.1 ? lower : upper
+  async function edit(value: number): Promise<void> {
+    for (const gesture of ["begin", "perform", "end"] as const) {
+      await send({
+        type: "set-plugin-parameter",
+        instance_id: "effect-1",
+        parameter_key: parameterKey,
+        value,
+        gesture
+      })
+    }
   }
+  await edit(polledValue)
+  const polled = await send({ type: "plugin-parameters", instance_id: "effect-1" })
+  assert.equal(
+    polled.parameters?.find((parameter) => parameter.parameter_key === parameterKey)?.value,
+    polledValue,
+    "an unpublished CLAP instance must apply edits before polling its parameters"
+  )
 
+  // Save a second edit without polling first: state capture must flush it independently.
+  const savedValue = polledValue === lower ? upper : lower
+  await edit(savedValue)
   const saved = await send({ type: "save-plugin-state", instance_id: "effect-1" })
   const mainState = saved.state?.chunks.find((chunk) => chunk.key === "main")?.bytes.bytes
   if (saved.type !== "plugin-state" || !(mainState instanceof Uint8Array)) {
     throw new Error("official CLAP plug-in did not return its main state chunk")
   }
+  await send(
+    loadCommand("restored-effect", "com.github.free-audio.clap.gain", "effect", saved.state)
+  )
+  const restored = await send({ type: "plugin-parameters", instance_id: "restored-effect" })
+  assert.equal(
+    restored.parameters?.find((parameter) => parameter.parameter_key === parameterKey)?.value,
+    savedValue,
+    "saved state must include edits queued on the silent original instance"
+  )
+  await send({ type: "unload-plugin", instance_id: "restored-effect" })
 
   const synthLoaded = await send(
     loadCommand("synth-1", "com.github.free-audio.clap.synth", "instrument")

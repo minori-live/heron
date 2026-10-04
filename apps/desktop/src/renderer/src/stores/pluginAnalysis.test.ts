@@ -1,8 +1,10 @@
 import { createPinia, setActivePinia } from "pinia"
+import { flushPromises } from "@vue/test-utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { DEFAULT_PLUGIN_ANALYSIS_SETTINGS } from "@heron/contracts"
 import type { PluginAnalysisReport, PluginAnalysisSnapshot, ResourceRef } from "@heron/contracts"
-import { rpcSuccess } from "../test/ipc"
+import { rpcFailure, rpcSuccess } from "../test/ipc"
+import { analysisSnapshot } from "../test/plugin-analysis"
 import { usePluginAnalysisStore } from "./pluginAnalysis"
 
 const ref: ResourceRef<"plugin-analysis"> = {
@@ -121,5 +123,171 @@ describe("plugin analysis store report identity", () => {
     expect(store.snapshot?.reportId).toBe("run-2")
     expect(store.snapshot?.report).toBe(second)
     store.stop()
+  })
+})
+
+describe("plugin analysis commands", () => {
+  it("rebases a settings patch after a revision conflict without reverting unrelated settings", async () => {
+    const initial = analysisSnapshot()
+    const authoritative = analysisSnapshot({
+      revision: 4,
+      settings: { ...initial.settings, block_size: 512 }
+    })
+    const committed = analysisSnapshot({
+      revision: 5,
+      settings: { ...authoritative.settings, level_dbfs: -6 }
+    })
+    snapshotRequest
+      .mockResolvedValueOnce(rpcSuccess(initial))
+      .mockResolvedValueOnce(rpcSuccess(authoritative))
+      .mockResolvedValueOnce(rpcSuccess(committed))
+    commandRequest
+      .mockResolvedValueOnce(rpcFailure("conflict", { code: "revision-conflict" }))
+      .mockResolvedValueOnce(rpcSuccess(committed))
+    const store = usePluginAnalysisStore()
+    store.start()
+    await flushPromises()
+    store.configure({ level_dbfs: -6 })
+    await flushPromises()
+
+    expect(commandRequest.mock.calls[1]?.[1]).toEqual({
+      type: "configure",
+      settings: committed.settings
+    })
+    const meta = commandRequest.mock.calls[1]![0]
+    expect(meta.expectedRevision).toBe(4)
+    expect(snapshotRequest.mock.calls[2]?.slice(1)).toEqual([meta.mutation.operationId, "run-1"])
+    expect(store.snapshot?.settings).toEqual(committed.settings)
+    expect(store.error).toBe("")
+    store.stop()
+  })
+
+  it("does not replace an acknowledged command with a late pre-command poll", async () => {
+    const initial = analysisSnapshot()
+    const committed = analysisSnapshot({ revision: 4, automatic: false })
+    let finishPoll!: (value: ReturnType<typeof rpcSuccess<PluginAnalysisSnapshot>>) => void
+    snapshotRequest
+      .mockResolvedValueOnce(rpcSuccess(initial))
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishPoll = resolve
+        })
+      )
+      .mockResolvedValue(rpcSuccess(committed))
+    commandRequest.mockResolvedValue(rpcSuccess(committed))
+    const store = usePluginAnalysisStore()
+    store.start()
+    await flushPromises()
+    await vi.advanceTimersByTimeAsync(250)
+    store.command({ type: "automatic", enabled: false })
+    await flushPromises()
+    expect(store.snapshot?.automatic).toBe(false)
+
+    finishPoll(rpcSuccess(initial))
+    await flushPromises()
+    expect(store.snapshot?.revision).toBe(4)
+    expect(store.snapshot?.automatic).toBe(false)
+    store.stop()
+  })
+
+  it("queues configuration patches against the latest committed settings", async () => {
+    const initial = analysisSnapshot()
+    const first = analysisSnapshot({
+      revision: 4,
+      settings: { ...initial.settings, level_dbfs: -6 }
+    })
+    const second = analysisSnapshot({
+      revision: 5,
+      settings: { ...first.settings, block_size: 512 }
+    })
+    snapshotRequest
+      .mockResolvedValueOnce(rpcSuccess(initial))
+      .mockResolvedValueOnce(rpcSuccess(first))
+      .mockResolvedValueOnce(rpcSuccess(second))
+    commandRequest
+      .mockResolvedValueOnce(rpcSuccess(first))
+      .mockResolvedValueOnce(rpcSuccess(second))
+    const store = usePluginAnalysisStore()
+    store.start()
+    await flushPromises()
+    store.configure({ level_dbfs: -6 })
+    store.configure({ block_size: 512 })
+    await flushPromises()
+    expect(commandRequest.mock.calls[1]?.[1]).toEqual({
+      type: "configure",
+      settings: second.settings
+    })
+    expect(commandRequest.mock.calls[1]?.[0].expectedRevision).toBe(4)
+    expect(store.snapshot?.settings).toEqual(second.settings)
+    store.stop()
+  })
+
+  it("shows catalog failure, releases busy state, and recovers on the next command", async () => {
+    const initial = analysisSnapshot()
+    let finishCommand!: (value: ReturnType<typeof rpcFailure>) => void
+    snapshotRequest.mockResolvedValue(rpcSuccess(initial))
+    commandRequest
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishCommand = resolve
+        })
+      )
+      .mockResolvedValueOnce(rpcSuccess(analysisSnapshot({ automatic: false })))
+    const store = usePluginAnalysisStore()
+    store.start()
+    await flushPromises()
+    store.command({ type: "refresh-catalog" })
+    await flushPromises()
+    expect(store.catalogBusy).toBe(true)
+    await vi.advanceTimersByTimeAsync(500)
+    expect(snapshotRequest).toHaveBeenCalledTimes(1)
+    finishCommand(rpcFailure("pluginAnalysis.failures.catalog-unavailable"))
+    await flushPromises()
+    expect(store.error).toContain("refresh the plug-in list")
+    expect(store.catalogBusy).toBe(false)
+    store.command({ type: "automatic", enabled: false })
+    await flushPromises()
+    expect(store.error).toBe("")
+    store.stop()
+  })
+
+  it("ignores in-flight reads and queued commands after the analysis view closes", async () => {
+    let finishPoll!: (value: ReturnType<typeof rpcSuccess<PluginAnalysisSnapshot>>) => void
+    snapshotRequest.mockReturnValue(
+      new Promise((resolve) => {
+        finishPoll = resolve
+      })
+    )
+    const store = usePluginAnalysisStore()
+    store.start()
+    store.command({ type: "analyze" })
+    store.stop()
+    finishPoll(rpcSuccess(analysisSnapshot()))
+    await flushPromises()
+    await vi.advanceTimersByTimeAsync(500)
+    expect(store.snapshot).toBeNull()
+    expect(commandRequest).not.toHaveBeenCalled()
+    expect(snapshotRequest).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not retry a conflicted command after closing while its revision refresh is pending", async () => {
+    let finishRefresh!: (value: ReturnType<typeof rpcSuccess<PluginAnalysisSnapshot>>) => void
+    snapshotRequest.mockResolvedValueOnce(rpcSuccess(analysisSnapshot())).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishRefresh = resolve
+      })
+    )
+    commandRequest.mockResolvedValue(rpcFailure("conflict", { code: "revision-conflict" }))
+    const store = usePluginAnalysisStore()
+    store.start()
+    await flushPromises()
+    store.configure({ level_dbfs: -6 })
+    await flushPromises()
+    store.stop()
+    finishRefresh(rpcSuccess(analysisSnapshot({ revision: 4 })))
+    await flushPromises()
+    expect(commandRequest).toHaveBeenCalledTimes(1)
+    expect(store.snapshot?.revision).toBe(3)
+    expect(store.catalogBusy).toBe(false)
   })
 })

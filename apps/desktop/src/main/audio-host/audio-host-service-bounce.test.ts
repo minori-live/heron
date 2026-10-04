@@ -1,7 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { pluginDescriptorKey } from "@heron/contracts"
 import type { ProjectGraphSnapshot } from "@heron/contracts"
 import type { AudioHostBounceStatus } from "./wire"
-import { AudioHostService, fakeHost, graph, resetFakeHost } from "./audio-host-service.fixture"
+import {
+  AudioHostService,
+  fakeHost,
+  graph,
+  pluginInstance,
+  resetFakeHost
+} from "./audio-host-service.fixture"
+import { PluginAnalysisService } from "../plugin-analysis/plugin-analysis-service"
 
 const automaticRuntime = {
   workerThreads: "auto" as const,
@@ -138,4 +146,61 @@ describe("AudioHostService bounce", () => {
     expect(restart).toHaveBeenCalledWith(false)
     await service.stop()
   })
+
+  it.each(["prepare", "restore"] as const)(
+    "retires the open analysis chain before %s replaces the native runtime",
+    async (phase) => {
+      const service = createService()
+      service.start()
+      const originalClient = fakeHost.Client.instances[0]!
+      const descriptor = pluginInstance().descriptor
+      vi.spyOn(service, "pluginParameters").mockResolvedValue([])
+      const analysis = new PluginAnalysisService(service, () => [descriptor], {
+        locale: "en-US",
+        theme: "dark"
+      })
+      await analysis.command({ type: "automatic", enabled: false }, "manual")
+      await analysis.command(
+        {
+          type: "insert",
+          pluginKey: pluginDescriptorKey(descriptor),
+          audioMode: "stereo",
+          slotOrder: 0
+        },
+        "insert"
+      )
+      const instanceId = analysis.snapshot().plugins[0]!.id
+      const unsubscribe = service.subscribePluginAnalysisShutdown(() => analysis.close())
+      let finishEditorClose!: () => void
+      vi.spyOn(service, "closePluginEditor").mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            finishEditorClose = resolve
+          })
+      )
+
+      const replacement =
+        phase === "prepare"
+          ? service.prepareOfflineBounce()
+          : service.restartAfterOfflineBounce(false)
+      await vi.waitFor(() => expect(finishEditorClose).toBeTypeOf("function"))
+      expect(originalClient.closed).toBe(false)
+      expect(fakeHost.Client.instances).toHaveLength(1)
+      finishEditorClose()
+      await replacement
+
+      expect(originalClient.commands).toContainEqual({
+        type: "unload-plugin",
+        instance_id: instanceId
+      })
+      expect(originalClient.closed).toBe(true)
+      expect(fakeHost.Client.instances).toHaveLength(2)
+      expect(fakeHost.Client.instances[1]!.commands).not.toContainEqual({
+        type: "unload-plugin",
+        instance_id: instanceId
+      })
+      unsubscribe()
+      await service.stop()
+    }
+  )
 })
