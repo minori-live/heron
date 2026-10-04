@@ -79,6 +79,25 @@ function number(key: keyof PluginAnalysisSettings, value: number | null): void {
         suffix="s"
         @update:model-value="number('tail_seconds', $event)"
     /></UiField>
+    <UiField v-slot="{ controlId }" :label="t('pluginAnalysis.toneFrequency')"
+      ><UiNumberInput
+        :id="controlId"
+        :model-value="settings.tone_hz"
+        :min="20"
+        :max="settings.sample_rate * 0.45"
+        :step="10"
+        suffix="Hz"
+        @update:model-value="number('tone_hz', $event)"
+    /></UiField>
+    <UiField v-slot="{ controlId }" :label="t('pluginAnalysis.modelOrder')"
+      ><UiNumberInput
+        :id="controlId"
+        :model-value="settings.model_order"
+        :min="3"
+        :max="7"
+        :step="1"
+        @update:model-value="number('model_order', $event)"
+    /></UiField>
   </section>
 </template>
 <style scoped>

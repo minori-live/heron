@@ -19,17 +19,29 @@ const title = computed(() =>
       ? "pluginAnalysis.nonlinearity"
       : view.value === "filter"
         ? "pluginAnalysis.modelFilter"
-        : view.value === "impulse"
-          ? "pluginAnalysis.modelImpulse"
-          : "pluginAnalysis.validation"
+        : view.value === "orders"
+          ? "pluginAnalysis.orderResponse"
+          : view.value === "impulse"
+            ? "pluginAnalysis.modelImpulse"
+            : "pluginAnalysis.validation"
   )
 )
 const views = computed(() => [
   { value: "static", label: t("pluginAnalysis.nonlinearity") },
   { value: "filter", label: t("pluginAnalysis.frequency") },
+  { value: "orders", label: t("pluginAnalysis.orderResponse") },
   { value: "impulse", label: t("pluginAnalysis.impulse") },
   { value: "validation", label: t("pluginAnalysis.validation") }
 ])
+const orderColors = [
+  "var(--ui-signal-mixer-input)",
+  "var(--ui-color-action)",
+  "var(--ui-signal-audio)",
+  "var(--ui-signal-midi)",
+  "var(--ui-signal-loop)",
+  "var(--ui-signal-record)",
+  "var(--ui-signal-meter-safe)"
+]
 const series = computed<UiAnalysisSeries[]>(() => {
   const m = model.value
   if (view.value === "static") {
@@ -76,37 +88,45 @@ const series = computed<UiAnalysisSeries[]>(() => {
       props.report.settings.start_hz *
       (props.report.settings.end_hz / props.report.settings.start_hz) ** (i / 191)
   )
-  return [
-    {
-      label: "H",
+  const base = x.map((hz) => {
+    let re = 0,
+      im = 0
+    m.filter.forEach((value, i) => {
+      const phase = (2 * Math.PI * hz * i) / props.report.settings.sample_rate
+      re += value * Math.cos(phase)
+      im -= value * Math.sin(phase)
+    })
+    return Math.hypot(re, im)
+  })
+  if (view.value === "orders")
+    return m.coefficients.map((coefficient, index) => ({
+      label: t("pluginAnalysis.orderLabel", { order: index + 1 }),
       x,
-      y: x.map((hz) => {
-        let re = 0,
-          im = 0
-        m.filter.forEach((value, i) => {
-          const phase = (2 * Math.PI * hz * i) / props.report.settings.sample_rate
-          re += value * Math.cos(phase)
-          im -= value * Math.sin(phase)
-        })
-        return 20 * Math.log10(Math.max(1e-12, Math.hypot(re, im)))
-      })
-    }
-  ]
+      y: base.map((value) => 20 * Math.log10(Math.max(1e-12, Math.abs(coefficient) * value))),
+      color: orderColors[index % orderColors.length]
+    }))
+  return [{ label: "H", x, y: base.map((value) => 20 * Math.log10(Math.max(1e-12, value))) }]
 })
 </script>
 <template>
   <section class="model-panel">
     <PluginAnalysisPlot
       :title="title"
-      :x-label="view === 'static' ? t('pluginAnalysis.input') : view === 'filter' ? 'Hz' : 'ms'"
+      :x-label="
+        view === 'static'
+          ? t('pluginAnalysis.input')
+          : view === 'filter' || view === 'orders'
+            ? 'Hz'
+            : 'ms'
+      "
       :y-label="
-        view === 'filter'
+        view === 'filter' || view === 'orders'
           ? t('pluginAnalysis.units.db')
           : view === 'static'
             ? t('pluginAnalysis.output')
             : t('pluginAnalysis.amplitude')
       "
-      :logarithmic="view === 'filter'"
+      :logarithmic="view === 'filter' || view === 'orders'"
       :series="series"
     />
     <footer class="toolbar">

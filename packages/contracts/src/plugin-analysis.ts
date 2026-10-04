@@ -18,7 +18,9 @@ export const DEFAULT_PLUGIN_ANALYSIS_SETTINGS: PluginAnalysisSettings = {
   start_hz: 20,
   end_hz: 20_000,
   sweep_seconds: 1,
-  tail_seconds: 0.25
+  tail_seconds: 0.25,
+  tone_hz: 1000,
+  model_order: 5
 }
 
 export function validPluginAnalysisSettings(value: unknown): value is PluginAnalysisSettings {
@@ -40,7 +42,13 @@ export function validPluginAnalysisSettings(value: unknown): value is PluginAnal
     s.sweep_seconds <= 8 &&
     Number.isFinite(s.tail_seconds) &&
     s.tail_seconds >= 0.25 &&
-    s.tail_seconds <= 5
+    s.tail_seconds <= 5 &&
+    Number.isFinite(s.tone_hz) &&
+    s.tone_hz >= 20 &&
+    s.tone_hz <= s.sample_rate * 0.45 &&
+    Number.isInteger(s.model_order) &&
+    s.model_order >= 3 &&
+    s.model_order <= 7
   )
 }
 

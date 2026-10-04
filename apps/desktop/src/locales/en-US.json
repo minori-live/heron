@@ -2191,7 +2191,8 @@
       "linear": "Linear",
       "harmonics": "Harmonics",
       "model": "Hammerstein",
-      "performance": "Performance"
+      "performance": "Performance",
+      "distortion": "Distortion"
     },
     "failures": {
       "invalid-settings": "Invalid measurement settings, or reported delay exceeds the capture window. Increase tail duration.",
@@ -2235,6 +2236,15 @@
     "colorMinimum": "Minimum color level",
     "colorMaximum": "Maximum color level",
     "spectrumNote": "Measured output: time × frequency, energy in dBFS. Lines above the fundamental show harmonics; reflected lines can indicate aliasing. Linear and log use separately measured sweeps.",
-    "modelView": "Model view"
+    "modelView": "Model view",
+    "distortion": "Distortion",
+    "toneFrequency": "Tone frequency",
+    "modelOrder": "Model order",
+    "thdValue": "THD",
+    "thdPlusNoise": "THD+N",
+    "imd": "IMD",
+    "orderResponse": "Per-order response",
+    "orderLabel": "Order {order}",
+    "imdTones": "60 / 7000 Hz"
   }
 }

@@ -9,8 +9,9 @@ use heron_audio_plugin::{
     SidechainSource,
 };
 use heron_dsp_runtime::protocol::{
-    PluginAnalysisFailure, PluginAnalysisHarmonics, PluginAnalysisJobStatus,
-    PluginAnalysisPerformance, PluginAnalysisReport, PluginAnalysisSettings,
+    PluginAnalysisDistortion, PluginAnalysisFailure, PluginAnalysisHarmonics,
+    PluginAnalysisJobStatus, PluginAnalysisPerformance, PluginAnalysisReport,
+    PluginAnalysisSettings,
 };
 use std::{
     collections::HashMap,
@@ -26,6 +27,19 @@ impl SidechainSource for EmptySidechains {
     fn frames(&self, _: AudioPortToken) -> Option<&[[f32; 2]]> {
         None
     }
+}
+
+/// Amplitude at `order * cycles` for a capture that is an exact number of cycles
+/// long, so the single-bin lock-in is leakage free.
+fn lock_in(samples: &[f64], cycles: f64, order: usize, length: usize) -> f64 {
+    let mut real = 0.0;
+    let mut imaginary = 0.0;
+    for (index, sample) in samples.iter().enumerate() {
+        let phase = std::f64::consts::TAU * cycles * order as f64 * index as f64 / length as f64;
+        real += sample * phase.cos();
+        imaginary += sample * phase.sin();
+    }
+    real.hypot(imaginary) * 2.0 / length as f64
 }
 
 struct Chain {
@@ -179,6 +193,100 @@ impl Chain {
         }
         Ok(report)
     }
+
+    fn distortion(
+        &mut self,
+        channel: usize,
+    ) -> Result<PluginAnalysisDistortion, PluginAnalysisFailure> {
+        let rate = f64::from(self.settings.sample_rate);
+        let peak = 10_f64.powf(self.settings.level_dbfs / 20.0);
+        let latency = (self.settings.tail_seconds * rate) as usize;
+
+        // Single tone, quantized to an exact DFT bin so the lock-in is leakage free.
+        self.settle()?;
+        let tone_hz = self.settings.tone_hz;
+        let length =
+            ((rate * 8.0 / tone_hz).ceil() as usize).max(self.settings.block_size as usize * 4);
+        let cycles = (tone_hz * length as f64 / rate).round().max(1.0);
+        let measured_hz = cycles * rate / length as f64;
+        let warmup = length.max(latency);
+        let input: Vec<f64> = (0..warmup + length)
+            .map(|index| peak * (std::f64::consts::TAU * measured_hz * index as f64 / rate).sin())
+            .collect();
+        let output = self.capture(&input, channel, 0, false)?;
+        let samples: Vec<f64> = output[warmup..]
+            .iter()
+            .map(|frame| frame[channel])
+            .collect();
+        let fundamental = lock_in(&samples, cycles, 1, length);
+        let maximum_order = (rate * 0.5 / measured_hz).floor() as usize;
+        let mut harmonic_power = 0.0;
+        for order in 2..=maximum_order.min(64) {
+            let ratio = lock_in(&samples, cycles, order, length) / fundamental.max(1e-20);
+            harmonic_power += ratio * ratio;
+        }
+        let thd_percent = (fundamental > 1e-10).then(|| harmonic_power.sqrt() * 100.0);
+        let total_rms =
+            (samples.iter().map(|value| value * value).sum::<f64>() / samples.len() as f64).sqrt();
+        let fundamental_rms = fundamental / std::f64::consts::SQRT_2;
+        let noise_rms = (total_rms * total_rms - fundamental_rms * fundamental_rms)
+            .max(0.0)
+            .sqrt();
+        let thd_plus_n_percent =
+            (fundamental_rms > 1e-12).then(|| noise_rms / fundamental_rms * 100.0);
+
+        // Two-tone IMD: 60 Hz at the configured level and 7000 Hz 12 dB lower.
+        // A length that is a multiple of sample_rate/20 puts both carriers and
+        // every 60 Hz modulation product on exact bins.
+        let low_hz = 60.0;
+        let high_hz = 7000.0;
+        let imd_percent = if high_hz * 1.9 < rate {
+            self.settle()?;
+            let length = (rate / 20.0 * 8.0).round() as usize;
+            let spacing = low_hz * length as f64 / rate;
+            let low_cycles = (low_hz * length as f64 / rate).round().max(1.0);
+            let high_cycles = (high_hz * length as f64 / rate).round().max(1.0);
+            let low_measured = low_cycles * rate / length as f64;
+            let high_measured = high_cycles * rate / length as f64;
+            let warmup = length.max(latency);
+            let high_peak = peak * 10_f64.powf(-12.0 / 20.0);
+            let input: Vec<f64> = (0..warmup + length)
+                .map(|index| {
+                    let time = index as f64 / rate;
+                    peak * (std::f64::consts::TAU * low_measured * time).sin()
+                        + high_peak * (std::f64::consts::TAU * high_measured * time).sin()
+                })
+                .collect();
+            let output = self.capture(&input, channel, 0, false)?;
+            let samples: Vec<f64> = output[warmup..]
+                .iter()
+                .map(|frame| frame[channel])
+                .collect();
+            let carrier = lock_in(&samples, high_cycles, 1, length);
+            let mut power = 0.0;
+            for side in 1..=10usize {
+                for sign in [-1.0_f64, 1.0] {
+                    let sideband = high_cycles + sign * spacing * side as f64;
+                    if sideband <= 0.0 {
+                        continue;
+                    }
+                    let amplitude = lock_in(&samples, sideband, 1, length);
+                    power += (amplitude / carrier.max(1e-20)).powi(2);
+                }
+            }
+            (carrier > 1e-10).then(|| power.sqrt() * 100.0)
+        } else {
+            None
+        };
+
+        Ok(PluginAnalysisDistortion {
+            channel: channel as u32,
+            tone_hz: measured_hz,
+            thd_percent,
+            thd_plus_n_percent,
+            imd_percent,
+        })
+    }
 }
 
 fn analyze(
@@ -201,6 +309,7 @@ fn analyze(
     let mut responses = Vec::new();
     let mut harmonics = Vec::new();
     let mut spectrograms = Vec::new();
+    let mut distortion = Vec::new();
     let mut models = Vec::new();
     for channel in 0..2 {
         update("linear", channel as f64 * 0.5);
@@ -275,9 +384,11 @@ fn analyze(
                     .collect::<Vec<_>>(),
                 scale: peak,
                 delay: latency,
+                order: settings.model_order,
             },
             &chain.cancel,
         )?);
+        distortion.push(chain.distortion(channel)?);
         if chain.cancel.load(Ordering::Acquire) {
             return Err(PluginAnalysisFailure::Cancelled);
         }
@@ -327,6 +438,7 @@ fn analyze(
         responses,
         harmonics,
         spectrograms,
+        distortion,
         models,
         performance,
     })

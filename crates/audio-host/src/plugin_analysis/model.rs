@@ -3,13 +3,13 @@ use heron_dsp_runtime::protocol::PluginAnalysisFailure;
 use heron_dsp_runtime::protocol::PluginAnalysisModel;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-const ORDER: usize = 5;
+const MAX_ORDER: usize = 7;
 const TAPS: usize = 512;
 
-fn solve(mut matrix: [[f64; ORDER + 1]; ORDER]) -> Option<[f64; ORDER]> {
-    for col in 0..ORDER {
+fn solve(matrix: &mut [Vec<f64>], order: usize) -> Option<Vec<f64>> {
+    for col in 0..order {
         let pivot =
-            (col..ORDER).max_by(|a, b| matrix[*a][col].abs().total_cmp(&matrix[*b][col].abs()))?;
+            (col..order).max_by(|a, b| matrix[*a][col].abs().total_cmp(&matrix[*b][col].abs()))?;
         matrix.swap(col, pivot);
         let scale = matrix[col][col];
         if scale.abs() < 1e-15 {
@@ -18,7 +18,7 @@ fn solve(mut matrix: [[f64; ORDER + 1]; ORDER]) -> Option<[f64; ORDER]> {
         for item in &mut matrix[col][col..] {
             *item /= scale;
         }
-        let pivot_values = matrix[col];
+        let pivot_values = matrix[col].clone();
         for (row, values) in matrix.iter_mut().enumerate() {
             if row == col {
                 continue;
@@ -29,7 +29,7 @@ fn solve(mut matrix: [[f64; ORDER + 1]; ORDER]) -> Option<[f64; ORDER]> {
             }
         }
     }
-    Some(std::array::from_fn(|i| matrix[i][ORDER]))
+    Some((0..order).map(|i| matrix[i][order]).collect())
 }
 
 pub(super) struct FitData<'a> {
@@ -40,6 +40,7 @@ pub(super) struct FitData<'a> {
     pub validation_output: &'a [f64],
     pub scale: f64,
     pub delay: u32,
+    pub order: u32,
 }
 
 pub(super) fn fit(
@@ -54,12 +55,14 @@ pub(super) fn fit(
         validation_output,
         scale,
         delay,
+        order,
     } = data;
+    let order = (order as usize).clamp(1, MAX_ORDER);
     let delay = delay as usize;
     let count = input.len().min(output.len().saturating_sub(delay));
     let input = &input[..count];
     let target = &output[delay..delay + count];
-    let basis: Vec<Vec<f64>> = (1..=ORDER)
+    let basis: Vec<Vec<f64>> = (1..=order)
         .map(|order| {
             input
                 .iter()
@@ -67,7 +70,7 @@ pub(super) fn fit(
                 .collect()
         })
         .collect();
-    let mut coefficients = [0.0; ORDER];
+    let mut coefficients = vec![0.0; order];
     coefficients[0] = 1.0;
     let mut filter = vec![0.0; TAPS];
     filter[0] = scale;
@@ -76,9 +79,9 @@ pub(super) fn fit(
             return Err(PluginAnalysisFailure::Cancelled);
         }
         let filtered: Vec<_> = basis.iter().map(|b| convolve(b, &filter)).collect();
-        let mut matrix = [[0.0; ORDER + 1]; ORDER];
-        for row in 0..ORDER {
-            for col in 0..ORDER {
+        let mut matrix = vec![vec![0.0; order + 1]; order];
+        for row in 0..order {
+            for col in 0..order {
                 matrix[row][col] = filtered[row]
                     .iter()
                     .zip(&filtered[col])
@@ -86,13 +89,13 @@ pub(super) fn fit(
                     .sum();
             }
             matrix[row][row] += 1e-8 * count as f64;
-            matrix[row][ORDER] = filtered[row].iter().zip(target).map(|(a, b)| a * b).sum();
+            matrix[row][order] = filtered[row].iter().zip(target).map(|(a, b)| a * b).sum();
         }
-        if let Some(next) = solve(matrix) {
+        if let Some(next) = solve(&mut matrix, order) {
             coefficients = next;
         }
         let nonlinear: Vec<_> = (0..count)
-            .map(|i| (0..ORDER).map(|k| coefficients[k] * basis[k][i]).sum())
+            .map(|i| (0..order).map(|k| coefficients[k] * basis[k][i]).sum())
             .collect();
         let size = (count * 2).next_power_of_two();
         let x = spectrum(&nonlinear, size);

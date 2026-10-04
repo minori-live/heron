@@ -19,6 +19,8 @@ fn settings() -> PluginAnalysisSettings {
         end_hz: 20000.0,
         sweep_seconds: 1.0,
         tail_seconds: 0.25,
+        tone_hz: 1000.0,
+        model_order: 5,
     }
 }
 
@@ -124,6 +126,7 @@ fn hammerstein_recovers_a_polynomial_followed_by_filtering() {
             validation_output: &render(&validation),
             scale: 2.0,
             delay: 0,
+            order: 5,
         },
         &AtomicBool::new(false),
     )
@@ -135,6 +138,34 @@ fn hammerstein_recovers_a_polynomial_followed_by_filtering() {
         report.validation_error_percent
     );
     assert!((report.coefficients[0] - 1.0).abs() < 0.001);
+}
+
+#[test]
+fn hammerstein_honours_the_requested_order() {
+    let input = signal::noise(16384, 0x12345, 2.0);
+    let validation = signal::noise(8192, 0x23456, 2.0);
+    let render = |input: &[f64]| {
+        let nonlinear: Vec<_> = input.iter().map(|x| x + 0.3 * x.powi(2)).collect();
+        signal::convolve(&nonlinear, &[0.7, 0.2, 0.1])
+    };
+    for order in [3u32, 7] {
+        let report = model::fit(
+            model::FitData {
+                channel: 0,
+                input: &input,
+                output: &render(&input),
+                validation_input: &validation,
+                validation_output: &render(&validation),
+                scale: 2.0,
+                delay: 0,
+                order,
+            },
+            &AtomicBool::new(false),
+        )
+        .unwrap();
+        assert_eq!(report.coefficients.len(), order as usize);
+        assert!(report.suitable, "order={order}");
+    }
 }
 
 #[derive(Clone)]
@@ -181,6 +212,25 @@ fn stable_sines_measure_the_second_harmonic_without_clamping_input() {
             .iter()
             .any(|v| v.is_some_and(|v| v > -100.0))
     );
+}
+
+#[test]
+fn single_tone_distortion_matches_a_quadratic_nonlinearity() {
+    let mut settings = settings();
+    settings.tone_hz = 1000.0;
+    let mut chain = Chain {
+        processors: vec![AudioPluginProcessorHandle::new(Square)],
+        settings,
+        cancel: Arc::new(AtomicBool::new(false)),
+        clock: 0,
+        times: Vec::new(),
+    };
+    let report = chain.distortion(0).unwrap();
+    // x + 0.5*x² fed A·sin has H2/H1 = 0.25·A with A = 10^(6/20).
+    let expected = 0.25 * 10_f64.powf(6.0 / 20.0) * 100.0;
+    let thd = report.thd_percent.unwrap();
+    assert!((thd - expected).abs() < 0.05, "thd={thd}");
+    assert!(report.thd_plus_n_percent.unwrap() >= thd);
 }
 
 #[test]

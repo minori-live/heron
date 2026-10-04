@@ -10,6 +10,8 @@ pub struct PluginAnalysisSettings {
     pub end_hz: f64,
     pub sweep_seconds: f64,
     pub tail_seconds: f64,
+    pub tone_hz: f64,
+    pub model_order: u32,
 }
 
 impl PluginAnalysisSettings {
@@ -27,6 +29,10 @@ impl PluginAnalysisSettings {
             && (1.0..=8.0).contains(&self.sweep_seconds)
             && self.tail_seconds.is_finite()
             && (0.25..=5.0).contains(&self.tail_seconds)
+            && self.tone_hz.is_finite()
+            && self.tone_hz >= 20.0
+            && self.tone_hz <= f64::from(self.sample_rate) * 0.45
+            && (3..=7).contains(&self.model_order)
     }
 }
 
@@ -85,6 +91,17 @@ pub struct PluginAnalysisSpectrogram {
     pub magnitude_dbfs: Vec<f32>,
 }
 
+/// Single-tone THD/THD+N and two-tone intermodulation distortion.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PluginAnalysisDistortion {
+    pub channel: u32,
+    pub tone_hz: f64,
+    pub thd_percent: Option<f64>,
+    pub thd_plus_n_percent: Option<f64>,
+    pub imd_percent: Option<f64>,
+}
+
 #[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginAnalysisPerformance {
@@ -106,6 +123,7 @@ pub struct PluginAnalysisReport {
     pub responses: Vec<PluginAnalysisResponse>,
     pub harmonics: Vec<PluginAnalysisHarmonics>,
     pub spectrograms: Vec<PluginAnalysisSpectrogram>,
+    pub distortion: Vec<PluginAnalysisDistortion>,
     pub models: Vec<PluginAnalysisModel>,
     pub performance: PluginAnalysisPerformance,
 }

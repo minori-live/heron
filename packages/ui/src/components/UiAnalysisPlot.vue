@@ -49,10 +49,8 @@ const bounds = computed(() => {
   const high = Math.max(...ys, 0)
   const padding = high === low ? 1 : (high - low) * 0.08
   return {
-    x:
-      viewX.value ??
-      props.xDomain ??
-      [xs.length ? Math.min(...xs) : 20, xs.length ? Math.max(...xs) : 20000],
+    x: viewX.value ??
+      props.xDomain ?? [xs.length ? Math.min(...xs) : 20, xs.length ? Math.max(...xs) : 20000],
     y: viewY.value ?? props.yDomain ?? [low - padding, high + padding]
   }
 })
@@ -230,7 +228,12 @@ function onPointerUp(event: PointerEvent): void {
   if (dx < 0 && dy < 0) {
     // Bottom-right → top-left zooms out around the current center.
     if (horizontal)
-      viewX.value = zoomDomain(bounds.value.x, valueAt(state.x0, state.y0, "x"), 2, props.logarithmic)
+      viewX.value = zoomDomain(
+        bounds.value.x,
+        valueAt(state.x0, state.y0, "x"),
+        2,
+        props.logarithmic
+      )
     if (vertical)
       viewY.value = zoomDomain(bounds.value.y, valueAt(state.x0, state.y0, "y"), 2, false)
     return

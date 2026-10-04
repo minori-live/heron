@@ -2191,7 +2191,8 @@
       "linear": "线性分析",
       "harmonics": "泛音",
       "model": "Hammerstein",
-      "performance": "性能"
+      "performance": "性能",
+      "distortion": "失真"
     },
     "failures": {
       "invalid-settings": "测量设置无效，或插件报告延迟超过采集窗口。请增加尾音时长。",
@@ -2235,6 +2236,15 @@
     "colorMinimum": "色阶下限",
     "colorMaximum": "色阶上限",
     "spectrumNote": "实测输出：横轴为时间，纵轴为频率，颜色为 dBFS 能量。基波上方的线条显示泛音，折返的线条可能表示 aliasing。Linear 和 Log 使用分别测量的扫频结果。",
-    "modelView": "模型视图"
+    "modelView": "模型视图",
+    "distortion": "失真",
+    "toneFrequency": "测试频率",
+    "modelOrder": "模型阶数",
+    "thdValue": "THD",
+    "thdPlusNoise": "THD+N",
+    "imd": "互调失真",
+    "orderResponse": "各阶响应",
+    "orderLabel": "第 {order} 阶",
+    "imdTones": "60 / 7000 Hz"
   }
 }

@@ -45,7 +45,10 @@ export function zoomDomain(
   const high = scaled(domain[1], logarithmic)
   const pivot = scaled(anchor, logarithmic)
   return normalizeDomain(
-    [unscaled(pivot + (low - pivot) * factor, logarithmic), unscaled(pivot + (high - pivot) * factor, logarithmic)],
+    [
+      unscaled(pivot + (low - pivot) * factor, logarithmic),
+      unscaled(pivot + (high - pivot) * factor, logarithmic)
+    ],
     logarithmic
   )
 }
