@@ -11,12 +11,20 @@ import {
 import type { MixerStripChannel } from "../mixer/mixer-surface-context"
 import type { PluginSelection } from "../plugins/plugin-audio-mode"
 import MixerPluginSection from "../mixer/MixerPluginSection.vue"
-const props = defineProps<{ snapshot: PluginAnalysisSnapshot; catalogBusy: boolean }>()
+const props = defineProps<{
+  snapshot: PluginAnalysisSnapshot
+  catalogBusy: boolean
+  chain: 0 | 1
+}>()
 const emit = defineEmits<{ command: [command: PluginAnalysisCommand] }>()
 const { t } = useI18n()
 const quarantined = computed(() => props.snapshot.status === "quarantined")
+const chainId = computed(() =>
+  props.chain === 0 ? props.snapshot.ref.id : `${props.snapshot.ref.id}:comparison`
+)
+const inserts = computed(() => props.snapshot.plugins.filter((p) => p.channelId === chainId.value))
 const channel = computed<MixerStripChannel>(() => ({
-  id: props.snapshot.ref.id,
+  id: chainId.value,
   kind: "audio",
   name: t("pluginAnalysis.title"),
   color: "var(--ui-signal-audio)",
@@ -35,6 +43,7 @@ const channel = computed<MixerStripChannel>(() => ({
 function insert(selection: PluginSelection, slotOrder: number): void {
   emit("command", {
     type: "insert",
+    chain: props.chain,
     pluginKey: pluginDescriptorKey(selection.descriptor),
     audioMode: selection.audioMode,
     slotOrder
@@ -58,10 +67,10 @@ function insert(selection: PluginSelection, slotOrder: number): void {
       </div>
       <MixerPluginSection
         :channel="channel"
-        :inserts="snapshot.plugins"
+        :inserts="inserts"
         :runtime="snapshot.runtime"
         :effect-plugins="snapshot.catalog"
-        :slot-rows="Math.max(6, snapshot.plugins.length + (snapshot.plugins.length < 16 ? 1 : 0))"
+        :slot-rows="Math.max(6, inserts.length + (inserts.length < 16 ? 1 : 0))"
         initial-input-width="stereo"
         :editors-enabled="!quarantined"
         :structure-enabled="!quarantined && !catalogBusy"

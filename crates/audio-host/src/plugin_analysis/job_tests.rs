@@ -23,6 +23,7 @@ fn settings() -> PluginAnalysisSettings {
         end_hz: 12000.0,
         sweep_seconds: 1.0,
         tail_seconds: 0.25,
+        ..PluginAnalysisSettings::default()
     }
 }
 
@@ -85,6 +86,7 @@ fn cancel_keeps_the_job_owned_until_worker_retirement_and_explicit_release() {
         jobs.start(
             "owned".into(),
             vec![AudioPluginProcessorHandle::new(processor)],
+            None,
             settings(),
             0,
         ),
@@ -94,12 +96,15 @@ fn cancel_keeps_the_job_owned_until_worker_retirement_and_explicit_release() {
 
     let running = jobs.status("owned", false, false);
     // Replaying the same operation returns its status, even with a different payload.
-    assert_eq!(jobs.start("owned".into(), vec![], settings(), 0), running);
+    assert_eq!(
+        jobs.start("owned".into(), vec![], None, settings(), 0),
+        running
+    );
     assert_eq!(jobs.status("owned", true, true), running);
     assert_eq!(jobs.status("owned", false, false), running);
     assert_eq!(retired.load(Ordering::Acquire), 0);
     assert_eq!(
-        jobs.start("other".into(), vec![], settings(), 0),
+        jobs.start("other".into(), vec![], None, settings(), 0),
         failed(PluginAnalysisFailure::Busy)
     );
 
@@ -142,6 +147,7 @@ fn completed_stereo_report_preserves_routing_and_rejects_a_cross_channel_model()
     jobs.start(
         "matrix".into(),
         vec![AudioPluginProcessorHandle::new(MatrixProcessor)],
+        None,
         settings.clone(),
         0,
     );
@@ -235,9 +241,12 @@ fn completed_stereo_report_preserves_routing_and_rejects_a_cross_channel_model()
     assert!(performance.p99_block_us <= performance.maximum_block_us);
     assert!(performance.deadline_misses <= performance.measured_blocks);
 
-    assert_eq!(jobs.start("matrix".into(), vec![], settings, 0), completed);
     assert_eq!(
-        jobs.start("next".into(), vec![], self::settings(), 0),
+        jobs.start("matrix".into(), vec![], None, settings, 0),
+        completed
+    );
+    assert_eq!(
+        jobs.start("next".into(), vec![], None, self::settings(), 0),
         failed(PluginAnalysisFailure::Busy)
     );
     assert_eq!(jobs.status("matrix", false, true), completed);
@@ -272,7 +281,7 @@ fn invalid_settings_do_not_reserve_the_id_and_a_rejected_processor_can_be_releas
     invalid.block_size = 0;
     for (settings, latency) in [(invalid, 0), (settings(), 12000)] {
         assert_eq!(
-            jobs.start("retry".into(), vec![], settings, latency),
+            jobs.start("retry".into(), vec![], None, settings, latency),
             failed(PluginAnalysisFailure::InvalidSettings)
         );
         assert_eq!(
@@ -284,6 +293,7 @@ fn invalid_settings_do_not_reserve_the_id_and_a_rejected_processor_can_be_releas
         jobs.start(
             "retry".into(),
             vec![AudioPluginProcessorHandle::new(RejectingProcessor)],
+            None,
             settings(),
             0,
         ),
@@ -323,7 +333,7 @@ fn a_worker_exit_without_a_terminal_result_is_reconciled_before_release() {
     let unavailable = failed(PluginAnalysisFailure::WorkerUnavailable);
     assert_eq!(jobs.status("lost", false, false), unavailable);
     assert_eq!(
-        jobs.start("lost".into(), vec![], settings(), 0),
+        jobs.start("lost".into(), vec![], None, settings(), 0),
         unavailable
     );
     assert_eq!(jobs.status("lost", false, true), unavailable);

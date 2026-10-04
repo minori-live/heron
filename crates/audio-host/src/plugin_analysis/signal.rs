@@ -83,12 +83,44 @@ pub(super) fn response(
         .iter()
         .map(|v| v / scale)
         .collect();
+    let fft_size = impulse
+        .len()
+        .next_power_of_two()
+        .max(settings.fft_size as usize);
+    let reference = spectrum(
+        &calibration[begin..origin + tail]
+            .iter()
+            .map(|v| v / scale)
+            .collect::<Vec<_>>(),
+        fft_size,
+    );
+    response_from_impulse(
+        impulse,
+        pre,
+        reference,
+        settings,
+        input_channel,
+        output_channel,
+    )
+}
+
+fn response_from_impulse(
+    impulse: Vec<f64>,
+    pre: usize,
+    reference: Vec<Complex<f64>>,
+    settings: &PluginAnalysisSettings,
+    input_channel: u32,
+    output_channel: u32,
+) -> PluginAnalysisResponse {
     let delay = impulse
         .iter()
         .enumerate()
         .max_by(|a, b| a.1.abs().total_cmp(&b.1.abs()))
         .map_or(0, |(index, _)| index.saturating_sub(pre));
-    let fft_size = impulse.len().next_power_of_two();
+    let fft_size = impulse
+        .len()
+        .next_power_of_two()
+        .max(settings.fft_size as usize);
     let mut bins = spectrum(&impulse, fft_size);
     // Remove the measured delay phase before interpolation. A long delay rotates
     // adjacent bins in opposite directions, so interpolating the raw spectrum
@@ -100,13 +132,6 @@ pub(super) fn response(
             std::f64::consts::TAU * bin_index as f64 * delay as f64 / fft_size as f64,
         );
     }
-    let reference = spectrum(
-        &calibration[begin..origin + tail]
-            .iter()
-            .map(|v| v / scale)
-            .collect::<Vec<_>>(),
-        fft_size,
-    );
     let peak = impulse.iter().fold(0.0_f64, |a, b| a.max(b.abs()));
     let mut frequencies = Vec::new();
     let mut magnitudes = Vec::new();
@@ -180,4 +205,61 @@ pub(super) fn noise(count: usize, seed: u32, scale: f64) -> Vec<f64> {
             (f64::from(state) / f64::from(u32::MAX) * 2.0 - 1.0) * scale * level
         })
         .collect()
+}
+
+pub(super) fn broadband_excitation(settings: &PluginAnalysisSettings) -> Vec<f64> {
+    let peak = 10_f64.powf(settings.level_dbfs / 20.0);
+    let count = settings.fft_size as usize * 4;
+    if settings.linear_excitation == "delta" {
+        let mut values = vec![0.0; count];
+        values[0] = peak;
+        values
+    } else {
+        white_noise(count, 0x91372, peak)
+    }
+}
+
+pub(super) fn white_noise(count: usize, seed: u32, scale: f64) -> Vec<f64> {
+    let mut state = seed;
+    (0..count)
+        .map(|_| {
+            state ^= state << 13;
+            state ^= state >> 17;
+            state ^= state << 5;
+            (f64::from(state) / f64::from(u32::MAX) * 2.0 - 1.0) * scale
+        })
+        .collect()
+}
+
+pub(super) fn broadband_response(
+    input: &[f64],
+    output: &[f64],
+    settings: &PluginAnalysisSettings,
+    input_channel: u32,
+    output_channel: u32,
+) -> PluginAnalysisResponse {
+    let tail = (settings.tail_seconds * f64::from(settings.sample_rate)) as usize;
+    let size = (input.len() + output.len()).next_power_of_two();
+    let x = spectrum(input, size);
+    let y = spectrum(output, size);
+    let regularization = x.iter().map(|x| x.norm_sqr()).fold(0.0_f64, f64::max) * 1e-12;
+    let mut impulse = inverse(
+        x.iter()
+            .zip(y)
+            .map(|(x, y)| y * x.conj() / (x.norm_sqr() + regularization).max(1e-30))
+            .collect(),
+    );
+    impulse.truncate(tail);
+    let fft_size = impulse
+        .len()
+        .next_power_of_two()
+        .max(settings.fft_size as usize);
+    response_from_impulse(
+        impulse,
+        0,
+        vec![Complex::new(1.0, 0.0); fft_size],
+        settings,
+        input_channel,
+        output_channel,
+    )
 }

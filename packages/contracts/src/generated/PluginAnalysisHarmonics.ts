@@ -3,4 +3,4 @@
 /**
  * H2 through H8 in orders_db are dB relative to the measured fundamental; null above Nyquist.
  */
-export type PluginAnalysisHarmonics = { channel: number, frequency_hz: Array<number>, orders_db: Array<Array<number | null>>, thd_percent: Array<number | null>, };
+export type PluginAnalysisHarmonics = { channel: number, frequency_hz: Array<number>, orders_db: Array<Array<number | null>>, thd_percent: Array<number | null>, fundamental_gain_db: Array<number | null>, };

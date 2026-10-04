@@ -131,12 +131,12 @@ describe("harmonic analysis presentation", () => {
 })
 
 describe("Hammerstein model presentation", () => {
-  it("evaluates the normalized polynomial over the measured input scale and changes channel", async () => {
+  it("projects independent filter DC gains over the measured input scale and changes channel", async () => {
     const wrapper = shallowMount(PluginAnalysisModel, { props: { report: analysisReport() } })
     const plot = wrapper.getComponent(PluginAnalysisPlot)
     const series = plot.props("series")[0]!
     expect([series.x[0], series.x[128], series.x.at(-1)]).toEqual([-0.5, 0, 0.5])
-    expect([series.y[0], series.y[128], series.y.at(-1)]).toEqual([-1, 0, 3])
+    expect([series.y[0], series.y[128], series.y.at(-1)]).toEqual([0, 0, 0])
     expect(wrapper.text()).toContain("Fit error: 0.25%")
     await select(wrapper, "Channel", "1")
     expect(plot.props("series")[0]?.y.at(-1)).toBe(1)

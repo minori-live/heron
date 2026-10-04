@@ -42,6 +42,8 @@ pub enum ControlCommand {
     StartPluginAnalysis {
         operation_id: String,
         instance_ids: Vec<String>,
+        #[serde(default)]
+        comparison_instance_ids: Option<Vec<String>>,
         settings: super::PluginAnalysisSettings,
         reported_latency_samples: u32,
     },

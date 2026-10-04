@@ -20,6 +20,9 @@ function report(): PluginAnalysisReport {
     responses: [],
     harmonics: [],
     spectrograms: [],
+    distortion: [],
+    oscilloscopes: [],
+    dynamics: [],
     models: [],
     performance: {
       reported_latency_samples: 0,
@@ -30,6 +33,7 @@ function report(): PluginAnalysisReport {
       budget_us: 1000,
       deadline_misses: 0,
       measured_blocks: 10,
+      block_sizes: [],
       buffer_bytes: 100
     }
   }
@@ -48,6 +52,10 @@ function snapshot(
     catalog: [],
     settings: { ...DEFAULT_PLUGIN_ANALYSIS_SETTINGS },
     automatic: true,
+    comparisonEnabled: false,
+    repeating: false,
+    comparisonReport: null,
+    differenceReport: null,
     status: "complete",
     phase: "",
     progress: 1,
@@ -290,4 +298,28 @@ describe("plugin analysis commands", () => {
     expect(store.snapshot?.revision).toBe(3)
     expect(store.catalogBusy).toBe(false)
   })
+})
+
+it("retains all comparison bodies together when an unchanged batch is omitted", async () => {
+  const primary = report(),
+    comparison = report(),
+    difference = report()
+  const value = {
+    ...snapshot(primary, "batch", 3),
+    comparisonEnabled: true,
+    comparisonReport: comparison,
+    differenceReport: difference
+  }
+  snapshotRequest
+    .mockResolvedValueOnce(rpcSuccess(value))
+    .mockResolvedValue(
+      rpcSuccess({ ...value, report: null, comparisonReport: null, differenceReport: null })
+    )
+  const store = usePluginAnalysisStore()
+  store.start()
+  await vi.advanceTimersByTimeAsync(250)
+  expect(store.snapshot?.report).toBe(primary)
+  expect(store.snapshot?.comparisonReport).toBe(comparison)
+  expect(store.snapshot?.differenceReport).toBe(difference)
+  store.stop()
 })

@@ -22,22 +22,22 @@ pub(super) fn linear_sweep(settings: &PluginAnalysisSettings) -> Vec<f64> {
 }
 
 pub(super) fn measure(
-    output: &[[f64; 2]],
+    output: &[f64],
     settings: &PluginAnalysisSettings,
-    channel: usize,
+    channel: u32,
     logarithmic_sweep: bool,
     cancel: &AtomicBool,
 ) -> Result<PluginAnalysisSpectrogram, PluginAnalysisFailure> {
-    const FFT_SIZE: usize = 4096;
+    let fft_size = settings.fft_size as usize / 4;
     const COLUMNS: usize = 192;
     const ROWS: usize = 512;
-    const BINS_PER_ROW: usize = FFT_SIZE / 2 / ROWS;
-    let window: Vec<_> = (0..FFT_SIZE)
-        .map(|i| 0.5 - 0.5 * (std::f64::consts::TAU * i as f64 / FFT_SIZE as f64).cos())
+    let bins_per_row = fft_size / 2 / ROWS;
+    let window: Vec<_> = (0..fft_size)
+        .map(|i| 0.5 - 0.5 * (std::f64::consts::TAU * i as f64 / fft_size as f64).cos())
         .collect();
     let window_sum = window.iter().sum::<f64>();
-    let fft = FftPlanner::new().plan_fft_forward(FFT_SIZE);
-    let mut bins = vec![Complex::default(); FFT_SIZE];
+    let fft = FftPlanner::new().plan_fft_forward(fft_size);
+    let mut bins = vec![Complex::default(); fft_size];
     let mut scratch = vec![Complex::default(); fft.get_inplace_scratch_len()];
     let mut values = Vec::with_capacity(COLUMNS * ROWS);
     let frames = settings.sweep_seconds * f64::from(settings.sample_rate);
@@ -47,11 +47,9 @@ pub(super) fn measure(
         }
         let center = (frames * column as f64 / (COLUMNS - 1) as f64).round() as isize;
         for (i, bin) in bins.iter_mut().enumerate() {
-            let index = center + i as isize - FFT_SIZE as isize / 2;
+            let index = center + i as isize - fft_size as isize / 2;
             let value = if index >= 0 {
-                output
-                    .get(index as usize)
-                    .map_or(0.0, |frame| frame[channel])
+                output.get(index as usize).copied().unwrap_or(0.0)
             } else {
                 0.0
             };
@@ -61,10 +59,10 @@ pub(super) fn measure(
         // Keep each band's maximum, preserving narrow harmonics and reflected aliasing.
         // Values come from the measured output, including energy between harmonic orders.
         for row in 0..ROWS {
-            let first = row * BINS_PER_ROW;
+            let first = row * bins_per_row;
             // The one-sided factor of two applies to non-DC bins only; doubling the
             // DC bin reports a constant output as +6 dBFS instead of 0 dBFS.
-            let amplitude = bins[first..first + BINS_PER_ROW].iter().enumerate().fold(
+            let amplitude = bins[first..first + bins_per_row].iter().enumerate().fold(
                 0.0_f64,
                 |peak, (offset, bin)| {
                     let scale = if first + offset == 0 { 1.0 } else { 2.0 };
@@ -75,7 +73,7 @@ pub(super) fn measure(
         }
     }
     Ok(PluginAnalysisSpectrogram {
-        channel: channel as u32,
+        channel,
         logarithmic_sweep,
         columns: COLUMNS as u32,
         rows: ROWS as u32,

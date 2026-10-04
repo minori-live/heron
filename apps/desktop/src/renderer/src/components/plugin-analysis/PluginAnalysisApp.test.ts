@@ -65,7 +65,10 @@ describe("analysis window orchestration", () => {
     expect(store.configure).not.toHaveBeenCalled()
     expect(wrapper.get("output").text()).toBe("+6.0 dBFS")
     slider.vm.$emit("change", 6)
-    wrapper.getComponent(UiCheckbox).vm.$emit("update:modelValue", false)
+    wrapper
+      .findAllComponents(UiCheckbox)
+      .find((c) => c.props("label") === "Auto analyze")!
+      .vm.$emit("update:modelValue", false)
     const buttons = wrapper.findAllComponents(UiButton)
     buttons.find((button) => button.text() === "Cancel")!.vm.$emit("click")
     buttons.find((button) => button.text() === "Analyze")!.vm.$emit("click")

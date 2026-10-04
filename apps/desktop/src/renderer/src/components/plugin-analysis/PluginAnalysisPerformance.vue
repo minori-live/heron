@@ -2,16 +2,46 @@
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { UiProgress } from "@heron/ui"
-import type { PluginAnalysisSnapshot } from "@heron/contracts"
-const props = defineProps<{ snapshot: PluginAnalysisSnapshot }>()
+import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
+import type { PluginAnalysisSnapshot, PluginAnalysisReport } from "@heron/contracts"
+const props = defineProps<{ snapshot: PluginAnalysisSnapshot; comparison?: PluginAnalysisReport }>()
 const { t } = useI18n()
 const report = computed(() => props.snapshot.report!)
 const performance = computed(() => report.value.performance)
 const budget = computed(() => (performance.value.p99_block_us / performance.value.budget_us) * 100)
+const blockSeries = computed(() =>
+  [report.value, props.comparison].flatMap((r, index) =>
+    r
+      ? [
+          {
+            label: `${props.comparison ? t(`pluginAnalysis.chain${index + 1}`) + " · " : ""}${t("pluginAnalysis.blockTime")}`,
+            x: r.performance.block_sizes.map((p) => p.block_size),
+            y: r.performance.block_sizes.map((p) => p.average_block_us),
+            color: index ? "var(--ui-color-action)" : "var(--ui-signal-mixer-input)"
+          },
+          {
+            label: `${props.comparison ? t(`pluginAnalysis.chain${index + 1}`) + " · " : ""}P99`,
+            x: r.performance.block_sizes.map((p) => p.block_size),
+            y: r.performance.block_sizes.map((p) => p.p99_block_us),
+            dashed: true,
+            color: index ? "var(--ui-color-action)" : "var(--ui-signal-mixer-input)"
+          }
+        ]
+      : []
+  )
+)
 const mib = (bytes: number) => (bytes / 1024 / 1024).toFixed(2)
 </script>
 <template>
   <section class="performance-panel">
+    <div class="block-plot">
+      <PluginAnalysisPlot
+        :title="t('pluginAnalysis.blockPerformance')"
+        :x-label="t('pluginAnalysis.blockSize')"
+        y-label="μs"
+        :series="blockSeries"
+      />
+    </div>
     <div class="headline-metrics">
       <article>
         <h3>{{ t("pluginAnalysis.reportedLatency") }}</h3>
@@ -65,6 +95,11 @@ const mib = (bytes: number) => (bytes / 1024 / 1024).toFixed(2)
   </section>
 </template>
 <style scoped>
+.block-plot {
+  display: flex;
+  height: 300px;
+  margin-bottom: 24px;
+}
 .performance-panel {
   flex: 1;
   min-height: 0;

@@ -8,6 +8,7 @@ import {
   UiNumberInput,
   UiProgress,
   UiSelect,
+  UiSegmentedControl,
   UiTabs
 } from "@heron/ui"
 import { DEFAULT_PLUGIN_ANALYSIS_SETTINGS, pluginDescriptorKey } from "@heron/contracts"
@@ -31,11 +32,12 @@ describe("analysis measurement settings", () => {
       },
       global: { stubs: { UiField: false } }
     })
-    const [rate, block] = wrapper.findAllComponents(UiSelect)
-    rate!.vm.$emit("update:modelValue", "44100")
-    block!.vm.$emit("update:modelValue", "512")
+    const rate = wrapper.findAllComponents(UiSelect).find((c) => c.props("modelValue") === "96000")!
+    const block = wrapper.findAllComponents(UiSelect).find((c) => c.props("modelValue") === "256")!
+    rate.vm.$emit("update:modelValue", "44100")
+    block.vm.$emit("update:modelValue", "512")
     const numbers = wrapper.findAllComponents(UiNumberInput)
-    const patches = [100, 18000, 2, 1]
+    const patches = [100, 18000, 2, 1, 1000, 7]
     for (const [index, input] of numbers.entries())
       input.vm.$emit("update:modelValue", patches[index])
     numbers[0]!.vm.$emit("update:modelValue", null)
@@ -45,14 +47,16 @@ describe("analysis measurement settings", () => {
       [{ start_hz: 100 }],
       [{ end_hz: 18000 }],
       [{ sweep_seconds: 2 }],
-      [{ tail_seconds: 1 }]
+      [{ tail_seconds: 1 }],
+      [{ tone_hz: 1000 }],
+      [{ model_order: 7 }]
     ])
     await wrapper.setProps({
       settings: { ...DEFAULT_PLUGIN_ANALYSIS_SETTINGS, end_hz: 18000, start_hz: 100 }
     })
     expect(numbers[0]!.props("max")).toBe(8999)
     expect(numbers[1]!.props()).toMatchObject({ min: 201, max: 21600 })
-    rate!.vm.$emit("update:modelValue", "96000")
+    rate.vm.$emit("update:modelValue", "96000")
     expect(wrapper.emitted("configure")?.at(-1)).toEqual([{ sample_rate: 96000, end_hz: 18000 }])
     expect(wrapper.findAllComponents(UiField).map((field) => field.props("label"))).toContain(
       "Settle / tail duration"
@@ -63,7 +67,7 @@ describe("analysis measurement settings", () => {
 describe("analysis chain intents", () => {
   it("maps rack actions and blocks structural edits while scanning or quarantined", async () => {
     const wrapper = shallowMount(PluginAnalysisChain, {
-      props: { snapshot: analysisSnapshot(), catalogBusy: false }
+      props: { snapshot: analysisSnapshot(), catalogBusy: false, chain: 0 }
     })
     const rack = wrapper.getComponent(MixerPluginSection)
     expect(rack.props()).toMatchObject({
@@ -96,6 +100,7 @@ describe("analysis chain intents", () => {
       [
         {
           type: "insert",
+          chain: 0,
           pluginKey: pluginDescriptorKey(descriptor),
           audioMode: "stereo",
           slotOrder: 2
@@ -123,6 +128,41 @@ describe("analysis chain intents", () => {
 })
 
 describe("analysis report composition", () => {
+  it("routes parallel, individual and difference reports with a literal comparison label", async () => {
+    const snapshot = analysisSnapshot({
+      comparisonEnabled: true,
+      comparisonReport: analysisReport(),
+      differenceReport: analysisReport()
+    })
+    snapshot.comparisonReport!.settings.level_dbfs = -12
+    snapshot.differenceReport!.settings.level_dbfs = -24
+    const wrapper = shallowMount(PluginAnalysisReport, {
+      props: { snapshot },
+      global: {
+        stubs: {
+          UiTabs: {
+            props: ["modelValue"],
+            template: '<section><slot :name="modelValue" /></section>'
+          }
+        }
+      }
+    })
+    const selector = wrapper.getComponent(UiSegmentedControl)
+    expect(selector.props("options")[0]?.label).toBe("1 | 2")
+    const linear = wrapper.getComponent(PluginAnalysisLinear)
+    expect(linear.props("comparison")).toEqual(snapshot.comparisonReport)
+    for (const [mode, report] of [
+      ["difference", snapshot.differenceReport],
+      ["comparison", snapshot.comparisonReport],
+      ["primary", snapshot.report]
+    ] as const) {
+      selector.vm.$emit("update:modelValue", mode)
+      await nextTick()
+      expect(linear.props("report")).toEqual(report)
+      expect(linear.props("comparison")).toBeUndefined()
+    }
+  })
+
   it("labels current and stored traces and passes measurement units to the shared plot", () => {
     const series = [
       { label: "L → L", x: [100, 1000], y: [-12, 6] },

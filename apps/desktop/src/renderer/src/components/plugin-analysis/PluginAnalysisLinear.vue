@@ -10,7 +10,7 @@ import {
 } from "@heron/ui"
 import type { PluginAnalysisReport } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
-const props = defineProps<{ report: PluginAnalysisReport }>()
+const props = defineProps<{ report: PluginAnalysisReport; comparison?: PluginAnalysisReport }>()
 const { t } = useI18n()
 const view = ref("magnitude")
 const path = ref("direct")
@@ -25,45 +25,54 @@ const paths = computed(() => [
   { value: "direct", label: t("pluginAnalysis.bothChannels") },
   ...props.report.responses.map((p, i) => ({
     value: String(i),
-    label: `${p.input ? "R" : "L"} → ${p.output ? "R" : "L"}`
+    label: `${channelName(p.input)} → ${channelName(p.output)}`
   }))
 ])
-const responses = computed(() =>
-  props.report.responses.filter((p, i) =>
-    path.value === "direct" ? p.input === p.output : i === Number(path.value)
-  )
-)
-const series = computed<UiAnalysisSeries[]>(() =>
-  responses.value.map((p, index) => ({
-    label: `${p.input ? "R" : "L"} → ${p.output ? "R" : "L"}`,
-    color: index ? "var(--ui-color-action)" : "var(--ui-signal-mixer-input)",
-    x:
-      view.value === "impulse"
-        ? p.impulse.map(
-            (_, i) =>
-              ((p.impulse_start_samples +
-                i * p.impulse_stride -
-                (compensate.value ? (p.delay_samples ?? 0) : 0)) /
-                props.report.settings.sample_rate) *
-              1000
-          )
-        : p.frequency_hz,
-    y:
-      view.value === "magnitude"
-        ? p.magnitude_db
-        : view.value === "impulse"
-          ? p.impulse
-          : p.phase_degrees.map((value, i) =>
-              value === null
-                ? null
-                : value +
-                  (compensate.value
-                    ? (360 * p.frequency_hz[i]! * (p.delay_samples ?? 0)) /
-                      props.report.settings.sample_rate
-                    : 0)
+function channelName(index: number): string {
+  if (props.report.settings.mid_side) return index ? "S" : "M"
+  return index ? "R" : "L"
+}
+const makeSeries = (report: PluginAnalysisReport, chain?: number): UiAnalysisSeries[] =>
+  report.responses
+    .filter((p, i) => (path.value === "direct" ? p.input === p.output : i === Number(path.value)))
+    .map((p, index) => ({
+      label: `${chain === undefined ? "" : t(`pluginAnalysis.chain${chain + 1}`) + " · "}${channelName(p.input)} → ${channelName(p.output)}`,
+      color:
+        chain === 1
+          ? "var(--ui-color-action)"
+          : index
+            ? "var(--ui-color-action)"
+            : "var(--ui-signal-mixer-input)",
+      x:
+        view.value === "impulse"
+          ? p.impulse.map(
+              (_, i) =>
+                ((p.impulse_start_samples +
+                  i * p.impulse_stride -
+                  (compensate.value ? (p.delay_samples ?? 0) : 0)) /
+                  report.settings.sample_rate) *
+                1000
             )
-  }))
-)
+          : p.frequency_hz,
+      y:
+        view.value === "magnitude"
+          ? p.magnitude_db
+          : view.value === "impulse"
+            ? p.impulse
+            : p.phase_degrees.map((value, i) =>
+                value === null
+                  ? null
+                  : value +
+                    (compensate.value
+                      ? (360 * p.frequency_hz[i]! * (p.delay_samples ?? 0)) /
+                        report.settings.sample_rate
+                      : 0)
+              )
+    }))
+const series = computed(() => [
+  ...makeSeries(props.report, props.comparison ? 0 : undefined),
+  ...(props.comparison ? makeSeries(props.comparison, 1) : [])
+])
 const displayed = computed(() => [...stored.value, ...series.value])
 const responseDomain = computed<readonly [number, number] | undefined>(() => {
   if (view.value === "impulse") return undefined

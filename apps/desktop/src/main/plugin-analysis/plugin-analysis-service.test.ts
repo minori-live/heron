@@ -57,6 +57,9 @@ function arrange(
     responses: [],
     harmonics: [],
     spectrograms: [],
+    distortion: [],
+    oscilloscopes: [],
+    dynamics: [],
     models: [],
     performance: {
       reported_latency_samples: 0,
@@ -67,6 +70,7 @@ function arrange(
       budget_us: 1000,
       deadline_misses: 0,
       measured_blocks: 10,
+      block_sizes: [],
       buffer_bytes: 100
     }
   }
@@ -537,6 +541,148 @@ describe("Plugin Analysis analysis session", () => {
       })
     )
     expect(service.snapshot()).toMatchObject({ status: "complete", reportRevision: 4 })
+    await service.close()
+  })
+})
+
+describe("Plugin Analysis comparison batches", () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  it("retains endpoints and the previous batch when native release is unconfirmed", async () => {
+    const { service, host, complete } = arrange()
+    await service.command({ type: "automatic", enabled: false }, "auto")
+    await insertEffect(service)
+    complete()
+    await service.command({ type: "analyze" }, "first")
+    await vi.advanceTimersByTimeAsync(0)
+    const previous = service.snapshot().reportId
+    const original = host.pluginAnalysisRequest.getMockImplementation()!
+    host.pluginAnalysisRequest.mockImplementation(async (command) =>
+      command.type === "release-plugin-analysis"
+        ? {
+            request_id: 1,
+            result: {
+              type: "plugin-analysis" as const,
+              plugin_analysis_status: {
+                state: "running" as const,
+                phase: "performance",
+                progress: 1
+              }
+            }
+          }
+        : original(command)
+    )
+    host.unloadPluginAnalysisPlugin.mockClear()
+    await service.command({ type: "comparison", enabled: true }, "compare")
+    await service.command({ type: "analyze" }, "second")
+    await vi.advanceTimersByTimeAsync(0)
+    expect(service.snapshot()).toMatchObject({
+      status: "quarantined",
+      failure: "cleanup-failed",
+      reportId: previous,
+      comparisonReport: null,
+      differenceReport: null
+    })
+    expect(host.unloadPluginAnalysisPlugin).not.toHaveBeenCalled()
+    await service.close()
+    expect(host.unloadPluginAnalysisPlugin).not.toHaveBeenCalled()
+  })
+
+  it("keeps chain order independent and publishes a complete comparison batch once", async () => {
+    const { service, host } = arrange()
+    await service.command({ type: "automatic", enabled: false }, "auto")
+    const insert = {
+      type: "insert" as const,
+      pluginKey: pluginDescriptorKey(descriptor),
+      audioMode: "stereo" as const,
+      slotOrder: 0
+    }
+    await service.command({ ...insert, chain: 0 }, "first")
+    await service.command({ ...insert, chain: 1 }, "second")
+    await service.command({ ...insert, chain: 0 }, "third")
+    const originals = service.snapshot().plugins
+    expect(originals.filter((p) => p.channelId === service.ref.id).map((p) => p.slotOrder)).toEqual(
+      [0, 1]
+    )
+    expect(originals.filter((p) => p.channelId !== service.ref.id).map((p) => p.slotOrder)).toEqual(
+      [0]
+    )
+    await service.command({ type: "comparison", enabled: true }, "compare")
+    let active = 0
+    let finish = false
+    const base = {
+      settings: { ...DEFAULT_PLUGIN_ANALYSIS_SETTINGS },
+      responses: [],
+      harmonics: [],
+      spectrograms: [],
+      distortion: [],
+      oscilloscopes: [],
+      dynamics: [],
+      models: [],
+      performance: {
+        reported_latency_samples: 0,
+        average_block_us: 1,
+        p95_block_us: 1,
+        p99_block_us: 1,
+        maximum_block_us: 1,
+        budget_us: 1000,
+        deadline_misses: 0,
+        measured_blocks: 1,
+        buffer_bytes: 0,
+        block_sizes: []
+      }
+    }
+    host.pluginAnalysisRequest.mockImplementation(async (command: Record<string, unknown>) => {
+      if (command.type === "start-plugin-analysis") active++
+      return {
+        request_id: 1,
+        result: {
+          type: "plugin-analysis" as const,
+          plugin_analysis_status:
+            active === 1 || finish
+              ? {
+                  state: "completed" as const,
+                  report: { ...base, settings: { ...base.settings, level_dbfs: -active } }
+                }
+              : { state: "running" as const, phase: "linear", progress: 0.2 }
+        }
+      }
+    })
+    await service.command({ type: "analyze" }, "analyze")
+    await vi.advanceTimersByTimeAsync(0)
+    expect(active).toBe(2)
+    expect(service.snapshot().report).toBeNull()
+    finish = true
+    await vi.advanceTimersByTimeAsync(100)
+    const snapshot = service.snapshot()
+    expect(snapshot.status).toBe("complete")
+    expect([
+      snapshot.report?.settings.level_dbfs,
+      snapshot.comparisonReport?.settings.level_dbfs,
+      snapshot.differenceReport?.settings.level_dbfs
+    ]).toEqual([-1, -2, -3])
+    const starts = host.pluginAnalysisRequest.mock.calls
+      .map(([c]) => c)
+      .filter((c) => c.type === "start-plugin-analysis")
+    expect(starts.map((c) => (c.instance_ids as string[]).length)).toEqual([2, 1, 2])
+    expect((starts[2]!.comparison_instance_ids as string[]).length).toBe(1)
+    expect(service.snapshot(snapshot.reportId!).comparisonReport).toBeNull()
+    expect(service.snapshot(snapshot.reportId!).differenceReport).toBeNull()
+    await service.close()
+  })
+
+  it("Cancel stops repetition and retires the current measurement", async () => {
+    const { service, host } = arrange()
+    await service.command({ type: "repeat", enabled: true }, "repeat")
+    await vi.advanceTimersByTimeAsync(0)
+    await service.command({ type: "cancel" }, "cancel")
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(service.snapshot().repeating).toBe(false)
+    expect(service.snapshot().status).toBe("cancelled")
+    expect(
+      host.pluginAnalysisRequest.mock.calls.filter(([c]) => c.type === "start-plugin-analysis")
+    ).toHaveLength(1)
     await service.close()
   })
 })

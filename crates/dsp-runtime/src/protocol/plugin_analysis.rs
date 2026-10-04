@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct PluginAnalysisSettings {
     pub sample_rate: u32,
     pub block_size: u32,
@@ -10,6 +11,44 @@ pub struct PluginAnalysisSettings {
     pub end_hz: f64,
     pub sweep_seconds: f64,
     pub tail_seconds: f64,
+    pub tone_hz: f64,
+    pub model_order: u32,
+    pub mid_side: bool,
+    pub linear_excitation: String,
+    pub fft_size: u32,
+    pub processing_speed: String,
+    pub ramp_start_dbfs: f64,
+    pub ramp_end_dbfs: f64,
+    pub ramp_step_db: f64,
+    pub ramp_seconds: f64,
+    pub dynamics_levels_dbfs: [f64; 3],
+    pub dynamics_seconds: [f64; 3],
+}
+
+impl Default for PluginAnalysisSettings {
+    fn default() -> Self {
+        Self {
+            sample_rate: 48000,
+            block_size: 256,
+            level_dbfs: -18.0,
+            start_hz: 20.0,
+            end_hz: 20000.0,
+            sweep_seconds: 1.0,
+            tail_seconds: 0.25,
+            tone_hz: 1000.0,
+            model_order: 5,
+            mid_side: false,
+            linear_excitation: "sweep".into(),
+            fft_size: 16384,
+            processing_speed: "ultra".into(),
+            ramp_start_dbfs: -100.0,
+            ramp_end_dbfs: 0.0,
+            ramp_step_db: 1.0,
+            ramp_seconds: 0.4,
+            dynamics_levels_dbfs: [-60.0, 0.0, -60.0],
+            dynamics_seconds: [0.2; 3],
+        }
+    }
 }
 
 impl PluginAnalysisSettings {
@@ -27,6 +66,36 @@ impl PluginAnalysisSettings {
             && (1.0..=8.0).contains(&self.sweep_seconds)
             && self.tail_seconds.is_finite()
             && (0.25..=5.0).contains(&self.tail_seconds)
+            && self.tone_hz.is_finite()
+            && self.tone_hz >= 20.0
+            && self.tone_hz <= f64::from(self.sample_rate) * 0.45
+            && (3..=7).contains(&self.model_order)
+            && matches!(
+                self.linear_excitation.as_str(),
+                "sweep" | "delta" | "random"
+            )
+            && matches!(self.fft_size, 16384 | 32768 | 65536)
+            && matches!(
+                self.processing_speed.as_str(),
+                "realtime" | "x2" | "x4" | "ultra"
+            )
+            && self.ramp_start_dbfs.is_finite()
+            && self.ramp_end_dbfs.is_finite()
+            && (-100.0..=12.0).contains(&self.ramp_start_dbfs)
+            && (-100.0..=12.0).contains(&self.ramp_end_dbfs)
+            && self.ramp_end_dbfs > self.ramp_start_dbfs
+            && self.ramp_step_db.is_finite()
+            && (0.5..=12.0).contains(&self.ramp_step_db)
+            && self.ramp_seconds.is_finite()
+            && (0.4..=1.5).contains(&self.ramp_seconds)
+            && self
+                .dynamics_levels_dbfs
+                .iter()
+                .all(|v| v.is_finite() && (-100.0..=12.0).contains(v))
+            && self
+                .dynamics_seconds
+                .iter()
+                .all(|v| v.is_finite() && (0.01..=5.0).contains(v))
     }
 }
 
@@ -55,15 +124,17 @@ pub struct PluginAnalysisHarmonics {
     pub frequency_hz: Vec<f64>,
     pub orders_db: Vec<Vec<Option<f64>>>,
     pub thd_percent: Vec<Option<f64>>,
+    pub fundamental_gain_db: Vec<Option<f64>>,
 }
 
 #[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginAnalysisModel {
     pub channel: u32,
-    pub coefficients: Vec<f64>,
+    // Independent FIR for each normalized input power, starting with order one.
+    pub filters: Vec<Vec<f64>>,
+    pub dc_offset: f64,
     pub input_scale: f64,
-    pub filter: Vec<f64>,
     pub delay_samples: u32,
     pub validation_error_percent: f64,
     pub suitable: bool,
@@ -85,6 +156,78 @@ pub struct PluginAnalysisSpectrogram {
     pub magnitude_dbfs: Vec<f32>,
 }
 
+/// Single-tone THD/THD+N and two-tone intermodulation distortion.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PluginAnalysisSpectrum {
+    pub frequency_hz: Vec<f64>,
+    pub magnitude_dbfs: Vec<f64>,
+}
+
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PluginAnalysisDistortion {
+    pub channel: u32,
+    pub tone_hz: f64,
+    pub thd_percent: Option<f64>,
+    pub thd_plus_n_percent: Option<f64>,
+    pub imd_percent: Option<f64>,
+    pub tone_spectrum: PluginAnalysisSpectrum,
+    pub imd_spectrum: PluginAnalysisSpectrum,
+}
+
+/// One standard test waveform captured at the chain output. `input` and `output`
+/// are aligned and equally downsampled for time-domain and waveshaping views.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PluginAnalysisOscilloscopeWaveform {
+    pub waveform: String,
+    pub input: Vec<f64>,
+    pub output: Vec<f64>,
+}
+
+/// Captured standard waveforms plus the delay needed to align input and output.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PluginAnalysisOscilloscope {
+    pub channel: u32,
+    pub sample_rate: f64,
+    pub duration_seconds: f64,
+    pub delay_samples: u32,
+    pub waveforms: Vec<PluginAnalysisOscilloscopeWaveform>,
+}
+
+/// One level of the static transfer curve, both in dBFS peak.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PluginAnalysisDynamicsPoint {
+    pub input_dbfs: f64,
+    pub output_dbfs: f64,
+}
+
+/// Static level ramp plus an attack/release envelope.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PluginAnalysisDynamics {
+    pub channel: u32,
+    pub ramp: Vec<PluginAnalysisDynamicsPoint>,
+    pub time_seconds: Vec<f64>,
+    pub input_envelope: Vec<f64>,
+    pub output_envelope: Vec<f64>,
+    pub segment_seconds: [f64; 3],
+}
+
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PluginAnalysisBlockPerformance {
+    pub block_size: u32,
+    pub average_block_us: f64,
+    pub p95_block_us: f64,
+    pub p99_block_us: f64,
+    pub maximum_block_us: f64,
+    pub measured_blocks: u32,
+}
+
 #[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginAnalysisPerformance {
@@ -97,6 +240,7 @@ pub struct PluginAnalysisPerformance {
     pub deadline_misses: u32,
     pub measured_blocks: u32,
     pub buffer_bytes: u64,
+    pub block_sizes: Vec<PluginAnalysisBlockPerformance>,
 }
 
 #[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
@@ -106,6 +250,9 @@ pub struct PluginAnalysisReport {
     pub responses: Vec<PluginAnalysisResponse>,
     pub harmonics: Vec<PluginAnalysisHarmonics>,
     pub spectrograms: Vec<PluginAnalysisSpectrogram>,
+    pub distortion: Vec<PluginAnalysisDistortion>,
+    pub oscilloscopes: Vec<PluginAnalysisOscilloscope>,
+    pub dynamics: Vec<PluginAnalysisDynamics>,
     pub models: Vec<PluginAnalysisModel>,
     pub performance: PluginAnalysisPerformance,
 }

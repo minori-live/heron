@@ -9,6 +9,7 @@ import {
 import type {
   PluginAnalysisCommand,
   PluginAnalysisSnapshot,
+  PluginAnalysisReport,
   PluginDescriptor,
   PluginInstanceState,
   PluginParameterInfo
@@ -68,10 +69,14 @@ export class PluginAnalysisService {
       catalog: [],
       settings: { ...DEFAULT_PLUGIN_ANALYSIS_SETTINGS },
       automatic: true,
+      comparisonEnabled: false,
+      repeating: false,
       status: "idle",
       phase: "",
       progress: 0,
       report: null,
+      comparisonReport: null,
+      differenceReport: null,
       reportId: null,
       reportRevision: null,
       memory: null,
@@ -104,6 +109,8 @@ export class PluginAnalysisService {
         knownReportId !== undefined && knownReportId === this.value.reportId
           ? null
           : this.value.report,
+      comparisonReport: knownReportId === this.value.reportId ? null : this.value.comparisonReport,
+      differenceReport: knownReportId === this.value.reportId ? null : this.value.differenceReport,
       catalog: this.catalog().filter((p) => p.kind === "effect")
     })
   }
@@ -167,7 +174,8 @@ export class PluginAnalysisService {
           !descriptor ||
           descriptor.kind !== "effect" ||
           descriptor.compatibility !== "compatible" ||
-          this.value.plugins.length >= 16 ||
+          this.value.plugins.filter((p) => p.channelId === this.chainId(command.chain ?? 0))
+            .length >= 16 ||
           !pluginSupportsHostedAudioMode(descriptor, command.audioMode)
         )
           return
@@ -191,7 +199,7 @@ export class PluginAnalysisService {
         const id = `plugin-analysis-lab-${randomUUID()}`
         const plugin: PluginInstanceState = {
           id,
-          channelId: this.value.ref.id,
+          channelId: this.chainId(command.chain ?? 0),
           role: "insert",
           slotOrder: command.slotOrder,
           locator: pluginLocator(descriptor),
@@ -206,7 +214,7 @@ export class PluginAnalysisService {
         try {
           const timing = await this.host.loadPlugin(plugin, this.value.settings.sample_rate)
           this.parameterFingerprints.set(id, this.fingerprint(await this.host.pluginParameters(id)))
-          this.value.plugins.splice(command.slotOrder, 0, plugin)
+          this.insertAt(plugin, command.slotOrder)
           this.value.runtime[id] = {
             instanceId: id,
             state: "active",
@@ -242,7 +250,7 @@ export class PluginAnalysisService {
         const index = this.value.plugins.findIndex((p) => p.id === command.instanceId)
         if (index < 0) return
         const [plugin] = this.value.plugins.splice(index, 1)
-        if (plugin) this.value.plugins.splice(command.slotOrder, 0, plugin)
+        if (plugin) this.insertAt(plugin, command.slotOrder)
         this.reorder()
         this.changed("chain")
         break
@@ -286,6 +294,14 @@ export class PluginAnalysisService {
           this.changed()
         }
         break
+      case "comparison":
+        this.value.comparisonEnabled = command.enabled
+        this.changed("chain")
+        break
+      case "repeat":
+        this.value.repeating = command.enabled
+        if (command.enabled) this.schedule(0)
+        break
       case "automatic":
         this.value.automatic = command.enabled
         if (command.enabled) {
@@ -312,6 +328,7 @@ export class PluginAnalysisService {
         }
         break
       case "cancel":
+        this.value.repeating = false
         this.cancellation += 1
         this.wanted = false
         this.immediatePending = false
@@ -350,10 +367,24 @@ export class PluginAnalysisService {
     }
   }
 
+  private chainId(chain: 0 | 1): string {
+    return chain === 0 ? this.value.ref.id : `${this.value.ref.id}:comparison`
+  }
+
+  private insertAt(plugin: PluginInstanceState, order: number): void {
+    const siblings = this.value.plugins.filter((p) => p.channelId === plugin.channelId)
+    const next = siblings[Math.min(order, siblings.length)]
+    const index = next ? this.value.plugins.indexOf(next) : this.value.plugins.length
+    this.value.plugins.splice(index, 0, plugin)
+  }
+
   private reorder(): void {
-    this.value.plugins.forEach((p, i) => {
-      p.slotOrder = i
-    })
+    for (const chain of [0, 1] as const)
+      this.value.plugins
+        .filter((p) => p.channelId === this.chainId(chain))
+        .forEach((p, i) => {
+          p.slotOrder = i
+        })
   }
 
   private changed(source: "chain" | "parameters" = "parameters"): void {
@@ -388,6 +419,7 @@ export class PluginAnalysisService {
     this.immediatePending = false
     this.run = this.measure().finally(() => {
       this.run = null
+      if (this.value.repeating && this.value.status === "complete" && !this.timer) this.schedule(0)
       void this.mutation.then(() => this.launch())
     })
   }
@@ -403,10 +435,53 @@ export class PluginAnalysisService {
   private async measure(): Promise<void> {
     const revision = this.value.revision
     const cancellation = this.cancellation
+    const modes: Array<"primary" | "comparison" | "difference"> = this.value.comparisonEnabled
+      ? ["primary", "comparison", "difference"]
+      : ["primary"]
+    const results: Array<{
+      report: PluginAnalysisReport
+      memory: PluginAnalysisSnapshot["memory"]
+    }> = []
+    for (const mode of modes) {
+      const result = await this.measureGroup(revision, cancellation, mode)
+      if (
+        !result ||
+        revision !== this.value.revision ||
+        cancellation !== this.cancellation ||
+        this.closing ||
+        this.quarantined
+      )
+        return
+      results.push(result)
+    }
+    // All three reports belong to one revision; publish only after every job and clone retires.
+    this.value.report = results[0]!.report
+    this.value.comparisonReport = results[1]?.report ?? null
+    this.value.differenceReport = results[2]?.report ?? null
+    this.value.reportId = randomUUID()
+    this.value.reportRevision = revision
+    this.value.memory = results[0]!.memory
+    this.value.status = "complete"
+    this.value.progress = 1
+    this.value.failure = null
+  }
+
+  private async measureGroup(
+    revision: number,
+    cancellation: number,
+    mode: "primary" | "comparison" | "difference"
+  ): Promise<{ report: PluginAnalysisReport; memory: PluginAnalysisSnapshot["memory"] } | null> {
     const settings = { ...this.value.settings }
-    const plugins = structuredClone(this.value.plugins.filter((p) => p.enabled))
+    const plugins = structuredClone(
+      this.value.plugins.filter(
+        (p) =>
+          p.enabled &&
+          (mode === "difference" || p.channelId === this.chainId(mode === "primary" ? 0 : 1))
+      )
+    )
     const id = randomUUID()
     const instances: string[] = []
+    const comparisonInstances: string[] = []
     let nativeStarted = false
     let memoryTimer: NodeJS.Timeout | null = null
     const baselineBytes = this.memoryBytes()
@@ -419,6 +494,7 @@ export class PluginAnalysisService {
     this.value.failure = null
     try {
       let latency = 0
+      let comparisonLatency = 0
       for (const plugin of plugins) {
         if (
           this.closing ||
@@ -426,14 +502,18 @@ export class PluginAnalysisService {
           revision !== this.value.revision ||
           cancellation !== this.cancellation
         )
-          return
+          return null
         plugin.state = await this.host.savePluginState(plugin.id)
         const parameters = await this.host.pluginParameters(plugin.id)
         plugin.id = `plugin-analysis-measure-${randomUUID()}`
-        instances.push(plugin.id)
+        if (mode === "difference" && plugin.channelId === this.chainId(1))
+          comparisonInstances.push(plugin.id)
+        else instances.push(plugin.id)
         this.owned.add(plugin.id)
         const timing = await this.host.loadPlugin(plugin, settings.sample_rate)
-        latency += timing.latencySamples
+        if (mode === "difference" && plugin.channelId === this.chainId(1))
+          comparisonLatency += timing.latencySamples
+        else latency += timing.latencySamples
         // Controller edits can precede their next audio block; replay authoritative values.
         for (const parameter of parameters.filter((p) => !p.readOnly)) {
           await this.host.setPluginParameter({
@@ -450,7 +530,7 @@ export class PluginAnalysisService {
         revision !== this.value.revision ||
         cancellation !== this.cancellation
       )
-        return
+        return null
       loadedBytes = this.memoryBytes()
       peakBytes = Math.max(peakBytes, loadedBytes)
       memoryTimer = setInterval(() => {
@@ -463,11 +543,12 @@ export class PluginAnalysisService {
         operation_id: id,
         instance_ids: instances,
         settings,
-        reported_latency_samples: latency
+        comparison_instance_ids: mode === "difference" ? comparisonInstances : null,
+        reported_latency_samples: Math.max(latency, comparisonLatency)
       })
       if (response.result.type !== "plugin-analysis" || !response.result.plugin_analysis_status) {
         this.quarantine()
-        return
+        return null
       }
       let status = response.result.plugin_analysis_status
       nativeStarted = status.state === "running" || status.state === "completed"
@@ -488,7 +569,7 @@ export class PluginAnalysisService {
         })
         if (response.result.type !== "plugin-analysis" || !response.result.plugin_analysis_status) {
           this.quarantine()
-          return
+          return null
         }
         status = response.result.plugin_analysis_status
       }
@@ -507,16 +588,29 @@ export class PluginAnalysisService {
       if (!this.quarantined) {
         if (nativeStarted) {
           try {
-            await this.host.pluginAnalysisRequest({
+            const released = await this.host.pluginAnalysisRequest({
               type: "release-plugin-analysis",
               operation_id: id
             })
+            const outcome =
+              released.result.type === "plugin-analysis"
+                ? released.result.plugin_analysis_status
+                : undefined
+            if (
+              !outcome ||
+              outcome.state !== terminal?.state ||
+              (outcome.state === "failed" &&
+                terminal?.state === "failed" &&
+                outcome.failure !== terminal.failure)
+            )
+              this.quarantine()
           } catch {
             this.quarantine()
           }
         }
         if (!this.quarantined)
-          for (const instanceId of instances) await this.releaseInstance(instanceId)
+          for (const instanceId of [...instances, ...comparisonInstances])
+            await this.releaseInstance(instanceId)
       }
       if (!this.quarantined && !this.closing && cancellation !== this.cancellation) {
         this.value.status = "cancelled"
@@ -526,21 +620,7 @@ export class PluginAnalysisService {
         revision === this.value.revision &&
         terminal
       ) {
-        if (terminal.state === "completed") {
-          // One commit point after native processing and endpoint cleanup are confirmed.
-          this.value.report = terminal.report
-          this.value.reportId = id
-          this.value.reportRevision = revision
-          this.value.memory = {
-            baselineBytes,
-            loadedBytes,
-            peakBytes,
-            releasedBytes: this.memoryBytes()
-          }
-          this.value.status = "complete"
-          this.value.progress = 1
-          this.value.failure = null
-        } else if (terminal.state === "failed") {
+        if (terminal.state === "failed") {
           this.value.status = terminal.failure === "cancelled" ? "cancelled" : "failed"
           this.value.failure = terminal.failure
         }
@@ -548,6 +628,16 @@ export class PluginAnalysisService {
         this.value.status = this.value.automatic ? "debouncing" : "idle"
       }
     }
+    return !this.quarantined &&
+      !this.closing &&
+      revision === this.value.revision &&
+      cancellation === this.cancellation &&
+      terminal?.state === "completed"
+      ? {
+          report: terminal.report,
+          memory: { baselineBytes, loadedBytes, peakBytes, releasedBytes: this.memoryBytes() }
+        }
+      : null
   }
 
   private quarantine(): void {
