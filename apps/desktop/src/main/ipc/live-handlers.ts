@@ -8,6 +8,7 @@ import { registerRpcHandler } from "./rpc"
 import { validateReadTarget, validationFailure } from "./resource-validation"
 import { isLiveFilePath, isProjectFilePath } from "../project"
 import { t } from "../settings"
+import { isLivePerformCommand } from "./live-performance-validation"
 
 function isConfiguration(value: unknown): value is LiveDocumentConfiguration {
   if (!value || typeof value !== "object") return false
@@ -48,7 +49,17 @@ const LIVE_EDIT_COMMAND_TYPES = {
   "delete-plugin": true,
   "move-plugin": true,
   "replace-plugin": true,
-  "set-midi-bindings": true
+  "set-midi-bindings": true,
+  "create-set": true,
+  "create-patch": true,
+  "rename-live-layer": true,
+  "delete-live-layer": true,
+  "copy-live-set": true,
+  "copy-live-patch": true,
+  "set-live-override": true,
+  "set-live-plugin-state": true,
+  "revert-live-override": true,
+  "edit-live-layer": true
 } satisfies Record<LiveEditCommand["type"], true>
 
 function isEditCommand(value: unknown): value is LiveEditCommand {
@@ -136,7 +147,12 @@ export function registerLiveHandlers(
   registerRpcHandler(IPC_CHANNELS.liveSnapshot, ({ meta }) => coordinator.snapshot(meta))
   registerRpcHandler(IPC_CHANNELS.liveSave, ({ meta }) => coordinator.save(meta))
   registerRpcHandler(IPC_CHANNELS.liveClose, ({ meta }, disposition: unknown) => {
-    if (disposition !== "save" && disposition !== "discard" && disposition !== "cancel") {
+    if (
+      disposition !== "save" &&
+      disposition !== "discard" &&
+      disposition !== "cancel" &&
+      disposition !== "preserve"
+    ) {
       return validationFailure(meta, "disposition")
     }
     return coordinator.close(meta, disposition)
@@ -151,4 +167,11 @@ export function registerLiveHandlers(
   })
   registerRpcHandler(IPC_CHANNELS.liveUndo, ({ meta }) => coordinator.edit(meta, "undo"))
   registerRpcHandler(IPC_CHANNELS.liveRedo, ({ meta }) => coordinator.edit(meta, "redo"))
+  registerRpcHandler(IPC_CHANNELS.livePerform, ({ meta }, command: unknown) => {
+    if (!isLivePerformCommand(command)) return validationFailure(meta, "command")
+    return coordinator.perform(meta, command)
+  })
+  registerRpcHandler(IPC_CHANNELS.liveCapturePreview, ({ meta }) =>
+    coordinator.previewCapture(meta)
+  )
 }

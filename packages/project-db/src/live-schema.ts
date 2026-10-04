@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm"
+import { relations, sql } from "drizzle-orm"
 import {
   check,
   doublePrecision,
@@ -12,8 +12,14 @@ import {
   text,
   uniqueIndex
 } from "drizzle-orm/pg-core"
-import type { AudioBackend, LiveMidiControlTarget, MidiControlInputMode } from "@heron/contracts"
+import type {
+  AudioBackend,
+  LiveMidiControlTarget,
+  LivePerformanceCommand,
+  MidiControlInputMode
+} from "@heron/contracts"
 import { mixerChannelCoreColumns } from "./mixer-core-schema.ts"
+import { bytea } from "./schema-types.ts"
 import {
   mixerSends,
   pluginInstances,
@@ -126,7 +132,7 @@ export const mixerChannels = pgTable("mixer_channels", mixerChannelCoreColumns()
 export { mixerSends, pluginInstances, pluginSidechainRoutes, pluginStateChunks }
 
 export const LIVE_DOCUMENT_ID = "document"
-export const LIVE_FORMAT_VERSION = 1
+export const LIVE_FORMAT_VERSION = 3
 
 export const liveDocument = pgTable(
   "live_document",
@@ -188,6 +194,157 @@ export const liveMidiBindings = pgTable(
     check("live_midi_binding_kind", sql`${table.messageKind} in ('note', 'control-change')`),
     check("live_midi_binding_port", sql`length(trim(${table.portId})) > 0`)
   ]
+)
+
+export const liveSets = pgTable(
+  "live_sets",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    sortOrder: integer("sort_order").notNull(),
+    overrides: jsonb("overrides").$type<LivePerformanceCommand[]>().notNull()
+  },
+  (table) => [
+    uniqueIndex("live_sets_sort_order").on(table.sortOrder),
+    check("live_sets_id", sql`length(trim(${table.id})) > 0`),
+    check("live_sets_name", sql`length(trim(${table.name})) > 0`),
+    check("live_sets_sort_order_check", sql`${table.sortOrder} >= 0`),
+    check("live_sets_overrides", sql`jsonb_typeof(${table.overrides}) = 'array'`)
+  ]
+)
+
+export const livePatches = pgTable(
+  "live_patches",
+  {
+    id: text("id").primaryKey(),
+    setId: text("set_id")
+      .notNull()
+      .references(() => liveSets.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    sortOrder: integer("sort_order").notNull(),
+    overrides: jsonb("overrides").$type<LivePerformanceCommand[]>().notNull()
+  },
+  (table) => [
+    uniqueIndex("live_patches_set_sort_order").on(table.setId, table.sortOrder),
+    check("live_patches_id", sql`length(trim(${table.id})) > 0`),
+    check("live_patches_name", sql`length(trim(${table.name})) > 0`),
+    check("live_patches_sort_order_check", sql`${table.sortOrder} >= 0`),
+    check("live_patches_overrides", sql`jsonb_typeof(${table.overrides}) = 'array'`)
+  ]
+)
+
+export const liveSetsRelations = relations(liveSets, ({ many }) => ({
+  patches: many(livePatches),
+  pluginStates: many(liveSetPluginStates)
+}))
+
+export const livePatchesRelations = relations(livePatches, ({ one, many }) => ({
+  set: one(liveSets, {
+    fields: [livePatches.setId],
+    references: [liveSets.id]
+  }),
+  pluginStates: many(livePatchPluginStates)
+}))
+
+/** A header persists an explicit empty state independently of inherited state. */
+export const liveSetPluginStates = pgTable(
+  "live_set_plugin_states",
+  {
+    setId: text("set_id")
+      .notNull()
+      .references(() => liveSets.id, { onDelete: "cascade" }),
+    pluginId: text("plugin_id")
+      .notNull()
+      .references(() => pluginInstances.id, { onDelete: "cascade" })
+  },
+  (table) => [primaryKey({ columns: [table.setId, table.pluginId] })]
+)
+
+export const livePatchPluginStates = pgTable(
+  "live_patch_plugin_states",
+  {
+    patchId: text("patch_id")
+      .notNull()
+      .references(() => livePatches.id, { onDelete: "cascade" }),
+    pluginId: text("plugin_id")
+      .notNull()
+      .references(() => pluginInstances.id, { onDelete: "cascade" })
+  },
+  (table) => [primaryKey({ columns: [table.patchId, table.pluginId] })]
+)
+
+export const liveSetPluginStateChunks = pgTable(
+  "live_set_plugin_state_chunks",
+  {
+    setId: text("set_id").notNull(),
+    pluginId: text("plugin_id").notNull(),
+    chunkKey: text("chunk_key").notNull(),
+    bytes: bytea("bytes").notNull()
+  },
+  (table) => [
+    primaryKey({ columns: [table.setId, table.pluginId, table.chunkKey] }),
+    foreignKey({
+      columns: [table.setId, table.pluginId],
+      foreignColumns: [liveSetPluginStates.setId, liveSetPluginStates.pluginId]
+    }).onDelete("cascade"),
+    check("live_set_plugin_state_chunks_key", sql`length(${table.chunkKey}) > 0`)
+  ]
+)
+
+export const livePatchPluginStateChunks = pgTable(
+  "live_patch_plugin_state_chunks",
+  {
+    patchId: text("patch_id").notNull(),
+    pluginId: text("plugin_id").notNull(),
+    chunkKey: text("chunk_key").notNull(),
+    bytes: bytea("bytes").notNull()
+  },
+  (table) => [
+    primaryKey({ columns: [table.patchId, table.pluginId, table.chunkKey] }),
+    foreignKey({
+      columns: [table.patchId, table.pluginId],
+      foreignColumns: [livePatchPluginStates.patchId, livePatchPluginStates.pluginId]
+    }).onDelete("cascade"),
+    check("live_patch_plugin_state_chunks_key", sql`length(${table.chunkKey}) > 0`)
+  ]
+)
+
+export const liveSetPluginStatesRelations = relations(liveSetPluginStates, ({ one, many }) => ({
+  set: one(liveSets, { fields: [liveSetPluginStates.setId], references: [liveSets.id] }),
+  plugin: one(pluginInstances, {
+    fields: [liveSetPluginStates.pluginId],
+    references: [pluginInstances.id]
+  }),
+  chunks: many(liveSetPluginStateChunks)
+}))
+
+export const livePatchPluginStatesRelations = relations(livePatchPluginStates, ({ one, many }) => ({
+  patch: one(livePatches, {
+    fields: [livePatchPluginStates.patchId],
+    references: [livePatches.id]
+  }),
+  plugin: one(pluginInstances, {
+    fields: [livePatchPluginStates.pluginId],
+    references: [pluginInstances.id]
+  }),
+  chunks: many(livePatchPluginStateChunks)
+}))
+
+export const liveSetPluginStateChunksRelations = relations(liveSetPluginStateChunks, ({ one }) => ({
+  state: one(liveSetPluginStates, {
+    fields: [liveSetPluginStateChunks.setId, liveSetPluginStateChunks.pluginId],
+    references: [liveSetPluginStates.setId, liveSetPluginStates.pluginId]
+  })
+}))
+
+export const livePatchPluginStateChunksRelations = relations(
+  livePatchPluginStateChunks,
+  ({ one }) => ({
+    state: one(livePatchPluginStates, {
+      fields: [livePatchPluginStateChunks.patchId, livePatchPluginStateChunks.pluginId],
+      references: [livePatchPluginStates.patchId, livePatchPluginStates.pluginId]
+    })
+  })
 )
 
 export const livePluginParameterValues = pgTable(

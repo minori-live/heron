@@ -22,8 +22,14 @@ const props = withDefaults(
     applicationCaptureEnabled?: boolean
     pluginEditorsEnabled?: boolean
     hardwareInputCount?: number
+    structureEnabled?: boolean
   }>(),
-  { applicationCaptureEnabled: true, pluginEditorsEnabled: true, hardwareInputCount: 32 }
+  {
+    applicationCaptureEnabled: true,
+    pluginEditorsEnabled: true,
+    hardwareInputCount: 32,
+    structureEnabled: true
+  }
 )
 
 const emit = defineEmits<{
@@ -50,6 +56,7 @@ const inputSummary = computed(() => {
       :runtime="pluginRuntime"
       :plugins="instrumentPlugins"
       :editors-enabled="pluginEditorsEnabled"
+      :structure-enabled="structureEnabled"
       @open="emit('openPlugin', $event)"
       @retry="emit('retryPlugin', $event)"
       @remove="emit('removePlugin', $event)"
@@ -57,6 +64,7 @@ const inputSummary = computed(() => {
     />
     <MixerInputCapsule
       v-else-if="channel.kind === 'audio' || channel.kind === 'aux'"
+      :inert="!structureEnabled || undefined"
       :channel-name="channel.name"
       :input-source="channel.inputSource ?? 'hardware'"
       :input-format="channel.inputFormat ?? 'stereo'"

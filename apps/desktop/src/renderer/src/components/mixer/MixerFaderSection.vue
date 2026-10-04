@@ -14,8 +14,9 @@ const props = withDefaults(
     meter?: MixerChannelMeter
     displayOptions?: MixerStripDisplayOptions
     studioControls?: boolean
+    monitoringEditable?: boolean
   }>(),
-  { studioControls: true, meter: undefined, displayOptions: undefined }
+  { studioControls: true, monitoringEditable: true, meter: undefined, displayOptions: undefined }
 )
 const emit = defineEmits<{
   preview: [preview: MixerParameterPreview]
@@ -102,6 +103,7 @@ function commitGainInputValue(raw: string): void {
       :monitoring-available="monitoringAvailable"
       :monitoring-active="monitoringActive"
       :studio-controls="studioControls"
+      :monitoring-editable="monitoringEditable"
       @update-channel="updateChannel"
       @bounce-output="emit('bounceOutput')"
     />

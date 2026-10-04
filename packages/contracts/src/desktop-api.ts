@@ -93,7 +93,10 @@ import type { ShortcutPreferences } from "./shortcuts.ts"
 import type {
   DocumentOpenPreparation,
   LiveDocumentConfiguration,
+  LiveCloseDisposition,
   LiveEditCommand,
+  LivePerformCommand,
+  LiveCapturePreview,
   LiveWorkspaceSnapshot
 } from "./live.ts"
 import type { RpcEvent, RpcRequestMeta, RpcResult, RpcWarning } from "./rpc.ts"
@@ -157,6 +160,8 @@ export const IPC_CHANNELS = {
   liveConfigure: "live:configure",
   liveUndo: "live:undo",
   liveRedo: "live:redo",
+  livePerform: "live:perform",
+  liveCapturePreview: "live:capture-preview",
   projectAssetsList: "project:assets-list",
   projectAudioImport: "project:audio-import",
   projectConfigurationUpdate: "project:configuration-update",
@@ -330,7 +335,7 @@ export interface HeronDesktopApi {
   saveLiveDocument(meta: RpcRequestMeta): Promise<RpcResult<LiveWorkspaceSnapshot>>
   closeLiveDocument(
     meta: RpcRequestMeta,
-    disposition: ProjectCloseDisposition
+    disposition: LiveCloseDisposition
   ): Promise<RpcResult<boolean>>
   liveWorkspaceSnapshot(meta: RpcRequestMeta): Promise<RpcResult<LiveWorkspaceSnapshot>>
   executeLiveEdit(
@@ -343,6 +348,11 @@ export interface HeronDesktopApi {
   ): Promise<RpcResult<LiveWorkspaceSnapshot>>
   undoLiveEdit(meta: RpcRequestMeta): Promise<RpcResult<LiveWorkspaceSnapshot>>
   redoLiveEdit(meta: RpcRequestMeta): Promise<RpcResult<LiveWorkspaceSnapshot>>
+  performLive(
+    meta: RpcRequestMeta,
+    command: LivePerformCommand
+  ): Promise<RpcResult<LiveWorkspaceSnapshot>>
+  previewLiveCapture(meta: RpcRequestMeta): Promise<RpcResult<LiveCapturePreview>>
   listProjectAssets(meta: RpcRequestMeta): Promise<RpcResult<ProjectAssetSummary[]>>
   importProjectAudio(
     meta: RpcRequestMeta,

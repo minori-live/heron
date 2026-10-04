@@ -124,15 +124,30 @@ export class AudioHostGraphTransactions {
     })
   }
 
-  async activate(deployment: PreparedGraphDeployment): Promise<RpcResult<GraphTransactionValue>> {
+  async activate(
+    deployment: PreparedGraphDeployment,
+    options: { cut?: boolean; isCurrent?: () => boolean } = {}
+  ): Promise<RpcResult<GraphTransactionValue>> {
     const client = this.requireClient()
     const request = {
       helperEpoch: client.runtimeEpoch,
       projectGraph: deployment.projectGraph,
       baseRevision: deployment.baseRevision
     }
+    if (options.isCurrent && !options.isCurrent()) {
+      return rpcFailure(deployment.meta, {
+        code: "operation-cancelled",
+        category: "cancelled",
+        outcome: "not-committed",
+        retry: "never",
+        correlationId: randomUUID(),
+        userMessageKey: "errors.operationCancelled",
+        resource: deployment.projectGraph,
+        details: { type: "operation-cancelled", committed: false }
+      })
+    }
     let result = await this.transaction({
-      type: "activate-graph",
+      type: options.cut ? "activate-graph-cut" : "activate-graph",
       meta: deployment.meta,
       request
     })
@@ -147,7 +162,8 @@ export class AudioHostGraphTransactions {
         reconciled.ok &&
         reconciled.value.snapshot.lastOperation?.operationId ===
           deployment.meta.mutation.operationId &&
-        reconciled.value.snapshot.lastOperation.outcome === "committed"
+        reconciled.value.snapshot.lastOperation.outcome === "committed" &&
+        reconciled.value.snapshot.observedRevision >= deployment.graphRevision
       ) {
         result = rpcSuccess(deployment.meta, {
           type: "activated",
@@ -211,7 +227,7 @@ export class AudioHostGraphTransactions {
     }
   }
 
-  private async snapshot(meta: RpcRequestMeta): Promise<RpcResult<GraphTransactionValue>> {
+  async snapshot(meta: RpcRequestMeta): Promise<RpcResult<GraphTransactionValue>> {
     const client = this.requireClient()
     return this.transaction({
       type: "graph-deployment-snapshot",

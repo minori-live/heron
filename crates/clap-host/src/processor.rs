@@ -31,6 +31,8 @@ use heron_audio_plugin::{
 use crate::{ClapAudioPort, ClapHostRequests, ClapNotePort, host::AudioThreadScope};
 use clap_sys::ext::note_ports::{CLAP_NOTE_DIALECT_CLAP, CLAP_NOTE_DIALECT_MIDI};
 
+mod parameter_flush;
+
 const EVENT_CAPACITY: usize = 2_048;
 const SYSEX_CAPACITY: usize = 64 * 1024;
 const PARAMETER_QUEUE_CAPACITY: usize = 1_024;

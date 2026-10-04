@@ -54,6 +54,9 @@ const backLabel = computed(() =>
       ? t("common.backToStudio")
       : t("common.backToWelcome")
 )
+const audioConfigurationLocked = computed(
+  () => liveStore.isOpen && liveStore.workspace?.mode !== "edit"
+)
 
 function close(): void {
   void router.push({
@@ -62,6 +65,7 @@ function close(): void {
 }
 
 async function applyAudio(nextPreferences: AudioPreferences): Promise<void> {
+  if (audioConfigurationLocked.value) return
   if (await audioPreferencesStore.apply(nextPreferences)) close()
 }
 
@@ -94,6 +98,7 @@ onMounted(async () => {
     :runtime="runtime"
     :apply-error="applyError"
     :applying="applying"
+    :audio-configuration-locked="audioConfigurationLocked"
     :audio-host-runtime="
       applicationSettings?.audioHostRuntime ?? {
         workerThreads: 'auto',

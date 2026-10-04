@@ -9,6 +9,7 @@ import { registerPluginHandlers } from "./plugin-handlers"
 import { registerProjectHandlers } from "./project-handlers"
 import { registerLiveHandlers } from "./live-handlers"
 import { LiveDocumentCoordinator } from "./live-document-coordinator"
+import { LivePerformanceSession } from "./live-performance-session"
 import { registerRecordingHandlers } from "./recording-handlers"
 import { registerSettingsRpcHandlers } from "./settings-rpc-handlers"
 import { registerSystemHandlers } from "./system-handlers"
@@ -54,7 +55,13 @@ export function registerIpcHandlers(services: ApplicationServices): DisposableRe
           services.projects,
           services.lifecycle.applicationState,
           services.operations,
-          services.settings
+          services.settings,
+          new LivePerformanceSession(
+            services.liveDocuments,
+            services.audioHost,
+            services.plugins,
+            services.lifecycle
+          )
         ),
         services.liveDocuments,
         services.lifecycle.applicationState

@@ -4,13 +4,23 @@ import { mkdir } from "node:fs/promises"
 import { basename, dirname, extname, join, resolve } from "node:path"
 import type {
   LiveDocumentConfiguration,
+  LiveCloseDisposition,
   LiveEditCommand,
   LiveSession,
+  LiveHierarchy,
   LiveMidiBinding,
   LiveRuntimeSnapshot,
+  LiveCaptureField,
+  LiveCaptureStateTarget,
+  LiveLayerId,
   MixerGraphSnapshot
 } from "@heron/contracts"
-import { applyLiveEdit } from "@heron/project-model"
+import {
+  applyLiveLayerCapture,
+  applyLiveLayerEdit,
+  captureFieldKey,
+  type LiveLayerDocument
+} from "@heron/project-model"
 import { ProjectArchiveJournal } from "./project-archive-journal"
 import { ProjectWorkingCopyStore } from "./project-working-copy-store"
 import { ProjectWorkspaceOwnership } from "./project-workspace-ownership"
@@ -23,10 +33,16 @@ interface LiveContext {
   workingRoot: string
   undo: LiveHistoryEntry[]
   redo: LiveHistoryEntry[]
+  /** A failed worker termination keeps ownership solely for explicit recovery cleanup. */
+  closing?: boolean
+}
+
+interface LiveBaseline extends LiveLayerDocument {
+  revision: number
 }
 
 type LiveHistoryEntry =
-  | { kind: "mixer"; snapshot: LiveRuntimeSnapshot; bindings: LiveMidiBinding[] }
+  | ({ kind: "mixer" } & LiveLayerDocument)
   | { kind: "configuration"; configuration: LiveDocumentConfiguration }
 
 export function isLiveFilePath(path: string): boolean {
@@ -62,13 +78,39 @@ function comparable(value: unknown): unknown {
 function samePersistedBaseline(
   expected: LiveRuntimeSnapshot,
   expectedBindings: LiveMidiBinding[],
+  expectedHierarchy: LiveHierarchy,
   actual: LiveRuntimeSnapshot,
-  actualBindings: LiveMidiBinding[]
+  actualBindings: LiveMidiBinding[],
+  actualHierarchy: LiveHierarchy
 ): boolean {
   const sortId = <T extends { id: string }>(values: T[]) =>
     [...values].sort((a, b) => a.id.localeCompare(b.id))
-  const normalize = (snapshot: LiveRuntimeSnapshot, bindings: LiveMidiBinding[]) =>
+  const normalizeLayers = <T extends LiveHierarchy["sets"][number]>(layers: T[]) =>
+    sortId(layers).map((layer) => ({
+      ...layer,
+      overrides: [...layer.overrides].sort((a, b) =>
+        captureFieldKey(a).localeCompare(captureFieldKey(b))
+      ),
+      pluginStates: [...(layer.pluginStates ?? [])]
+        .sort((a, b) => a.pluginId.localeCompare(b.pluginId))
+        .map((override) => ({
+          ...override,
+          state: {
+            ...override.state,
+            chunks: [...override.state.chunks].sort((a, b) => a.key.localeCompare(b.key))
+          }
+        }))
+    }))
+  const normalize = (
+    snapshot: LiveRuntimeSnapshot,
+    bindings: LiveMidiBinding[],
+    hierarchy: LiveHierarchy
+  ) =>
     comparable({
+      hierarchy: {
+        sets: normalizeLayers(hierarchy.sets),
+        patches: normalizeLayers(hierarchy.patches)
+      },
       graph: {
         ...snapshot.graph,
         channels: sortId(snapshot.graph.channels),
@@ -92,7 +134,19 @@ function samePersistedBaseline(
         address: { ...binding.address, portName: undefined }
       }))
     })
-  return isDeepStrictEqual(normalize(expected, expectedBindings), normalize(actual, actualBindings))
+  return isDeepStrictEqual(
+    normalize(expected, expectedBindings, expectedHierarchy),
+    normalize(actual, actualBindings, actualHierarchy)
+  )
+}
+
+function wasRejectedBeforeCommit(error: unknown): boolean {
+  return Boolean(
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error.code === "revision-conflict" || error.code === "validation-failed")
+  )
 }
 
 export class LiveDocumentService {
@@ -230,53 +284,63 @@ export class LiveDocumentService {
     ).worker.midiBindings()
   }
 
-  async baseline(
-    candidate = false
-  ): Promise<{ snapshot: LiveRuntimeSnapshot; bindings: LiveMidiBinding[]; revision: number }> {
+  async baseline(candidate = false): Promise<LiveBaseline> {
     const context = candidate ? this.workspaces.requireCandidate() : this.workspaces.requireActive()
-    const [graph, parameterValues, bindings] = await Promise.all([
+    const [graph, parameterValues, bindings, hierarchy] = await Promise.all([
       context.worker.mixerSnapshot(),
       context.worker.pluginParameterValues(),
-      context.worker.midiBindings()
+      context.worker.midiBindings(),
+      context.worker.hierarchy()
     ])
-    return { snapshot: { graph, parameterValues }, bindings, revision: context.revision }
+    return { snapshot: { graph, parameterValues }, bindings, hierarchy, revision: context.revision }
   }
 
   private async commitBaseline(
     context: LiveContext,
     snapshot: LiveRuntimeSnapshot,
     bindings: LiveMidiBinding[],
-    expectedRevision: number
+    expectedRevision: number,
+    hierarchy: LiveHierarchy
   ): Promise<number> {
-    if (expectedRevision !== context.revision) throw new Error("Live document revision changed")
+    if (expectedRevision !== context.revision)
+      throw Object.assign(new Error("Live document revision changed"), {
+        code: "revision-conflict"
+      })
     let revision: number
     try {
-      revision = await context.worker.replaceBaseline(snapshot, bindings, expectedRevision)
+      revision = await context.worker.replaceBaseline(
+        snapshot,
+        bindings,
+        expectedRevision,
+        hierarchy
+      )
     } catch (error) {
+      if (wasRejectedBeforeCommit(error)) throw error
       // A worker response may be lost after PostgreSQL commits. Re-read the named result.
       const actualRevision = await context.worker.revision().catch(() => -1)
       if (actualRevision < 0 || actualRevision > expectedRevision + 1) {
-        throw Object.assign(new Error("Live baseline outcome needs recovery"), {
-          code: "operation-outcome-unknown"
-        })
+        throw await this.unknownOutcome(context, "Live baseline outcome needs recovery")
       }
       if (actualRevision !== expectedRevision + 1) throw error
-      const [actualGraph, actualValues, actualBindings] = await Promise.all([
+      const [actualGraph, actualValues, actualBindings, actualHierarchy] = await Promise.all([
         context.worker.mixerSnapshot(),
         context.worker.pluginParameterValues(),
-        context.worker.midiBindings()
-      ])
+        context.worker.midiBindings(),
+        context.worker.hierarchy()
+      ]).catch(async () => {
+        throw await this.unknownOutcome(context, "Live baseline could not be reconciled")
+      })
       if (
         !samePersistedBaseline(
           snapshot,
           bindings,
+          hierarchy,
           { graph: actualGraph, parameterValues: actualValues },
-          actualBindings
+          actualBindings,
+          actualHierarchy
         )
       ) {
-        throw Object.assign(new Error("Live baseline commit needs recovery"), {
-          code: "operation-outcome-unknown"
-        })
+        throw await this.unknownOutcome(context, "Live baseline commit needs recovery")
       }
       revision = actualRevision
     }
@@ -290,34 +354,28 @@ export class LiveDocumentService {
     return revision
   }
 
-  async executeEdit(
-    command: LiveEditCommand,
-    expectedRevision: number
-  ): Promise<{ snapshot: LiveRuntimeSnapshot; bindings: LiveMidiBinding[]; revision: number }> {
+  async executeEdit(command: LiveEditCommand, expectedRevision: number): Promise<LiveBaseline> {
     const context = this.workspaces.requireActive()
     const before = await this.baseline()
-    const edited = applyLiveEdit(
-      { graph: before.snapshot.graph, bindings: before.bindings },
-      command
+    const edited = applyLiveLayerEdit(before, command)
+    const revision = await this.commitBaseline(
+      context,
+      edited.snapshot,
+      edited.bindings,
+      expectedRevision,
+      edited.hierarchy
     )
-    const pluginIds = new Set(edited.graph.plugins.map((plugin) => plugin.id))
-    const snapshot = {
-      graph: edited.graph,
-      parameterValues: before.snapshot.parameterValues.filter(
-        (value) =>
-          pluginIds.has(value.pluginId) &&
-          !(command.type === "replace-plugin" && command.pluginId === value.pluginId)
-      )
-    }
-    const revision = await this.commitBaseline(context, snapshot, edited.bindings, expectedRevision)
-    context.undo.push({ kind: "mixer", snapshot: before.snapshot, bindings: before.bindings })
+    context.undo.push({
+      kind: "mixer",
+      snapshot: before.snapshot,
+      bindings: before.bindings,
+      hierarchy: before.hierarchy
+    })
     context.redo.length = 0
-    return { snapshot, bindings: edited.bindings, revision }
+    return { ...edited, revision }
   }
 
-  async undoEdit(
-    expectedRevision: number
-  ): Promise<{ snapshot: LiveRuntimeSnapshot; bindings: LiveMidiBinding[]; revision: number }> {
+  async undoEdit(expectedRevision: number): Promise<LiveBaseline> {
     const context = this.workspaces.requireActive()
     const previous = context.undo.at(-1)
     if (!previous) throw new Error("No Live edit to undo")
@@ -327,6 +385,7 @@ export class LiveDocumentService {
       await this.commitConfiguration(context, previous.configuration, expectedRevision)
       context.undo.pop()
       context.redo.push({ kind: "configuration", configuration: current })
+      baseline.snapshot.graph.sampleRate = context.session.configuration.sampleRate
       return { ...baseline, revision: context.revision }
     }
     const current = await this.baseline()
@@ -334,20 +393,25 @@ export class LiveDocumentService {
       context,
       previous.snapshot,
       previous.bindings,
-      expectedRevision
+      expectedRevision,
+      previous.hierarchy
     )
     context.undo.pop()
-    context.redo.push({ kind: "mixer", snapshot: current.snapshot, bindings: current.bindings })
+    context.redo.push({
+      kind: "mixer",
+      snapshot: current.snapshot,
+      bindings: current.bindings,
+      hierarchy: current.hierarchy
+    })
     return {
       snapshot: structuredClone(previous.snapshot),
       bindings: structuredClone(previous.bindings),
+      hierarchy: structuredClone(previous.hierarchy),
       revision
     }
   }
 
-  async redoEdit(
-    expectedRevision: number
-  ): Promise<{ snapshot: LiveRuntimeSnapshot; bindings: LiveMidiBinding[]; revision: number }> {
+  async redoEdit(expectedRevision: number): Promise<LiveBaseline> {
     const context = this.workspaces.requireActive()
     const next = context.redo.at(-1)
     if (!next) throw new Error("No Live edit to redo")
@@ -357,6 +421,7 @@ export class LiveDocumentService {
       await this.commitConfiguration(context, next.configuration, expectedRevision)
       context.redo.pop()
       context.undo.push({ kind: "configuration", configuration: current })
+      baseline.snapshot.graph.sampleRate = context.session.configuration.sampleRate
       return { ...baseline, revision: context.revision }
     }
     const current = await this.baseline()
@@ -364,13 +429,20 @@ export class LiveDocumentService {
       context,
       next.snapshot,
       next.bindings,
-      expectedRevision
+      expectedRevision,
+      next.hierarchy
     )
     context.redo.pop()
-    context.undo.push({ kind: "mixer", snapshot: current.snapshot, bindings: current.bindings })
+    context.undo.push({
+      kind: "mixer",
+      snapshot: current.snapshot,
+      bindings: current.bindings,
+      hierarchy: current.hierarchy
+    })
     return {
       snapshot: structuredClone(next.snapshot),
       bindings: structuredClone(next.bindings),
+      hierarchy: structuredClone(next.hierarchy),
       revision
     }
   }
@@ -378,10 +450,49 @@ export class LiveDocumentService {
   async commitCapture(snapshot: LiveRuntimeSnapshot, expectedRevision: number): Promise<number> {
     const context = this.workspaces.requireActive()
     const before = await this.baseline()
-    const revision = await this.commitBaseline(context, snapshot, before.bindings, expectedRevision)
-    context.undo.push({ kind: "mixer", snapshot: before.snapshot, bindings: before.bindings })
+    const revision = await this.commitBaseline(
+      context,
+      snapshot,
+      before.bindings,
+      expectedRevision,
+      before.hierarchy
+    )
+    context.undo.push({
+      kind: "mixer",
+      snapshot: before.snapshot,
+      bindings: before.bindings,
+      hierarchy: before.hierarchy
+    })
     context.redo.length = 0
     return revision
+  }
+
+  async commitLayerCapture(
+    layerId: LiveLayerId,
+    frozen: LiveRuntimeSnapshot,
+    available: readonly LiveCaptureField[],
+    selected: readonly LiveCaptureField[],
+    expectedRevision: number,
+    stateTargets: readonly LiveCaptureStateTarget[] = []
+  ): Promise<LiveBaseline> {
+    const context = this.workspaces.requireActive()
+    const before = await this.baseline()
+    const next = applyLiveLayerCapture(before, layerId, frozen, available, selected, stateTargets)
+    const revision = await this.commitBaseline(
+      context,
+      next.snapshot,
+      next.bindings,
+      expectedRevision,
+      next.hierarchy
+    )
+    context.undo.push({
+      kind: "mixer",
+      snapshot: before.snapshot,
+      bindings: before.bindings,
+      hierarchy: before.hierarchy
+    })
+    context.redo.length = 0
+    return { ...next, revision }
   }
 
   async updateConfiguration(
@@ -401,24 +512,26 @@ export class LiveDocumentService {
     configuration: LiveDocumentConfiguration,
     expectedRevision: number
   ): Promise<LiveSession> {
-    if (expectedRevision !== context.revision) throw new Error("Live document revision changed")
+    if (expectedRevision !== context.revision)
+      throw Object.assign(new Error("Live document revision changed"), {
+        code: "revision-conflict"
+      })
     const normalized = { ...configuration, name: configuration.name.trim() }
     let revision: number
     try {
       revision = await context.worker.updateConfiguration(normalized, expectedRevision)
     } catch (error) {
+      if (wasRejectedBeforeCommit(error)) throw error
       const actualRevision = await context.worker.revision().catch(() => -1)
       if (actualRevision < 0 || actualRevision > expectedRevision + 1) {
-        throw Object.assign(new Error("Live configuration outcome needs recovery"), {
-          code: "operation-outcome-unknown"
-        })
+        throw await this.unknownOutcome(context, "Live configuration outcome needs recovery")
       }
       if (actualRevision !== expectedRevision + 1) throw error
-      const actualConfiguration = await context.worker.configuration()
+      const actualConfiguration = await context.worker.configuration().catch(async () => {
+        throw await this.unknownOutcome(context, "Live configuration could not be reconciled")
+      })
       if (!isDeepStrictEqual(actualConfiguration, normalized)) {
-        throw Object.assign(new Error("Live configuration outcome needs recovery"), {
-          code: "operation-outcome-unknown"
-        })
+        throw await this.unknownOutcome(context, "Live configuration outcome needs recovery")
       }
       revision = actualRevision
     }
@@ -437,7 +550,13 @@ export class LiveDocumentService {
   }
 
   async save(operationId = `live-save:${randomUUID()}`): Promise<LiveSession> {
-    return this.saveContext(this.workspaces.requireActive(), operationId)
+    const context = this.workspaces.requireActive()
+    if (context.closing) {
+      throw Object.assign(new Error("Live close requires recovery cleanup"), {
+        code: "operation-outcome-unknown"
+      })
+    }
+    return this.saveContext(context, operationId)
   }
 
   private async saveContext(
@@ -465,6 +584,15 @@ export class LiveDocumentService {
     return structuredClone(context.session)
   }
 
+  private async unknownOutcome(context: LiveContext, message: string): Promise<Error> {
+    // The database may have committed. Keep its working copy eligible for explicit recovery.
+    context.session.dirty = true
+    await this.persistContext(context).catch((error) => {
+      console.error("Could not mark quarantined Live working copy for recovery", error)
+    })
+    return Object.assign(new Error(message), { code: "operation-outcome-unknown" })
+  }
+
   private async persistContext(context: LiveContext): Promise<void> {
     await this.workingCopies.write(context.workingRoot, {
       id: context.session.id,
@@ -474,14 +602,44 @@ export class LiveDocumentService {
     })
   }
 
-  async close(disposition: "save" | "discard" | "cancel"): Promise<boolean> {
+  async close(disposition: LiveCloseDisposition): Promise<boolean> {
     const context = this.workspaces.active
     if (!context) return true
     if (disposition === "cancel") return false
+    if (context.closing && disposition !== "preserve") {
+      throw Object.assign(new Error("Live close requires recovery cleanup"), {
+        code: "operation-outcome-unknown"
+      })
+    }
+    if (disposition === "preserve") {
+      context.session.dirty = true
+      await this.persistContext(context)
+    }
     if (context.session.dirty && disposition === "save") await this.saveContext(context)
+    context.closing = true
+    try {
+      await context.worker.terminate()
+    } catch {
+      // A thread may already be stopped. Retain its context without allowing document writes.
+      throw await this.unknownOutcome(context, "Live worker termination needs recovery")
+    }
+    // Confirmed worker exit is the close commit point. Subsequent failures are cleanup failures.
     this.workspaces.takeActive()
-    await context.worker.terminate()
-    if (disposition === "discard") await this.workingCopies.discard(context.workingRoot)
+    if (disposition === "discard") {
+      try {
+        // Never offer a partially removed database as a recoverable working copy.
+        context.session.dirty = false
+        await this.persistContext(context)
+        await this.workingCopies.discard(context.workingRoot)
+      } catch (error) {
+        throw Object.assign(
+          new Error("Closed Live working-copy cleanup failed", { cause: error }),
+          {
+            code: "operation-outcome-unknown"
+          }
+        )
+      }
+    }
     return true
   }
 

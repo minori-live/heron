@@ -28,6 +28,7 @@ const props = defineProps<{
   outputs: MixerStripChannel[]
   sendTargets: MixerRouteTarget[]
   slotRows: number
+  structureEnabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -193,6 +194,7 @@ function createSend(value: string): void {
                 class="delete-send"
                 size="sm"
                 variant="danger"
+                :disabled="structureEnabled === false"
                 :label="t('mixer.sendSection.deleteSend', { target: targetName(send) })"
                 @click="emit('deleteSend', send.id)"
               >
@@ -218,6 +220,7 @@ function createSend(value: string): void {
             <label>
               <span>{{ t("mixer.sendSection.destination") }}</span>
               <UiCascadingSelect
+                :disabled="structureEnabled === false"
                 :model-value="sendTargetValue(send)"
                 :groups="destinationTargetGroups.get(send.id) ?? []"
                 size="compact"
@@ -226,6 +229,7 @@ function createSend(value: string): void {
               />
             </label>
             <UiSegmentedControl
+              :disabled="structureEnabled === false"
               class="tap-options"
               :model-value="send.tap"
               :label="t('mixer.sendSection.sendPosition')"
@@ -239,6 +243,7 @@ function createSend(value: string): void {
 
       <div v-if="emptyRows > 0 && canAddSend" class="send-row empty empty-slot">
         <UiCascadingSelect
+          :disabled="structureEnabled === false"
           model-value=""
           :groups="sendTargetGroups"
           placeholder=""

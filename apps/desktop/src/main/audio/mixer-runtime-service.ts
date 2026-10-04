@@ -6,8 +6,15 @@ export class MixerRuntimeService {
   constructor(private readonly audioHost: AudioHostService | null) {}
 
   async preview(preview: MixerParameterPreview): Promise<void> {
-    const [minimum, maximum] =
-      preview.target === "plugin" ? [0, 1] : preview.parameter === "pan" ? [-1, 1] : [-90, 12]
+    const booleanParameter =
+      preview.parameter === "enabled" ||
+      preview.parameter === "muted" ||
+      preview.parameter === "soloed"
+    const [minimum, maximum] = booleanParameter
+      ? [0, 1]
+      : preview.parameter === "pan"
+        ? [-1, 1]
+        : [-90, 12]
     finiteRange(preview.value, minimum, maximum, "Mixer preview")
     await this.audioHost?.previewMixerParameter(preview)
   }

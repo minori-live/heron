@@ -10,6 +10,9 @@ use super::{
     invalid_config, mark_stream_error,
 };
 
+#[path = "live_cut.rs"]
+mod live_cut;
+
 pub(super) fn stage_command_without_mixer(
     command: EngineCommand,
     pending_audition: &mut Option<Box<AuditionPlayback>>,
@@ -442,6 +445,10 @@ where
     let mut render_inputs = vec![[0.0; MAX_INPUT_CHANNELS]; MAX_PLUGIN_BLOCK_FRAMES];
     let mut device_outputs = vec![[0.0; MAX_OUTPUT_CHANNELS]; MAX_PLUGIN_BLOCK_FRAMES];
     let mut pending_audition = None;
+    let mut live_cut = live_cut::LiveCut::default();
+    if let Some(runtime) = mixer.as_ref().filter(|runtime| runtime.cut_frames > 0) {
+        live_cut.begin(None, runtime.cut_frames);
+    }
 
     device
         .build_output_stream(
@@ -470,18 +477,19 @@ where
                     runtime.external_sync_enabled = external_sync_enabled;
                 }
 
-                while let Some(command) = commands.try_pop() {
+                while !live_cut.active() {
+                    let Some(command) = commands.try_pop() else {
+                        break;
+                    };
                     if let Some(runtime) = mixer.as_mut() {
                         if let Some(replacement) =
                             runtime.handle_command_realtime(command, &mut retired_auditions)
                         {
-                            callback_metrics
-                                .published_graph_generation
-                                .store(replacement.generation, Ordering::Release);
-                            callback_metrics
-                                .published_graph_build_generation
-                                .store(replacement.build_generation, Ordering::Release);
-                            if let Some(mut retired) = mixer.replace(replacement) {
+                            let cut_frames = replacement.cut_frames;
+                            let previous = mixer.replace(replacement);
+                            if cut_frames > 0 {
+                                live_cut.begin(previous, cut_frames);
+                            } else if let Some(mut retired) = previous {
                                 retired.retire_plugin_processors();
                                 if let Err(retired) = retired_mixers.try_push(retired) {
                                     // Graph retirement should never block the audio callback. A
@@ -506,12 +514,9 @@ where
                                 &mut retired_auditions,
                             );
                         }
-                        callback_metrics
-                            .published_graph_generation
-                            .store(runtime.generation, Ordering::Release);
-                        callback_metrics
-                            .published_graph_build_generation
-                            .store(runtime.build_generation, Ordering::Release);
+                        if runtime.cut_frames > 0 {
+                            live_cut.begin(None, runtime.cut_frames);
+                        }
                         mixer = Some(runtime);
                     }
                 }
@@ -533,11 +538,13 @@ where
                                 *target = input;
                             }
                             if let Some(runtime) = mixer.as_mut() {
-                                runtime.render_block(
+                                live_cut.render(
+                                    runtime,
                                     &render_inputs[..session_outputs.len()],
                                     session_outputs,
-                                    Some(&mut realtime_midi),
-                                    Some(&mut recording_tap),
+                                    &mut realtime_midi,
+                                    &mut recording_tap,
+                                    &mut retired_mixers,
                                 )
                             } else {
                                 session_outputs.fill([0.0; MAX_OUTPUT_CHANNELS]);
@@ -575,6 +582,16 @@ where
                 }
                 if let Some(runtime) = mixer.as_mut() {
                     runtime.publish_peaks(rendered_session_frames);
+                    // Publication is observed after Live's bounded cut has completed.
+                    // Main may then retire native instances or stop a silent graph safely.
+                    if !live_cut.active() {
+                        callback_metrics
+                            .published_graph_generation
+                            .store(runtime.generation, Ordering::Release);
+                        callback_metrics
+                            .published_graph_build_generation
+                            .store(runtime.build_generation, Ordering::Release);
+                    }
                 }
 
                 callback_metrics

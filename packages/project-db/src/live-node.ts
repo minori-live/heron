@@ -1,20 +1,22 @@
 import { openAsBlob } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { PGlite } from "@electric-sql/pglite"
-import { and, asc, eq } from "drizzle-orm"
+import { and, asc, eq, lt } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/pglite"
 import type { PgliteDatabase } from "drizzle-orm/pglite"
 import type {
   LiveDocumentConfiguration,
+  LiveHierarchy,
   LiveMidiBinding,
   LiveRuntimeSnapshot,
   MixerGraphSnapshot
 } from "@heron/contracts"
 import { AUDIO_BACKENDS, PROJECT_SAMPLE_RATES } from "@heron/contracts"
-import { validateMixerGraph } from "@heron/project-model"
+import { validateLiveHierarchy, validateMixerGraph } from "@heron/project-model"
 import { dumpDataDirectory } from "./internal/archive"
 import { pgliteByteaOptions } from "./internal/bytea-codecs"
 import { bytes, pluginDescriptor } from "./internal/serialization"
+import { readLiveHierarchy, replaceLiveHierarchy } from "./internal/live-hierarchy"
 import { migrateLiveDatabase } from "./live-migrations"
 import { clearLiveMixer, inspectLiveArchive } from "./maintenance"
 import {
@@ -188,6 +190,23 @@ export class LiveDatabase {
       // Read the kind before applying Live migrations to an untrusted archive.
       await assertLiveArchive(client)
       await migrateLiveDatabase(instance.db)
+      const [graph, parameterValues, hierarchy] = await Promise.all([
+        instance.mixerSnapshot(),
+        instance.pluginParameterValues(),
+        instance.hierarchy()
+      ])
+      validateLiveHierarchy({ graph, parameterValues }, hierarchy)
+      // Publish the new format before this writer can add layer state, so older
+      // writers reject archives containing data they cannot preserve.
+      await instance.db
+        .update(liveDocument)
+        .set({ formatVersion: LIVE_FORMAT_VERSION })
+        .where(
+          and(
+            eq(liveDocument.id, LIVE_DOCUMENT_ID),
+            lt(liveDocument.formatVersion, LIVE_FORMAT_VERSION)
+          )
+        )
       return instance
     } catch (error) {
       await instance.close()
@@ -259,7 +278,8 @@ export class LiveDatabase {
   async replaceBaseline(
     snapshot: LiveRuntimeSnapshot,
     bindings: LiveMidiBinding[],
-    expectedRevision: number
+    expectedRevision: number,
+    hierarchy?: LiveHierarchy
   ): Promise<number> {
     validateMixerGraph(snapshot.graph)
     const pluginIds = new Set(snapshot.graph.plugins.map((plugin) => plugin.id))
@@ -295,6 +315,8 @@ export class LiveDatabase {
       if (snapshot.graph.sampleRate !== updated.sampleRate) {
         throw new TypeError("Live Mixer sample rate must match the document configuration")
       }
+      const nextHierarchy = hierarchy ?? (await readLiveHierarchy(tx))
+      validateLiveHierarchy(snapshot, nextHierarchy)
       await clearLiveMixer(tx)
       await tx.insert(mixerChannels).values(
         snapshot.graph.channels.map((channel) => ({
@@ -384,6 +406,9 @@ export class LiveDatabase {
           }))
         )
       }
+      // Replacing the root cascades state rows; restore every layer atomically,
+      // including when this operation only changed the Project baseline.
+      await replaceLiveHierarchy(tx, nextHierarchy)
       return updated.revision
     })
   }
@@ -499,6 +524,10 @@ export class LiveDatabase {
       target: row.target,
       ...(row.transformProfileId ? { transformProfileId: row.transformProfileId } : {})
     }))
+  }
+
+  async hierarchy(): Promise<LiveHierarchy> {
+    return readLiveHierarchy(this.db)
   }
 
   async pluginParameterValues(): Promise<Array<typeof livePluginParameterValues.$inferSelect>> {

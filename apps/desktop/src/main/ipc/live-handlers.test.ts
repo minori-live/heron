@@ -20,6 +20,11 @@ vi.mock("electron", () => ({
   BrowserWindow: electron
 }))
 vi.mock("../settings", () => ({ t: (key: string) => key }))
+// Keep this IPC admission test at the document boundary; audio import has a separate native suite.
+vi.mock("../project", () => ({
+  isLiveFilePath: (path: string) => path.endsWith(".hrl"),
+  isProjectFilePath: (path: string) => path.endsWith(".hrs") || path.endsWith(".heron")
+}))
 import { registerLiveHandlers } from "./live-handlers"
 import { invoke, meta, mutationMeta, ref } from "./test-harness"
 import type { LiveDocumentCoordinator } from "./live-document-coordinator"
@@ -67,7 +72,46 @@ describe("Live document RPC boundary", () => {
       "delete-plugin": { type: "delete-plugin", pluginId: "fx" },
       "move-plugin": { type: "move-plugin", pluginId: "fx", channelId: "audio", slotOrder: 1 },
       "replace-plugin": { type: "replace-plugin", pluginId: "fx", plugin: { id: "fx" } },
-      "set-midi-bindings": { type: "set-midi-bindings", bindings: [] }
+      "set-midi-bindings": { type: "set-midi-bindings", bindings: [] },
+      "create-set": { type: "create-set", setId: "set", name: "Set" },
+      "create-patch": { type: "create-patch", patchId: "patch", setId: "set", name: "Verse" },
+      "rename-live-layer": { type: "rename-live-layer", layerId: "patch", name: "Chorus" },
+      "delete-live-layer": { type: "delete-live-layer", layerId: "patch" },
+      "copy-live-set": {
+        type: "copy-live-set",
+        sourceId: "set",
+        setId: "set-copy",
+        name: "Copy",
+        patchIds: { patch: "patch-copy" }
+      },
+      "copy-live-patch": {
+        type: "copy-live-patch",
+        sourceId: "patch",
+        patchId: "patch-copy",
+        setId: "set",
+        name: "Copy"
+      },
+      "set-live-override": {
+        type: "set-live-override",
+        layerId: "patch",
+        override: { type: "channel", id: "audio", parameter: "gainDb", value: -6 }
+      },
+      "set-live-plugin-state": {
+        type: "set-live-plugin-state",
+        layerId: "patch",
+        pluginId: "plugin",
+        state: { version: 1, chunks: [] }
+      },
+      "revert-live-override": {
+        type: "revert-live-override",
+        layerId: "patch",
+        field: { type: "channel", id: "audio", parameter: "gainDb" }
+      },
+      "edit-live-layer": {
+        type: "edit-live-layer",
+        layerId: "patch",
+        command: { type: "update-channel", channelId: "audio", patch: { gainDb: -3 } }
+      }
     } satisfies Record<LiveEditCommand["type"], unknown>
     for (const command of Object.values(commands)) {
       const request = mutationMeta(project)
@@ -198,7 +242,7 @@ describe("Live document RPC boundary", () => {
     expect(
       await invoke(electron, IPC_CHANNELS.liveSnapshot, meta({ target: project }))
     ).toMatchObject({ ok: true })
-    for (const choice of ["save", "discard", "cancel"]) {
+    for (const choice of ["save", "discard", "cancel", "preserve"]) {
       expect(await invoke(electron, IPC_CHANNELS.liveClose, request, choice)).toMatchObject({
         ok: true
       })

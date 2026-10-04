@@ -62,10 +62,26 @@ Studio and Live use separate document sessions and PGlite workers. The shared
 Mixer graph contract contains Channels, Sends, plug-ins, and side-chain routes;
 Studio composes tracks, clips, media, and recording on top. Live root Channels
 have no placeholder Studio Track. The Live Edit document path currently owns
-create/open/save, recovery, revisioned edits, and the device/MIDI configuration
-record. The Perform runtime adapter and its candidate-generation policy are
-specified in [ADR-0008](adr/0008-root-live-bootstrap-and-capture.md) and remain
-an unfulfilled delivery gate; a stored rig does not imply active audition.
+create/open/save, recovery, revisioned edits, the device/MIDI configuration
+record, sparse Set/Patch scalar overrides and complete plug-in state overrides.
+The pure layer model resolves each
+editing selection from Project through Set and Patch and identifies each field's
+defining layer. Root and hierarchy edits share one worker transaction, document
+revision and Undo entry; every descendant is validated before commit. See
+[ADR-0013](adr/0013-live-layer-editing.md) for the staged field policy and Live
+format-2 upgrade. Live performance uses a separate controller and runtime adapter
+with generation-specific native plug-in IDs. It prepares a complete resolved
+Project/Patch, restores state and parameters, and publishes the active layer only
+after native graph activation is confirmed. Capture freezes sampled values and
+writes selected scalars to their defining layers in one document transaction.
+Complete state Capture explicitly targets its defining layer or the active
+Patch. State headers and binary chunks preserve independent ownership and empty
+envelopes; effective parameter overrides apply after state restoration. See
+[ADR-0015](adr/0015-live-layer-plugin-state.md) for Live format 3 and Capture scope.
+The explicit cut transition and IPC ownership are recorded in
+[ADR-0014](adr/0014-live-runtime-activation.md). Edit is silent; entering Perform
+owns exact audio devices, while Patch changes retain the running streams. Native
+build, hardware and soak validation remain delivery gates.
 
 Both document views compose the presenters in `components/workspace`:
 `DocumentWorkspaceShell`, `WorkspaceTopbar`, `WorkspaceControlGroup`,
@@ -79,8 +95,8 @@ File commands use the application menu and shortcuts in both workspaces.
 Live puts `MixerSurface` in the resizable right column
 and reserves its center for a future custom performance layout. The Studio
 Mixer adapter and Live Mixer controller share the original strips and controls;
-Live supplies document commands, exact hardware choices, and an isolated meter
-source. Creating a Live channel never calls Studio track creation. Device/MIDI
+Live supplies document commands, exact hardware choices, and runtime meters
+only during Perform. Creating a Live channel never calls Studio track creation. Device/MIDI
 configuration uses a draft dialog and does not mutate global audio preferences.
 Audio settings presenters own their layout and styles; document controllers
 retain their distinct device-selection policies. Mixer deletion and instrument

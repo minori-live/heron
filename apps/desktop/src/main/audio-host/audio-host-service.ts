@@ -328,9 +328,24 @@ export class AudioHostService {
   }
 
   async activateGraphDeployment(
-    deployment: PreparedGraphDeployment
+    deployment: PreparedGraphDeployment,
+    options: { cut?: boolean; isCurrent?: () => boolean } = {}
   ): ReturnType<AudioHostGraphTransactions["activate"]> {
-    return this.graphTransactions.activate(deployment)
+    return this.graphTransactions.activate(deployment, options)
+  }
+
+  graphDeploymentSnapshot(meta: RpcRequestMeta) {
+    return this.graphTransactions.snapshot(meta)
+  }
+
+  forgetDocumentGraph(): void {
+    this.lastGraph = null
+    this.publishedGraph = null
+    this.audioTransport.setChannelIds([])
+  }
+
+  unloadPlugin(instanceId: string): Promise<void> {
+    return this.plugins.unloadPlugin(instanceId, true)
   }
 
   async abortGraphDeployment(
@@ -465,8 +480,11 @@ export class AudioHostService {
     return this.audioTransport.applicationCaptureSnapshot()
   }
 
-  startAudioEngine(preferences: AudioPreferences): Promise<AudioRuntimeSnapshot> {
-    return this.audioTransport.startAudioEngine(preferences)
+  startAudioEngine(
+    preferences: AudioPreferences,
+    sampleRate?: number
+  ): Promise<AudioRuntimeSnapshot> {
+    return this.audioTransport.startAudioEngine(preferences, sampleRate)
   }
 
   restoreAudioEngine(): Promise<AudioRuntimeSnapshot> {
@@ -517,6 +535,10 @@ export class AudioHostService {
 
   previewMixerParameter(preview: MixerParameterPreview): Promise<void> {
     return this.audioTransport.previewMixerParameter(preview)
+  }
+
+  async applyLiveMixerParameter(preview: MixerParameterPreview): Promise<void> {
+    await this.request({ type: "preview-mixer-parameter", preview })
   }
 
   startAssetAudition(path: string, hardwareOutputs: [number, number]): Promise<void> {

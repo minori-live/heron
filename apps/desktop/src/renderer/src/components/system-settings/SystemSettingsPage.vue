@@ -23,6 +23,7 @@ import type {
 } from "@heron/contracts"
 import { UiButton } from "@heron/ui"
 import SettingsContainer from "../settings/SettingsContainer.vue"
+import SettingsPage from "../settings/SettingsPage.vue"
 import type { SettingsCategory } from "../settings/settings"
 import AudioDeviceSettings from "./AudioDeviceSettings.vue"
 import ApplicationUpdateSettings from "./ApplicationUpdateSettings.vue"
@@ -56,6 +57,7 @@ const props = defineProps<{
   runtime: AudioRuntimeSnapshot
   applyError: string
   applying: boolean
+  audioConfigurationLocked?: boolean
   audioHostRuntime: AudioHostRuntimePreferences
   resolvedAudioHostRuntime: ResolvedAudioHostRuntimePreferences | null
   audioHostRuntimeApplying: boolean
@@ -212,6 +214,7 @@ function selectPage(page: string): void {
 }
 
 function applyAudio(): void {
+  if (props.audioConfigurationLocked) return
   emit("applyAudio", { ...audioDraft.value })
 }
 </script>
@@ -235,7 +238,7 @@ function applyAudio(): void {
           class="settings-action settings-action-primary"
           size="sm"
           variant="primary"
-          :disabled="applying || !audioCanApply"
+          :disabled="applying || !audioCanApply || audioConfigurationLocked"
           @click="applyAudio"
         >
           {{
@@ -256,8 +259,17 @@ function applyAudio(): void {
       </UiButton>
     </template>
 
+    <SettingsPage
+      v-if="activePage === 'devices' && audioConfigurationLocked"
+      :category="t('settings.audio.devices.category')"
+      :page="t('settings.audio.devices.page')"
+      :title="t('settings.audio.devices.title')"
+      :description="t('live.performance.deviceLocked')"
+    >
+      <UiButton @click="emit('close')">{{ t("common.backToLive") }}</UiButton>
+    </SettingsPage>
     <AudioDeviceSettings
-      v-if="activePage === 'devices'"
+      v-else-if="activePage === 'devices'"
       v-model="audioDraft"
       :runtime="runtime"
       :apply-error="applyError"

@@ -34,6 +34,11 @@ pub struct CompiledGraphBuild {
 }
 
 impl CompiledGraphBuild {
+    /// Five milliseconds per side; storage is allocated during graph compilation.
+    pub fn enable_live_cut(&mut self) {
+        self.runtime.cut_frames = (self.runtime.sample_rate / 200).max(1);
+    }
+
     pub fn build_generation(&self) -> u64 {
         self.runtime.build_generation
     }
@@ -194,6 +199,40 @@ impl AudioEngine {
             // newer realtime bypass preview that arrived while such a build was in
             // flight, so publication cannot resurrect the stale enabled state.
             if source_graph.generation == current_graph.generation {
+                for channel in &mut source_graph.channels {
+                    if let Some(current) = current_graph
+                        .channels
+                        .iter()
+                        .find(|value| value.id == channel.id)
+                    {
+                        channel.gain_db = current.gain_db;
+                        channel.pan = current.pan;
+                        channel.muted = current.muted;
+                        channel.soloed = current.soloed;
+                        if let Some(index) = runtime.graph.channel_index(&channel.id) {
+                            let _ = runtime
+                                .graph
+                                .preview_channel_gain(index, channel.gain_db as f32);
+                            let _ = runtime.graph.preview_channel_pan(index, channel.pan as f32);
+                            let _ = runtime.graph.preview_channel_muted(index, channel.muted);
+                            let _ = runtime.graph.preview_channel_soloed(index, channel.soloed);
+                        }
+                    }
+                }
+                for send in &mut source_graph.sends {
+                    if let Some(current) =
+                        current_graph.sends.iter().find(|value| value.id == send.id)
+                    {
+                        send.level_db = current.level_db;
+                        send.enabled = current.enabled;
+                        if let Some(index) = runtime.graph.send_index(&send.id) {
+                            let _ = runtime
+                                .graph
+                                .preview_send_level(index, send.level_db as f32);
+                            let _ = runtime.graph.preview_send_enabled(index, send.enabled);
+                        }
+                    }
+                }
                 for plugin in &mut source_graph.plugins {
                     let Some(current_plugin) = current_graph
                         .plugins
@@ -387,6 +426,36 @@ impl AudioEngine {
                 .find(|plugin| plugin.instance_id == command.id())
         {
             plugin.enabled = enabled;
+        }
+        if let Some(graph) = last_graph.as_mut() {
+            if let Some(channel) = graph
+                .channels
+                .iter_mut()
+                .find(|value| value.id == command.id())
+            {
+                match command.parameter {
+                    super::RealtimeParameter::ChannelGain => {
+                        channel.gain_db = f64::from(command.value)
+                    }
+                    super::RealtimeParameter::ChannelPan => channel.pan = f64::from(command.value),
+                    super::RealtimeParameter::ChannelMuted => channel.muted = command.value >= 0.5,
+                    super::RealtimeParameter::ChannelSoloed => {
+                        channel.soloed = command.value >= 0.5
+                    }
+                    _ => {}
+                }
+            }
+            if let Some(send) = graph
+                .sends
+                .iter_mut()
+                .find(|value| value.id == command.id())
+            {
+                match command.parameter {
+                    super::RealtimeParameter::SendLevel => send.level_db = f64::from(command.value),
+                    super::RealtimeParameter::SendEnabled => send.enabled = command.value >= 0.5,
+                    _ => {}
+                }
+            }
         }
         Ok(())
     }

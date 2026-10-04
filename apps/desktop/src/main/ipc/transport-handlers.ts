@@ -138,6 +138,7 @@ export function registerTransportHandlers(context: IpcHandlerContext): void {
     })
   registerRpcHandler(IPC_CHANNELS.transportCommand, async ({ meta }, value: unknown) => {
     const state = lifecycle.applicationState
+    if (state.liveWorkspaceSnapshot()) return rpcFailure(meta, error(meta, "validation"))
     if (!meta.mutation || meta.expectedRevision === undefined || !isTransportCommand(value)) {
       return rpcFailure(meta, error(meta, "validation"))
     }

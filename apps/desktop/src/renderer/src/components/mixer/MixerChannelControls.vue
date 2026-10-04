@@ -11,8 +11,9 @@ const props = withDefaults(
     monitoringAvailable: boolean
     monitoringActive: boolean
     studioControls?: boolean
+    monitoringEditable?: boolean
   }>(),
-  { studioControls: true }
+  { studioControls: true, monitoringEditable: true }
 )
 const supportsRecording = computed(
   () =>
@@ -76,7 +77,7 @@ const { t } = useI18n()
               ? t('mixer.channelControls.inputMonitoring')
               : t('mixer.channelControls.inputMonitoringDisabled')
           "
-          :disabled="!monitoringAvailable"
+          :disabled="!monitoringAvailable || !monitoringEditable"
           stop-propagation
           @click="emit('updateChannel', { inputMonitoring: !channel.inputMonitoring })"
         >

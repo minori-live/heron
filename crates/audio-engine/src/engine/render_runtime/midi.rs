@@ -4,6 +4,20 @@ use super::{
 };
 
 impl MixerRuntime {
+    pub(super) fn release_live_controllers(&mut self) {
+        for plugin in self.plugins_by_channel.iter_mut().flatten() {
+            if !plugin.is_instrument {
+                continue;
+            }
+            if let Some(processor) = plugin.processor.as_mut() {
+                for channel in 0..16 {
+                    processor.control_change(0, channel, 64, 0);
+                    processor.control_change(0, channel, 123, 0);
+                }
+            }
+        }
+    }
+
     pub(super) fn dispatch_midi_event(&mut self, event: ScheduledMidiEvent, sample_offset: usize) {
         let sysex = match event.kind {
             ScheduledMidiEventKind::SysEx { offset, length } => {

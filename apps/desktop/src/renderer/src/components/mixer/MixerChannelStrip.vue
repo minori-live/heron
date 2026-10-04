@@ -48,6 +48,7 @@ const props = withDefaults(
     lowLatencyTargetDisabled?: boolean
     displayOptions?: MixerStripDisplayOptions
     studioControls?: boolean
+    structureEnabled?: boolean
     applicationCaptureEnabled?: boolean
     pluginEditorsEnabled?: boolean
     hardwareInputCount?: number
@@ -57,6 +58,7 @@ const props = withDefaults(
     meter: undefined,
     displayOptions: undefined,
     studioControls: true,
+    structureEnabled: true,
     applicationCaptureEnabled: true,
     pluginEditorsEnabled: true,
     hardwareInputCount: 32,
@@ -121,6 +123,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
     @select="emit('select', channel.id)"
   >
     <MixerInputSection
+      :structure-enabled="structureEnabled"
       :channel="channel"
       :instrument="instrument"
       :plugin-runtime="pluginRuntime"
@@ -143,6 +146,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       :slot-rows="pluginSlotRows"
       :initial-input-width="insertInitialInputWidth"
       :editors-enabled="pluginEditorsEnabled"
+      :structure-enabled="structureEnabled"
       @open="emit('openPlugin', $event)"
       @retry="emit('retryPlugin', $event)"
       @toggle="(id, enabled) => emit('togglePlugin', id, enabled)"
@@ -158,6 +162,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       :outputs="outputs"
       :send-targets="sendTargets"
       :slot-rows="sendSlotRows"
+      :structure-enabled="structureEnabled"
       @preview="emit('preview', $event)"
       @update-send="(sendId, patch) => emit('updateSend', sendId, patch)"
       @add-send="emit('addSend', channel.id, $event)"
@@ -165,6 +170,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
     />
 
     <MixerOutputSection
+      :inert="!structureEnabled || undefined"
       :channel="channel"
       :buses="buses"
       :outputs="outputs"
@@ -199,13 +205,14 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       :meter="meter"
       :display-options="displayOptions"
       :studio-controls="studioControls"
+      :monitoring-editable="structureEnabled"
       @preview="emit('preview', $event)"
       @update-channel="emit('updateChannel', channel.id, $event)"
       @reset-meter-clips="emit('resetMeterClips')"
       @bounce-output="emit('bounceOutput', channel)"
     />
 
-    <div class="channel-name" data-section="name">
+    <div class="channel-name" data-section="name" :inert="!structureEnabled || undefined">
       <i :style="{ backgroundColor: channel.color }" />
       <InlineTrackNameEditor
         class="channel-name-editor"

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import type { LiveDocumentConfiguration, LiveRuntimeSnapshot, LiveSession } from "@heron/contracts"
-import { applyLivePerformanceCommand } from "@heron/project-model"
+import { applyLiveCapture, applyLivePerformanceCommand } from "@heron/project-model"
 import { LivePerformanceController, type LiveRuntimePort } from "./live-performance-controller"
 import type { LiveDocumentService } from "./live-document-service"
 
@@ -80,6 +80,7 @@ function fixture() {
   }
   let baseline = initialSnapshot()
   let runtime = structuredClone(baseline)
+  let running = false
   let revision = 0
   const session: LiveSession = {
     kind: "live",
@@ -89,34 +90,53 @@ function fixture() {
     dirty: false,
     recoveredWorkingCopy: false
   }
-  const documents = {
+  const documents: Pick<
+    LiveDocumentService,
+    "current" | "baseline" | "commitCapture" | "commitLayerCapture"
+  > = {
     get current() {
       return session
     },
-    baseline: vi.fn(async () => ({ snapshot: structuredClone(baseline), bindings: [], revision })),
+    baseline: vi.fn(async () => ({
+      snapshot: structuredClone(baseline),
+      bindings: [],
+      hierarchy: { sets: [], patches: [] },
+      revision
+    })),
     commitCapture: vi.fn(async (next: LiveRuntimeSnapshot, expected: number) => {
       if (expected !== revision) throw new Error("revision changed")
       baseline = structuredClone(next)
       session.dirty = true
       return ++revision
+    }),
+    commitLayerCapture: vi.fn(async (_layerId, frozen, available, selected, expected) => {
+      if (expected !== revision) throw new Error("revision changed")
+      baseline = applyLiveCapture(baseline, frozen, available, selected)
+      session.dirty = true
+      return {
+        snapshot: structuredClone(baseline),
+        bindings: [],
+        hierarchy: { sets: [], patches: [] },
+        revision: ++revision
+      }
     })
-  } as unknown as Pick<LiveDocumentService, "current" | "baseline" | "commitCapture">
+  }
   const port: LiveRuntimePort = {
     synchronizeEditState: vi.fn(async (snapshot) => snapshot),
-    prepare: vi.fn(async (_configuration, snapshot) => {
-      runtime = structuredClone(snapshot)
-      return { id: "candidate" }
+    prepare: vi.fn(async (_configuration, snapshot) => ({ snapshot: structuredClone(snapshot) })),
+    activate: vi.fn(async (candidate, isCurrent) => {
+      if (!isCurrent()) throw new Error("Superseded candidate")
+      runtime = structuredClone((candidate as { snapshot: LiveRuntimeSnapshot }).snapshot)
+      running = true
     }),
-    activate: vi.fn(async () => undefined),
     abort: vi.fn(async () => undefined),
     apply: vi.fn(async (command) => {
       runtime = applyLivePerformanceCommand(runtime, command)
     }),
     snapshot: vi.fn(async () => structuredClone(runtime)),
-    restoreBaseline: vi.fn(async (_configuration, snapshot) => {
-      runtime = structuredClone(snapshot)
-    }),
-    leave: vi.fn(async () => undefined)
+    leave: vi.fn(async () => {
+      running = false
+    })
   }
   return {
     documents,
@@ -126,6 +146,9 @@ function fixture() {
     },
     get runtime() {
       return runtime
+    },
+    get running() {
+      return running
     }
   }
 }
@@ -146,7 +169,8 @@ describe("Live Perform and Capture orchestration", () => {
     expect(await controller.leave("cancel")).toBe(false)
     expect(controller.currentMode).toBe("perform")
     expect(await controller.leave("discard")).toBe(true)
-    expect(value.runtime.graph.channels[0]?.gainDb).toBe(-6)
+    expect(value.running).toBe(false)
+    expect(value.baseline.graph.channels[0]?.gainDb).toBe(-6)
     expect(controller.currentMode).toBe("edit")
   })
 
@@ -154,13 +178,17 @@ describe("Live Perform and Capture orchestration", () => {
     const value = fixture()
     const controller = new LivePerformanceController(value.documents, value.port)
     vi.mocked(value.port.prepare).mockRejectedValueOnce(new Error("missing plugin"))
-    await expect(controller.enter()).rejects.toThrow("missing plugin")
+    await expect(controller.enter()).rejects.toMatchObject({
+      error: { code: "resource-unavailable", outcome: "not-committed" }
+    })
     expect(controller.currentMode).toBe("edit")
     await controller.enter()
     await controller.adjust({ type: "channel", id: "audio", parameter: "gainDb", value: -4 })
     const preview = await controller.previewCapture()
-    vi.mocked(value.documents.commitCapture).mockRejectedValueOnce(new Error("disk full"))
-    await expect(controller.capture(preview.captureId, preview.fields)).rejects.toThrow("disk full")
+    vi.mocked(value.documents.commitLayerCapture).mockRejectedValueOnce(new Error("disk full"))
+    await expect(controller.capture(preview.captureId, preview.fields)).rejects.toMatchObject({
+      error: { code: "resource-unavailable", outcome: "not-committed" }
+    })
     expect(controller.currentMode).toBe("perform")
     expect(controller.hasUncapturedChanges()).toBe(true)
     expect(value.runtime.graph.channels[0]?.gainDb).toBe(-4)
