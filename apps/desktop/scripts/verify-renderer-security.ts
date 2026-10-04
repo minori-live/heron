@@ -3,7 +3,7 @@ import { relative, resolve } from "node:path"
 
 const outputDirectory = resolve(import.meta.dirname, "../out/renderer")
 
-for (const filename of ["index.html", "splash.html"]) {
+for (const filename of ["index.html", "splash.html", "plugin-doctor.html"]) {
   const html = await readFile(resolve(outputDirectory, filename), "utf8")
   if (html.includes("__HERON_CONTENT_SECURITY_POLICY__")) {
     throw new Error(`${filename} still contains the CSP placeholder`)

@@ -80,6 +80,9 @@ the project value and the editor reports the degraded audio state.
 
 ## Missing or failed plug-ins
 
+Use [Plugin Analysis](plugin-doctor.md) to measure an independent effect chain's
+response, harmonics, Hammerstein approximation and performance.
+
 The project keeps a legal signal path when a stored plug-in is missing,
 quarantined, or fails to start. Check the slot state and catalog status, then:
 

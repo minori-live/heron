@@ -89,6 +89,28 @@ export type {
 export type { PreparedGraphDeployment } from "./audio-host-graph-transactions"
 
 export class AudioHostService {
+  private readonly doctorListeners = new Set<(notification: PluginHostNotification) => void>()
+  private readonly doctorShutdown = new Set<() => Promise<void>>()
+
+  subscribeDoctorShutdown(listener: () => Promise<void>): () => void {
+    this.doctorShutdown.add(listener)
+    return () => this.doctorShutdown.delete(listener)
+  }
+
+  subscribeDoctorNotifications(
+    listener: (notification: PluginHostNotification) => void
+  ): () => void {
+    this.doctorListeners.add(listener)
+    return () => this.doctorListeners.delete(listener)
+  }
+
+  doctorRequest(command: Record<string, unknown>): Promise<ControlResponse> {
+    return this.request(command)
+  }
+
+  unloadDoctorPlugin(instanceId: string): Promise<void> {
+    return this.plugins.unloadPlugin(instanceId, true)
+  }
   private readonly publicationGraph: ProjectGraphRef = {
     kind: "project-graph",
     id: randomUUID(),
@@ -211,7 +233,11 @@ export class AudioHostService {
         onEditorClosed(instanceId)
       },
       (callback) => this.events.dispatchAra(callback),
-      (notification) => this.events.dispatchPlugin(notification),
+      (notification) => {
+        if (notification.instanceId.startsWith("doctor-")) {
+          for (const listener of this.doctorListeners) listener(notification)
+        } else this.events.dispatchPlugin(notification)
+      },
       (request) => this.events.dispatchSidechain(request),
       (recovery) => this.events.dispatchDeviceRecovery(recovery),
       (failure) => this.events.dispatchPluginFailure(failure)
@@ -366,7 +392,9 @@ export class AudioHostService {
     const desiredInstanceIds = new Set(deployment.project.plugins.map((plugin) => plugin.id))
     const retiredInstanceIds = this.plugins
       .loadedInstanceIds()
-      .filter((instanceId) => !desiredInstanceIds.has(instanceId))
+      .filter(
+        (instanceId) => !instanceId.startsWith("doctor-") && !desiredInstanceIds.has(instanceId)
+      )
     const retired = await Promise.allSettled(
       retiredInstanceIds.map((instanceId) => this.plugins.unloadPlugin(instanceId))
     )
@@ -784,6 +812,7 @@ export class AudioHostService {
   }
 
   async stop(): Promise<void> {
+    await Promise.all([...this.doctorShutdown].map((close) => close()))
     this.stopping = true
     this.stopUiDrain()
     await this.shutdownCurrentClient()

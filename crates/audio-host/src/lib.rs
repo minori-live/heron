@@ -9,6 +9,8 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
+mod plugin_doctor;
+
 static ERROR_CORRELATION: AtomicU64 = AtomicU64::new(1);
 
 fn control_error_result(diagnostic: impl fmt::Display) -> ControlResult {

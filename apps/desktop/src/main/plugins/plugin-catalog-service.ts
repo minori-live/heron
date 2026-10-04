@@ -251,6 +251,9 @@ export class PluginCatalogService {
     return this.scanner.run(request, async (value) => {
       this.catalog = { ...this.catalog, scanning: true }
       try {
+        // Re-probe bundled artifacts too: a dev build may finish after startup.
+        await this.refreshBuiltins()
+        if (value.force || value.retryQuarantined) this.runtimeBundleProbes.clear()
         this.catalog = await this.discovery.scan(this.catalog, value, (event) =>
           this.publish(event)
         )

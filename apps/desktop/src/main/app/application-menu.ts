@@ -8,9 +8,15 @@ import type {
 } from "@heron/contracts"
 import { sendApplicationCommand } from "./application-command-events"
 import { t } from "../settings"
+import { classifyRendererEntrypoint } from "../../shared/renderer-security"
 
 function requestApplicationCommand(command: ApplicationCommandId): void {
-  const window = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+  const window =
+    command === "help.plugin-doctor"
+      ? BrowserWindow.getAllWindows().find(
+          (candidate) => classifyRendererEntrypoint(candidate.webContents.getURL()) === "main"
+        )
+      : (BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0])
   if (!window) return
   sendApplicationCommand(window, command)
 }
@@ -149,6 +155,11 @@ function macApplicationMenu(
           t("menu.audioBenchmark"),
           "help.audio-benchmark",
           accelerator("help.audio-benchmark")
+        ),
+        commandItem(
+          t("menu.pluginDoctor"),
+          "help.plugin-doctor",
+          accelerator("help.plugin-doctor")
         ),
         commandItem(
           t("menu.effectChainGraph"),

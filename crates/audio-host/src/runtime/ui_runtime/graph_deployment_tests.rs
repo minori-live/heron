@@ -128,6 +128,7 @@ fn graph_activation_rollback_and_competing_refreshes_preserve_the_commit_boundar
                 ui_proxy: UiMailboxWaker::new(Arc::new(|| {})), ui_sender, processors, handles,
                 engine_sender, audio_engine: Arc::clone(&audio_engine), graph_build_gate, session_epoch: 42,
                 bounce_jobs: Arc::new(BounceJobRegistry::default()),
+                doctor_jobs: Arc::new(crate::plugin_doctor::DoctorJobs::default()),
             }));
             let prepare = ControlCommand::PrepareGraph {
                 meta: meta(), request: Box::new(PrepareGraphRequest {

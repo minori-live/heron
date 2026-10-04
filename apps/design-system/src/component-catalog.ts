@@ -115,6 +115,13 @@ export const UI_COMPONENT_CATALOG = {
     ["default", "keyboard", "pointer", "cancel"],
     "workspace"
   ),
+  UiAnalysisPlot: entry(
+    "AnalysisPlot.stories.ts",
+    ["StereoResponse", "SweepSpectrogram"],
+    false,
+    ["default"],
+    "workspace"
+  ),
   UiDbScale: entry("MixerControls.stories.ts", ["DbScale"], false, ["default"], "workspace"),
   UiDialog: entry(
     "Overlays.stories.ts",

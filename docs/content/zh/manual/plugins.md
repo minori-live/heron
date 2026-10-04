@@ -6,6 +6,9 @@ vstTrademark: true
 
 # VST® 3 插件
 
+[Plugin Analysis](plugin-doctor.md) 可在独立实验链中测量频响、相位、IR、泛音、
+Hammerstein 模型和性能，并支持超过 0 dBFS 的浮点输入电平。
+
 Heron 会从标准的系统与用户位置发现 VST 3 乐器与效果。插件运行在隔离的
 音频宿主进程中，因此失败的模块可以被报告并隔离，而无需将原生代码直接
 加载到界面中。

@@ -1,0 +1,141 @@
+import { IPC_CHANNELS, validDoctorSettings, rpcFailure } from "@heron/contracts"
+import { randomUUID } from "node:crypto"
+import type { DoctorCommand } from "@heron/contracts"
+import type { IpcHandlerContext } from "./context"
+import { registerRpcHandler } from "./rpc"
+import {
+  validateMutationTarget,
+  validateReadTarget,
+  validationFailure
+} from "./resource-validation"
+import { PluginDoctorWindow } from "../plugin-doctor/plugin-doctor-window"
+
+function isCommand(value: unknown): value is DoctorCommand {
+  if (!value || typeof value !== "object") return false
+  const v = value as DoctorCommand
+  switch (v.type) {
+    case "insert":
+      return (
+        typeof v.pluginKey === "string" &&
+        ["mono", "mono-to-stereo", "stereo", "dual-mono"].includes(v.audioMode) &&
+        Number.isSafeInteger(v.slotOrder) &&
+        v.slotOrder >= 0 &&
+        v.slotOrder <= 16
+      )
+    case "remove":
+    case "editor":
+      return typeof v.instanceId === "string"
+    case "move":
+      return (
+        typeof v.instanceId === "string" &&
+        Number.isSafeInteger(v.slotOrder) &&
+        v.slotOrder >= 0 &&
+        v.slotOrder <= 16
+      )
+    case "toggle":
+      return typeof v.instanceId === "string" && typeof v.enabled === "boolean"
+    case "configure":
+      return validDoctorSettings(v.settings)
+    case "automatic":
+      return typeof v.enabled === "boolean"
+    case "analyze":
+    case "refresh-catalog":
+    case "cancel":
+      return true
+    case "window":
+      return ["minimize", "maximize", "close"].includes(v.action)
+    default:
+      return false
+  }
+}
+
+export function registerPluginDoctorHandlers(context: IpcHandlerContext): () => void {
+  const doctor = new PluginDoctorWindow(context)
+  let opening: Promise<boolean> | null = null
+  let commands: Promise<void> = Promise.resolve()
+  registerRpcHandler(IPC_CHANNELS.pluginDoctorOpen, async ({ meta }) => {
+    const invalid = validateMutationTarget(meta, context.lifecycle.applicationState.desktopSession)
+    if (invalid) return invalid
+    if (!opening)
+      opening = doctor
+        .open()
+        .catch(() => false)
+        .finally(() => {
+          opening = null
+        })
+    if (!(await opening))
+      return rpcFailure(meta, {
+        code: "resource-unavailable",
+        category: "unavailable",
+        outcome: "not-committed",
+        retry: "safe",
+        correlationId: randomUUID(),
+        userMessageKey: "errors.audioEngineUnavailable",
+        details: { type: "resource-unavailable", component: "main", dispatched: false }
+      })
+  })
+  const authenticate = doctor.authenticate.bind(doctor)
+  registerRpcHandler(
+    IPC_CHANNELS.pluginDoctorSnapshot,
+    ({ meta }, acknowledge?: unknown) => {
+      const service = doctor.service!
+      if (meta.target) {
+        const invalid = validateReadTarget(meta, service.snapshot().ref)
+        if (invalid) return invalid
+      } else if (meta.mutation) return validationFailure(meta, "mutation")
+      if (acknowledge !== undefined) {
+        if (typeof acknowledge !== "string" || !meta.target)
+          return validationFailure(meta, "acknowledge")
+        service.acknowledge(acknowledge)
+      }
+      return service.snapshot()
+    },
+    { authenticate }
+  )
+  registerRpcHandler(
+    IPC_CHANNELS.pluginDoctorCommand,
+    ({ meta }, value: unknown) => {
+      if (!isCommand(value)) return validationFailure(meta, "command")
+      const result = commands.then(async () => {
+        const service = doctor.service
+        if (!service) return validationFailure(meta, "closed-session")
+        const snapshot = service.snapshot()
+        const repeated =
+          meta.mutation &&
+          service.hasReceipt(meta.mutation.operationId, value, meta.mutation.idempotencyKey)
+        if (meta.mutation && service.hasOperation(meta.mutation.operationId) && !repeated)
+          return validationFailure(meta, "operation-id")
+        if (meta.mutation && service.hasIdempotencyKey(meta.mutation.idempotencyKey) && !repeated)
+          return validationFailure(meta, "idempotency-key")
+        if (!repeated && !service.receiptCapacityAvailable)
+          return validationFailure(meta, "receipt-capacity")
+        const invalid = validateMutationTarget(
+          meta,
+          snapshot.ref,
+          repeated ? undefined : snapshot.revision
+        )
+        if (invalid) return invalid
+        const result = await service.command(
+          value,
+          meta.mutation!.operationId,
+          meta.mutation!.idempotencyKey
+        )
+        if (value.type === "window" && !repeated) {
+          if (value.action === "minimize") doctor.window?.minimize()
+          else if (value.action === "maximize") {
+            if (doctor.window?.isMaximized()) doctor.window.unmaximize()
+            else doctor.window?.maximize()
+          } else void doctor.close()
+        }
+        return result
+      })
+      commands = result.then(
+        () => {},
+        () => {}
+      )
+      return result
+    },
+    { authenticate }
+  )
+  return () => doctor.dispose()
+}

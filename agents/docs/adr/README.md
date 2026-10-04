@@ -23,6 +23,7 @@ evidence belong in their owning documents rather than being copied into each ADR
 | [0013 — Live layer editing](0013-live-layer-editing.md)                                                | Accepted                           | Sparse Set/Patch overrides, editing scope, revisioned hierarchy persistence and version-1 upgrade     |
 | [0014 — Live runtime activation](0014-live-runtime-activation.md)                                      | Accepted                           | Embedded Live activation, bounded cut, volatile performance and layered Capture                       |
 | [0015 — Live layer plug-in state](0015-live-layer-plugin-state.md)                                     | Accepted                           | Binary layer state, independent parameter precedence and explicit complete-state Capture destinations |
+| [0016 — Plugin Analysis measurement sessions](0016-plugin-doctor.md)                                   | Accepted                           | Independent experiment chain, floating point excitation, measurement worker and revisioned reports    |
 
 Accepted means the architecture is chosen, not that every feature or release
 acceptance test is complete. Each record states its implementation scope; the
@@ -32,7 +33,7 @@ used as permission to implement or claim an accepted compatibility commitment.
 ## 2026-09-06 baseline reset
 
 The numbers in this section's mapping table belong to a **superseded series**.
-Current records are 0001–0015; 0009 in the table below refers to the retired
+Current records are 0001–0016; 0009 in the table below refers to the retired
 record, not to any record in this series.
 
 At the maintainer's request, the previous 16 records were consolidated into this
@@ -100,7 +101,7 @@ Prefer one cohesive decision over a record for each implementation step.
 
 ## Lifecycle and review
 
-Use four digits and a short kebab-case title, starting the next record at **0016**.
+Use four digits and a short kebab-case title, starting the next record at **0017**.
 Copy [the template](template.md). Status is Proposed, Accepted, Superseded by
 ADR-NNNN, or Rejected. Accepted records change only for editorial corrections,
 links and explicit implementation-scope clarification; changing a decision

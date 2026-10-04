@@ -25,6 +25,7 @@ export const generatedAndBuildPaths = [
   "crates/dsp-node/index.js",
   // Emitted by `mise run codegen:wire-types`; the Rust protocol owns the shape.
   "apps/desktop/src/main/audio-host/wire/generated/",
+  "packages/contracts/src/generated/",
   "packages/project-db/drizzle/meta/"
 ]
 

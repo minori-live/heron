@@ -8,3 +8,6 @@ export TS_RS_EXPORT_DIR="$PWD/apps/desktop/src/main/audio-host/wire/generated"
 rm -rf "$TS_RS_EXPORT_DIR"
 mkdir -p "$TS_RS_EXPORT_DIR"
 cargo test -p heron-dsp-runtime --features ts-export --lib export_typescript -- --nocapture
+mkdir -p "$PWD/packages/contracts/src/generated"
+rm -f "$PWD/packages/contracts/src/generated/"Doctor*.ts
+cp "$TS_RS_EXPORT_DIR"/Doctor*.ts "$PWD/packages/contracts/src/generated/"

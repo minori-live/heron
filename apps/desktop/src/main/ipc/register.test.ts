@@ -4,6 +4,8 @@ const registrations = vi.hoisted(() => ({
   audio: vi.fn(),
   bounce: vi.fn(),
   diagnostic: vi.fn(),
+  doctorDispose: vi.fn(),
+  doctor: vi.fn(),
   midi: vi.fn(),
   lowLatency: vi.fn(),
   mixer: vi.fn(),
@@ -19,9 +21,17 @@ const registrations = vi.hoisted(() => ({
   performance: vi.fn(() => ({ capturedAt: 1 }))
 }))
 
+vi.mock("./live-handlers", () => ({ registerLiveHandlers: vi.fn() }))
+vi.mock("./live-document-coordinator", () => ({ LiveDocumentCoordinator: class {} }))
+vi.mock("./live-performance-session", () => ({ LivePerformanceSession: class {} }))
 vi.mock("./audio-handlers", () => ({ registerAudioHandlers: registrations.audio }))
 vi.mock("./bounce-handlers", () => ({ registerBounceHandlers: registrations.bounce }))
 vi.mock("./diagnostic-handlers", () => ({ registerDiagnosticHandlers: registrations.diagnostic }))
+vi.mock("./plugin-doctor-handlers", () => ({
+  registerPluginDoctorHandlers: registrations.doctor.mockImplementation(
+    () => registrations.doctorDispose
+  )
+}))
 vi.mock("./midi-handlers", () => ({ registerMidiHandlers: registrations.midi }))
 vi.mock("./low-latency-handlers", () => ({ registerLowLatencyHandlers: registrations.lowLatency }))
 vi.mock("./mixer-handlers", () => ({ registerMixerHandlers: registrations.mixer }))
@@ -63,6 +73,7 @@ describe("registerIpcHandlers", () => {
       registrations.audio,
       registrations.bounce,
       registrations.diagnostic,
+      registrations.doctor,
       registrations.midi,
       registrations.lowLatency,
       registrations.mixer,
@@ -81,7 +92,9 @@ describe("registerIpcHandlers", () => {
     context.sampleSystemPerformance()
     expect(registrations.synchronize).toHaveBeenCalledOnce()
     expect(registrations.performance).toHaveBeenCalledOnce()
-    expect(registration.dispose).toBe(registrations.dispose)
+    registration.dispose()
+    expect(registrations.dispose).toHaveBeenCalled()
+    expect(registrations.doctorDispose).toHaveBeenCalled()
   })
 
   it("disposes event publishers when handler installation fails", () => {

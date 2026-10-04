@@ -131,6 +131,12 @@ is re-established. See [ADR-0001](adr/0001-runtime-ownership-and-transactions.md
 
 ## Native control and UI events
 
+Plugin Analysis owns a secure auxiliary renderer and independent volatile effect
+chain. Original and measurement instances share the embedded host, with a bounded
+analysis worker and revision-guarded report publication. It does not claim an
+audio device. See [ADR-0016](adr/0016-plugin-doctor.md) for lifetime and measurement
+limits.
+
 Electron main sends MessagePack request envelopes to the addon to preserve one
 typed Rust protocol and one response-validation path. This serialization is a
 local N-API ABI, not an IPC transport. Binary payloads are inline; attachment

@@ -21,6 +21,7 @@ import type {
 import type { BinaryPayloadWire } from "./binary"
 import type { AudioHostMidiInputSnapshot } from "./midi"
 import type { AudioHostBounceStatus } from "./bounce"
+import type { DoctorJobStatus } from "./generated/DoctorJobStatus"
 import type {
   AudioHostMidiRecordingResultWire,
   AudioHostRecordingResultWire,
@@ -67,6 +68,7 @@ export interface ControlResponse {
   result: {
     type:
       | "pong"
+      | "plugin-doctor"
       | "benchmark-echo"
       | "audio-benchmark"
       | "heartbeat"
@@ -95,6 +97,7 @@ export interface ControlResponse {
       | "bounce-output"
       | "error"
     error?: RpcError
+    doctor_status?: DoctorJobStatus
     result?: RpcResult<GraphTransactionValue>
     callback_generation?: number
     ipc_generation?: number

@@ -2,6 +2,7 @@ import type { ApplicationServices, IpcHandlerContext } from "./context"
 import { registerAudioHandlers } from "./audio-handlers"
 import { registerBounceHandlers } from "./bounce-handlers"
 import { registerDiagnosticHandlers } from "./diagnostic-handlers"
+import { registerPluginDoctorHandlers } from "./plugin-doctor-handlers"
 import { registerMidiHandlers } from "./midi-handlers"
 import { registerLowLatencyHandlers } from "./low-latency-handlers"
 import { registerMixerHandlers } from "./mixer-handlers"
@@ -21,6 +22,7 @@ import { registerIpcEventPublishers, type DisposableRegistration } from "./event
 export function registerIpcHandlers(services: ApplicationServices): DisposableRegistration {
   const { audioHost, projectGraph, settings } = services
   const eventPublishers = registerIpcEventPublishers(services)
+  let disposeDoctor: (() => void) | undefined
   try {
     const synchronizePluginStates = (): Promise<void> =>
       synchronizePluginStatesAtomically(audioHost, projectGraph)
@@ -46,6 +48,7 @@ export function registerIpcHandlers(services: ApplicationServices): DisposableRe
     registerLowLatencyHandlers(context)
     registerTransportHandlers(context)
     registerDiagnosticHandlers(context)
+    disposeDoctor = registerPluginDoctorHandlers(context)
     registerSettingsRpcHandlers(context)
     registerProjectHandlers(context)
     if (services.liveDocuments) {
@@ -68,9 +71,15 @@ export function registerIpcHandlers(services: ApplicationServices): DisposableRe
       )
     }
     registerRecordingHandlers(context)
-    return eventPublishers
+    return {
+      dispose: () => {
+        disposeDoctor?.()
+        eventPublishers.dispose()
+      }
+    }
   } catch (error) {
     eventPublishers.dispose()
+    disposeDoctor?.()
     throw error
   }
 }

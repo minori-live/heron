@@ -12,6 +12,7 @@ export { default as UiChoiceCard } from "./components/UiChoiceCard.vue"
 export { default as UiColorInput } from "./components/UiColorInput.vue"
 export { default as UiContextMenu } from "./components/UiContextMenu.vue"
 export { default as UiCurveEditor } from "./components/UiCurveEditor.vue"
+export { default as UiAnalysisPlot } from "./components/UiAnalysisPlot.vue"
 export { default as UiDialog } from "./components/UiDialog.vue"
 export { default as UiDropdownMenu } from "./components/UiDropdownMenu.vue"
 export { default as UiDraggableItem } from "./components/UiDraggableItem.vue"
@@ -73,6 +74,8 @@ export {
 } from "./menu"
 
 export type {
+  UiAnalysisSeries,
+  UiAnalysisHeatmap,
   UiActionVariant,
   UiAutomationLanePoint,
   UiDropIntent,

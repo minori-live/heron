@@ -29,6 +29,7 @@ export const APPLICATION_COMMAND_IDS = [
   "recording.toggle",
   "help.studio-basics",
   "help.audio-benchmark",
+  "help.plugin-doctor",
   "help.effect-chain-graph",
   "application.about"
 ] as const
