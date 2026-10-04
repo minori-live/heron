@@ -2217,6 +2217,7 @@
     "units": {
       "db": "dB",
       "dbc": "dBc",
+      "dbfs": "dBFS",
       "mib": "MiB"
     },
     "inserts": "Audio FX",

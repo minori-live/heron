@@ -80,6 +80,14 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
     await level.press("End")
     for (let step = 0; step < 12; step++) await level.press("ArrowLeft")
     await expect(level).toHaveValue("6")
+    await pluginAnalysis.getByRole("button", { name: "Measurement settings" }).click()
+    await pluginAnalysis.getByRole("combobox", { name: "Linear excitation" }).selectOption("delta")
+    await pluginAnalysis.getByRole("combobox", { name: "FFT size" }).selectOption("32768")
+    await pluginAnalysis.screenshot({
+      path: test.info().outputPath("settings.png"),
+      fullPage: true
+    })
+    await pluginAnalysis.getByRole("button", { name: "Measurement settings" }).click()
     await pluginAnalysis.getByRole("button", { name: "Analyze", exact: true }).click()
     await expect(pluginAnalysis.getByText(/\+6\.0 dBFS/).first()).toBeVisible()
     // The slider text is only a preview; wait for the native report and assert its
@@ -91,19 +99,33 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
             const api = (window as unknown as Record<string, unknown>).heronPluginAnalysis as {
               snapshot(meta: { protocolVersion: number; requestId: string }): Promise<{
                 ok: boolean
-                value?: { report: { settings: { level_dbfs: number } } | null }
+                value?: {
+                  report: {
+                    settings: { level_dbfs: number; fft_size: number; linear_excitation: string }
+                  } | null
+                }
               }>
             }
             const result = await api.snapshot({
               protocolVersion: 2,
               requestId: crypto.randomUUID()
             })
-            return result.ok ? (result.value?.report?.settings.level_dbfs ?? null) : null
+            const settings = result.ok ? result.value?.report?.settings : null
+            return settings
+              ? {
+                  level: settings.level_dbfs,
+                  fft: settings.fft_size,
+                  excitation: settings.linear_excitation
+                }
+              : null
           }),
         { timeout: 45000 }
       )
-      .toBe(6)
-    await pluginAnalysis.getByRole("checkbox", { name: "Compare chains" }).check()
+      .toEqual({ level: 6, fft: 32768, excitation: "delta" })
+    const compare = pluginAnalysis.getByRole("checkbox", { name: "Compare chains" })
+    await compare.focus()
+    await compare.press("Space")
+    await expect(compare).toBeChecked()
     await pluginAnalysis.getByRole("button", { name: "Analyze", exact: true }).click()
     await expect
       .poll(
@@ -114,6 +136,7 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
                 ok: boolean
                 value?: {
                   status: string
+                  failure: string | null
                   comparisonReport: unknown
                   differenceReport: { responses: Array<{ magnitude_db: number[] }> } | null
                 }
@@ -124,23 +147,19 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
               requestId: crypto.randomUUID()
             })
             const value = result.value
-            if (
-              !result.ok ||
-              value?.status !== "complete" ||
-              !value.comparisonReport ||
-              !value.differenceReport
-            )
-              return false
-            return (
-              value.differenceReport.responses.length === 4 &&
-              value.differenceReport.responses.every((channel) =>
+            return {
+              status: value?.status,
+              failure: value?.failure,
+              comparison: Boolean(value?.comparisonReport),
+              difference: value?.differenceReport?.responses.length,
+              zero: value?.differenceReport?.responses.every((channel) =>
                 channel.magnitude_db.every((magnitude) => magnitude <= -120)
               )
-            )
+            }
           }),
         { timeout: 90000 }
       )
-      .toBe(true)
+      .toEqual({ status: "complete", failure: null, comparison: true, difference: 4, zero: true })
     await pluginAnalysis.getByRole("button", { name: "1 − 2", exact: true }).click()
     await pluginAnalysis.getByRole("button", { name: "1 | 2", exact: true }).click()
     for (const name of [
@@ -153,6 +172,10 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
       "Performance"
     ]) {
       await pluginAnalysis.getByRole("tab", { name, exact: true }).click()
+      await pluginAnalysis.screenshot({
+        path: test.info().outputPath(`${name.toLowerCase()}.png`),
+        fullPage: true
+      })
     }
     await expect(pluginAnalysis.locator(".performance-panel")).toBeVisible()
     await pluginAnalysis.screenshot({
