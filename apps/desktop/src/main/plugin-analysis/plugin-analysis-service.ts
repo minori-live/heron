@@ -83,7 +83,7 @@ export class PluginAnalysisService {
       if (
         (event.kind === "dirty-changed" && event.value === "true") ||
         event.kind === "parameter-output" ||
-        event.kind === "restart"
+        event.kind === "clap-reconfigure-requested"
       )
         this.changed()
     })
@@ -91,9 +91,19 @@ export class PluginAnalysisService {
     this.parameterTimer.unref()
   }
 
-  snapshot(): PluginAnalysisSnapshot {
+  get ref(): PluginAnalysisSnapshot["ref"] {
+    return this.value.ref
+  }
+
+  snapshot(knownReportId?: string): PluginAnalysisSnapshot {
     return structuredClone({
       ...this.value,
+      // Omit the report body while the caller already holds this run's report so
+      // frequent polling does not deep-clone and transfer the full measurement.
+      report:
+        knownReportId !== undefined && knownReportId === this.value.reportId
+          ? null
+          : this.value.report,
       catalog: this.catalog().filter((p) => p.kind === "effect")
     })
   }

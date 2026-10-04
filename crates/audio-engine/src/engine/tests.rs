@@ -165,6 +165,7 @@ fn transport_test_runtime(
     graph.prepare_block_processing(MAX_PLUGIN_BLOCK_FRAMES);
     let length_frames = content_end_frame.max(1) as usize;
     Box::new(MixerRuntime {
+        cut_frames: 0,
         generation: 1,
         build_generation: 1,
         peak_scratch: vec![

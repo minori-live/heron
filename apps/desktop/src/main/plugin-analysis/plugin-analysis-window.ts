@@ -13,14 +13,22 @@ export class PluginAnalysisWindow {
   window: BrowserWindow | null = null
   service: PluginAnalysisService | null = null
   private closing: Promise<void> | null = null
+  private quarantineOwner: PluginAnalysisService | null = null
   private unsubscribeShutdown: () => void
 
   constructor(private readonly context: IpcHandlerContext) {
-    this.unsubscribeShutdown = context.audioHost.subscribePluginAnalysisShutdown(() => this.close())
+    this.unsubscribeShutdown = context.audioHost.subscribePluginAnalysisShutdown(async () => {
+      // The native runtime is being replaced, so the retained quarantine is resolved.
+      await this.close()
+      this.quarantineOwner = null
+    })
   }
 
   async open(): Promise<boolean> {
     if (this.closing) await this.closing
+    // A quarantined session still owns native instances and its unreleased job.
+    // Refuse a new session against the same runtime instead of losing the owner.
+    if (this.quarantineOwner) return false
     if (this.window && !this.window.isDestroyed()) {
       this.window.show()
       this.window.focus()
@@ -98,6 +106,7 @@ export class PluginAnalysisWindow {
     const window = this.window
     this.closing = (async () => {
       await service?.close()
+      if (service?.snapshot().status === "quarantined") this.quarantineOwner = service
       if (window && !window.isDestroyed()) window.destroy()
       this.window = null
       this.service = null

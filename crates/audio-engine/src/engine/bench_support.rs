@@ -134,6 +134,7 @@ fn runtime_for(scenario: RenderScenario) -> Box<MixerRuntime> {
         })
         .collect();
     Box::new(MixerRuntime {
+        cut_frames: 0,
         generation: 1,
         build_generation: 1,
         peak_scratch: vec![

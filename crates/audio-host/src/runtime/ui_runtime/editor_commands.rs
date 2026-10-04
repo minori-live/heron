@@ -5,6 +5,48 @@ use super::{
 };
 
 impl EmbeddedUiHost {
+    /// Drain queued CLAP parameter edits for an instance that no render graph
+    /// leases. The registry endpoint is released first so the exclusive flush
+    /// condition can be met; a real graph lease keeps this a no-op.
+    fn flush_clap_parameters(&mut self, instance_id: &str) {
+        let registry_endpoint = self
+            .processors
+            .lock()
+            .is_ok_and(|processors| processors.contains_key(instance_id));
+        match self
+            .clap
+            .as_ref()
+            .and_then(|runtime| runtime.processor_lease_count(instance_id))
+        {
+            // Only the runtime endpoint exists: flush directly.
+            Some(1) => {
+                if let Some(runtime) = self.clap.as_mut() {
+                    let _ = runtime.flush_parameters(instance_id);
+                }
+            }
+            // Only the runtime endpoint and the registry endpoint exist: release
+            // the registry so the exclusive flush condition can be met. A render
+            // graph adds another lease and falls through untouched.
+            Some(2) if registry_endpoint => {
+                if let Ok(mut processors) = self.processors.lock() {
+                    processors.remove(instance_id);
+                }
+                if let Some(runtime) = self.clap.as_mut() {
+                    let _ = runtime.flush_parameters(instance_id);
+                }
+                if let Some(processor) = self
+                    .clap
+                    .as_ref()
+                    .and_then(|runtime| runtime.processor_handle(instance_id))
+                    && let Ok(mut processors) = self.processors.lock()
+                {
+                    processors.insert(instance_id.to_owned(), processor);
+                }
+            }
+            _ => {}
+        }
+    }
+
     pub(super) fn execute_audio_plugin_request(&mut self, request: ActorRequest) {
         let ActorRequest { command, reply } = request;
         let command = match command {
@@ -282,6 +324,15 @@ impl EmbeddedUiHost {
             _ => None,
         };
         if let Some(instance_id) = clap_instance_id {
+            if matches!(
+                &command,
+                ActorCommand::Control(
+                    ControlCommand::PluginParameters { .. }
+                        | ControlCommand::SavePluginState { .. }
+                )
+            ) {
+                self.flush_clap_parameters(&instance_id);
+            }
             let result = match command {
                 ActorCommand::Control(command) => self.clap.as_mut().map_or_else(
                     || control_error! { message: "CLAP UI runtime is shutting down".into() },

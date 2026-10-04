@@ -873,6 +873,9 @@ export class AudioHostService {
   }
 
   async restartAfterOfflineBounce(restoreAudioEngine: boolean): Promise<void> {
+    // Retire analysis sessions while the outgoing client can still release its
+    // native instances; the replacement runtime must not inherit their handles.
+    await Promise.all([...this.pluginAnalysisShutdown].map((close) => close()))
     const preferences = this.audioTransport.audioPreferences()
     await this.shutdownCurrentClient()
     this.stopping = false

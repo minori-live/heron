@@ -1,4 +1,4 @@
-use super::{Chain, PluginAnalysisJobs, model, signal};
+use super::{Chain, PluginAnalysisJobs, model, signal, spectrogram};
 use heron_audio_plugin::{
     AudioPluginProcessor, AudioPluginProcessorHandle, ProcessContext, SidechainSource,
 };
@@ -61,6 +61,47 @@ fn sweep_measures_delay_and_cross_channel_response() {
     let phase = measured.phase_degrees[index].unwrap();
     let compensated = phase + 360.0 * measured.frequency_hz[index] * 173.0 / 48000.0;
     assert!(compensated.abs() < 0.5, "phase={compensated}");
+}
+
+#[test]
+fn long_unity_delay_preserves_magnitude_and_compensated_phase() {
+    let settings = settings();
+    let input = signal::sweep(&settings);
+    // 125 ms of delay stays inside the 250 ms tail but rotates neighbouring FFT
+    // bins far enough to cancel an interpolation that ignores the delay phase.
+    let delay = 6000usize;
+    let mut output = vec![0.0; delay];
+    output.extend_from_slice(&input);
+    output.resize(input.len() + 12000, 0.0);
+    let measured = signal::response(&input, &output, &settings, 0, 0);
+    assert_eq!(measured.delay_samples, Some(delay as u32));
+    let index = measured
+        .frequency_hz
+        .iter()
+        .position(|f| *f >= 1000.0)
+        .unwrap();
+    assert!(
+        measured.magnitude_db[index].abs() < 0.05,
+        "gain={}",
+        measured.magnitude_db[index]
+    );
+    let phase = measured.phase_degrees[index].unwrap();
+    let compensated = phase + 360.0 * measured.frequency_hz[index] * delay as f64 / 48000.0;
+    assert!(compensated.abs() < 0.5, "phase={compensated}");
+}
+
+#[test]
+fn spectrogram_reports_a_constant_output_at_zero_dbfs() {
+    let settings = settings();
+    let frames = (settings.sweep_seconds * f64::from(settings.sample_rate)) as usize;
+    let output = vec![[1.0, 1.0]; frames];
+    let measured =
+        spectrogram::measure(&output, &settings, 0, false, &AtomicBool::new(false)).unwrap();
+    // A full window in the middle of the sweep sees a constant 1.0. Its DC band
+    // must not carry the one-sided factor of two.
+    let column = 96usize;
+    let dc = measured.magnitude_dbfs[column * measured.rows as usize];
+    assert!(dc.abs() < 0.1, "dc={dc}");
 }
 
 #[test]

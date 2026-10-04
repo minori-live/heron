@@ -89,7 +89,17 @@ pub(super) fn response(
         .max_by(|a, b| a.1.abs().total_cmp(&b.1.abs()))
         .map_or(0, |(index, _)| index.saturating_sub(pre));
     let fft_size = impulse.len().next_power_of_two();
-    let bins = spectrum(&impulse, fft_size);
+    let mut bins = spectrum(&impulse, fft_size);
+    // Remove the measured delay phase before interpolation. A long delay rotates
+    // adjacent bins in opposite directions, so interpolating the raw spectrum
+    // cancels their sum and understates magnitude. The reported phase re-applies
+    // the delay below, keeping its existing convention.
+    for (bin_index, bin) in bins.iter_mut().enumerate() {
+        *bin *= Complex::from_polar(
+            1.0,
+            std::f64::consts::TAU * bin_index as f64 * delay as f64 / fft_size as f64,
+        );
+    }
     let reference = spectrum(
         &calibration[begin..origin + tail]
             .iter()
@@ -115,13 +125,7 @@ pub(super) fn response(
         let reference_bin = interpolate(&reference);
         let bin = interpolate(&bins) * reference_bin.conj() / reference_bin.norm_sqr().max(1e-20);
         let magnitude = 20.0 * bin.norm().max(1e-12).log10();
-        let mut phase = (bin
-            * Complex::from_polar(
-                1.0,
-                std::f64::consts::TAU * frequency * delay as f64 / f64::from(settings.sample_rate),
-            ))
-        .arg()
-        .to_degrees();
+        let mut phase = bin.arg().to_degrees();
         if index > 0 {
             phase += ((previous - phase) / 360.0_f64).round() * 360.0;
         }

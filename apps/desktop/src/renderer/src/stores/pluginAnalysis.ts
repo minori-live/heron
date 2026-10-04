@@ -20,10 +20,12 @@ export const usePluginAnalysisStore = defineStore("plugin-analysis", () => {
 
   function accept(value: PluginAnalysisSnapshot): void {
     const previous = snapshot.value
+    // A matching run identity means an omitted or re-sent report body describes the
+    // same measurement; keep object identity so plots do not rebuild. A new run has
+    // a new reportId and its report is accepted as-is.
     if (
       previous?.ref.id === value.ref.id &&
       previous.report &&
-      value.report &&
       previous.reportId === value.reportId
     )
       value.report = previous.report
@@ -34,7 +36,11 @@ export const usePluginAnalysisStore = defineStore("plugin-analysis", () => {
     if (refreshing || pending || disposed) return
     refreshing = true
     try {
-      const result = await window.heronPluginAnalysis.snapshot(readMeta(snapshot.value?.ref))
+      const result = await window.heronPluginAnalysis.snapshot(
+        readMeta(snapshot.value?.ref),
+        undefined,
+        snapshot.value?.reportId ?? undefined
+      )
       if (!disposed && !pending) {
         if (result.ok) accept(result.value)
         else error.value = rpcErrorMessage(result.error)
@@ -71,7 +77,8 @@ export const usePluginAnalysisStore = defineStore("plugin-analysis", () => {
           error.value = ""
           const acknowledged = await window.heronPluginAnalysis.snapshot(
             readMeta(result.value.ref),
-            meta.mutation!.operationId
+            meta.mutation!.operationId,
+            result.value.reportId ?? undefined
           )
           if (acknowledged.ok && !disposed) accept(acknowledged.value)
         } else error.value = rpcErrorMessage(result.error)

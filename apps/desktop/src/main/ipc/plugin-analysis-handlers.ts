@@ -77,10 +77,10 @@ export function registerPluginAnalysisHandlers(context: IpcHandlerContext): () =
   const authenticate = pluginAnalysis.authenticate.bind(pluginAnalysis)
   registerRpcHandler(
     IPC_CHANNELS.pluginAnalysisSnapshot,
-    ({ meta }, acknowledge?: unknown) => {
+    ({ meta }, acknowledge?: unknown, knownReportId?: unknown) => {
       const service = pluginAnalysis.service!
       if (meta.target) {
-        const invalid = validateReadTarget(meta, service.snapshot().ref)
+        const invalid = validateReadTarget(meta, service.ref)
         if (invalid) return invalid
       } else if (meta.mutation) return validationFailure(meta, "mutation")
       if (acknowledge !== undefined) {
@@ -88,7 +88,9 @@ export function registerPluginAnalysisHandlers(context: IpcHandlerContext): () =
           return validationFailure(meta, "acknowledge")
         service.acknowledge(acknowledge)
       }
-      return service.snapshot()
+      if (knownReportId !== undefined && typeof knownReportId !== "string")
+        return validationFailure(meta, "knownReportId")
+      return service.snapshot(knownReportId)
     },
     { authenticate }
   )

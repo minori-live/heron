@@ -90,7 +90,16 @@ export interface PluginAnalysisSnapshot {
 
 export interface HeronPluginAnalysisApi {
   readonly platform: "darwin" | "win32" | "linux"
-  snapshot(meta: RpcRequestMeta, acknowledge?: string): Promise<RpcResult<PluginAnalysisSnapshot>>
+  /**
+   * `knownReportId` lets polling omit the heavy report body while the completed
+   * run is unchanged. An omitted report arrives as `report: null` with the same
+   * `reportId`; callers retain their previous report in that case.
+   */
+  snapshot(
+    meta: RpcRequestMeta,
+    acknowledge?: string,
+    knownReportId?: string
+  ): Promise<RpcResult<PluginAnalysisSnapshot>>
   command(
     meta: RpcRequestMeta,
     command: PluginAnalysisCommand

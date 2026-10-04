@@ -93,6 +93,20 @@ describe("plugin analysis store report identity", () => {
     store.stop()
   })
 
+  it("retains the report when a poll omits an unchanged body", async () => {
+    const accepted = report()
+    snapshotRequest
+      .mockResolvedValueOnce(rpcSuccess(snapshot(accepted, "run-1", 3)))
+      .mockResolvedValue(rpcSuccess({ ...snapshot(accepted, "run-1", 3), report: null }))
+    const store = usePluginAnalysisStore()
+    store.start()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(store.snapshot?.report).toBe(accepted)
+    await vi.advanceTimersByTimeAsync(250)
+    expect(store.snapshot?.report).toBe(accepted)
+    store.stop()
+  })
+
   it("accepts a completed re-analysis at the same chain revision", async () => {
     const first = report()
     const second = report()

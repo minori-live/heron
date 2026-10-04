@@ -3,6 +3,7 @@ import type { IpcMainInvokeEvent } from "electron"
 
 const fake = vi.hoisted(() => {
   const close = vi.fn(async () => {})
+  const snapshot = vi.fn(() => ({ status: "complete" }))
   class Window {
     static instances: Window[] = []
     destroyed = false
@@ -27,7 +28,7 @@ const fake = vi.hoisted(() => {
       Window.instances.push(this)
     }
   }
-  return { Window, close }
+  return { Window, close, snapshot }
 })
 
 vi.mock("electron", () => ({
@@ -42,17 +43,25 @@ vi.mock("../app/windows", () => ({
 vi.mock("./plugin-analysis-service", () => ({
   PluginAnalysisService: class {
     close = fake.close
+    snapshot = fake.snapshot
   }
 }))
 
 import { PluginAnalysisWindow } from "./plugin-analysis-window"
 
 function arrange() {
-  return new PluginAnalysisWindow({
-    audioHost: { subscribePluginAnalysisShutdown: () => () => {} },
+  let shutdown: (() => Promise<void>) | null = null
+  const manager = new PluginAnalysisWindow({
+    audioHost: {
+      subscribePluginAnalysisShutdown: (listener: () => Promise<void>) => {
+        shutdown = listener
+        return () => {}
+      }
+    },
     plugins: { list: () => ({ plugins: [] }) },
     settings: { get: async () => ({ locale: "en-US", theme: "system" }) }
   } as never)
+  return { manager, shutdown: () => shutdown }
 }
 
 describe("Plugin Analysis window ownership", () => {
@@ -62,7 +71,7 @@ describe("Plugin Analysis window ownership", () => {
   })
 
   it("reuses the experiment window and accepts only its main frame at the pluginAnalysis entrypoint", async () => {
-    const manager = arrange()
+    const { manager } = arrange()
     await manager.open()
     await manager.open()
     expect(fake.Window.instances).toHaveLength(1)
@@ -92,7 +101,7 @@ describe("Plugin Analysis window ownership", () => {
   })
 
   it("waits for session cleanup before destroying the independent window", async () => {
-    const manager = arrange()
+    const { manager } = arrange()
     await manager.open()
     const window = fake.Window.instances[0]!
     let settle!: () => void
@@ -109,5 +118,17 @@ describe("Plugin Analysis window ownership", () => {
     await closing
     expect(window.destroyed).toBe(true)
     expect(manager.service).toBeNull()
+  })
+
+  it("retains a quarantined session until the native runtime is replaced", async () => {
+    const { manager, shutdown } = arrange()
+    await manager.open()
+    fake.snapshot.mockReturnValue({ status: "quarantined" })
+    await manager.close()
+    expect(await manager.open()).toBe(false)
+    expect(fake.Window.instances).toHaveLength(1)
+    fake.snapshot.mockReturnValue({ status: "complete" })
+    await shutdown()!()
+    expect(await manager.open()).toBe(true)
   })
 })

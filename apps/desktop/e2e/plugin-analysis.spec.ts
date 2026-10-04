@@ -1,8 +1,29 @@
-import { expect, test, _electron as electron } from "@playwright/test"
+import {
+  expect,
+  test,
+  _electron as electron,
+  type ElectronApplication,
+  type Page
+} from "@playwright/test"
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { closeElectronApplication } from "./support"
+
+async function openPluginAnalysis(application: ElectronApplication, page: Page): Promise<void> {
+  if (process.platform === "darwin") {
+    // AppTitleBar omits the renderer menubar on macOS, so drive the native menu.
+    await application.evaluate(({ Menu }) => {
+      const help = Menu.getApplicationMenu()?.items.find((item) => item.label === "Help")
+      const open = help?.submenu?.items.find((item) => item.label === "Plugin Analysis")
+      if (!open || !open.enabled) throw new Error("Help > Plugin Analysis is unavailable")
+      Reflect.apply(open.click, open, [])
+    })
+  } else {
+    await page.getByRole("menuitem", { name: "Help", exact: true }).click()
+    await page.getByRole("menuitem", { name: /Plugin Analysis/ }).click()
+  }
+}
 
 test("Help opens an independent PluginAnalysis bridge and measures above full scale without a project", async () => {
   test.setTimeout(90000)
@@ -36,8 +57,7 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
       .poll(() => application.windows().some((page) => page.url().includes("index.html")))
       .toBe(true)
     const main = application.windows().find((page) => page.url().includes("index.html"))!
-    await main.getByRole("menuitem", { name: "Help", exact: true }).click()
-    await main.getByRole("menuitem", { name: /Plugin Analysis/ }).click()
+    await openPluginAnalysis(application, main)
     await expect
       .poll(() => application.windows().some((page) => page.url().includes("plugin-analysis.html")))
       .toBe(true)
@@ -61,13 +81,32 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
     for (let step = 0; step < 12; step++) await level.press("ArrowLeft")
     await expect(level).toHaveValue("6")
     await pluginAnalysis.getByRole("button", { name: "Analyze", exact: true }).click()
-    await expect(pluginAnalysis.getByRole("tab", { name: "Linear", exact: true })).toBeVisible({
-      timeout: 45000
-    })
     await expect(pluginAnalysis.getByText(/\+6\.0 dBFS/).first()).toBeVisible()
-    for (const name of ["Harmonics", "Hammerstein", "Performance"]) {
+    // The slider text is only a preview; wait for the native report and assert its
+    // recorded input level so the test fails when analysis never completes.
+    await expect
+      .poll(
+        () =>
+          pluginAnalysis.evaluate(async () => {
+            const api = (window as unknown as Record<string, unknown>).heronPluginAnalysis as {
+              snapshot(meta: { protocolVersion: number; requestId: string }): Promise<{
+                ok: boolean
+                value?: { report: { settings: { level_dbfs: number } } | null }
+              }>
+            }
+            const result = await api.snapshot({
+              protocolVersion: 2,
+              requestId: crypto.randomUUID()
+            })
+            return result.ok ? (result.value?.report?.settings.level_dbfs ?? null) : null
+          }),
+        { timeout: 45000 }
+      )
+      .toBe(6)
+    for (const name of ["Linear", "Harmonics", "Hammerstein", "Performance"]) {
       await pluginAnalysis.getByRole("tab", { name, exact: true }).click()
     }
+    await expect(pluginAnalysis.locator(".performance-panel")).toBeVisible()
     await pluginAnalysis.screenshot({
       path: test.info().outputPath("plugin-analysis.png"),
       fullPage: true

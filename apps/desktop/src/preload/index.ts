@@ -228,8 +228,8 @@ if (entrypoint === "splash") {
 } else if (entrypoint === "plugin-analysis") {
   const pluginAnalysisApi: import("@heron/contracts").HeronPluginAnalysisApi = {
     platform: process.platform as HeronDesktopApi["platform"],
-    snapshot: (meta, acknowledge) =>
-      invokeRpc(IPC_CHANNELS.pluginAnalysisSnapshot, meta, acknowledge),
+    snapshot: (meta, acknowledge, knownReportId) =>
+      invokeRpc(IPC_CHANNELS.pluginAnalysisSnapshot, meta, acknowledge, knownReportId),
     command: (meta, command) => invokeRpc(IPC_CHANNELS.pluginAnalysisCommand, meta, command)
   }
   contextBridge.exposeInMainWorld("heronPluginAnalysis", pluginAnalysisApi)

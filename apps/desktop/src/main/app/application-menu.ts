@@ -11,12 +11,11 @@ import { t } from "../settings"
 import { classifyRendererEntrypoint } from "../../shared/renderer-security"
 
 function requestApplicationCommand(command: ApplicationCommandId): void {
-  const window =
-    command === "help.plugin-analysis"
-      ? BrowserWindow.getAllWindows().find(
-          (candidate) => classifyRendererEntrypoint(candidate.webContents.getURL()) === "main"
-        )
-      : (BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0])
+  // Application-menu commands belong to the main renderer. Auxiliary windows
+  // such as Plugin Analysis expose a narrower preload and cannot handle them.
+  const window = BrowserWindow.getAllWindows().find(
+    (candidate) => classifyRendererEntrypoint(candidate.webContents.getURL()) === "main"
+  )
   if (!window) return
   sendApplicationCommand(window, command)
 }

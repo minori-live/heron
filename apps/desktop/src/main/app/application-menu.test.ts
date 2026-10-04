@@ -13,7 +13,15 @@ vi.mock("electron", () => ({
       show: electron.show,
       webContents: { send: electron.send }
     }),
-    getAllWindows: () => []
+    getAllWindows: () => [
+      {
+        show: electron.show,
+        webContents: {
+          send: electron.send,
+          getURL: () => "heron-app://bundle/index.html"
+        }
+      }
+    ]
   },
   Menu: {
     buildFromTemplate: electron.buildFromTemplate,

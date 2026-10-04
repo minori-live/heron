@@ -65,6 +65,9 @@ function arrange(options: { refreshCatalog?: () => Promise<unknown> } = {}) {
       buffer_bytes: 100
     }
   }
+  const notificationListeners: Array<
+    (event: { instanceId: string; kind: string; value: string }) => void
+  > = []
   const host = {
     loadPlugin: vi.fn(async (_plugin: PluginInstanceState, _rate: number) => ({
       latencySamples: 0,
@@ -76,7 +79,12 @@ function arrange(options: { refreshCatalog?: () => Promise<unknown> } = {}) {
     pluginParameters: vi.fn(async (): Promise<PluginParameterInfo[]> => []),
     setPluginParameter: vi.fn(async () => {}),
     openPluginEditor: vi.fn(async () => ({ editorMode: "native" as const, open: true })),
-    subscribePluginAnalysisNotifications: vi.fn(() => () => {}),
+    subscribePluginAnalysisNotifications: vi.fn(
+      (listener: (event: { instanceId: string; kind: string; value: string }) => void) => {
+        notificationListeners.push(listener)
+        return () => {}
+      }
+    ),
     pluginAnalysisRequest: vi.fn(async (command: Record<string, unknown>) => {
       if (command.type === "cancel-plugin-analysis") cancelled = true
       return {
@@ -108,6 +116,9 @@ function arrange(options: { refreshCatalog?: () => Promise<unknown> } = {}) {
     },
     clearCancellation: () => {
       cancelled = false
+    },
+    notify: (event: { instanceId: string; kind: string; value: string }) => {
+      for (const listener of notificationListeners) listener(event)
     }
   }
 }
@@ -297,6 +308,40 @@ describe("Plugin Analysis analysis session", () => {
     expect(second.status).toBe("complete")
     expect(second.reportRevision).toBe(first.reportRevision)
     expect(second.reportId).not.toBe(first.reportId)
+    await service.close()
+  })
+
+  it("omits the report body while the caller's run identity is current", async () => {
+    const { service, complete } = arrange()
+    await service.command({ type: "analyze" }, "run")
+    await vi.advanceTimersByTimeAsync(0)
+    complete()
+    await vi.advanceTimersByTimeAsync(100)
+    const full = service.snapshot()
+    expect(full.report).not.toBeNull()
+    const omitted = service.snapshot(full.reportId!)
+    expect(omitted.report).toBeNull()
+    expect(omitted.reportId).toBe(full.reportId)
+    expect(service.snapshot("another-run").report).not.toBeNull()
+    await service.close()
+  })
+
+  it("advances the revision for the native CLAP reconfigure notification", async () => {
+    const { service, notify } = arrange()
+    await service.command({ type: "automatic", enabled: false }, "manual")
+    await service.command(
+      {
+        type: "insert",
+        pluginKey: pluginDescriptorKey(descriptor),
+        audioMode: "stereo",
+        slotOrder: 0
+      },
+      "insert"
+    )
+    const instanceId = service.snapshot().plugins[0]!.id
+    const revision = service.snapshot().revision
+    notify({ instanceId, kind: "clap-reconfigure-requested", value: "restart=false" })
+    expect(service.snapshot().revision).toBe(revision + 1)
     await service.close()
   })
 

@@ -35,7 +35,7 @@ pub(super) fn measure(
     let window: Vec<_> = (0..FFT_SIZE)
         .map(|i| 0.5 - 0.5 * (std::f64::consts::TAU * i as f64 / FFT_SIZE as f64).cos())
         .collect();
-    let normalization = 2.0 / window.iter().sum::<f64>();
+    let window_sum = window.iter().sum::<f64>();
     let fft = FftPlanner::new().plan_fft_forward(FFT_SIZE);
     let mut bins = vec![Complex::default(); FFT_SIZE];
     let mut scratch = vec![Complex::default(); fft.get_inplace_scratch_len()];
@@ -62,10 +62,15 @@ pub(super) fn measure(
         // Values come from the measured output, including energy between harmonic orders.
         for row in 0..ROWS {
             let first = row * BINS_PER_ROW;
-            let amplitude = bins[first..first + BINS_PER_ROW]
-                .iter()
-                .fold(0.0_f64, |peak, bin| peak.max(bin.norm()))
-                * normalization;
+            // The one-sided factor of two applies to non-DC bins only; doubling the
+            // DC bin reports a constant output as +6 dBFS instead of 0 dBFS.
+            let amplitude = bins[first..first + BINS_PER_ROW].iter().enumerate().fold(
+                0.0_f64,
+                |peak, (offset, bin)| {
+                    let scale = if first + offset == 0 { 1.0 } else { 2.0 };
+                    peak.max(bin.norm() * scale)
+                },
+            ) / window_sum;
             values.push((20.0 * amplitude.max(1e-8).log10()) as f32);
         }
     }

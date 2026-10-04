@@ -65,7 +65,9 @@ This includes non-harmonic and reflected alias energy instead of reconstructing
 a picture from harmonic orders. H2–H8 and THD remain available in 1D views.
 Sweep, channel, 1D scale and color-range switches use the retained report and
 do not advance its revision or schedule another job. Renderer polling preserves
-report identity only while the accepted run identity is unchanged, so repeated
+report identity only while the accepted run identity is unchanged, and the
+snapshot request omits the report body when that identity is current, so the
+completed measurement is not re-serialized on every status refresh. Repeated
 analysis at the same chain revision still rebuilds the raster; the run identity
 is separate from the chain revision used for stale detection.
 
