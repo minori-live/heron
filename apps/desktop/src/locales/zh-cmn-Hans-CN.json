@@ -2193,7 +2193,8 @@
       "model": "Hammerstein",
       "performance": "性能",
       "distortion": "失真",
-      "oscilloscope": "示波器"
+      "oscilloscope": "示波器",
+      "dynamics": "动态"
     },
     "failures": {
       "invalid-settings": "测量设置无效，或插件报告延迟超过采集窗口。请增加尾音时长。",
@@ -2258,6 +2259,11 @@
     "waveTriangle": "三角",
     "delaySamples": "显示延迟",
     "waveform": "波形",
-    "displayMode": "显示"
+    "displayMode": "显示",
+    "ramp": "电平扫描",
+    "attackRelease": "启动／释放",
+    "dynamicsView": "动态视图",
+    "inputLevel": "输入电平",
+    "outputLevel": "输出电平"
   }
 }

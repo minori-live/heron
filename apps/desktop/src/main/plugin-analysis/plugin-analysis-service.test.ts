@@ -54,6 +54,7 @@ function arrange(options: { refreshCatalog?: () => Promise<unknown> } = {}) {
     spectrograms: [],
     distortion: [],
     oscilloscopes: [],
+    dynamics: [],
     models: [],
     performance: {
       reported_latency_samples: 0,

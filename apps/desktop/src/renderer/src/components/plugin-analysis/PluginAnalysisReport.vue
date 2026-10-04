@@ -8,6 +8,7 @@ import PluginAnalysisLinear from "./PluginAnalysisLinear.vue"
 import PluginAnalysisHarmonics from "./PluginAnalysisHarmonics.vue"
 import PluginAnalysisDistortion from "./PluginAnalysisDistortion.vue"
 import PluginAnalysisOscilloscope from "./PluginAnalysisOscilloscope.vue"
+import PluginAnalysisDynamics from "./PluginAnalysisDynamics.vue"
 import PluginAnalysisModel from "./PluginAnalysisModel.vue"
 import PluginAnalysisPerformance from "./PluginAnalysisPerformance.vue"
 const props = defineProps<{ snapshot: PluginAnalysisSnapshot }>()
@@ -15,10 +16,12 @@ const { t } = useI18n()
 const tab = ref("linear")
 const report = computed(() => props.snapshot.report)
 const tabs = computed(() =>
-  ["linear", "harmonics", "distortion", "oscilloscope", "model", "performance"].map((id) => ({
-    id,
-    label: t(`pluginAnalysis.tabs.${id}`)
-  }))
+  ["linear", "harmonics", "distortion", "oscilloscope", "dynamics", "model", "performance"].map(
+    (id) => ({
+      id,
+      label: t(`pluginAnalysis.tabs.${id}`)
+    })
+  )
 )
 </script>
 <template>
@@ -54,6 +57,10 @@ const tabs = computed(() =>
       ></template>
       <template #oscilloscope
         ><PluginAnalysisOscilloscope v-if="report" :report="report" />
+        <section v-else class="empty-panel"></section
+      ></template>
+      <template #dynamics
+        ><PluginAnalysisDynamics v-if="report" :report="report" />
         <section v-else class="empty-panel"></section
       ></template>
       <template #model

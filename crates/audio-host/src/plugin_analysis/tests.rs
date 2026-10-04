@@ -377,6 +377,29 @@ fn oscilloscope_captures_the_standard_waveforms() {
     }
 }
 
+#[test]
+fn dynamics_tracks_a_transparent_chain() {
+    let mut chain = Chain {
+        processors: Vec::new(),
+        settings: settings(),
+        cancel: Arc::new(AtomicBool::new(false)),
+        clock: 0,
+        times: Vec::new(),
+    };
+    let report = chain.dynamics(super::StereoRoute::Channel(0)).unwrap();
+    assert_eq!(report.ramp.len(), 21);
+    for point in &report.ramp {
+        assert!(
+            (point.output_dbfs - point.input_dbfs).abs() < 0.05,
+            "in={} out={}",
+            point.input_dbfs,
+            point.output_dbfs
+        );
+    }
+    assert_eq!(report.time_seconds.len(), report.output_envelope.len());
+    assert_eq!(report.time_seconds.len(), report.input_envelope.len());
+}
+
 #[derive(Clone)]
 struct InvalidOutput;
 impl AudioPluginProcessor for InvalidOutput {

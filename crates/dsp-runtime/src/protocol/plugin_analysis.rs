@@ -124,6 +124,26 @@ pub struct PluginAnalysisOscilloscope {
     pub waveforms: Vec<PluginAnalysisOscilloscopeWaveform>,
 }
 
+/// One level of the static transfer curve, both in dBFS peak.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PluginAnalysisDynamicsPoint {
+    pub input_dbfs: f64,
+    pub output_dbfs: f64,
+}
+
+/// Static level ramp plus an attack/release envelope.
+#[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PluginAnalysisDynamics {
+    pub channel: u32,
+    pub ramp: Vec<PluginAnalysisDynamicsPoint>,
+    pub time_seconds: Vec<f64>,
+    pub input_envelope: Vec<f64>,
+    pub output_envelope: Vec<f64>,
+    pub step_seconds: f64,
+}
+
 #[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginAnalysisPerformance {
@@ -147,6 +167,7 @@ pub struct PluginAnalysisReport {
     pub spectrograms: Vec<PluginAnalysisSpectrogram>,
     pub distortion: Vec<PluginAnalysisDistortion>,
     pub oscilloscopes: Vec<PluginAnalysisOscilloscope>,
+    pub dynamics: Vec<PluginAnalysisDynamics>,
     pub models: Vec<PluginAnalysisModel>,
     pub performance: PluginAnalysisPerformance,
 }

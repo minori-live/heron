@@ -2193,7 +2193,8 @@
       "model": "Hammerstein",
       "performance": "Performance",
       "distortion": "Distortion",
-      "oscilloscope": "Oscilloscope"
+      "oscilloscope": "Oscilloscope",
+      "dynamics": "Dynamics"
     },
     "failures": {
       "invalid-settings": "Invalid measurement settings, or reported delay exceeds the capture window. Increase tail duration.",
@@ -2258,6 +2259,11 @@
     "waveTriangle": "Triangle",
     "delaySamples": "Display delay",
     "waveform": "Waveform",
-    "displayMode": "Display"
+    "displayMode": "Display",
+    "ramp": "Ramp",
+    "attackRelease": "Attack / Release",
+    "dynamicsView": "Dynamics view",
+    "inputLevel": "Input level",
+    "outputLevel": "Output level"
   }
 }

@@ -9,9 +9,10 @@ use heron_audio_plugin::{
     SidechainSource,
 };
 use heron_dsp_runtime::protocol::{
-    PluginAnalysisDistortion, PluginAnalysisFailure, PluginAnalysisHarmonics,
-    PluginAnalysisJobStatus, PluginAnalysisOscilloscope, PluginAnalysisOscilloscopeWaveform,
-    PluginAnalysisPerformance, PluginAnalysisReport, PluginAnalysisSettings,
+    PluginAnalysisDistortion, PluginAnalysisDynamics, PluginAnalysisDynamicsPoint,
+    PluginAnalysisFailure, PluginAnalysisHarmonics, PluginAnalysisJobStatus,
+    PluginAnalysisOscilloscope, PluginAnalysisOscilloscopeWaveform, PluginAnalysisPerformance,
+    PluginAnalysisReport, PluginAnalysisSettings,
 };
 use std::{
     collections::HashMap,
@@ -385,6 +386,81 @@ impl Chain {
             waveforms,
         })
     }
+
+    fn dynamics(
+        &mut self,
+        route: StereoRoute,
+    ) -> Result<PluginAnalysisDynamics, PluginAnalysisFailure> {
+        let rate = f64::from(self.settings.sample_rate);
+        let hz = self.settings.tone_hz;
+        let measurement = (rate * 0.2) as usize;
+        let mut ramp = Vec::new();
+        let mut level = -100.0_f64;
+        while level <= 0.0 {
+            let peak = 10_f64.powf(level / 20.0);
+            self.settle()?;
+            let input: Vec<f64> = (0..measurement)
+                .map(|index| peak * (std::f64::consts::TAU * hz * index as f64 / rate).sin())
+                .collect();
+            let output = self.capture_route(&input, route, 0, false)?;
+            let maximum = output
+                .iter()
+                .map(|frame| route.measure(*frame).abs())
+                .fold(0.0_f64, f64::max);
+            ramp.push(PluginAnalysisDynamicsPoint {
+                input_dbfs: level,
+                output_dbfs: 20.0 * maximum.max(1e-12).log10(),
+            });
+            level += 5.0;
+        }
+        // Attack/release: three equal segments at -60, 0 and -60 dBFS peak.
+        let step_seconds = 0.2_f64;
+        let segment = (rate * step_seconds) as usize;
+        self.settle()?;
+        let mut input = Vec::with_capacity(segment * 3);
+        for level in [-60.0_f64, 0.0, -60.0] {
+            let peak = 10_f64.powf(level / 20.0);
+            input.extend(
+                (0..segment)
+                    .map(|index| peak * (std::f64::consts::TAU * hz * index as f64 / rate).sin()),
+            );
+        }
+        let output = self.capture_route(&input, route, 0, false)?;
+        let measured: Vec<f64> = output.iter().map(|frame| route.measure(*frame)).collect();
+        let points = 400usize;
+        let bin = measured.len().div_ceil(points).max(1);
+        let mut time_seconds = Vec::new();
+        let mut input_envelope = Vec::new();
+        let mut output_envelope = Vec::new();
+        for index in 0..points {
+            let start = index * bin;
+            if start >= measured.len() {
+                break;
+            }
+            let end = (start + bin).min(measured.len());
+            time_seconds.push(start as f64 / rate);
+            input_envelope.push(
+                input[start..end]
+                    .iter()
+                    .map(|value| value.abs())
+                    .fold(0.0_f64, f64::max),
+            );
+            output_envelope.push(
+                measured[start..end]
+                    .iter()
+                    .map(|value| value.abs())
+                    .fold(0.0_f64, f64::max),
+            );
+        }
+        Ok(PluginAnalysisDynamics {
+            channel: route.index(),
+            ramp,
+            time_seconds,
+            input_envelope,
+            output_envelope,
+            step_seconds,
+        })
+    }
 }
 
 fn analyze(
@@ -409,6 +485,7 @@ fn analyze(
     let mut spectrograms = Vec::new();
     let mut distortion = Vec::new();
     let mut oscilloscopes = Vec::new();
+    let mut dynamics = Vec::new();
     let mut models = Vec::new();
     let routes: [StereoRoute; 2] = if settings.mid_side {
         [StereoRoute::Mid, StereoRoute::Side]
@@ -513,6 +590,7 @@ fn analyze(
         )?);
         distortion.push(chain.distortion(source)?);
         oscilloscopes.push(chain.oscilloscope(source, latency)?);
+        dynamics.push(chain.dynamics(source)?);
         if chain.cancel.load(Ordering::Acquire) {
             return Err(PluginAnalysisFailure::Cancelled);
         }
@@ -564,6 +642,7 @@ fn analyze(
         spectrograms,
         distortion,
         oscilloscopes,
+        dynamics,
         models,
         performance,
     })
