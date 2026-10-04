@@ -34,10 +34,10 @@ pub use interfaces::PlugView;
 pub use processor_lease::ProcessorLease;
 
 use interfaces::{
-    check, check_optional_controller_state, component_table, connection_table,
-    controller_parameter_flags, controller_parameter_ids, controller_table, create_controller,
-    is_not_implemented, midi_mapping_table, optional_unit_string_result, unit_info_table,
-    utf16_string,
+    check, check_controller_parameter_sync, check_optional_controller_state, component_table,
+    connection_table, controller_parameter_flags, controller_parameter_ids, controller_table,
+    create_controller, is_not_implemented, midi_mapping_table, optional_unit_string_result,
+    unit_info_table, utf16_string, validate_controller_parameter_edit,
 };
 use processor_lease::ProcessorCell;
 
@@ -820,11 +820,12 @@ impl HostedPlugin {
                 // into the processor's input queue.
                 ((*table).set_parameter_normalized)(controller.as_ptr(), id, value)
             };
-            if result != 0 && first_error.is_none() {
-                first_error = Some(HostError::Operation {
-                    operation: "IEditController::setParamNormalized(output)",
-                    result,
-                });
+            if let Err(error) = check_controller_parameter_sync(
+                "IEditController::setParamNormalized(output)",
+                result,
+            ) && first_error.is_none()
+            {
+                first_error = Some(error);
             }
         });
         first_error.map_or(Ok(applied), Err)
@@ -924,17 +925,8 @@ impl HostedPlugin {
                 result: -2147024809,
             });
         }
-        if let Some(controller) = &self.controller
-            && let Some(flags) = controller_parameter_flags(controller, id)?
-            && flags
-                & (as_uint32(Vst::ParameterInfo_ParameterFlags_kIsReadOnly)
-                    | as_uint32(Vst::ParameterInfo_ParameterFlags_kIsHidden))
-                != 0
-        {
-            return Err(HostError::Operation {
-                operation: "parameter is read-only or hidden",
-                result: -2147024891,
-            });
+        if let Some(controller) = &self.controller {
+            validate_controller_parameter_edit(controller_parameter_flags(controller, id)?)?;
         }
         if !self.shared.enqueue_parameter(id, normalized) {
             return Err(HostError::Operation {
@@ -943,7 +935,7 @@ impl HostedPlugin {
             });
         }
         if let Some(controller) = &self.controller {
-            check("IEditController::setParamNormalized", unsafe {
+            check_controller_parameter_sync("IEditController::setParamNormalized", unsafe {
                 // SAFETY: controller is live on its UI thread and the value is normalized.
                 ((*controller_table(controller)).set_parameter_normalized)(
                     controller.as_ptr(),
