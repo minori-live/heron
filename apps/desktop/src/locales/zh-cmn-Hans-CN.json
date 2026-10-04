@@ -2219,6 +2219,7 @@
     "inserts": "Audio FX",
     "rescan": "重新扫描",
     "samples": "采样",
+    "conditions": "{rate} kHz · {block} {samples}",
     "measurementSettings": "测量设置",
     "magnitude": "幅度",
     "responseView": "响应视图",

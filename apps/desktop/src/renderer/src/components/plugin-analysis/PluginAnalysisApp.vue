@@ -40,6 +40,13 @@ watch(
 const inputLevelText = computed(
   () => `${inputLevel.value > 0 ? "+" : ""}${inputLevel.value.toFixed(1)} dBFS`
 )
+const conditions = computed(() =>
+  t("pluginAnalysis.conditions", {
+    rate: (snapshot.value?.settings.sample_rate ?? 0) / 1000,
+    block: snapshot.value?.settings.block_size ?? 0,
+    samples: t("pluginAnalysis.samples")
+  })
+)
 </script>
 <template>
   <UiProvider :locale="rekaLocale(locale)"
@@ -66,9 +73,7 @@ const inputLevelText = computed(
         <PluginAnalysisChain :snapshot="snapshot" :catalog-busy="catalogBusy" @command="command" />
         <section class="analysis">
           <div class="analysis-heading">
-            <span class="conditions"
-              >{{ snapshot.settings.sample_rate / 1000 }} kHz · {{ snapshot.settings.block_size }}
-              {{ t("pluginAnalysis.samples") }}</span
+            <span class="conditions">{{ conditions }}</span
             ><UiPopover align="end"
               ><template #trigger
                 ><UiIconButton

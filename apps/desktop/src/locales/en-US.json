@@ -2219,6 +2219,7 @@
     "inserts": "Audio FX",
     "rescan": "Rescan",
     "samples": "samples",
+    "conditions": "{rate} kHz · {block} {samples}",
     "measurementSettings": "Measurement settings",
     "magnitude": "Magnitude",
     "responseView": "Response view",
