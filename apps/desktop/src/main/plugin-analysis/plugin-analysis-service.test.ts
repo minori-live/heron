@@ -319,4 +319,29 @@ describe("Plugin Analysis analysis session", () => {
     expect(service.snapshot().failure).toBeNull()
     await service.close()
   })
+
+  it("clears prepare-failed after a successful editor open or remove", async () => {
+    const { service, host } = arrange()
+    await service.command(
+      {
+        type: "insert",
+        pluginKey: pluginDescriptorKey(descriptor),
+        audioMode: "stereo",
+        slotOrder: 0
+      },
+      "insert"
+    )
+    const instanceId = service.snapshot().plugins[0]!.id
+    host.openPluginEditor.mockRejectedValueOnce(new Error("editor failed"))
+    await service.command({ type: "editor", instanceId }, "editor-fail")
+    expect(service.snapshot().failure).toBe("prepare-failed")
+    await service.command({ type: "editor", instanceId }, "editor-ok")
+    expect(service.snapshot().failure).toBeNull()
+    host.openPluginEditor.mockRejectedValueOnce(new Error("editor failed"))
+    await service.command({ type: "editor", instanceId }, "editor-fail-again")
+    expect(service.snapshot().failure).toBe("prepare-failed")
+    await service.command({ type: "remove", instanceId }, "remove")
+    expect(service.snapshot().failure).toBeNull()
+    await service.close()
+  })
 })

@@ -223,6 +223,8 @@ export class PluginAnalysisService {
         delete this.value.runtime[command.instanceId]
         this.parameterFingerprints.delete(command.instanceId)
         this.reorder()
+        // Removing the effect resolves a reported prepare failure.
+        if (this.value.failure === "prepare-failed") this.value.failure = null
         this.changed("chain")
         break
       }
@@ -261,6 +263,8 @@ export class PluginAnalysisService {
             editorOpen: result.open,
             editorMode: result.editorMode
           })
+          // A successful editor open resolves a reported prepare failure.
+          if (this.value.failure === "prepare-failed") this.value.failure = null
         } catch {
           this.value.failure = "prepare-failed"
         }
