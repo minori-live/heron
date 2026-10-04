@@ -7,18 +7,29 @@ import type { PluginAnalysisJobStatus } from "../src/main/audio-host/wire/genera
 import type { ControlResponse } from "../src/main/audio-host/wire/rpc.ts"
 
 // This protects Heron's N-API/MessagePack measurement ownership and report mapping.
-// Optional official gain fixtures exercise the VST3 and CLAP processing boundary.
+// Optional plug-ins exercise the lab-state clone, parameter replay, and processing boundary.
 const [vst3Path, vst3Id, clapPath] = process.argv.slice(2)
 const fixtures = [
-  { name: "passthrough", format: null, path: null, nativeId: null },
-  ...(vst3Path ? [{ name: "VST3", format: "vst3", path: vst3Path, nativeId: vst3Id }] : []),
+  { name: "passthrough", format: null, path: null, nativeId: null, gainFixture: true },
+  ...(vst3Path
+    ? [
+        {
+          name: "VST3",
+          format: "vst3",
+          path: vst3Path,
+          nativeId: vst3Id,
+          gainFixture: vst3Id === "41347FD6FED64094AFBB12B7DBA1D441"
+        }
+      ]
+    : []),
   ...(clapPath
     ? [
         {
           name: "CLAP",
           format: "clap",
           path: clapPath,
-          nativeId: "com.github.free-audio.clap.gain"
+          nativeId: "com.github.free-audio.clap.gain",
+          gainFixture: true
         }
       ]
     : [])
@@ -45,12 +56,13 @@ async function status(command: Record<string, unknown>): Promise<PluginAnalysisJ
 
 try {
   for (const fixture of fixtures) {
+    const originalId = `plugin-analysis-lab-${randomUUID()}`
     const instanceId = `plugin-analysis-measure-${randomUUID()}`
+    let latencySamples = 0
     if (fixture.format) {
       assert.ok(fixture.nativeId)
-      const loaded = await send({
+      const load = {
         type: "load-plugin",
-        instance_id: instanceId,
         locator: {
           format: fixture.format,
           artifact_path: fixture.path,
@@ -59,10 +71,35 @@ try {
         plugin_kind: "effect",
         audio_mode: "stereo",
         active_aux_inputs: [],
-        sample_rate: 48000,
+        sample_rate: 48000
+      }
+      const original = await send({
+        ...load,
+        instance_id: originalId,
         state: { version: 1, chunks: [] }
       })
+      assert.equal(original.type, "plugin-loaded")
+      const saved = await send({ type: "save-plugin-state", instance_id: originalId })
+      assert.equal(saved.type, "plugin-state")
+      assert.ok(saved.state && "chunks" in saved.state)
+      const listed = await send({ type: "plugin-parameters", instance_id: originalId })
+      assert.equal(listed.type, "plugin-parameters")
+      assert.ok(listed.parameters)
+      const loaded = await send({ ...load, instance_id: instanceId, state: saved.state })
       assert.equal(loaded.type, "plugin-loaded")
+      assert.notEqual(loaded.runtime_handle, original.runtime_handle)
+      latencySamples = loaded.latency_samples ?? 0
+      // Match PluginAnalysisService: controller edits can precede a DSP block, so
+      // state restoration is followed by replay of authoritative editable values.
+      for (const parameter of listed.parameters.filter((p) => !p.read_only && !p.hidden)) {
+        await send({
+          type: "set-plugin-parameter",
+          instance_id: instanceId,
+          parameter_key: parameter.parameter_key,
+          value: parameter.value,
+          gesture: "end"
+        })
+      }
     }
     const operation_id = randomUUID()
     const start = {
@@ -78,7 +115,7 @@ try {
         sweep_seconds: 1,
         tail_seconds: 0.25
       },
-      reported_latency_samples: 0
+      reported_latency_samples: latencySamples
     }
     let current = await status(start)
     assert.equal(current.state, "running")
@@ -96,15 +133,20 @@ try {
     assert.equal(report.harmonics.length, 2)
     assert.equal(report.models.length, 2)
     assert.ok(report.performance.measured_blocks > 0)
-    for (const response of report.responses.filter((path) => path.input === path.output)) {
-      assert.equal(response.delay_samples, 0)
+    assert.equal(report.performance.reported_latency_samples, latencySamples)
+    for (const response of report.responses) {
       assert.ok(response.magnitude_db.every(Number.isFinite))
-      assert.ok(response.repeat_error_percent < 0.01)
-      if (!fixture.format) assert.ok(response.magnitude_db.every((db) => Math.abs(db) < 0.01))
     }
-    for (const model of report.models) {
-      assert.ok(model.suitable)
-      assert.ok(model.validation_error_percent < 2)
+    if (fixture.gainFixture) {
+      for (const response of report.responses.filter((path) => path.input === path.output)) {
+        assert.equal(response.delay_samples, 0)
+        assert.ok(response.repeat_error_percent < 0.01)
+        if (!fixture.format) assert.ok(response.magnitude_db.every((db) => Math.abs(db) < 0.01))
+      }
+      for (const model of report.models) {
+        assert.ok(model.suitable)
+        assert.ok(model.validation_error_percent < 2)
+      }
     }
     assert.equal(
       (await status({ type: "release-plugin-analysis", operation_id })).state,
@@ -114,7 +156,10 @@ try {
       state: "failed",
       failure: "missing-job"
     })
-    if (fixture.format) await send({ type: "unload-plugin", instance_id: instanceId, force: true })
+    if (fixture.format) {
+      await send({ type: "unload-plugin", instance_id: instanceId, force: true })
+      await send({ type: "unload-plugin", instance_id: originalId, force: true })
+    }
     console.log(`Plugin Analysis ${fixture.name} passed (+6 dBFS, report and endpoint release)`)
   }
   const operation_id = randomUUID()

@@ -42,6 +42,48 @@ fn vst3_result_mapping_preserves_operation_and_result_code() {
 }
 
 #[test]
+fn controller_parameter_sync_accepts_ok_and_declined_gui_updates() {
+    assert!(check_controller_parameter_sync("IEditController::setParamNormalized", 0).is_ok());
+    assert!(check_controller_parameter_sync("IEditController::setParamNormalized", 1).is_ok());
+}
+
+#[test]
+fn controller_parameter_sync_preserves_actual_failures() {
+    assert!(matches!(
+        check_controller_parameter_sync("IEditController::setParamNormalized", -7),
+        Err(HostError::Operation {
+            operation: "IEditController::setParamNormalized",
+            result: -7,
+        })
+    ));
+    assert!(check_controller_parameter_sync("IEditController::setParamNormalized", 3).is_err());
+}
+
+#[test]
+fn controller_parameter_edit_requires_a_known_writable_parameter() {
+    assert!(validate_controller_parameter_edit(Some(0)).is_ok());
+    assert!(matches!(
+        validate_controller_parameter_edit(None),
+        Err(HostError::Operation {
+            result: -2147024809,
+            ..
+        })
+    ));
+    assert!(
+        validate_controller_parameter_edit(Some(as_uint32(
+            Vst::ParameterInfo_ParameterFlags_kIsReadOnly
+        )))
+        .is_err()
+    );
+    assert!(
+        validate_controller_parameter_edit(Some(as_uint32(
+            Vst::ParameterInfo_ParameterFlags_kIsHidden
+        )))
+        .is_err()
+    );
+}
+
+#[test]
 fn recognizes_every_sdk_not_implemented_encoding() {
     for result in [3, 0x8000_4001_u32 as i32, 0x8000_0001_u32 as i32] {
         assert!(is_not_implemented(result));

@@ -1,6 +1,10 @@
 use std::{
+    cell::RefCell,
+    collections::HashMap,
     ffi::c_void,
     os::raw::c_char,
+    path::{Path, PathBuf},
+    rc::{Rc, Weak},
     sync::atomic::{AtomicU32, Ordering},
 };
 
@@ -18,6 +22,12 @@ use heron_vst3_host_sys::{
 use crate::frame::RunLoopInterface;
 use crate::host_objects::{HostAttributeList, HostMessage};
 
+thread_local! {
+    // Factories can retain one process-global host context across several loads
+    // of the same binary. Keep its address stable until the final Module drops.
+    static MODULE_CONTEXTS: RefCell<HashMap<PathBuf, Weak<HostContext>>> = RefCell::default();
+}
+
 #[repr(C)]
 pub(crate) struct HostContext {
     vtable: *const HostApplicationVTable,
@@ -34,8 +44,24 @@ struct PlugInterfaceSupportObject {
 }
 
 impl HostContext {
-    pub(crate) fn new() -> Box<Self> {
-        let mut context = Box::new(Self {
+    pub(crate) fn for_module(binary_path: &Path) -> Rc<Self> {
+        let key = binary_path
+            .canonicalize()
+            .unwrap_or_else(|_| binary_path.to_owned());
+        MODULE_CONTEXTS.with(|contexts| {
+            let mut contexts = contexts.borrow_mut();
+            contexts.retain(|_, context| context.strong_count() != 0);
+            if let Some(context) = contexts.get(&key).and_then(Weak::upgrade) {
+                return context;
+            }
+            let context = Self::new();
+            contexts.insert(key, Rc::downgrade(&context));
+            context
+        })
+    }
+
+    fn new() -> Rc<Self> {
+        let mut context = Rc::new(Self {
             vtable: &HOST_APPLICATION_VTABLE,
             references: AtomicU32::new(1),
             plug_interface_support: PlugInterfaceSupportObject {
@@ -45,7 +71,11 @@ impl HostContext {
             #[cfg(target_os = "linux")]
             run_loop: RunLoopInterface::new(),
         });
-        context.plug_interface_support.owner = std::ptr::from_ref(context.as_ref());
+        let owner = Rc::as_ptr(&context);
+        Rc::get_mut(&mut context)
+            .expect("new host context has no other owners")
+            .plug_interface_support
+            .owner = owner;
         context
     }
 
@@ -283,6 +313,74 @@ mod tests {
     #[cfg(target_os = "linux")]
     use heron_vst3_host_sys::{Steinberg::Linux::IRunLoop, abi::RunLoopVTable};
 
+    #[test]
+    fn analysis_clone_keeps_module_callbacks_alive_until_the_last_owner() {
+        let binary_path = std::env::current_exe().unwrap();
+        let original = HostContext::for_module(&binary_path);
+        let alias = binary_path
+            .parent()
+            .unwrap()
+            .join(".")
+            .join(binary_path.file_name().unwrap());
+        let measurement = HostContext::for_module(&alias);
+        let factory_context = measurement.as_unknown();
+        let lifetime = Rc::downgrade(&measurement);
+        assert_eq!(factory_context, original.as_unknown());
+        let mut support = std::ptr::null_mut();
+        unsafe {
+            // SAFETY: measurement owns the context and support is writable storage.
+            assert_eq!(
+                query_interface(
+                    factory_context,
+                    iid::IPLUG_INTERFACE_SUPPORT.as_ptr(),
+                    &mut support
+                ),
+                0
+            );
+        }
+
+        // Analysis destroys its clone while the lab instance keeps the module
+        // loaded. A factory's retained interface must still address live storage.
+        drop(measurement);
+        assert!(lifetime.upgrade().is_some());
+        let mut name = [0_u16; 128];
+        unsafe {
+            // SAFETY: the original module retains the shared host context.
+            let table = *factory_context.cast::<*const HostApplicationVTable>();
+            assert_eq!(
+                ((*table).get_name)(factory_context.cast(), name.as_mut_ptr()),
+                0
+            );
+            // The embedded support interface must point back to the final Rc
+            // allocation, including after the creating module has gone away.
+            let mut identity = std::ptr::null_mut();
+            assert_eq!(
+                support_query_interface(
+                    support.cast(),
+                    iid::IHOST_APPLICATION.as_ptr(),
+                    &mut identity
+                ),
+                0
+            );
+            assert_eq!(identity, factory_context.cast());
+            release(identity.cast());
+            support_release(support.cast());
+        }
+        assert_eq!(&name[..6], &[72, 101, 114, 111, 110, 0]);
+        drop(original);
+        assert!(
+            lifetime.upgrade().is_none(),
+            "the cache must not retain a module context"
+        );
+    }
+
+    #[test]
+    fn distinct_modules_do_not_share_callbacks() {
+        let first = HostContext::for_module(Path::new("first-plugin-binary"));
+        let second = HostContext::for_module(Path::new("second-plugin-binary"));
+        assert_ne!(first.as_unknown(), second.as_unknown());
+    }
+
     unsafe fn release_created(object: *mut c_void) {
         let unknown = object.cast::<FUnknown>();
         let vtable = unsafe {
@@ -339,13 +437,16 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn exposes_module_lifetime_run_loop_service() {
-        let context = HostContext::new();
+        let binary_path = std::env::current_exe().unwrap();
+        let original = HostContext::for_module(&binary_path);
+        let context = HostContext::for_module(&binary_path);
         let mut run_loop = std::ptr::null_mut::<c_void>();
         let result = unsafe {
             // SAFETY: the context is live and run_loop is writable interface output storage.
             query_interface(context.as_unknown(), iid::IRUN_LOOP.as_ptr(), &mut run_loop)
         };
         assert_eq!(result, 0);
+        drop(context);
         let run_loop = run_loop.cast::<IRunLoop>();
         assert!(!run_loop.is_null());
         let table = unsafe {
@@ -364,5 +465,6 @@ mod tests {
             ((*table).base.release)(identity.cast());
             ((*table).base.release)(run_loop.cast());
         }
+        drop(original);
     }
 }
