@@ -85,11 +85,6 @@ interface EditorWindowEntry {
 
 export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
   private readonly entries = new Map<string, EditorWindowEntry>()
-  private readonly parent: BaseWindow
-
-  constructor(parent: BaseWindow) {
-    this.parent = parent
-  }
 
   async open(
     client: AudioHostRuntime,
@@ -107,15 +102,25 @@ export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
   ): Promise<PluginEditorOpenResult> {
     const existing = this.entries.get(instanceId)
     if (existing) {
+      if (existing.closing) {
+        return {
+          editorMode: existing.toolbarState?.activeMode === "parameters" ? "parameters" : "native",
+          open: false
+        }
+      }
       existing.window.show()
       this.resizeNativeHost(instanceId, existing)
       existing.toolbarWindow.showInactive()
       existing.window.focus()
-      return openNative()
+      const result = await openNative()
+      return this.entries.get(instanceId) === existing && !existing.closing
+        ? result
+        : { ...result, open: false }
     }
 
     const window = new BaseWindow({
-      parent: this.parent,
+      // Plug-in editors belong to runtime instances, not the main Editor window.
+      // Parenting here also raises Editor when Analysis activates a plug-in.
       title: [context.channelName, context.pluginName].filter(Boolean).join(" — "),
       show: false,
       width: 800,
@@ -267,8 +272,14 @@ export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
         displayScale: scaleFactor
       })
       const result = await openNative()
+      if (this.entries.get(instanceId) !== entry || entry.closing) {
+        return { ...result, open: false }
+      }
       entry.toolbarState = client.editorToolbarState(instanceId)
       if (entry.toolbarState) await this.applyToolbarState(instanceId, entry, entry.toolbarState)
+      if (this.entries.get(instanceId) !== entry || entry.closing) {
+        return { ...result, open: false }
+      }
       const snapshot = client.editorHostSnapshot(instanceId)
       if (snapshot?.attached) this.applySnapshot(entry, snapshot)
       if (!window.isDestroyed()) {

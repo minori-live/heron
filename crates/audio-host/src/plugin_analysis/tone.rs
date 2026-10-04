@@ -191,6 +191,7 @@ impl Chain {
         let length = period * cycles;
         let warmup = length.max((self.settings.tail_seconds * rate) as usize);
         let points = 400usize;
+        let stride = length.div_ceil(points).max(1);
         let shape = |phase: f64, kind: &str| match kind {
             "square" => {
                 if phase < 0.5 {
@@ -214,7 +215,6 @@ impl Chain {
                 .iter()
                 .map(|frame| route.measure(*frame))
                 .collect();
-            let stride = measured.len().div_ceil(points).max(1);
             waveforms.push(PluginAnalysisOscilloscopeWaveform {
                 waveform: kind.to_owned(),
                 input: input[warmup..].iter().step_by(stride).copied().collect(),
@@ -224,7 +224,8 @@ impl Chain {
         Ok(PluginAnalysisOscilloscope {
             channel: route.index(),
             sample_rate: rate,
-            duration_seconds: cycles as f64 / self.settings.tone_hz,
+            sample_stride: stride as u32,
+            duration_seconds: length as f64 / rate,
             delay_samples: latency,
             waveforms,
         })

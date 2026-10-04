@@ -10,6 +10,10 @@ not need a project. Add effects using the Mixer plug-in picker and slots, then
 open their native or parameter editors. The silent experiment chains do not
 change your project.
 
+Plug-in editors open as independent windows. Activating one does not bring the
+main Editor forward, and you can keep using Analysis with the Editor minimized
+or closed. Removing the effect or closing Analysis also closes its plug-in editor.
+
 The left side uses the same Audio FX slots as the Mixer. Click the first empty
 slot to select a vendor, effect and audio mode. **Rescan** refreshes both bundled
 and external effects. Unavailable effects show their load/probe reason; they

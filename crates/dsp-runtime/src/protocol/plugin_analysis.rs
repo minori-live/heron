@@ -192,7 +192,11 @@ pub struct PluginAnalysisOscilloscopeWaveform {
 pub struct PluginAnalysisOscilloscope {
     pub channel: u32,
     pub sample_rate: f64,
+    // Distance between retained waveform points, in original audio samples.
+    pub sample_stride: u32,
+    // Full captured interval; the last retained point can precede its end.
     pub duration_seconds: f64,
+    // Alignment delay in original audio samples, independent of sample_stride.
     pub delay_samples: u32,
     pub waveforms: Vec<PluginAnalysisOscilloscopeWaveform>,
 }
