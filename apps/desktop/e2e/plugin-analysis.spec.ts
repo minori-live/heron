@@ -15,7 +15,7 @@ async function openPluginAnalysis(application: ElectronApplication, page: Page):
     // AppTitleBar omits the renderer menubar on macOS, so drive the native menu.
     await application.evaluate(({ Menu }) => {
       const help = Menu.getApplicationMenu()?.items.find((item) => item.label === "Help")
-      const open = help?.submenu?.items.find((item) => item.label === "Plugin Analysis")
+      const open = help?.submenu?.items.find((item) => item.label?.startsWith("Plugin Analysis"))
       if (!open || !open.enabled) throw new Error("Help > Plugin Analysis is unavailable")
       Reflect.apply(open.click, open, [])
     })
