@@ -113,7 +113,8 @@
     "toggleFullScreen": "切换全屏",
     "audioBenchmark": "音频性能基准测试…",
     "effectChainGraph": "效果链图…",
-    "studioBasics": "Studio 基础教程…"
+    "studioBasics": "Studio 基础教程…",
+    "pluginAnalysis": "Plugin Analysis…"
   },
   "dialog": {
     "createLive": {
@@ -688,7 +689,8 @@
         "help": {
           "studio-basics": "Studio 基础教程",
           "audio-benchmark": "音频性能基准测试",
-          "effect-chain-graph": "效果链图"
+          "effect-chain-graph": "效果链图",
+          "plugin-analysis": "插件分析"
         }
       }
     },
@@ -1751,7 +1753,8 @@
       "choosePlugin": "选择 {name}",
       "modeNotSupported": "此插件不支持 {mode}",
       "modeSupported": "{label}：{detail}",
-      "unknownVendor": "未知厂商"
+      "unknownVendor": "未知厂商",
+      "unavailable": "插件不可用"
     },
     "routeGroups": {
       "buses": "总线",
@@ -2138,5 +2141,100 @@
     "effectMode": "请为此插入位置选择 {width} 输入的效果器模式。",
     "validEffectMode": "请为此插入位置选择有效的输入效果器模式。",
     "waveformDescription": "波形，{channels} 个声道，{frames} 帧"
+  },
+  "pluginAnalysis": {
+    "analysis": "分析报告",
+    "level": "扫频输入电平",
+    "sampleRate": "采样率",
+    "blockSize": "处理块大小",
+    "startHz": "起始频率",
+    "endHz": "结束频率",
+    "sweepTime": "扫频时长",
+    "tailTime": "稳定／尾音时长",
+    "automatic": "自动分析",
+    "analyze": "分析",
+    "cancel": "取消",
+    "stale": "结果已过期。",
+    "loading": "正在打开 Plugin Analysis…",
+    "signalPath": "输入 → 输出",
+    "channel": "声道",
+    "compensate": "补偿实测延迟",
+    "frequency": "频率响应",
+    "phase": "相位",
+    "impulse": "脉冲响应",
+    "amplitude": "幅度",
+    "harmonicResponse": "H2–H8 响应",
+    "frequencyScale": "频率轴刻度",
+    "magnitudeScale": "泛音幅度刻度",
+    "scaleLinear": "Linear（线性）",
+    "scaleLog": "Log（对数）",
+    "magnitudeLinear": "线性（基波百分比）",
+    "magnitudeLog": "对数（dBc）",
+    "nonlinearity": "静态非线性",
+    "modelFilter": "线性滤波响应",
+    "modelImpulse": "线性滤波脉冲",
+    "validation": "独立信号验证",
+    "observed": "实测",
+    "predicted": "模型预测",
+    "input": "输入",
+    "output": "输出",
+    "validationError": "拟合误差：{error}%",
+    "reportedLatency": "插件报告延迟",
+    "blockTime": "平均处理耗时",
+    "cpuBudget": "P99 音频预算占用",
+    "deadlineMisses": "超过预算的处理块",
+    "workspaceMemory": "分析内存估算",
+    "loadedMemory": "加载后内存变化",
+    "peakMemory": "峰值内存变化",
+    "retainedMemory": "关闭后内存变化",
+    "tabs": {
+      "linear": "线性分析",
+      "harmonics": "泛音",
+      "model": "Hammerstein",
+      "performance": "性能"
+    },
+    "failures": {
+      "invalid-settings": "测量设置无效，或插件报告延迟超过采集窗口。请增加尾音时长。",
+      "missing-processor": "效果器不可用，请移除或重试。",
+      "processor-rejected": "插件拒绝处理信号。",
+      "invalid-output": "插件输出的音频无效，请调整设置或移除插件。",
+      "cancelled": "分析已取消。",
+      "worker-unavailable": "分析暂时不可用，请重试。",
+      "busy": "另一项分析正在运行，请等待其完成后重试。",
+      "missing-job": "此次分析已不可用，请重新分析。",
+      "prepare-failed": "无法准备插件状态或打开编辑器。请重试或移除效果器。",
+      "cleanup-failed": "分析已停止，请重启 Heron 后继续。",
+      "state-changed": "效果器已修改，将重新分析。",
+      "catalog-unavailable": "无法刷新插件列表，请重新扫描。"
+    },
+    "title": "Plugin Analysis",
+    "thd": "THD (H2–H8)",
+    "percentiles": "P95 / P99 / 最高",
+    "latencyValue": "{samples} 个采样 · {ms} ms",
+    "units": {
+      "db": "dB",
+      "dbc": "dBc",
+      "mib": "MiB"
+    },
+    "inserts": "Audio FX",
+    "rescan": "重新扫描",
+    "samples": "采样",
+    "conditions": "{rate} kHz · {block} {samples}",
+    "measurementSettings": "测量设置",
+    "magnitude": "幅度",
+    "responseView": "响应视图",
+    "bothChannels": "L + R",
+    "store": "保留曲线",
+    "clear": "清除",
+    "stored": "已保留",
+    "spectrum2d": "二维扫频频谱",
+    "orders1d": "一维泛音响应",
+    "harmonicView": "泛音视图",
+    "sweepScale": "扫频",
+    "colorRange": "能量",
+    "colorMinimum": "色阶下限",
+    "colorMaximum": "色阶上限",
+    "spectrumNote": "实测输出：横轴为时间，纵轴为频率，颜色为 dBFS 能量。基波上方的线条显示泛音，折返的线条可能表示 aliasing。Linear 和 Log 使用分别测量的扫频结果。",
+    "modelView": "模型视图"
   }
 }

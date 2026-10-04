@@ -89,6 +89,30 @@ export type {
 export type { PreparedGraphDeployment } from "./audio-host-graph-transactions"
 
 export class AudioHostService {
+  private readonly pluginAnalysisListeners = new Set<
+    (notification: PluginHostNotification) => void
+  >()
+  private readonly pluginAnalysisShutdown = new Set<() => Promise<void>>()
+
+  subscribePluginAnalysisShutdown(listener: () => Promise<void>): () => void {
+    this.pluginAnalysisShutdown.add(listener)
+    return () => this.pluginAnalysisShutdown.delete(listener)
+  }
+
+  subscribePluginAnalysisNotifications(
+    listener: (notification: PluginHostNotification) => void
+  ): () => void {
+    this.pluginAnalysisListeners.add(listener)
+    return () => this.pluginAnalysisListeners.delete(listener)
+  }
+
+  pluginAnalysisRequest(command: Record<string, unknown>): Promise<ControlResponse> {
+    return this.request(command)
+  }
+
+  unloadPluginAnalysisPlugin(instanceId: string): Promise<void> {
+    return this.plugins.unloadPlugin(instanceId, true)
+  }
   private readonly publicationGraph: ProjectGraphRef = {
     kind: "project-graph",
     id: randomUUID(),
@@ -211,7 +235,11 @@ export class AudioHostService {
         onEditorClosed(instanceId)
       },
       (callback) => this.events.dispatchAra(callback),
-      (notification) => this.events.dispatchPlugin(notification),
+      (notification) => {
+        if (notification.instanceId.startsWith("plugin-analysis-")) {
+          for (const listener of this.pluginAnalysisListeners) listener(notification)
+        } else this.events.dispatchPlugin(notification)
+      },
       (request) => this.events.dispatchSidechain(request),
       (recovery) => this.events.dispatchDeviceRecovery(recovery),
       (failure) => this.events.dispatchPluginFailure(failure)
@@ -366,7 +394,10 @@ export class AudioHostService {
     const desiredInstanceIds = new Set(deployment.project.plugins.map((plugin) => plugin.id))
     const retiredInstanceIds = this.plugins
       .loadedInstanceIds()
-      .filter((instanceId) => !desiredInstanceIds.has(instanceId))
+      .filter(
+        (instanceId) =>
+          !instanceId.startsWith("plugin-analysis-") && !desiredInstanceIds.has(instanceId)
+      )
     const retired = await Promise.allSettled(
       retiredInstanceIds.map((instanceId) => this.plugins.unloadPlugin(instanceId))
     )
@@ -784,6 +815,7 @@ export class AudioHostService {
   }
 
   async stop(): Promise<void> {
+    await Promise.all([...this.pluginAnalysisShutdown].map((close) => close()))
     this.stopping = true
     this.stopUiDrain()
     await this.shutdownCurrentClient()
@@ -841,6 +873,9 @@ export class AudioHostService {
   }
 
   async restartAfterOfflineBounce(restoreAudioEngine: boolean): Promise<void> {
+    // Retire analysis sessions while the outgoing client can still release its
+    // native instances; the replacement runtime must not inherit their handles.
+    await Promise.all([...this.pluginAnalysisShutdown].map((close) => close()))
     const preferences = this.audioTransport.audioPreferences()
     await this.shutdownCurrentClient()
     this.stopping = false

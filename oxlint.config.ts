@@ -271,7 +271,10 @@ export default defineConfig({
       }
     },
     {
-      files: ["apps/desktop/src/renderer/src/main.ts"],
+      files: [
+        "apps/desktop/src/renderer/src/main.ts",
+        "apps/desktop/src/renderer/src/plugin-analysis.ts"
+      ],
       rules: {
         "typescript/no-unsafe-argument": "off"
       }

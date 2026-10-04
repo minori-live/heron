@@ -24,6 +24,7 @@ pub(in crate::runtime) async fn audio_plugin_actor(
         graph_build_gate,
         session_epoch,
         bounce_jobs,
+        plugin_analysis_jobs,
     } = deps;
     let mut graph_snapshot: Option<LiveMixerGraph> = None;
     let mut graph_transactions = GraphTransactionState::new(session_epoch);
@@ -69,6 +70,68 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                 continue;
             }
             ActorCommand::Control(command) => match command {
+                ControlCommand::StartPluginAnalysis {
+                    operation_id,
+                    instance_ids,
+                    settings,
+                    reported_latency_samples,
+                } => {
+                    let slots = processors.lock().ok().and_then(|slots| {
+                        instance_ids
+                            .iter()
+                            .map(|id| slots.get(id).cloned())
+                            .collect::<Option<Vec<_>>>()
+                    });
+                    let status = match slots {
+                        Some(slots)
+                            if instance_ids.len() <= 16
+                                && instance_ids.iter().enumerate().all(|(index, id)| {
+                                    id.starts_with("plugin-analysis-measure-")
+                                        && !instance_ids[..index].contains(id)
+                                }) =>
+                        {
+                            plugin_analysis_jobs.start(
+                                operation_id,
+                                slots,
+                                settings,
+                                reported_latency_samples,
+                            )
+                        }
+                        _ => crate::plugin_analysis::failed(
+                            heron_dsp_runtime::protocol::PluginAnalysisFailure::MissingProcessor,
+                        ),
+                    };
+                    ControlResult::PluginAnalysis {
+                        plugin_analysis_status: status,
+                    }
+                }
+                ControlCommand::PluginAnalysisStatus { operation_id } => {
+                    ControlResult::PluginAnalysis {
+                        plugin_analysis_status: plugin_analysis_jobs.status(
+                            &operation_id,
+                            false,
+                            false,
+                        ),
+                    }
+                }
+                ControlCommand::CancelPluginAnalysis { operation_id } => {
+                    ControlResult::PluginAnalysis {
+                        plugin_analysis_status: plugin_analysis_jobs.status(
+                            &operation_id,
+                            true,
+                            false,
+                        ),
+                    }
+                }
+                ControlCommand::ReleasePluginAnalysis { operation_id } => {
+                    ControlResult::PluginAnalysis {
+                        plugin_analysis_status: plugin_analysis_jobs.status(
+                            &operation_id,
+                            false,
+                            true,
+                        ),
+                    }
+                }
                 ControlCommand::Ping => {
                     forward_to_ui(
                         &ui_sender,

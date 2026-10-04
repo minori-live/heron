@@ -66,11 +66,11 @@ describe("PluginCatalogService orchestration", () => {
 
     const first = service.scan({ force: true })
     const second = service.scan({ retryQuarantined: true })
-    expect(discovery.scan).toHaveBeenCalledOnce()
     finish()
 
     await expect(first).resolves.toMatchObject({ scannedAt: 1 })
     await expect(second).resolves.toMatchObject({ scannedAt: 1 })
+    expect(discovery.scan).toHaveBeenCalledOnce()
   })
 
   it("deep-probes once per bundle immediately before runtime loading", async () => {

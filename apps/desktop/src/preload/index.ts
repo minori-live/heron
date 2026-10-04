@@ -21,6 +21,7 @@ import { invokeRpc } from "./rpc"
 import { classifyRendererEntrypoint } from "../shared/renderer-security"
 
 const api: HeronDesktopApi = {
+  openPluginAnalysis: (meta) => invokeRpc(IPC_CHANNELS.pluginAnalysisOpen, meta),
   updateSnapshot: (meta) => invokeRpc(IPC_CHANNELS.updateSnapshot, meta),
   updateCommand: (meta, command) => invokeRpc(IPC_CHANNELS.updateCommand, meta, command),
   subscribeUpdates: (listener) => {
@@ -224,4 +225,12 @@ if (entrypoint === "splash") {
   contextBridge.exposeInMainWorld("heronSplash", splashApi)
 } else if (entrypoint === "main") {
   contextBridge.exposeInMainWorld("heron", api)
+} else if (entrypoint === "plugin-analysis") {
+  const pluginAnalysisApi: import("@heron/contracts").HeronPluginAnalysisApi = {
+    platform: process.platform as HeronDesktopApi["platform"],
+    snapshot: (meta, acknowledge, knownReportId) =>
+      invokeRpc(IPC_CHANNELS.pluginAnalysisSnapshot, meta, acknowledge, knownReportId),
+    command: (meta, command) => invokeRpc(IPC_CHANNELS.pluginAnalysisCommand, meta, command)
+  }
+  contextBridge.exposeInMainWorld("heronPluginAnalysis", pluginAnalysisApi)
 }

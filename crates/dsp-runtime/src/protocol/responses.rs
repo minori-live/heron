@@ -58,6 +58,9 @@ pub struct ControlResponse {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum ControlResult {
+    PluginAnalysis {
+        plugin_analysis_status: super::PluginAnalysisJobStatus,
+    },
     Pong,
     BenchmarkEcho {
         payload: BinaryPayload,

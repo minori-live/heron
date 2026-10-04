@@ -21,15 +21,19 @@ import type {
 } from "@heron/contracts"
 import { mixerRouteGroups } from "./mixer-route-groups"
 
-const props = defineProps<{
-  channel: MixerStripChannel
-  sends: MixerSendState[]
-  buses: readonly MixerBusState[]
-  outputs: MixerStripChannel[]
-  sendTargets: MixerRouteTarget[]
-  slotRows: number
-  structureEnabled?: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    channel: MixerStripChannel
+    sends: MixerSendState[]
+    buses: readonly MixerBusState[]
+    outputs: MixerStripChannel[]
+    sendTargets: MixerRouteTarget[]
+    slotRows: number
+    structureEnabled?: boolean
+  }>(),
+  // Vue casts an absent boolean prop to false; sends default to editable.
+  { structureEnabled: true }
+)
 
 const emit = defineEmits<{
   preview: [preview: MixerParameterPreview]

@@ -166,7 +166,8 @@ export default defineConfig({
               text: "Shape the sound",
               items: [
                 { text: "Mixer and routing", link: "/manual/mixer-and-routing" },
-                { text: "Plug-ins", link: "/manual/plugins" }
+                { text: "Plug-ins", link: "/manual/plugins" },
+                { text: "Plugin Analysis", link: "/manual/plugin-analysis" }
               ]
             },
             {
@@ -237,7 +238,8 @@ export default defineConfig({
               text: "塑造声音",
               items: [
                 { text: "混音台与路由", link: "/zh/manual/mixer-and-routing" },
-                { text: "插件", link: "/zh/manual/plugins" }
+                { text: "插件", link: "/zh/manual/plugins" },
+                { text: "Plugin Analysis", link: "/zh/manual/plugin-analysis" }
               ]
             },
             {

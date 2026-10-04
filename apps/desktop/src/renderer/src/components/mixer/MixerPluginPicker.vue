@@ -37,6 +37,7 @@ const pickerMenu = computed(() => {
     .filter(
       (plugin) =>
         props.inputWidth === undefined ||
+        plugin.compatibility !== "compatible" ||
         plugin.supportedAudioModes.some(
           (mode) => pluginAudioModeInputWidth(mode) === props.inputWidth
         )
@@ -70,7 +71,13 @@ const pickerMenu = computed(() => {
         children: pluginAudioModeOptions(plugin.kind, props.inputWidth, t).map((option) => {
           const id = JSON.stringify([descriptorKey, option.value])
           selections.set(id, { descriptor: plugin, audioMode: option.value })
-          const supported = pluginSupportsHostedAudioMode(plugin, option.value)
+          const supported =
+            plugin.compatibility === "compatible" &&
+            pluginSupportsHostedAudioMode(plugin, option.value)
+          const unavailableReason =
+            plugin.compatibility !== "compatible"
+              ? (plugin.compatibilityReason ?? t("mixer.pluginPicker.unavailable"))
+              : t("mixer.pluginPicker.modeNotSupported", { mode: option.label })
           return {
             kind: "item",
             id,
@@ -87,15 +94,13 @@ const pickerMenu = computed(() => {
               option.label
             ],
             disabled: !supported,
-            disabledReason: supported
-              ? undefined
-              : t("mixer.pluginPicker.modeNotSupported", { mode: option.label }),
+            disabledReason: supported ? undefined : unavailableReason,
             title: supported
               ? t("mixer.pluginPicker.modeSupported", {
                   label: option.label,
                   detail: option.detail
                 })
-              : t("mixer.pluginPicker.modeNotSupported", { mode: option.label })
+              : unavailableReason
           } satisfies UiMenuEntry
         })
       } satisfies UiMenuEntry

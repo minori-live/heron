@@ -113,7 +113,8 @@
     "toggleFullScreen": "Toggle Full Screen",
     "audioBenchmark": "Audio Performance Benchmark…",
     "effectChainGraph": "Effect Chain Graph…",
-    "studioBasics": "Studio Basics…"
+    "studioBasics": "Studio Basics…",
+    "pluginAnalysis": "Plugin Analysis…"
   },
   "dialog": {
     "createLive": {
@@ -688,7 +689,8 @@
         "help": {
           "studio-basics": "Studio Basics",
           "audio-benchmark": "Audio performance benchmark",
-          "effect-chain-graph": "Effect chain graph"
+          "effect-chain-graph": "Effect chain graph",
+          "plugin-analysis": "Plugin Analysis"
         }
       }
     },
@@ -1442,7 +1444,8 @@
       "choosePlugin": "Choose {name}",
       "modeNotSupported": "{mode} is not supported by this plug-in",
       "modeSupported": "{label}: {detail}",
-      "unknownVendor": "Unknown vendor"
+      "unknownVendor": "Unknown vendor",
+      "unavailable": "Plug-in unavailable"
     },
     "routeGroups": {
       "buses": "Buses",
@@ -2138,5 +2141,100 @@
     "effectMode": "Choose a {width}-input effect mode for this insert position.",
     "validEffectMode": "Choose a valid input effect mode for this insert position.",
     "waveformDescription": "Waveform, {channels} channels, {frames} frames"
+  },
+  "pluginAnalysis": {
+    "analysis": "Analysis report",
+    "level": "Sweep input level",
+    "sampleRate": "Sample rate",
+    "blockSize": "Block size",
+    "startHz": "Start frequency",
+    "endHz": "End frequency",
+    "sweepTime": "Sweep duration",
+    "tailTime": "Settle / tail duration",
+    "automatic": "Auto analyze",
+    "analyze": "Analyze",
+    "cancel": "Cancel",
+    "stale": "Results are out of date.",
+    "loading": "Opening Plugin Analysis…",
+    "signalPath": "Input → output",
+    "channel": "Channel",
+    "compensate": "Compensate measured delay",
+    "frequency": "Frequency response",
+    "phase": "Phase",
+    "impulse": "Impulse response",
+    "amplitude": "Amplitude",
+    "harmonicResponse": "H2–H8 response",
+    "frequencyScale": "Frequency scale",
+    "magnitudeScale": "Harmonic magnitude scale",
+    "scaleLinear": "Linear",
+    "scaleLog": "Log",
+    "magnitudeLinear": "Linear (% of fundamental)",
+    "magnitudeLog": "Log (dBc)",
+    "nonlinearity": "Static nonlinearity",
+    "modelFilter": "Linear filter response",
+    "modelImpulse": "Linear filter impulse",
+    "validation": "Independent validation",
+    "observed": "Measured",
+    "predicted": "Model",
+    "input": "Input",
+    "output": "Output",
+    "validationError": "Fit error: {error}%",
+    "reportedLatency": "Reported plug-in latency",
+    "blockTime": "Average processing time",
+    "cpuBudget": "P99 audio budget usage",
+    "deadlineMisses": "Blocks exceeding budget",
+    "workspaceMemory": "Estimated analysis memory",
+    "loadedMemory": "Memory change after loading",
+    "peakMemory": "Peak memory change",
+    "retainedMemory": "Memory change after closing",
+    "tabs": {
+      "linear": "Linear",
+      "harmonics": "Harmonics",
+      "model": "Hammerstein",
+      "performance": "Performance"
+    },
+    "failures": {
+      "invalid-settings": "Invalid measurement settings, or reported delay exceeds the capture window. Increase tail duration.",
+      "missing-processor": "An effect is unavailable. Remove it or try again.",
+      "processor-rejected": "A plug-in rejected processing.",
+      "invalid-output": "A plug-in produced invalid audio. Change its settings or remove it.",
+      "cancelled": "Analysis cancelled.",
+      "worker-unavailable": "Analysis is temporarily unavailable. Try again.",
+      "busy": "Another analysis is running. Try again when it finishes.",
+      "missing-job": "The analysis is no longer available. Start another analysis.",
+      "prepare-failed": "Could not prepare plug-in state or open its editor. Retry or remove the effect.",
+      "cleanup-failed": "Analysis stopped. Restart Heron to continue.",
+      "state-changed": "The effect changed. Analysis will restart.",
+      "catalog-unavailable": "Could not refresh the plug-in list. Try scanning again."
+    },
+    "title": "Plugin Analysis",
+    "thd": "THD (H2–H8)",
+    "percentiles": "P95 / P99 / Maximum",
+    "latencyValue": "{samples} samples · {ms} ms",
+    "units": {
+      "db": "dB",
+      "dbc": "dBc",
+      "mib": "MiB"
+    },
+    "inserts": "Audio FX",
+    "rescan": "Rescan",
+    "samples": "samples",
+    "conditions": "{rate} kHz · {block} {samples}",
+    "measurementSettings": "Measurement settings",
+    "magnitude": "Magnitude",
+    "responseView": "Response view",
+    "bothChannels": "L + R",
+    "store": "Store",
+    "clear": "Clear",
+    "stored": "Stored",
+    "spectrum2d": "2D sweep spectrum",
+    "orders1d": "Harmonics 1D",
+    "harmonicView": "Harmonic view",
+    "sweepScale": "Sweep",
+    "colorRange": "Energy",
+    "colorMinimum": "Minimum color level",
+    "colorMaximum": "Maximum color level",
+    "spectrumNote": "Measured output: time × frequency, energy in dBFS. Lines above the fundamental show harmonics; reflected lines can indicate aliasing. Linear and log use separately measured sweeps.",
+    "modelView": "Model view"
   }
 }

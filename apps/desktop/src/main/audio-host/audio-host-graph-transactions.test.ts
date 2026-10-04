@@ -270,6 +270,7 @@ describe("AudioHostGraphTransactions", () => {
     const committed = snapshot({
       status: "active",
       committedRevision: 4,
+      observedRevision: 4,
       lastOperation: { operationId: "op-1", outcome: "committed", graphRevision: 4 }
     })
     dependencies.request

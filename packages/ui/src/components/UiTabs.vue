@@ -7,11 +7,12 @@ const model = defineModel<string>({ required: true })
 const props = defineProps<{
   label: string
   items: readonly UiNavigationItem[]
+  appearance?: "default" | "analysis"
 }>()
 </script>
 
 <template>
-  <TabsRoot v-model="model" class="ui-tabs">
+  <TabsRoot v-model="model" class="ui-tabs" :data-appearance="props.appearance">
     <TabsList class="ui-tabs__list" :aria-label="props.label">
       <TabsTrigger
         v-for="item in props.items"
@@ -71,5 +72,20 @@ const props = defineProps<{
 .ui-tabs__badge {
   margin-inline-start: var(--ui-space-1);
   color: var(--ui-color-text-subtle);
+}
+.ui-tabs[data-appearance="analysis"] .ui-tabs__list {
+  gap: 1px;
+  background: var(--ui-color-surface-sunken);
+  padding: 6px 8px;
+}
+.ui-tabs[data-appearance="analysis"] .ui-tabs__trigger {
+  border: 1px solid var(--ui-color-border);
+  border-radius: 3px;
+  padding-inline: 16px;
+}
+.ui-tabs[data-appearance="analysis"] .ui-tabs__trigger[data-state="active"] {
+  color: var(--ui-signal-loop-ink);
+  background: var(--ui-signal-mixer-input);
+  border-color: var(--ui-signal-mixer-input);
 }
 </style>

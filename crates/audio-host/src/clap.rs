@@ -275,6 +275,22 @@ impl ClapRuntime {
             .map(|processor| AudioPluginProcessorHandle::new(processor.clone()))
     }
 
+    pub(crate) fn processor_lease_count(&self, instance_id: &str) -> Option<usize> {
+        self.instances
+            .get(instance_id)
+            .map(|record| record.instance.processor_lease_count())
+    }
+
+    /// Apply queued parameter edits when the instance is not leased by a render
+    /// graph. Callers that also hold a registry endpoint must drop it first so
+    /// the exclusive flush condition can be met.
+    pub(crate) fn flush_parameters(&mut self, instance_id: &str) -> Result<(), String> {
+        let Some(record) = self.instances.get_mut(instance_id) else {
+            return Err("CLAP instance is not loaded".to_owned());
+        };
+        flush_unpublished_parameters(record)
+    }
+
     pub(crate) fn open_gui(
         &mut self,
         instance_id: &str,

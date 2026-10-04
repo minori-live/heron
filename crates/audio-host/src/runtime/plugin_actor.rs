@@ -19,6 +19,7 @@ pub(super) struct Vst3ActorDeps {
     pub(super) graph_build_gate: Arc<tokio::sync::Mutex<()>>,
     pub(super) session_epoch: u64,
     pub(super) bounce_jobs: Arc<BounceJobRegistry>,
+    pub(super) plugin_analysis_jobs: Arc<crate::plugin_analysis::PluginAnalysisJobs>,
 }
 
 #[path = "plugin_actor/bounce_jobs.rs"]

@@ -39,6 +39,18 @@ describe("resolveRendererEntrypoints", () => {
 })
 
 describe("isTrustedMainRendererUrl", () => {
+  it("classifies the pluginAnalysis entry without granting main-renderer authority", () => {
+    expect(classifyRendererEntrypoint("heron-app://bundle/plugin-analysis.html")).toBe(
+      "plugin-analysis"
+    )
+    expect(classifyRendererEntrypoint("http://127.0.0.1:5173/plugin-analysis.html")).toBe(
+      "plugin-analysis"
+    )
+    expect(classifyRendererEntrypoint("heron-app://bundle/plugin-analysis.html?main=1")).toBeNull()
+    expect(
+      isTrustedMainRendererUrl("heron-app://bundle/plugin-analysis.html", true, undefined)
+    ).toBe(false)
+  })
   it("requires the exact main entry and rejects splash, query, and forged hosts", () => {
     expect(isTrustedMainRendererUrl(HERON_MAIN_RENDERER_URL, true, undefined)).toBe(true)
     expect(isTrustedMainRendererUrl(HERON_SPLASH_RENDERER_URL, true, undefined)).toBe(false)

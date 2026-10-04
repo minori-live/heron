@@ -8,9 +8,14 @@ import type {
 } from "@heron/contracts"
 import { sendApplicationCommand } from "./application-command-events"
 import { t } from "../settings"
+import { classifyRendererEntrypoint } from "../../shared/renderer-security"
 
 function requestApplicationCommand(command: ApplicationCommandId): void {
-  const window = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+  // Application-menu commands belong to the main renderer. Auxiliary windows
+  // such as Plugin Analysis expose a narrower preload and cannot handle them.
+  const window = BrowserWindow.getAllWindows().find(
+    (candidate) => classifyRendererEntrypoint(candidate.webContents.getURL()) === "main"
+  )
   if (!window) return
   sendApplicationCommand(window, command)
 }
@@ -149,6 +154,11 @@ function macApplicationMenu(
           t("menu.audioBenchmark"),
           "help.audio-benchmark",
           accelerator("help.audio-benchmark")
+        ),
+        commandItem(
+          t("menu.pluginAnalysis"),
+          "help.plugin-analysis",
+          accelerator("help.plugin-analysis")
         ),
         commandItem(
           t("menu.effectChainGraph"),

@@ -1646,6 +1646,7 @@ dependencies = [
  "heron-clap-host",
  "heron-dsp-runtime",
  "heron-vst3-host",
+ "rustfft",
  "sha2",
  "tokio",
 ]

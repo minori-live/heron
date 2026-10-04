@@ -32,7 +32,7 @@ const { t } = useI18n()
       </div>
 
       <ApplicationMenuBar
-        v-if="platform !== 'darwin'"
+        v-if="platform !== 'darwin' && menus.length"
         :menus="menus"
         @command="emit('command', $event)"
       />

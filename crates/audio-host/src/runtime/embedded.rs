@@ -761,6 +761,7 @@ async fn run_direct_actor(
             graph_build_gate: Arc::clone(&graph_build_gate),
             session_epoch,
             bounce_jobs,
+            plugin_analysis_jobs: Arc::new(crate::plugin_analysis::PluginAnalysisJobs::default()),
         },
     ));
     tokio::spawn(background_io_actor(

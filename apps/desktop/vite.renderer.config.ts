@@ -41,7 +41,8 @@ export default defineConfig(({ command }) => ({
     rolldownOptions: {
       input: {
         main: resolve(import.meta.dirname, "src/renderer/index.html"),
-        splash: resolve(import.meta.dirname, "src/renderer/splash.html")
+        splash: resolve(import.meta.dirname, "src/renderer/splash.html"),
+        pluginAnalysis: resolve(import.meta.dirname, "src/renderer/plugin-analysis.html")
       }
     }
   },

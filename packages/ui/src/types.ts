@@ -195,6 +195,20 @@ export interface UiCurvePoint {
   y: number
 }
 
+export interface UiAnalysisSeries {
+  label: string
+  x: readonly number[]
+  y: readonly (number | null)[]
+  color?: string
+  dashed?: boolean
+}
+
+export interface UiAnalysisHeatmap {
+  columns: number
+  rows: number
+  values: readonly number[]
+}
+
 export interface UiCurveStroke {
   id: string
   points: readonly UiCurvePoint[]

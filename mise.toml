@@ -130,7 +130,7 @@ hide = true
 depends = ["check:prepare"]
 run = [
   "mise run codegen:wire-types",
-  "git diff --exit-code -- apps/desktop/src/main/audio-host/wire/generated",
+  "git diff --exit-code -- apps/desktop/src/main/audio-host/wire/generated packages/contracts/src/generated",
 ]
 
 [tasks."check:static"]
