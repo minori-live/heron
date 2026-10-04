@@ -205,45 +205,165 @@ describe("UiAnalysisPlot", () => {
   })
 })
 
-const series = [{ label: "L", x: [20, 200, 2000, 20000], y: [0, -6, -12, -24] }]
-
-function mountPlot() {
-  const wrapper = mount(UiAnalysisPlot, {
-    props: { label: "Plot", xLabel: "Hz", yLabel: "dB", series, logarithmic: true }
+function mountInteractivePlot() {
+  const plot = mount(UiAnalysisPlot, {
+    props: {
+      ...responseProps,
+      xDomain: [0, 800],
+      yDomain: [-60, 0]
+    }
   })
-  const svg = wrapper.get("svg")
-  Object.defineProperty(svg.element, "getBoundingClientRect", {
-    value: () => ({ left: 0, top: 0, width: 900, height: 440 })
-  })
-  return wrapper
+  // The rendered SVG is scaled and offset relative to its internal coordinates.
+  vi.spyOn(plot.get("svg").element, "getBoundingClientRect").mockReturnValue({
+    left: 100,
+    top: 50,
+    width: 450,
+    height: 220
+  } as DOMRect)
+  const host = plot.get('[role="img"]')
+  const point = (x: number, y: number) => ({ clientX: 100 + x / 2, clientY: 50 + y / 2 })
+  const pointer = (event: string, x: number, y: number, button = 0) =>
+    host.trigger(event, { button, pointerId: 1, ...point(x, y) })
+  const drag = async (from: [number, number], to: [number, number], button = 0) => {
+    await pointer("pointerdown", ...from, button)
+    await pointer("pointermove", ...to)
+    await pointer("pointerup", ...to)
+  }
+  const wheel = async (x: number, y: number, options: WheelEventInit = {}) => {
+    // happy-dom's WheelEvent drops MouseEvent coordinates and modifiers.
+    const event = new MouseEvent("wheel", {
+      ...point(x, y),
+      bubbles: true,
+      cancelable: true,
+      ...options
+    })
+    Object.defineProperty(event, "deltaY", { value: options.deltaY ?? 1 })
+    host.element.dispatchEvent(event)
+    await nextTick()
+    return event
+  }
+  const labels = () => plot.findAll("text").map((label) => label.text())
+  return { plot, host, pointer, drag, wheel, labels }
 }
 
-describe("UiAnalysisPlot zoom gestures", () => {
-  it("zooms into a dragged region and restores the auto domain on double click", async () => {
-    const wrapper = mountPlot()
-    const host = wrapper.get(".ui-analysis-plot")
-    const before = wrapper.get("svg").text()
+describe("UiAnalysisPlot navigation", () => {
+  it("maps a selection in a scaled plot to both measurement axes and restores the full view", async () => {
+    const { host, drag, labels } = mountInteractivePlot()
+    const initial = labels()
 
-    await host.trigger("pointerdown", { button: 0, pointerId: 1, clientX: 200, clientY: 100 })
-    await host.trigger("pointermove", { pointerId: 1, clientX: 420, clientY: 220 })
-    await host.trigger("pointerup", { pointerId: 1, clientX: 420, clientY: 220 })
-    const zoomed = wrapper.get("svg").text()
-    expect(zoomed).not.toBe(before)
+    await drag([267.5, 112], [674.5, 300])
+    expect(labels()).toEqual(expect.arrayContaining(["200", "600", "-45", "-15"]))
+    expect(labels()).not.toContain("800")
+    expect(labels()).not.toContain("-60")
 
     await host.trigger("dblclick")
-    expect(wrapper.get("svg").text()).toBe(before)
+    expect(labels()).toEqual(initial)
   })
 
-  it("resets when the requested domain changes", async () => {
-    const wrapper = mountPlot()
-    const host = wrapper.get(".ui-analysis-plot")
-    await host.trigger("pointerdown", { button: 0, pointerId: 2, clientX: 200, clientY: 100 })
-    await host.trigger("pointermove", { pointerId: 2, clientX: 420, clientY: 220 })
-    await host.trigger("pointerup", { pointerId: 2, clientX: 420, clientY: 220 })
+  it("widens the view with a reverse selection and resets with the opposing diagonal", async () => {
+    const { drag, labels } = mountInteractivePlot()
+    const initial = labels()
 
-    await wrapper.setProps({ xDomain: [100, 1000] })
-    const labels = wrapper.get("svg").text()
-    expect(labels).toContain("100")
-    expect(labels).toContain("1k")
+    await drag([674.5, 300], [267.5, 112])
+    expect(labels()).toEqual(expect.arrayContaining(["-600", "1k", "-75", "45"]))
+
+    await drag([267.5, 300], [674.5, 112])
+    expect(labels()).toEqual(initial)
+  })
+
+  it("maps selections through logarithmic frequency spacing", async () => {
+    const { plot, drag, labels } = mountInteractivePlot()
+    await plot.setProps({ logarithmic: true, xDomain: [20, 20000] })
+
+    await drag([267.5, 112], [674.5, 300])
+    expect(labels()).toEqual(expect.arrayContaining(["200", "500", "1k", "2k", "-45", "-15"]))
+    expect(labels()).not.toContain("20")
+    expect(labels()).not.toContain("5k")
+  })
+
+  it("pans the axis under the wheel and pans both axes inside the graph", async () => {
+    const { wheel, labels } = mountInteractivePlot()
+
+    expect((await wheel(471, 420)).defaultPrevented).toBe(true)
+    expect(labels()).toEqual(expect.arrayContaining(["64", "864", "-60", "0"]))
+
+    await wheel(32, 206, { deltaY: -1 })
+    expect(labels()).toEqual(expect.arrayContaining(["64", "864", "-64.8", "-4.8"]))
+
+    await wheel(471, 206)
+    expect(labels()).toEqual(expect.arrayContaining(["128", "928", "-60", "0"]))
+  })
+
+  it("uses Ctrl or Meta wheel zoom on the indicated axis, leaving the other axis unchanged", async () => {
+    const { wheel, labels } = mountInteractivePlot()
+
+    await wheel(471, 420, { ctrlKey: true, deltaY: -1 })
+    expect(labels()).toEqual(expect.arrayContaining(["52.2", "748", "-60", "0"]))
+
+    await wheel(32, 206, { metaKey: true, deltaY: -1 })
+    expect(labels()).toEqual(expect.arrayContaining(["52.2", "748", "-56.1", "-3.91"]))
+
+    await wheel(471, 420, { ctrlKey: true })
+    expect(labels()).toEqual(expect.arrayContaining(["800", "-56.1", "-3.91"]))
+  })
+
+  it("leaves the view unchanged for clicks, drags outside the graph, and cancelled selection", async () => {
+    const { host, drag, pointer, labels } = mountInteractivePlot()
+    const initial = labels()
+
+    await drag([267.5, 112], [674.5, 300], 2)
+    expect(labels()).toEqual(initial)
+    await drag([32, 112], [674.5, 300])
+    expect(labels()).toEqual(initial)
+    await drag([267.5, 112], [270, 115])
+    expect(labels()).toEqual(initial)
+
+    await pointer("pointerdown", 267.5, 112)
+    await pointer("pointermove", 674.5, 300)
+    await host.trigger("pointercancel", { pointerId: 1 })
+    await pointer("pointerup", 674.5, 300)
+    expect(labels()).toEqual(initial)
+  })
+
+  it("does not consume wheel input outside the axes or with no vertical movement", async () => {
+    const { wheel, labels } = mountInteractivePlot()
+    const initial = labels()
+
+    expect((await wheel(32, 420)).defaultPrevented).toBe(false)
+    expect((await wheel(471, 206, { deltaY: 0 })).defaultPrevented).toBe(false)
+    expect(labels()).toEqual(initial)
+  })
+
+  it("resets both axes when the requested measurement domain changes", async () => {
+    const { plot, drag, labels } = mountInteractivePlot()
+    await drag([267.5, 112], [674.5, 300])
+
+    await plot.setProps({ xDomain: [100, 1000], yDomain: [-120, 12] })
+    expect(labels()).toEqual(expect.arrayContaining(["100", "1k", "-120", "12"]))
+  })
+
+  it("discards a linear pan when switching to a logarithmic frequency scale", async () => {
+    const { plot, wheel, labels } = mountInteractivePlot()
+    await plot.setProps({ xDomain: [20, 20000] })
+    await wheel(471, 420, { deltaY: -1 })
+    expect(labels()).not.toContain("20k")
+
+    await plot.setProps({ logarithmic: true })
+    expect(labels()).toEqual(expect.arrayContaining(["20", "50", "1k", "20k"]))
+    expect(labels().join(" ")).not.toMatch(/e-\d/)
+  })
+
+  it("preserves navigation across report refresh but restores auto bounds when measurement units change", async () => {
+    const { plot, drag, labels } = mountInteractivePlot()
+    await plot.setProps({ yDomain: undefined, series: [{ label: "H2", x: [0, 800], y: [-60, 0] }] })
+    await drag([267.5, 112], [674.5, 300])
+    const zoomed = labels()
+
+    await plot.setProps({ series: [{ label: "H2", x: [0, 800], y: [-50, -5] }] })
+    expect(labels()).toEqual(zoomed)
+
+    await plot.setProps({ yLabel: "%", series: [{ label: "H2", x: [0, 800], y: [0, 100] }] })
+    expect(labels()).toEqual(expect.arrayContaining(["0", "800", "-8", "108", "%"]))
+    expect(labels()).not.toContain("-47.4")
   })
 })

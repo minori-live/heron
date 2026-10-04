@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void
+  const promise = new Promise<T>((complete) => {
+    resolve = complete
+  })
+  return { promise, resolve }
+}
+
 const electron = vi.hoisted(() => {
   class FakeBaseWindow {
     static instances: FakeBaseWindow[] = []
@@ -138,7 +146,7 @@ describe("native plug-in editor dimensions", () => {
   })
 
   it("does not recursively reconcile a constrained snapshot while applying it", () => {
-    const windows = new ElectronPluginEditorWindows({} as never)
+    const windows = new ElectronPluginEditorWindows()
     const accepted = {
       instanceId: "plugin-1",
       width: 640,
@@ -182,7 +190,7 @@ describe("native plug-in editor dimensions", () => {
   })
 
   it("does not steal focus from an open toolbar control during state refresh", async () => {
-    const windows = new ElectronPluginEditorWindows({} as never)
+    const windows = new ElectronPluginEditorWindows()
     const state = {
       activeMode: "native",
       zoomPercent: 100,
@@ -242,7 +250,7 @@ describe("native plug-in editor dimensions", () => {
   it("applies the native snapshot immediately after leaving parameter mode", async () => {
     vi.useFakeTimers()
     const platform = vi.spyOn(process, "platform", "get").mockReturnValue("linux")
-    const windows = new ElectronPluginEditorWindows({} as never)
+    const windows = new ElectronPluginEditorWindows()
     const state = {
       activeMode: "native",
       zoomPercent: 100,
@@ -335,7 +343,7 @@ describe("native plug-in editor dimensions", () => {
     vi.useFakeTimers()
     const platform = vi.spyOn(process, "platform", "get").mockReturnValue("linux")
     const parent = new electron.FakeBaseWindow()
-    const windows = new ElectronPluginEditorWindows(parent as never)
+    const windows = new ElectronPluginEditorWindows()
     const nativeState = {
       activeMode: "native" as const,
       zoomPercent: 100,
@@ -412,6 +420,9 @@ describe("native plug-in editor dimensions", () => {
       const editorWindow = electron.FakeBaseWindow.instances[1]!
       const toolbarWindow = electron.FakeBaseWindow.instances[2]!
       const toolbar = electron.FakeWebContentsView.instances[0]!
+      expect(editorWindow.options.parent).toBeUndefined()
+      expect(toolbarWindow.options.parent).toBe(editorWindow)
+      expect(parent.focus).not.toHaveBeenCalled()
       expect(client.registerEditorHost).toHaveBeenCalledWith(
         expect.objectContaining({ instanceId: "plugin-1", width: 800, displayScale: 1 })
       )
@@ -480,8 +491,7 @@ describe("native plug-in editor dimensions", () => {
   })
 
   it("cleans up failed opens and externally closed hosts", async () => {
-    const parent = new electron.FakeBaseWindow()
-    const windows = new ElectronPluginEditorWindows(parent as never)
+    const windows = new ElectronPluginEditorWindows()
     const client = {
       drainEditorHostEvents: vi.fn(() => []),
       editorHostSnapshot: vi.fn(() => null),
@@ -530,5 +540,109 @@ describe("native plug-in editor dimensions", () => {
     windows.hostClosed("host-closed")
     expect(client.unregisterEditorHost).toHaveBeenCalledWith("host-closed")
     await expect(windows.closeAll()).resolves.toBeUndefined()
+  })
+
+  it("does not reactivate an editor when close wins an outstanding open or reopen", async () => {
+    const windows = new ElectronPluginEditorWindows()
+    const client = {
+      editorHostSnapshot: vi.fn(() => null),
+      editorToolbarState: vi.fn(() => null),
+      focusEditorHost: vi.fn(),
+      registerEditorHost: vi.fn(),
+      resizeEditorHost: vi.fn(),
+      unregisterEditorHost: vi.fn()
+    }
+    const opening = deferred<{ editorMode: "native"; open: boolean }>()
+    const closing = deferred<void>()
+    const openNative = vi.fn(() => opening.promise)
+    const closeNative = vi.fn(() => closing.promise)
+    const open = () =>
+      windows.open(
+        client as never,
+        "analysis-plugin",
+        {
+          channelName: "Analysis",
+          channelColor: "#58c6c2",
+          pluginName: "Gain",
+          theme: "dark",
+          locale: "en-US"
+        },
+        openNative,
+        vi.fn(),
+        async () => [],
+        async () => undefined,
+        closeNative
+      )
+    const pending = open()
+    const editor = electron.FakeBaseWindow.instances[0]!
+    const toolbarWindow = electron.FakeBaseWindow.instances[1]!
+    const closed = windows.close("analysis-plugin")
+    editor.show.mockClear()
+    await expect(open()).resolves.toEqual({ editorMode: "native", open: false })
+    opening.resolve({ editorMode: "native", open: true })
+    await expect(pending).resolves.toEqual({ editorMode: "native", open: false })
+    expect(openNative).toHaveBeenCalledOnce()
+    expect(editor.show).not.toHaveBeenCalled()
+    expect(editor.focus).not.toHaveBeenCalled()
+    expect(client.focusEditorHost).not.toHaveBeenCalled()
+    closing.resolve()
+    await expect(closed).resolves.toBe(true)
+    expect(toolbarWindow.destroy).toHaveBeenCalledOnce()
+    expect(editor.destroy).toHaveBeenCalledOnce()
+    expect(electron.FakeWebContentsView.instances[0]!.webContents.close).toHaveBeenCalledOnce()
+    expect(client.unregisterEditorHost).toHaveBeenCalledOnce()
+
+    // A later explicit open gets a fresh host instead of retaining the retired window.
+    await expect(open()).resolves.toEqual({ editorMode: "native", open: true })
+    expect(electron.FakeBaseWindow.instances).toHaveLength(4)
+    const reopening = deferred<{ editorMode: "native"; open: boolean }>()
+    openNative.mockReturnValueOnce(reopening.promise)
+    const reopened = open()
+    await windows.close("analysis-plugin")
+    reopening.resolve({ editorMode: "native", open: true })
+    await expect(reopened).resolves.toEqual({ editorMode: "native", open: false })
+    expect(client.unregisterEditorHost).toHaveBeenCalledTimes(2)
+  })
+
+  it("does not focus a retired host after its parameter view finishes loading", async () => {
+    const windows = new ElectronPluginEditorWindows()
+    const parameters = deferred<[]>()
+    const loadParameters = vi.fn(() => parameters.promise)
+    const client = {
+      editorHostSnapshot: vi.fn(() => null),
+      editorToolbarState: vi.fn(() => ({ activeMode: "parameters" })),
+      focusEditorHost: vi.fn(),
+      registerEditorHost: vi.fn(),
+      resizeEditorHost: vi.fn(),
+      unregisterEditorHost: vi.fn()
+    }
+    const open = () =>
+      windows.open(
+        client as never,
+        "analysis-parameters",
+        {
+          channelName: "Analysis",
+          channelColor: "#58c6c2",
+          pluginName: "Gain",
+          theme: "dark",
+          locale: "en-US"
+        },
+        async () => ({ editorMode: "parameters", open: true }),
+        vi.fn(),
+        loadParameters,
+        async () => undefined,
+        async () => undefined
+      )
+    const opened = open()
+    await vi.waitFor(() => expect(loadParameters).toHaveBeenCalledOnce())
+    const closed = windows.close("analysis-parameters")
+    await expect(open()).resolves.toEqual({ editorMode: "parameters", open: false })
+    await closed
+    parameters.resolve([])
+    await expect(opened).resolves.toEqual({ editorMode: "parameters", open: false })
+    expect(client.editorHostSnapshot).not.toHaveBeenCalled()
+    expect(client.focusEditorHost).not.toHaveBeenCalled()
+    expect(electron.FakeBaseWindow.instances[0]!.focus).not.toHaveBeenCalled()
+    expect(client.unregisterEditorHost).toHaveBeenCalledOnce()
   })
 })

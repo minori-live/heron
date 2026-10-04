@@ -105,7 +105,7 @@ async function run(): Promise<void> {
     height: 600,
     useContentSize: true
   })
-  const editorWindows = new ElectronPluginEditorWindows(parent)
+  const editorWindows = new ElectronPluginEditorWindows()
   let liveClient: AudioHostRuntime | null = null
   let uiDrainScheduled = false
   const scheduleUiDrain = (): void => {

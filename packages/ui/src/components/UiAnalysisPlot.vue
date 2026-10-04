@@ -242,6 +242,7 @@ function onPointerUp(event: PointerEvent): void {
   resetView()
 }
 function onWheel(event: WheelEvent): void {
+  if (event.deltaY === 0) return
   const point = localPoint(event)
   const { left, top, width: w, height: h } = geometry.value
   const insideX = point.x >= left && point.x <= left + w
@@ -266,7 +267,8 @@ function onWheel(event: WheelEvent): void {
   if (!xOnly) apply("y")
 }
 watch(
-  () => JSON.stringify([props.xDomain, props.yDomain]),
+  () =>
+    JSON.stringify([props.xDomain, props.yDomain, props.logarithmic, props.xLabel, props.yLabel]),
   () => resetView()
 )
 watch(() => [props.heatmap, props.colorDomain] as const, paintHeatmap)
