@@ -48,10 +48,14 @@ export function analysisReport(): PluginAnalysisReport {
         repeat_error_percent: 0
       }
     ],
+    distortion: [],
+    oscilloscopes: [],
+    dynamics: [],
     harmonics: [0, 1].map((channel) => ({
       channel,
       frequency_hz: [100, 1000],
       orders_db: [[channel ? -40 : -20, null]],
+      fundamental_gain_db: [0, 0],
       thd_percent: [channel ? 1 : 10, null]
     })),
     spectrograms: [
@@ -76,9 +80,14 @@ export function analysisReport(): PluginAnalysisReport {
     ],
     models: [0, 1].map((channel) => ({
       channel,
-      coefficients: channel ? [1] : [2, 1],
+      dc_offset: 0,
+      filters: channel
+        ? [[0, 1]]
+        : [
+            [1, -1],
+            [0.5, -0.5]
+          ],
       input_scale: 0.5,
-      filter: channel ? [0, 1] : [1, -1],
       delay_samples: 48,
       validation_error_percent: channel ? 25 : 0.25,
       suitable: channel === 0,
@@ -95,6 +104,7 @@ export function analysisReport(): PluginAnalysisReport {
       budget_us: 100,
       deadline_misses: 2,
       measured_blocks: 100,
+      block_sizes: [],
       buffer_bytes: 1048576
     }
   }
@@ -111,6 +121,10 @@ export function analysisSnapshot(
     catalog: [],
     settings: { ...DEFAULT_PLUGIN_ANALYSIS_SETTINGS },
     automatic: true,
+    comparisonEnabled: false,
+    repeating: false,
+    comparisonReport: null,
+    differenceReport: null,
     status: "complete",
     phase: "",
     progress: 1,

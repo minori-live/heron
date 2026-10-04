@@ -1,4 +1,4 @@
-use super::*;
+use super::{Chain, PluginAnalysisBlockPerformance, PluginAnalysisFailure};
 
 impl Chain {
     /// Sweep supported callback sizes with a warmed sine excitation. Measurements

@@ -31,11 +31,12 @@ describe("analysis measurement settings", () => {
       },
       global: { stubs: { UiField: false } }
     })
-    const [rate, block] = wrapper.findAllComponents(UiSelect)
+    const rate = wrapper.findAllComponents(UiSelect).find((c) => c.props("modelValue") === "96000")!
+    const block = wrapper.findAllComponents(UiSelect).find((c) => c.props("modelValue") === "256")!
     rate!.vm.$emit("update:modelValue", "44100")
     block!.vm.$emit("update:modelValue", "512")
     const numbers = wrapper.findAllComponents(UiNumberInput)
-    const patches = [100, 18000, 2, 1]
+    const patches = [100, 18000, 2, 1, 1000, 7]
     for (const [index, input] of numbers.entries())
       input.vm.$emit("update:modelValue", patches[index])
     numbers[0]!.vm.$emit("update:modelValue", null)
@@ -45,7 +46,9 @@ describe("analysis measurement settings", () => {
       [{ start_hz: 100 }],
       [{ end_hz: 18000 }],
       [{ sweep_seconds: 2 }],
-      [{ tail_seconds: 1 }]
+      [{ tail_seconds: 1 }],
+      [{ tone_hz: 1000 }],
+      [{ model_order: 7 }]
     ])
     await wrapper.setProps({
       settings: { ...DEFAULT_PLUGIN_ANALYSIS_SETTINGS, end_hz: 18000, start_hz: 100 }
@@ -63,7 +66,7 @@ describe("analysis measurement settings", () => {
 describe("analysis chain intents", () => {
   it("maps rack actions and blocks structural edits while scanning or quarantined", async () => {
     const wrapper = shallowMount(PluginAnalysisChain, {
-      props: { snapshot: analysisSnapshot(), catalogBusy: false }
+      props: { snapshot: analysisSnapshot(), catalogBusy: false, chain: 0 }
     })
     const rack = wrapper.getComponent(MixerPluginSection)
     expect(rack.props()).toMatchObject({
@@ -96,6 +99,7 @@ describe("analysis chain intents", () => {
       [
         {
           type: "insert",
+          chain: 0,
           pluginKey: pluginDescriptorKey(descriptor),
           audioMode: "stereo",
           slotOrder: 2

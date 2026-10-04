@@ -1,4 +1,6 @@
-use super::*;
+use super::{
+    Chain, PluginAnalysisDynamics, PluginAnalysisDynamicsPoint, PluginAnalysisFailure, StereoRoute,
+};
 
 impl Chain {
     pub(super) fn dynamics(

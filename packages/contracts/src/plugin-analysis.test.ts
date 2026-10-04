@@ -6,6 +6,7 @@ describe("Plugin Analysis settings validation", () => {
     expect(validPluginAnalysisSettings(DEFAULT_PLUGIN_ANALYSIS_SETTINGS)).toBe(true)
     expect(
       validPluginAnalysisSettings({
+        ...DEFAULT_PLUGIN_ANALYSIS_SETTINGS,
         sample_rate: 44_100,
         block_size: 64,
         level_dbfs: -60,
@@ -17,6 +18,7 @@ describe("Plugin Analysis settings validation", () => {
     ).toBe(true)
     expect(
       validPluginAnalysisSettings({
+        ...DEFAULT_PLUGIN_ANALYSIS_SETTINGS,
         sample_rate: 96_000,
         block_size: 1024,
         level_dbfs: 12,
@@ -35,6 +37,15 @@ describe("Plugin Analysis settings validation", () => {
   })
 
   it.each([
+    ["unknown excitation", { linear_excitation: "chirp" }],
+    ["unbounded FFT", { fft_size: 131072 }],
+    ["unknown pacing", { processing_speed: "fast" }],
+    ["reversed ramp", { ramp_start_dbfs: 1, ramp_end_dbfs: 0 }],
+    ["unbounded ramp step count", { ramp_step_db: 0 }],
+    ["short ramp measurement", { ramp_seconds: 0.39 }],
+    ["missing envelope segment", { dynamics_seconds: [0.2, 0.2] }],
+    ["nonfinite envelope level", { dynamics_levels_dbfs: [-60, Number.NaN, -60] }],
+    ["unbounded envelope length", { dynamics_seconds: [0.2, 6, 0.2] }],
     ["unsupported sample rate", { sample_rate: 192_000 }],
     ["unsupported block size", { block_size: 255 }],
     ["coerced numeric field", { level_dbfs: "-18" }],

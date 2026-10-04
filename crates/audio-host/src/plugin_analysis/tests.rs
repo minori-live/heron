@@ -542,8 +542,13 @@ fn single_tone_spectrum_retains_fundamental_and_second_harmonic() {
         .unwrap()
         .0;
     // x + 0.5*x² produces an H2 peak of A²/4.
-    let expected = 20.0 * (10_f64.powf(chain.settings.level_dbfs / 10.0) / 2.0).log10();
-    assert!((spectrum.magnitude_dbfs[second] - expected).abs() < 0.1);
+    let expected = 20.0 * (10_f64.powf(chain.settings.level_dbfs / 10.0) / 4.0).log10();
+    assert!(
+        (spectrum.magnitude_dbfs[second] - expected).abs() < 0.1,
+        "measured={} expected={}",
+        spectrum.magnitude_dbfs[second],
+        expected
+    );
     assert_eq!(
         report.imd_spectrum.frequency_hz.len(),
         spectrum.frequency_hz.len()

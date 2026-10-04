@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    AtomicBool, Chain, Ordering, PluginAnalysisDistortion, PluginAnalysisFailure,
+    PluginAnalysisHarmonics, PluginAnalysisOscilloscope, PluginAnalysisOscilloscopeWaveform,
+    PluginAnalysisSpectrum, StereoRoute, lock_in, signal,
+};
 
 impl Chain {
     pub(super) fn harmonics(

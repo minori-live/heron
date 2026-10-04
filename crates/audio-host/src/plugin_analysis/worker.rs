@@ -1,4 +1,8 @@
-use super::*;
+use super::{
+    Arc, AtomicBool, AudioPluginProcessorHandle, Chain, HashMap, Mutex, Ordering,
+    PluginAnalysisFailure, PluginAnalysisJobStatus, PluginAnalysisPerformance,
+    PluginAnalysisReport, PluginAnalysisSettings, StereoRoute, model, signal, spectrogram,
+};
 
 pub(super) fn analyze(
     mut chain: Chain,
@@ -336,3 +340,7 @@ impl Drop for PluginAnalysisJobs {
 pub(crate) fn failed(failure: PluginAnalysisFailure) -> PluginAnalysisJobStatus {
     PluginAnalysisJobStatus::Failed { failure }
 }
+
+#[cfg(test)]
+#[path = "job_tests.rs"]
+mod job_tests;

@@ -70,84 +70,15 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                 continue;
             }
             ActorCommand::Control(command) => match command {
-                ControlCommand::StartPluginAnalysis {
-                    operation_id,
-                    instance_ids,
-                    comparison_instance_ids,
-                    settings,
-                    reported_latency_samples,
-                } => {
-                    let valid_ids = |ids: &[String]| {
-                        ids.len() <= 16
-                            && ids.iter().enumerate().all(|(index, id)| {
-                                id.starts_with("plugin-analysis-measure-")
-                                    && !ids[..index].contains(id)
-                            })
-                    };
-                    let groups = processors.lock().ok().and_then(|slots| {
-                        if !valid_ids(&instance_ids)
-                            || comparison_instance_ids.as_ref().is_some_and(|ids| {
-                                !valid_ids(ids) || ids.iter().any(|id| instance_ids.contains(id))
-                            })
-                        {
-                            return None;
-                        }
-                        let primary = instance_ids
-                            .iter()
-                            .map(|id| slots.get(id).cloned())
-                            .collect::<Option<Vec<_>>>()?;
-                        let comparison = match comparison_instance_ids {
-                            Some(ids) => Some(
-                                ids.iter()
-                                    .map(|id| slots.get(id).cloned())
-                                    .collect::<Option<Vec<_>>>()?,
-                            ),
-                            None => None,
-                        };
-                        Some((primary, comparison))
-                    });
-                    let status = match groups {
-                        Some((slots, comparison)) => plugin_analysis_jobs.start(
-                            operation_id,
-                            slots,
-                            comparison,
-                            settings,
-                            reported_latency_samples,
-                        ),
-                        None => crate::plugin_analysis::failed(
-                            heron_dsp_runtime::protocol::PluginAnalysisFailure::MissingProcessor,
-                        ),
-                    };
-                    ControlResult::PluginAnalysis {
-                        plugin_analysis_status: status,
-                    }
-                }
-                ControlCommand::PluginAnalysisStatus { operation_id } => {
-                    ControlResult::PluginAnalysis {
-                        plugin_analysis_status: plugin_analysis_jobs.status(
-                            &operation_id,
-                            false,
-                            false,
-                        ),
-                    }
-                }
-                ControlCommand::CancelPluginAnalysis { operation_id } => {
-                    ControlResult::PluginAnalysis {
-                        plugin_analysis_status: plugin_analysis_jobs.status(
-                            &operation_id,
-                            true,
-                            false,
-                        ),
-                    }
-                }
-                ControlCommand::ReleasePluginAnalysis { operation_id } => {
-                    ControlResult::PluginAnalysis {
-                        plugin_analysis_status: plugin_analysis_jobs.status(
-                            &operation_id,
-                            false,
-                            true,
-                        ),
-                    }
+                command @ (ControlCommand::StartPluginAnalysis { .. }
+                | ControlCommand::PluginAnalysisStatus { .. }
+                | ControlCommand::CancelPluginAnalysis { .. }
+                | ControlCommand::ReleasePluginAnalysis { .. }) => {
+                    super::plugin_analysis_dispatch::dispatch(
+                        command,
+                        &processors,
+                        &plugin_analysis_jobs,
+                    )
                 }
                 ControlCommand::Ping => {
                     forward_to_ui(

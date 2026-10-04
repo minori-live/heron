@@ -131,7 +131,7 @@ pub struct PluginAnalysisHarmonics {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginAnalysisModel {
     pub channel: u32,
-    /// Independent FIR for each power of normalized input, starting with order one.
+    // Independent FIR for each normalized input power, starting with order one.
     pub filters: Vec<Vec<f64>>,
     pub dc_offset: f64,
     pub input_scale: f64,

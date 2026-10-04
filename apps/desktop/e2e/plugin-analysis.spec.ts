@@ -26,7 +26,7 @@ async function openPluginAnalysis(application: ElectronApplication, page: Page):
 }
 
 test("Help opens an independent PluginAnalysis bridge and measures above full scale without a project", async () => {
-  test.setTimeout(90000)
+  test.setTimeout(150000)
   const profile = await mkdtemp(join(tmpdir(), "heron-plugin-analysis-e2e-"))
   const executablePath = process.env.HERON_E2E_EXECUTABLE
   const application = await electron.launch({
@@ -103,7 +103,55 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
         { timeout: 45000 }
       )
       .toBe(6)
-    for (const name of ["Linear", "Harmonics", "Hammerstein", "Performance"]) {
+    await pluginAnalysis.getByRole("checkbox", { name: "Compare chains" }).check()
+    await pluginAnalysis.getByRole("button", { name: "Analyze", exact: true }).click()
+    await expect
+      .poll(
+        () =>
+          pluginAnalysis.evaluate(async () => {
+            const api = (window as unknown as Record<string, unknown>).heronPluginAnalysis as {
+              snapshot(meta: { protocolVersion: number; requestId: string }): Promise<{
+                ok: boolean
+                value?: {
+                  status: string
+                  comparisonReport: unknown
+                  differenceReport: { responses: Array<{ magnitude_db: number[] }> } | null
+                }
+              }>
+            }
+            const result = await api.snapshot({
+              protocolVersion: 2,
+              requestId: crypto.randomUUID()
+            })
+            const value = result.value
+            if (
+              !result.ok ||
+              value?.status !== "complete" ||
+              !value.comparisonReport ||
+              !value.differenceReport
+            )
+              return false
+            return (
+              value.differenceReport.responses.length === 4 &&
+              value.differenceReport.responses.every((channel) =>
+                channel.magnitude_db.every((magnitude) => magnitude <= -120)
+              )
+            )
+          }),
+        { timeout: 90000 }
+      )
+      .toBe(true)
+    await pluginAnalysis.getByRole("button", { name: "1 − 2", exact: true }).click()
+    await pluginAnalysis.getByRole("button", { name: "1 | 2", exact: true }).click()
+    for (const name of [
+      "Linear",
+      "Harmonics",
+      "Distortion",
+      "Oscilloscope",
+      "Dynamics",
+      "Hammerstein",
+      "Performance"
+    ]) {
       await pluginAnalysis.getByRole("tab", { name, exact: true }).click()
     }
     await expect(pluginAnalysis.locator(".performance-panel")).toBeVisible()

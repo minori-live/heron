@@ -31,6 +31,7 @@ mod command_dispatch;
 mod graph_deployment;
 #[path = "plugin_actor/loading.rs"]
 mod loading;
+mod plugin_analysis_dispatch;
 #[path = "plugin_actor/request_policy.rs"]
 mod request_policy;
 

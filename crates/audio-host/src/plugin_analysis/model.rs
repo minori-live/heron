@@ -62,7 +62,14 @@ impl Regression {
         self.inverse.process(&mut output);
         let samples: Vec<_> = output[..self.count]
             .iter()
-            .map(|v| v.re / output.len() as f64)
+            .enumerate()
+            .map(|(i, v)| {
+                if i < TAPS {
+                    0.0
+                } else {
+                    v.re / output.len() as f64
+                }
+            })
             .collect();
         self.adjoint(&samples)
             .iter()
@@ -107,26 +114,57 @@ pub(super) fn fit(
         .map(|p| p.iter().sum::<f64>() / count as f64)
         .collect();
     let mean_y = target.iter().sum::<f64>() / count as f64;
+    // Orthogonalize the centered powers before solving. This preserves the
+    // independent power FIRs while avoiding the ill conditioning of x, x³, x⁵.
+    let mut orthogonal: Vec<Vec<f64>> = Vec::new();
+    let mut transforms: Vec<Vec<f64>> = Vec::new();
+    for (k, power) in powers.iter().enumerate() {
+        let mut values: Vec<_> = power.iter().map(|x| x - means[k]).collect();
+        let mut transform = vec![0.0; powers.len()];
+        transform[k] = 1.0;
+        for (previous, coefficients) in orthogonal.iter().zip(&transforms) {
+            let projection =
+                values.iter().zip(previous).map(|(a, b)| a * b).sum::<f64>() / count as f64;
+            for (value, q) in values.iter_mut().zip(previous) {
+                *value -= projection * q;
+            }
+            for (coefficient, q) in transform.iter_mut().zip(coefficients) {
+                *coefficient -= projection * q;
+            }
+        }
+        let rms = (values.iter().map(|x| x * x).sum::<f64>() / count as f64)
+            .sqrt()
+            .max(1e-12);
+        for value in &mut values {
+            *value /= rms;
+        }
+        for coefficient in &mut transform {
+            *coefficient /= rms;
+        }
+        orthogonal.push(values);
+        transforms.push(transform);
+    }
     let mut planner = FftPlanner::new();
     let regression = Regression {
-        basis: powers
-            .iter()
-            .zip(&means)
-            .map(|(p, mean)| spectrum(&p.iter().map(|x| x - mean).collect::<Vec<_>>(), size))
-            .collect(),
+        basis: orthogonal.iter().map(|p| spectrum(p, size)).collect(),
         forward: planner.plan_fft_forward(size),
         inverse: planner.plan_fft_inverse(size),
         count,
         regularization: count as f64 * 1e-9,
     };
-    let mut residual = regression.adjoint(&target.iter().map(|y| y - mean_y).collect::<Vec<_>>());
+    let centered_target: Vec<_> = target
+        .iter()
+        .enumerate()
+        .map(|(i, y)| if i < TAPS { 0.0 } else { y - mean_y })
+        .collect();
+    let mut residual = regression.adjoint(&centered_target);
     let mut direction = residual.clone();
     let mut filters = vec![0.0; direction.len()];
     let dot = |a: &[f64], b: &[f64]| a.iter().zip(b).map(|(x, y)| x * y).sum::<f64>();
     let initial = dot(&residual, &residual).max(1e-30);
     let mut energy = initial;
     // Fixed iteration and filter bounds keep identification and cancellation bounded.
-    for _ in 0..96 {
+    for _ in 0..48 {
         if cancel.load(Ordering::Acquire) {
             return Err(PluginAnalysisFailure::Cancelled);
         }
@@ -150,7 +188,20 @@ pub(super) fn fit(
         }
         energy = next;
     }
-    let filters: Vec<Vec<f64>> = filters.chunks(TAPS).map(<[f64]>::to_vec).collect();
+    let orthogonal_filters: Vec<_> = filters.chunks(TAPS).collect();
+    let filters: Vec<Vec<f64>> = (0..powers.len())
+        .map(|k| {
+            (0..TAPS)
+                .map(|tap| {
+                    orthogonal_filters
+                        .iter()
+                        .zip(&transforms)
+                        .map(|(h, t)| h[tap] * t[k])
+                        .sum()
+                })
+                .collect()
+        })
+        .collect();
     let dc_offset = mean_y
         - filters
             .iter()

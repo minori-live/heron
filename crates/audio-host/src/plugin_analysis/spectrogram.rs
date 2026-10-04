@@ -28,7 +28,7 @@ pub(super) fn measure(
     logarithmic_sweep: bool,
     cancel: &AtomicBool,
 ) -> Result<PluginAnalysisSpectrogram, PluginAnalysisFailure> {
-    let fft_size = self_quality(settings);
+    let fft_size = settings.fft_size as usize / 4;
     const COLUMNS: usize = 192;
     const ROWS: usize = 512;
     let bins_per_row = fft_size / 2 / ROWS;
@@ -81,8 +81,4 @@ pub(super) fn measure(
         maximum_frequency_hz: f64::from(settings.sample_rate) * 0.5,
         magnitude_dbfs: values,
     })
-}
-
-fn self_quality(settings: &PluginAnalysisSettings) -> usize {
-    settings.fft_size as usize / 4
 }
