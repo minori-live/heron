@@ -13,6 +13,8 @@ export class PluginAnalysisWindow {
   window: BrowserWindow | null = null
   service: PluginAnalysisService | null = null
   private closing: Promise<void> | null = null
+  private closeGeneration = 0
+  private disposed = false
   private quarantineOwner: PluginAnalysisService | null = null
   private unsubscribeShutdown: () => void
 
@@ -25,7 +27,9 @@ export class PluginAnalysisWindow {
   }
 
   async open(): Promise<boolean> {
+    const generation = this.closeGeneration
     if (this.closing) await this.closing
+    if (this.disposed || generation !== this.closeGeneration) return false
     // A quarantined session still owns native instances and its unreleased job.
     // Refuse a new session against the same runtime instead of losing the owner.
     if (this.quarantineOwner) return false
@@ -35,6 +39,9 @@ export class PluginAnalysisWindow {
       return true
     }
     const settings = await this.context.settings.get()
+    // Closing can finish while settings are loading, before a session exists.
+    // Do not publish that stale open against a retired native runtime.
+    if (this.disposed || generation !== this.closeGeneration) return false
     const service = new PluginAnalysisService(
       this.context.audioHost,
       () => this.context.plugins.list().plugins,
@@ -101,6 +108,7 @@ export class PluginAnalysisWindow {
   }
 
   close(): Promise<void> {
+    this.closeGeneration += 1
     if (this.closing) return this.closing
     const service = this.service
     const window = this.window
@@ -117,6 +125,7 @@ export class PluginAnalysisWindow {
   }
 
   dispose(): void {
+    this.disposed = true
     this.unsubscribeShutdown()
     void this.close()
   }

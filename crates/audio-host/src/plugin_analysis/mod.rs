@@ -1,3 +1,5 @@
+#[cfg(test)]
+mod job_tests;
 mod model;
 mod signal;
 mod spectrogram;

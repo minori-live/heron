@@ -9,6 +9,10 @@ use super::{
     ClapProcessorHandle, InputEventBuffer, input_event_count, input_event_get, push_output_event,
 };
 
+#[cfg(test)]
+#[path = "parameter_flush_tests.rs"]
+mod tests;
+
 impl ClapProcessorHandle {
     #[must_use]
     pub fn has_pending_parameters(&self) -> bool {
