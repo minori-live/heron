@@ -1,4 +1,4 @@
-import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils"
+import { enableAutoUnmount, mount } from "@vue/test-utils"
 import { nextTick } from "vue"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { CustomSeriesOption, LineSeriesOption } from "echarts/charts"
@@ -10,6 +10,7 @@ import type {
 import UiAnalysisPlot from "./UiAnalysisPlot.vue"
 
 const chart = vi.hoisted(() => ({
+  init: vi.fn(),
   setOption: vi.fn(),
   resize: vi.fn(),
   dispose: vi.fn(),
@@ -17,7 +18,7 @@ const chart = vi.hoisted(() => ({
 }))
 vi.mock("echarts/core", async (importOriginal) => ({
   ...(await importOriginal<typeof import("echarts/core")>()),
-  init: () => chart
+  init: () => chart.init()
 }))
 
 enableAutoUnmount(afterEach)
@@ -25,6 +26,7 @@ let resize: (entries: { contentRect: { width: number; height: number } }[]) => v
 const disconnect = vi.fn()
 beforeEach(() => {
   vi.clearAllMocks()
+  chart.init.mockReturnValue(chart)
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -68,19 +70,20 @@ async function mountPlot() {
     }
   })
   Object.defineProperty(wrapper.get('[aria-hidden="true"]').element, "getBoundingClientRect", {
-    value: () => ({ left: 0, top: 0, width: 900, height: 440 })
+    value: () => ({ left: 0, top: 0, width: 900, height: 440 }),
+    configurable: true
   })
   resize([{ contentRect: { width: 900, height: 440 } }])
-  await flushPromises()
-  await vi.waitFor(() => expect(chart.setOption).toHaveBeenCalled())
+  await vi.dynamicImportSettled()
+  expect(chart.setOption).toHaveBeenCalled()
   return wrapper
 }
 
 describe("UiAnalysisPlot measurement adapter", () => {
   it("labels the plot and gives empty and nonfinite measurements readable domains and gaps", async () => {
     const plot = mount(UiAnalysisPlot, { props: responseProps })
-    await flushPromises()
-    await vi.waitFor(() => expect(chart.setOption).toHaveBeenCalled())
+    await vi.dynamicImportSettled()
+    expect(chart.setOption).toHaveBeenCalled()
     expect(plot.get('[role="img"]').attributes("aria-label")).toBe("Stereo response")
     expect(option().xAxis).toMatchObject({ min: 20, max: 20000 })
     expect(option().yAxis).toMatchObject({ min: -1, max: 1 })
@@ -122,8 +125,8 @@ describe("UiAnalysisPlot measurement adapter", () => {
         heatmap: { columns: 2, rows: 2, values: [-160, 24, -54, NaN] }
       }
     })
-    await flushPromises()
-    await vi.waitFor(() => expect(chart.setOption).toHaveBeenCalled())
+    await vi.dynamicImportSettled()
+    expect(chart.setOption).toHaveBeenCalled()
     expect(option().series[0]!.data).toEqual([
       [0, 6000, -160, 0, 3, 0, 12000],
       [0, 18000, 24, 0, 3, 12000, 24000],
@@ -132,6 +135,7 @@ describe("UiAnalysisPlot measurement adapter", () => {
     const sample = { seriesType: "custom", value: (option().series[0]!.data as number[][])[1] }
     const original = tooltip(sample)
     expect(original).toBe("s: 0<br/>Hz: 12000–24000<br/>24 dBFS")
+    expect(tooltip({ seriesType: "custom", value: [0, 12000, NaN, 0, 3, 0, 24000] })).toBe("")
     await plot.setProps({ colorDomain: [-60, 0] })
     expect(option().visualMap).toMatchObject({ min: -60, max: 0, dimension: 2 })
     expect(tooltip(sample)).toBe(original)
@@ -152,49 +156,157 @@ describe("UiAnalysisPlot measurement adapter", () => {
     expect(disconnect).toHaveBeenCalledOnce()
     expect(chart.dispose).toHaveBeenCalledOnce()
   })
+
+  it("does not create chart resources when removed before the lazy adapter finishes loading", async () => {
+    const plot = mount(UiAnalysisPlot, { props: responseProps })
+    plot.unmount()
+    await vi.dynamicImportSettled()
+    expect(chart.init).not.toHaveBeenCalled()
+    expect(chart.setOption).not.toHaveBeenCalled()
+    expect(disconnect).toHaveBeenCalledOnce()
+  })
 })
 
-describe("UiAnalysisPlot view gestures", () => {
-  it("zooms a logarithmic selection, zooms out in reverse, resets mixed gestures and double clicks, and honors new domains", async () => {
-    const plot = await mountPlot()
-    const before = option().xAxis
-    const gesture = async (x0: number, y0: number, x1: number, y1: number) => {
-      await plot.trigger("pointerdown", { button: 0, pointerId: 1, clientX: x0, clientY: y0 })
-      await plot.trigger("pointermove", { pointerId: 1, clientX: x1, clientY: y1 })
-      await plot.trigger("pointerup", { pointerId: 1, clientX: x1, clientY: y1 })
-    }
-    await gesture(200, 100, 420, 220)
-    expect(option().xAxis.min).toBeGreaterThan(before.min)
-    expect(option().xAxis.max).toBeLessThan(before.max)
-    expect(option().xAxis.type).toBe("log")
-    const zoomed = option().xAxis
-    await gesture(420, 220, 200, 100)
-    expect(option().xAxis.max / option().xAxis.min).toBeGreaterThan(zoomed.max / zoomed.min)
-    await gesture(200, 220, 420, 100)
-    expect(option().xAxis).toEqual(before)
-    await gesture(200, 100, 420, 220)
+async function mountInteractivePlot() {
+  const plot = await mountPlot()
+  await plot.setProps({ logarithmic: false, xDomain: [0, 800], yDomain: [-60, 0] })
+  Object.defineProperty(plot.get('[aria-hidden="true"]').element, "getBoundingClientRect", {
+    value: () => ({ left: 100, top: 50, width: 450, height: 220 }),
+    configurable: true
+  })
+  const point = (x: number, y: number) => ({ clientX: 100 + x / 2, clientY: 50 + y / 2 })
+  const pointer = (event: string, x: number, y: number, button = 0) =>
+    plot.trigger(event, { button, pointerId: 1, ...point(x, y) })
+  const drag = async (from: [number, number], to: [number, number], button = 0) => {
+    await pointer("pointerdown", ...from, button)
+    await pointer("pointermove", ...to)
+    await pointer("pointerup", ...to)
+  }
+  const wheel = async (x: number, y: number, options: WheelEventInit = {}) => {
+    // happy-dom's WheelEvent drops MouseEvent coordinates and modifiers.
+    const event = new MouseEvent("wheel", {
+      ...point(x, y),
+      bubbles: true,
+      cancelable: true,
+      ...options
+    })
+    Object.defineProperty(event, "deltaY", { value: options.deltaY ?? 1 })
+    plot.element.dispatchEvent(event)
+    await nextTick()
+    return event
+  }
+  const domains = () => ({
+    x: [option().xAxis.min, option().xAxis.max],
+    y: [option().yAxis.min, option().yAxis.max]
+  })
+  return { plot, pointer, drag, wheel, domains }
+}
+
+describe("UiAnalysisPlot navigation", () => {
+  it("maps a selection in a scaled plot to both measurement axes and restores the full view", async () => {
+    const { plot, drag, domains } = await mountInteractivePlot()
+    const initial = domains()
+    await drag([267.5, 112], [674.5, 300])
+    expect(domains()).toEqual({ x: [200, 600], y: [-45, -15] })
     await plot.trigger("dblclick")
-    expect(option().xAxis).toEqual(before)
-    await gesture(200, 100, 420, 220)
-    await plot.setProps({ xDomain: [100, 1000] })
-    expect(option().xAxis).toMatchObject({ min: 100, max: 1000 })
+    expect(domains()).toEqual(initial)
   })
 
-  it("pans or zooms just the axis under the wheel, and preserves the view after cancellation", async () => {
-    const plot = await mountPlot()
-    const before = option().xAxis
-    const yBefore = option().yAxis
-    await plot.trigger("wheel", { clientX: 400, clientY: 420, deltaY: -1, ctrlKey: true })
-    expect(option().xAxis.max / option().xAxis.min).toBeLessThan(before.max / before.min)
-    expect(option().yAxis).toEqual(yBefore)
-    const xZoomed = option().xAxis
-    await plot.trigger("wheel", { clientX: 30, clientY: 200, deltaY: 1 })
-    expect(option().yAxis.min).toBeGreaterThan(yBefore.min)
-    expect(option().xAxis).toEqual(xZoomed)
-    await plot.trigger("pointerdown", { button: 0, clientX: 200, clientY: 100 })
-    await plot.trigger("pointermove", { clientX: 420, clientY: 220 })
-    await plot.trigger("pointercancel")
-    await plot.trigger("pointerup", { clientX: 420, clientY: 220 })
-    expect(option().xAxis).toEqual(xZoomed)
+  it("widens the view with a reverse selection and resets with the opposing diagonal", async () => {
+    const { drag, domains } = await mountInteractivePlot()
+    const initial = domains()
+    await drag([674.5, 300], [267.5, 112])
+    expect(domains()).toEqual({ x: [-600, 1000], y: [-75, 45] })
+    await drag([267.5, 300], [674.5, 112])
+    expect(domains()).toEqual(initial)
+  })
+
+  it("maps selections through logarithmic frequency spacing", async () => {
+    const { plot, drag, domains } = await mountInteractivePlot()
+    await plot.setProps({ logarithmic: true, xDomain: [20, 20000] })
+    await drag([267.5, 112], [674.5, 300])
+    expect(domains().x[0]).toBeCloseTo(20 * 1000 ** 0.25)
+    expect(domains().x[1]).toBeCloseTo(20 * 1000 ** 0.75)
+    expect(domains().y).toEqual([-45, -15])
+    expect(option().xAxis.type).toBe("log")
+  })
+
+  it("pans the axis under the wheel and pans both axes inside the graph", async () => {
+    const { wheel, domains } = await mountInteractivePlot()
+    expect((await wheel(471, 420)).defaultPrevented).toBe(true)
+    expect(domains()).toEqual({ x: [64, 864], y: [-60, 0] })
+    await wheel(32, 206, { deltaY: -1 })
+    expect(domains()).toEqual({ x: [64, 864], y: [-64.8, -4.8] })
+    await wheel(471, 206)
+    expect(domains()).toEqual({ x: [128, 928], y: [-60, 0] })
+  })
+
+  it("uses Ctrl or Meta wheel zoom on the indicated axis, leaving the other axis unchanged", async () => {
+    const { wheel, domains } = await mountInteractivePlot()
+    await wheel(471, 420, { ctrlKey: true, deltaY: -1 })
+    expect(domains().x[0]).toBeCloseTo(400 - 400 / 1.15)
+    expect(domains().x[1]).toBeCloseTo(400 + 400 / 1.15)
+    expect(domains().y).toEqual([-60, 0])
+    const x = domains().x
+    await wheel(32, 206, { metaKey: true, deltaY: -1 })
+    expect(domains().x).toEqual(x)
+    expect(domains().y[0]).toBeCloseTo(-30 - 30 / 1.15)
+    expect(domains().y[1]).toBeCloseTo(-30 + 30 / 1.15)
+    const y = domains().y
+    await wheel(471, 420, { ctrlKey: true })
+    expect(domains().x[0]).toBeCloseTo(0)
+    expect(domains().x[1]).toBeCloseTo(800)
+    expect(domains().y).toEqual(y)
+  })
+
+  it("leaves the view unchanged for clicks, drags outside the graph, and cancelled selection", async () => {
+    const { plot, drag, pointer, domains } = await mountInteractivePlot()
+    const initial = domains()
+    await drag([267.5, 112], [674.5, 300], 2)
+    expect(domains()).toEqual(initial)
+    await drag([32, 112], [674.5, 300])
+    expect(domains()).toEqual(initial)
+    await drag([267.5, 112], [270, 115])
+    expect(domains()).toEqual(initial)
+    await pointer("pointerdown", 267.5, 112)
+    await pointer("pointermove", 674.5, 300)
+    await plot.trigger("pointercancel", { pointerId: 1 })
+    await pointer("pointerup", 674.5, 300)
+    expect(domains()).toEqual(initial)
+  })
+
+  it("does not consume wheel input outside the axes or with no vertical movement", async () => {
+    const { wheel, domains } = await mountInteractivePlot()
+    const initial = domains()
+    expect((await wheel(32, 420)).defaultPrevented).toBe(false)
+    expect((await wheel(471, 206, { deltaY: 0 })).defaultPrevented).toBe(false)
+    expect(domains()).toEqual(initial)
+  })
+
+  it("resets both axes when the requested measurement domain changes", async () => {
+    const { plot, drag, domains } = await mountInteractivePlot()
+    await drag([267.5, 112], [674.5, 300])
+    await plot.setProps({ xDomain: [100, 1000], yDomain: [-120, 12] })
+    expect(domains()).toEqual({ x: [100, 1000], y: [-120, 12] })
+  })
+
+  it("discards a linear pan when switching to a logarithmic frequency scale", async () => {
+    const { plot, wheel, domains } = await mountInteractivePlot()
+    await plot.setProps({ xDomain: [20, 20000] })
+    await wheel(471, 420, { deltaY: -1 })
+    expect(domains().x[0]).toBeLessThan(0)
+    await plot.setProps({ logarithmic: true })
+    expect(domains().x).toEqual([20, 20000])
+  })
+
+  it("preserves navigation across report refresh but restores auto bounds when measurement units change", async () => {
+    const { plot, drag, domains } = await mountInteractivePlot()
+    await plot.setProps({ yDomain: undefined, series: [{ label: "H2", x: [0, 800], y: [-60, 0] }] })
+    await drag([267.5, 112], [674.5, 300])
+    const zoomed = domains()
+    await plot.setProps({ series: [{ label: "H2", x: [0, 800], y: [-50, -5] }] })
+    expect(domains()).toEqual(zoomed)
+    await plot.setProps({ yLabel: "%", series: [{ label: "H2", x: [0, 800], y: [0, 100] }] })
+    expect(domains()).toEqual({ x: [0, 800], y: [-8, 108] })
   })
 })
