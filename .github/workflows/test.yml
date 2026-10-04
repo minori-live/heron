@@ -135,7 +135,53 @@ jobs:
           echo "CLAP_PLUGIN_FIXTURE=$clap_path" >> "$GITHUB_ENV"
 
       - name: Run repository checks
+        if: >-
+          ${{ !(runner.os == 'Windows' &&
+            github.event_name == 'pull_request' &&
+            github.head_ref == 'codex/live-mixer-phase-diagnostics') }}
         run: mise run ${{ matrix.check-task }}
+
+      # Temporary experiment for the diagnostic draft PR only. Keep the normal
+      # native/desktop/database workload before collecting additional samples.
+      - name: Capture Windows Mixer diagnostic baseline
+        id: live_mixer_baseline
+        if: >-
+          ${{ runner.os == 'Windows' &&
+            github.event_name == 'pull_request' &&
+            github.head_ref == 'codex/live-mixer-phase-diagnostics' }}
+        shell: pwsh
+        env:
+          HERON_LIVE_DIAGNOSTICS_DIR: ${{ runner.temp }}/live-mixer-diagnostics
+          HERON_LIVE_DIAGNOSTICS_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HERON_LIVE_DIAGNOSTICS_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/diagnostics/live-mixer.ts --baseline
+
+      - name: Collect bounded Windows Mixer samples
+        if: >-
+          ${{ runner.os == 'Windows' &&
+            github.event_name == 'pull_request' &&
+            github.head_ref == 'codex/live-mixer-phase-diagnostics' &&
+            steps.live_mixer_baseline.outcome == 'success' }}
+        timeout-minutes: 16
+        shell: pwsh
+        env:
+          HERON_LIVE_DIAGNOSTICS_DIR: ${{ runner.temp }}/live-mixer-diagnostics
+          PRECEDING_CHECKS_OUTCOME: ${{ steps.live_mixer_baseline.outcome }}
+          HERON_LIVE_DIAGNOSTICS_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HERON_LIVE_DIAGNOSTICS_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/diagnostics/live-mixer.ts --samples 3
+
+      - name: Upload Windows Mixer diagnostic evidence
+        if: >-
+          ${{ always() && runner.os == 'Windows' &&
+            github.event_name == 'pull_request' &&
+            github.head_ref == 'codex/live-mixer-phase-diagnostics' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: live-mixer-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/live-mixer-diagnostics
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Run Electron end-to-end tests
         if: runner.os == 'Linux'

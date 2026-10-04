@@ -37,6 +37,10 @@ const LIVE_TEMPLATE_ARCHIVE = fileURLToPath(
 
 type LiveDb = PgliteDatabase<typeof schema>
 
+// Local diagnostic wrapper; normal callers execute each operation without logging.
+type LiveOpenStep = <T>(name: string, operation: () => Promise<T>) => Promise<T>
+const runOpenStep: LiveOpenStep = (_name, operation) => operation()
+
 export class LiveArchiveFormatError extends Error {
   constructor(readonly code: "format-mismatch" | "unsupported-version") {
     super(
@@ -175,19 +179,25 @@ export class LiveDatabase {
     }
   }
 
-  static async open(dataDir: string, archivePath?: string): Promise<LiveDatabase> {
+  static async open(
+    dataDir: string,
+    archivePath?: string,
+    step: LiveOpenStep = runOpenStep
+  ): Promise<LiveDatabase> {
+    // openAsBlob only prepares a file-backed Blob. PGlite consumes its bytes below.
+    const archive = archivePath
+      ? await step("open file-backed archive Blob", () => openAsBlob(archivePath))
+      : undefined
     const client = archivePath
-      ? await PGlite.create({
-          ...pgliteByteaOptions,
-          dataDir,
-          loadDataDir: await openAsBlob(archivePath)
-        })
+      ? await step("initialize PGlite and load archive", () =>
+          PGlite.create({ ...pgliteByteaOptions, dataDir, loadDataDir: archive })
+        )
       : new PGlite(dataDir, pgliteByteaOptions)
     const instance = new LiveDatabase(client)
     try {
       // Read the kind before applying Live migrations to an untrusted archive.
-      await assertLiveArchive(client)
-      await migrateLiveDatabase(instance.db)
+      await step("validate Live archive header", () => assertLiveArchive(client))
+      await step("run Live migrator", () => migrateLiveDatabase(instance.db))
       return instance
     } catch (error) {
       await instance.close()

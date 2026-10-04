@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -8,6 +9,10 @@ import { LiveArchiveFormatError, LiveDatabase } from "../live-node"
 import { buildLiveTemplateArchive } from "../live-template"
 import { ProjectDatabase, StudioArchiveFormatError } from "../node"
 import { buildProjectTemplateArchive } from "../template"
+import {
+  createLiveRootMixerProfile,
+  writeLiveRootMixerTrace
+} from "./diagnostics/live-root-mixer-profile"
 
 const migrations = fileURLToPath(new URL("../../drizzle-live", import.meta.url))
 const studioMigrations = fileURLToPath(new URL("../../drizzle", import.meta.url))
@@ -45,15 +50,35 @@ describe("Live database lineage", () => {
   }) => {
     const startedAt = performance.now()
     const initialCpu = process.cpuUsage()
-    const stages: Array<{ name: string; elapsedMs: number; durationMs?: number; cpuMs?: number }> =
-      []
+    const sampleId = randomUUID()
+    const profile = createLiveRootMixerProfile()
+    const stages: Array<{
+      name: string
+      elapsedMs: number
+      start: number
+      cpu: NodeJS.CpuUsage
+      status: "running" | "completed" | "failed"
+      durationMs?: number
+      cpuMs?: number
+    }> = []
     async function step<T>(name: string, operation: () => Promise<T>): Promise<T> {
       const start = performance.now()
       const cpu = process.cpuUsage()
-      const stage = { name, elapsedMs: Math.round(start - startedAt) } as (typeof stages)[number]
+      const stage: (typeof stages)[number] = {
+        name,
+        elapsedMs: Math.round(start - startedAt),
+        start,
+        cpu,
+        status: "running"
+      }
       stages.push(stage)
       try {
-        return await operation()
+        const result = await (profile ? profile.step(name, operation) : operation())
+        stage.status = "completed"
+        return result
+      } catch (error) {
+        stage.status = "failed"
+        throw error
       } finally {
         const used = process.cpuUsage(cpu)
         stage.durationMs = Math.round(performance.now() - start)
@@ -64,77 +89,113 @@ describe("Live database lineage", () => {
     function report(reason: string): void {
       if (reported) return
       reported = true
+      const profileSnapshot = profile?.stop()
       const used = process.cpuUsage(initialCpu)
-      console.error(
-        "Live root Mixer phase trace",
-        JSON.stringify({
-          reason,
-          elapsedMs: Math.round(performance.now() - startedAt),
-          cpuMs: Math.round((used.user + used.system) / 1000),
-          memory: process.memoryUsage(),
-          stages
+      writeLiveRootMixerTrace({
+        sampleId,
+        pid: process.pid,
+        sampleLabel: process.env.HERON_LIVE_ROOT_MIXER_SAMPLE ?? null,
+        runtime: {
+          node: process.version,
+          uv: process.versions.uv,
+          platform: process.platform,
+          arch: process.arch
+        },
+        reason,
+        elapsedMs: Math.round(performance.now() - startedAt),
+        cpuMs: Math.round((used.user + used.system) / 1000),
+        memory: process.memoryUsage(),
+        profile: profileSnapshot ?? { enabled: false },
+        // CPU is process-wide, and nested stages overlap with their parent.
+        stages: stages.map(({ start, cpu, ...stage }) => {
+          if (stage.status !== "running") return stage
+          const used = process.cpuUsage(cpu)
+          return {
+            ...stage,
+            durationMs: Math.round(performance.now() - start),
+            cpuMs: Math.round((used.user + used.system) / 1000)
+          }
         })
-      )
+      })
     }
     const onAbort = () => report("test aborted")
     signal.addEventListener("abort", onAbort, { once: true })
-    onTestFinished(() => signal.removeEventListener("abort", onAbort))
+    onTestFinished(({ task }) => {
+      signal.removeEventListener("abort", onAbort)
+      profile?.stop()
+      if (
+        task.result?.state === "pass" &&
+        (process.env.HERON_TRACE_LIVE_ROOT_MIXER === "1" ||
+          profile ||
+          process.env.HERON_LIVE_ROOT_MIXER_TRACE_DIR)
+      ) {
+        report("test passed")
+      }
+    })
     onTestFailed(() => report("test failed"))
-    const { root, template } = await step("fixture", fixture)
-    const database = await step("create from template", () =>
-      LiveDatabase.create(
-        join(root, "working"),
-        { name: "Stage", sampleRate: 48_000, audio: null, enabledMidiDeviceIds: [] },
-        template
-      )
-    )
-    const graph = await step("created mixer snapshot", () => database.mixerSnapshot())
-    expect(graph.channels.map((channel) => channel.kind)).toEqual(["audio", "master", "output"])
-    expect(graph.channels[0]).toMatchObject({
-      inputMonitoring: false,
-      outputChannelId: "output-1-2"
-    })
-    expect(graph.channels[0]).not.toHaveProperty("recordArmed")
-    const archive = join(root, "stage.hrl")
-    await step("dump archive and fsync", () => database.dump(archive))
-    await step("close created database", () => database.close())
-
-    const reopened = await step("open archive and migrate", () =>
-      LiveDatabase.open(join(root, "reopened"), archive)
-    )
-    expect(await step("reopened configuration", () => reopened.configuration())).toEqual({
-      name: "Stage",
-      sampleRate: 48_000,
-      audio: null,
-      enabledMidiDeviceIds: []
-    })
-    expect(await step("reopened mixer snapshot", () => reopened.mixerSnapshot())).toEqual(graph)
-    await step("close reopened database", () => reopened.close())
-
-    const client = new PGlite(join(root, "reopened"))
     try {
-      await step("raw directory reopen", () => client.waitReady)
-      const tables = await step("read public tables", () =>
-        client.query<{ tablename: string }>(
-          "select tablename from pg_tables where schemaname = 'public'"
+      const { root, template } = await step("fixture", fixture)
+      const database = await step("create from template", () =>
+        LiveDatabase.create(
+          join(root, "working"),
+          { name: "Stage", sampleRate: 48_000, audio: null, enabledMidiDeviceIds: [] },
+          template
         )
       )
-      const names = tables.rows.map((row) => row.tablename)
-      expect(names).toContain("live_document")
-      expect(names).not.toContain("tracks")
-      expect(names).not.toContain("audio_clips")
-      expect(names).not.toContain("midi_clips")
-      expect(names).not.toContain("assets")
-      expect(names).not.toContain("tempo_events")
-      const channelColumns = await step("read channel columns", () =>
-        client.query<{ column_name: string }>(
-          "select column_name from information_schema.columns where table_schema = 'public' and table_name = 'mixer_channels'"
+      const graph = await step("created mixer snapshot", () => database.mixerSnapshot())
+      expect(graph.channels.map((channel) => channel.kind)).toEqual(["audio", "master", "output"])
+      expect(graph.channels[0]).toMatchObject({
+        inputMonitoring: false,
+        outputChannelId: "output-1-2"
+      })
+      expect(graph.channels[0]).not.toHaveProperty("recordArmed")
+      const archive = join(root, "stage.hrl")
+      await step("dump archive and fsync", () => database.dump(archive))
+      await step("close created database", () => database.close())
+
+      const reopened = await step("open archive and migrate", () => {
+        const open = () =>
+          LiveDatabase.open(join(root, "reopened"), archive, (name, operation) =>
+            step(`open archive: ${name}`, operation)
+          )
+        return profile ? profile.measureArchiveOpen(open) : open()
+      })
+      expect(await step("reopened configuration", () => reopened.configuration())).toEqual({
+        name: "Stage",
+        sampleRate: 48_000,
+        audio: null,
+        enabledMidiDeviceIds: []
+      })
+      expect(await step("reopened mixer snapshot", () => reopened.mixerSnapshot())).toEqual(graph)
+      await step("close reopened database", () => reopened.close())
+
+      const client = new PGlite(join(root, "reopened"))
+      try {
+        await step("raw directory reopen", () => client.waitReady)
+        const tables = await step("read public tables", () =>
+          client.query<{ tablename: string }>(
+            "select tablename from pg_tables where schemaname = 'public'"
+          )
         )
-      )
-      expect(channelColumns.rows.map((row) => row.column_name)).not.toContain("system_role")
-      expect(channelColumns.rows.map((row) => row.column_name)).not.toContain("record_armed")
+        const names = tables.rows.map((row) => row.tablename)
+        expect(names).toContain("live_document")
+        expect(names).not.toContain("tracks")
+        expect(names).not.toContain("audio_clips")
+        expect(names).not.toContain("midi_clips")
+        expect(names).not.toContain("assets")
+        expect(names).not.toContain("tempo_events")
+        const channelColumns = await step("read channel columns", () =>
+          client.query<{ column_name: string }>(
+            "select column_name from information_schema.columns where table_schema = 'public' and table_name = 'mixer_channels'"
+          )
+        )
+        expect(channelColumns.rows.map((row) => row.column_name)).not.toContain("system_role")
+        expect(channelColumns.rows.map((row) => row.column_name)).not.toContain("record_armed")
+      } finally {
+        await step("close raw client", () => client.close())
+      }
     } finally {
-      await step("close raw client", () => client.close())
+      profile?.stop()
     }
   })
 
