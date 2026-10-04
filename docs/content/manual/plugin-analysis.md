@@ -47,6 +47,11 @@ blocks. A plug-in call in progress must return before cancellation completes.
 
 ## Read the report
 
+Hover over a curve to see the series name and measured coordinates in the displayed
+units. In the 2D sweep spectrum, hover over a cell to see its measurement time,
+frequency band and peak level in dBFS. Color-range limits change the colors;
+the tooltip keeps the original measured level.
+
 - **Linear:** frequency response, phase and IR. Select L→L, L→R, R→L or R→R.
   Use the controls below the main graph to switch Magnitude, Phase or IR;
   **L + R** overlays the two direct paths. The **L/R–M/S** toggle in the report

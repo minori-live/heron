@@ -25,11 +25,12 @@
   --ui-palette-amber-400: #f4bd62;
 
   /* Scientific spectrogram energy map: fixed colors in both application themes. */
-  --ui-analysis-energy-0: rgb(16 35 125);
-  --ui-analysis-energy-1: rgb(0 185 239);
-  --ui-analysis-energy-2: rgb(49 215 95);
-  --ui-analysis-energy-3: rgb(255 229 56);
-  --ui-analysis-energy-4: rgb(235 47 32);
+  /* Comma syntax also supports ECharts' visualMap color interpolator. */
+  --ui-analysis-energy-0: rgb(16, 35, 125);
+  --ui-analysis-energy-1: rgb(0, 185, 239);
+  --ui-analysis-energy-2: rgb(49, 215, 95);
+  --ui-analysis-energy-3: rgb(255, 229, 56);
+  --ui-analysis-energy-4: rgb(235, 47, 32);
 
   --ui-color-canvas: var(--ui-palette-neutral-950);
   --ui-color-canvas-subtle: var(--ui-palette-neutral-900);

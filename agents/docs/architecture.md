@@ -137,6 +137,13 @@ analysis worker and revision-guarded report publication. It does not claim an
 audio device. See [ADR-0016](adr/0016-plugin-analysis.md) for lifetime and measurement
 limits.
 
+Plugin Analysis plots use the shared `@heron/ui` ECharts adapter, loaded when a
+plot mounts. Numeric and logarithmic curve axes retain the report's measured
+coordinates and gaps. The 2D spectrogram uses custom Cartesian cells with a
+continuous color scale; hover readouts report the FFT window's time, pooled
+frequency band and original peak dBFS. Zoom and pan change display domains only.
+The component owns chart resizing, theme-token resolution and disposal.
+
 Electron main sends MessagePack request envelopes to the addon to preserve one
 typed Rust protocol and one response-validation path. This serialization is a
 local N-API ABI, not an IPC transport. Binary payloads are inline; attachment
