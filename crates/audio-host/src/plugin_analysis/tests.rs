@@ -21,6 +21,7 @@ fn settings() -> PluginAnalysisSettings {
         tail_seconds: 0.25,
         tone_hz: 1000.0,
         model_order: 5,
+        mid_side: false,
     }
 }
 
@@ -96,7 +97,7 @@ fn long_unity_delay_preserves_magnitude_and_compensated_phase() {
 fn spectrogram_reports_a_constant_output_at_zero_dbfs() {
     let settings = settings();
     let frames = (settings.sweep_seconds * f64::from(settings.sample_rate)) as usize;
-    let output = vec![[1.0, 1.0]; frames];
+    let output = vec![1.0; frames];
     let measured =
         spectrogram::measure(&output, &settings, 0, false, &AtomicBool::new(false)).unwrap();
     // A full window in the middle of the sweep sees a constant 1.0. Its DC band
@@ -201,7 +202,7 @@ fn stable_sines_measure_the_second_harmonic_without_clamping_input() {
         clock: 0,
         times: Vec::new(),
     };
-    let report = chain.harmonics(0).unwrap();
+    let report = chain.harmonics(super::StereoRoute::Channel(0)).unwrap();
     // x + 0.5*x² has H2/H1 = 0.25*A, here A = 10^(6/20).
     let expected = 20.0 * (0.25 * 10_f64.powf(6.0 / 20.0)).log10();
     for value in &report.orders_db[0] {
@@ -225,7 +226,7 @@ fn single_tone_distortion_matches_a_quadratic_nonlinearity() {
         clock: 0,
         times: Vec::new(),
     };
-    let report = chain.distortion(0).unwrap();
+    let report = chain.distortion(super::StereoRoute::Channel(0)).unwrap();
     // x + 0.5*x² fed A·sin has H2/H1 = 0.25·A with A = 10^(6/20).
     let expected = 0.25 * 10_f64.powf(6.0 / 20.0) * 100.0;
     let thd = report.thd_percent.unwrap();
@@ -291,6 +292,61 @@ fn runtime_teardown_cancels_and_joins_the_measurement_owner() {
     );
     drop(jobs);
     assert_eq!(retired.load(Ordering::Acquire), 1);
+}
+
+#[derive(Clone)]
+struct InvertRight;
+impl AudioPluginProcessor for InvertRight {
+    fn clone_box(&self) -> Box<dyn AudioPluginProcessor> {
+        Box::new(self.clone())
+    }
+    fn process_block(
+        &mut self,
+        frames: &mut [[f32; 2]],
+        _: &dyn SidechainSource,
+        _: &ProcessContext,
+    ) -> bool {
+        for frame in frames {
+            frame[1] = -frame[1];
+        }
+        true
+    }
+}
+
+#[test]
+fn mid_side_routing_folds_stereo_outputs() {
+    let mut chain = Chain {
+        processors: vec![AudioPluginProcessorHandle::new(InvertRight)],
+        settings: settings(),
+        cancel: Arc::new(AtomicBool::new(false)),
+        clock: 0,
+        times: Vec::new(),
+    };
+    let input = [1.0, -1.0, 1.0, -1.0];
+    // Mid drives both channels in phase; the inverted right channel cancels it.
+    let mid = chain
+        .capture_route(&input, super::StereoRoute::Mid, 0, false)
+        .unwrap();
+    assert!(
+        mid.iter()
+            .all(|frame| super::StereoRoute::Mid.measure(*frame).abs() < 1e-9)
+    );
+    assert!(
+        mid.iter()
+            .any(|frame| super::StereoRoute::Side.measure(*frame).abs() > 0.5)
+    );
+    // Side drives the channels out of phase; the inverted right channel sums in.
+    let side = chain
+        .capture_route(&input, super::StereoRoute::Side, 0, false)
+        .unwrap();
+    assert!(
+        side.iter()
+            .any(|frame| super::StereoRoute::Mid.measure(*frame).abs() > 0.5)
+    );
+    assert!(
+        side.iter()
+            .all(|frame| super::StereoRoute::Side.measure(*frame).abs() < 1e-9)
+    );
 }
 
 #[derive(Clone)]

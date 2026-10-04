@@ -29,6 +29,41 @@ impl SidechainSource for EmptySidechains {
     }
 }
 
+/// Selects how a mono excitation drives the stereo input and how the stereo
+/// output is folded back to one measurement channel.
+#[derive(Clone, Copy)]
+enum StereoRoute {
+    Channel(usize),
+    Mid,
+    Side,
+}
+
+impl StereoRoute {
+    fn gains(self) -> (f64, f64) {
+        match self {
+            Self::Channel(0) => (1.0, 0.0),
+            Self::Channel(_) => (0.0, 1.0),
+            Self::Mid => (1.0, 1.0),
+            Self::Side => (1.0, -1.0),
+        }
+    }
+
+    fn measure(self, frame: [f64; 2]) -> f64 {
+        match self {
+            Self::Channel(channel) => frame[channel],
+            Self::Mid => 0.5 * (frame[0] + frame[1]),
+            Self::Side => 0.5 * (frame[0] - frame[1]),
+        }
+    }
+
+    fn index(self) -> u32 {
+        match self {
+            Self::Channel(0) | Self::Mid => 0,
+            Self::Channel(_) | Self::Side => 1,
+        }
+    }
+}
+
 /// Amplitude at `order * cycles` for a capture that is an exact number of cycles
 /// long, so the single-bin lock-in is leakage free.
 fn lock_in(samples: &[f64], cycles: f64, order: usize, length: usize) -> f64 {
@@ -66,6 +101,17 @@ impl Chain {
         tail: usize,
         timed: bool,
     ) -> Result<Vec<[f64; 2]>, PluginAnalysisFailure> {
+        self.capture_route(input, StereoRoute::Channel(channel), tail, timed)
+    }
+
+    fn capture_route(
+        &mut self,
+        input: &[f64],
+        route: StereoRoute,
+        tail: usize,
+        timed: bool,
+    ) -> Result<Vec<[f64; 2]>, PluginAnalysisFailure> {
+        let (left_gain, right_gain) = route.gains();
         let total = input.len() + tail;
         let mut output = Vec::with_capacity(total);
         let mut block = vec![[0.0_f32; 2]; self.settings.block_size as usize];
@@ -75,8 +121,8 @@ impl Chain {
             }
             let count = (total - offset).min(block.len());
             for (i, frame) in block.iter_mut().enumerate() {
-                *frame = [0.0; 2];
-                frame[channel] = input.get(offset + i).copied().unwrap_or_default() as f32;
+                let value = input.get(offset + i).copied().unwrap_or_default() as f32;
+                *frame = [value * left_gain as f32, value * right_gain as f32];
             }
             let context = ProcessContext {
                 project_time_samples: self.clock,
@@ -137,10 +183,10 @@ impl Chain {
 
     fn harmonics(
         &mut self,
-        channel: usize,
+        route: StereoRoute,
     ) -> Result<PluginAnalysisHarmonics, PluginAnalysisFailure> {
         let mut report = PluginAnalysisHarmonics {
-            channel: channel as u32,
+            channel: route.index(),
             frequency_hz: Vec::new(),
             orders_db: vec![Vec::new(); 7],
             thd_percent: Vec::new(),
@@ -161,16 +207,17 @@ impl Chain {
             let input: Vec<_> = (0..warmup + length)
                 .map(|i| peak * (std::f64::consts::TAU * measured_hz * i as f64 / rate).sin())
                 .collect();
-            let output = self.capture(&input, channel, 0, false)?;
+            let output = self.capture_route(&input, route, 0, false)?;
             let samples = &output[warmup..];
             let amplitude = |order: usize| {
                 let mut re = 0.0;
                 let mut im = 0.0;
                 for (i, frame) in samples.iter().enumerate() {
+                    let value = route.measure(*frame);
                     let phase =
                         std::f64::consts::TAU * cycles * order as f64 * i as f64 / length as f64;
-                    re += frame[channel] * phase.cos();
-                    im += frame[channel] * phase.sin();
+                    re += value * phase.cos();
+                    im += value * phase.sin();
                 }
                 re.hypot(im) * 2.0 / length as f64
             };
@@ -196,7 +243,7 @@ impl Chain {
 
     fn distortion(
         &mut self,
-        channel: usize,
+        route: StereoRoute,
     ) -> Result<PluginAnalysisDistortion, PluginAnalysisFailure> {
         let rate = f64::from(self.settings.sample_rate);
         let peak = 10_f64.powf(self.settings.level_dbfs / 20.0);
@@ -213,10 +260,10 @@ impl Chain {
         let input: Vec<f64> = (0..warmup + length)
             .map(|index| peak * (std::f64::consts::TAU * measured_hz * index as f64 / rate).sin())
             .collect();
-        let output = self.capture(&input, channel, 0, false)?;
+        let output = self.capture_route(&input, route, 0, false)?;
         let samples: Vec<f64> = output[warmup..]
             .iter()
-            .map(|frame| frame[channel])
+            .map(|frame| route.measure(*frame))
             .collect();
         let fundamental = lock_in(&samples, cycles, 1, length);
         let maximum_order = (rate * 0.5 / measured_hz).floor() as usize;
@@ -257,10 +304,10 @@ impl Chain {
                         + high_peak * (std::f64::consts::TAU * high_measured * time).sin()
                 })
                 .collect();
-            let output = self.capture(&input, channel, 0, false)?;
+            let output = self.capture_route(&input, route, 0, false)?;
             let samples: Vec<f64> = output[warmup..]
                 .iter()
-                .map(|frame| frame[channel])
+                .map(|frame| route.measure(*frame))
                 .collect();
             let carrier = lock_in(&samples, high_cycles, 1, length);
             let mut power = 0.0;
@@ -280,7 +327,7 @@ impl Chain {
         };
 
         Ok(PluginAnalysisDistortion {
-            channel: channel as u32,
+            channel: route.index(),
             tone_hz: measured_hz,
             thd_percent,
             thd_plus_n_percent,
@@ -311,76 +358,100 @@ fn analyze(
     let mut spectrograms = Vec::new();
     let mut distortion = Vec::new();
     let mut models = Vec::new();
-    for channel in 0..2 {
-        update("linear", channel as f64 * 0.5);
+    let routes: [StereoRoute; 2] = if settings.mid_side {
+        [StereoRoute::Mid, StereoRoute::Side]
+    } else {
+        [StereoRoute::Channel(0), StereoRoute::Channel(1)]
+    };
+    for (index, source) in routes.into_iter().enumerate() {
+        update("linear", index as f64 * 0.5);
         chain.settle()?;
-        let silence = chain.capture(&[], channel, settings.block_size as usize * 8, false)?;
-        let output = chain.capture(&excitation, channel, tail, true)?;
+        let silence = chain.capture_route(&[], source, settings.block_size as usize * 8, false)?;
+        let output = chain.capture_route(&excitation, source, tail, true)?;
         chain.settle()?;
-        let repeated = chain.capture(&excitation, channel, tail, true)?;
-        for destination in 0..2 {
+        let repeated = chain.capture_route(&excitation, source, tail, true)?;
+        let measured: Vec<f64> = output.iter().map(|frame| source.measure(*frame)).collect();
+        for destination in routes {
             if chain.cancel.load(Ordering::Acquire) {
                 return Err(PluginAnalysisFailure::Cancelled);
             }
+            let destination_measured: Vec<f64> = output
+                .iter()
+                .map(|frame| destination.measure(*frame))
+                .collect();
+            let destination_repeated: Vec<f64> = repeated
+                .iter()
+                .map(|frame| destination.measure(*frame))
+                .collect();
             let mut response = signal::response(
                 &excitation,
-                &output.iter().map(|f| f[destination]).collect::<Vec<_>>(),
+                &destination_measured,
                 &settings,
-                channel as u32,
-                destination as u32,
+                source.index(),
+                destination.index(),
             );
-            response.silence_rms = (silence.iter().map(|f| f[destination].powi(2)).sum::<f64>()
+            response.silence_rms = (silence
+                .iter()
+                .map(|frame| destination.measure(*frame).powi(2))
+                .sum::<f64>()
                 / silence.len() as f64)
                 .sqrt();
-            let energy = output.iter().map(|f| f[destination].powi(2)).sum::<f64>();
-            response.repeat_error_percent = (output
+            let energy = destination_measured
                 .iter()
-                .zip(&repeated)
-                .map(|(a, b)| (a[destination] - b[destination]).powi(2))
+                .map(|value| value.powi(2))
+                .sum::<f64>();
+            response.repeat_error_percent = (destination_measured
+                .iter()
+                .zip(&destination_repeated)
+                .map(|(a, b)| (a - b).powi(2))
                 .sum::<f64>()
                 / energy.max(1e-20))
             .sqrt()
                 * 100.0;
             responses.push(response);
         }
-        update("harmonics", 0.15 + channel as f64 * 0.5);
+        update("harmonics", 0.15 + index as f64 * 0.5);
         spectrograms.push(spectrogram::measure(
-            &output,
+            &measured,
             &settings,
-            channel,
+            source.index(),
             true,
             &chain.cancel,
         )?);
         chain.settle()?;
         let linear_sweep = spectrogram::linear_sweep(&settings);
-        let linear_output = chain.capture(&linear_sweep, channel, tail, false)?;
+        let linear_output = chain.capture_route(&linear_sweep, source, tail, false)?;
+        let linear_measured: Vec<f64> = linear_output
+            .iter()
+            .map(|frame| source.measure(*frame))
+            .collect();
         spectrograms.push(spectrogram::measure(
-            &linear_output,
+            &linear_measured,
             &settings,
-            channel,
+            source.index(),
             false,
             &chain.cancel,
         )?);
-        harmonics.push(chain.harmonics(channel)?);
-        update("model", 0.3 + channel as f64 * 0.5);
+        harmonics.push(chain.harmonics(source)?);
+        update("model", 0.3 + index as f64 * 0.5);
         chain.settle()?;
         let training = signal::noise(32768, 0x81723, peak);
-        let training_output = chain.capture(&training, channel, tail, false)?;
+        let training_output = chain.capture_route(&training, source, tail, false)?;
         chain.settle()?;
         let validation = signal::noise(16384, 0x17384, peak);
-        let validation_output = chain.capture(&validation, channel, tail, false)?;
+        let validation_output = chain.capture_route(&validation, source, tail, false)?;
         models.push(model::fit(
             model::FitData {
-                channel: channel as u32,
+                channel: source.index(),
                 input: &training,
                 output: &training_output
                     .iter()
-                    .map(|f| f[channel])
+                    .map(|frame| source.measure(*frame))
                     .collect::<Vec<_>>(),
                 validation_input: &validation,
                 validation_output: &validation_output
                     .iter()
-                    .map(|f| f[channel])
+                    .map(|frame| source.measure(*frame))
                     .collect::<Vec<_>>(),
                 scale: peak,
                 delay: latency,
@@ -388,7 +459,7 @@ fn analyze(
             },
             &chain.cancel,
         )?);
-        distortion.push(chain.distortion(channel)?);
+        distortion.push(chain.distortion(source)?);
         if chain.cancel.load(Ordering::Acquire) {
             return Err(PluginAnalysisFailure::Cancelled);
         }

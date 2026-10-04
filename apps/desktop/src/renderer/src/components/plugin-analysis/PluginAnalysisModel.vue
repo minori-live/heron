@@ -9,10 +9,10 @@ const { t } = useI18n()
 const channel = ref("0")
 const view = ref("static")
 const model = computed(() => props.report.models[Number(channel.value)]!)
-const channels = [
-  { value: "0", label: "L" },
-  { value: "1", label: "R" }
-]
+const channels = computed(() => [
+  { value: "0", label: props.report.settings.mid_side ? "M" : "L" },
+  { value: "1", label: props.report.settings.mid_side ? "S" : "R" }
+])
 const title = computed(() =>
   t(
     view.value === "static"

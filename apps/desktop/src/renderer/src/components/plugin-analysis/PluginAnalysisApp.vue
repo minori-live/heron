@@ -8,6 +8,7 @@ import {
   UiIconButton,
   UiPopover,
   UiProvider,
+  UiSegmentedControl,
   UiSlider,
   useLocaleFonts
 } from "@heron/ui"
@@ -47,6 +48,10 @@ const conditions = computed(() =>
     samples: t("pluginAnalysis.samples")
   })
 )
+const channelModes = computed(() => [
+  { value: "left-right", label: t("pluginAnalysis.leftRight") },
+  { value: "mid-side", label: t("pluginAnalysis.midSide") }
+])
 </script>
 <template>
   <UiProvider :locale="rekaLocale(locale)"
@@ -74,7 +79,15 @@ const conditions = computed(() =>
         <section class="analysis">
           <div class="analysis-heading">
             <span class="conditions">{{ conditions }}</span
-            ><UiPopover align="end"
+            ><UiSegmentedControl
+              :model-value="snapshot.settings.mid_side ? 'mid-side' : 'left-right'"
+              :options="channelModes"
+              :label="t('pluginAnalysis.channelMode')"
+              size="compact"
+              required
+              :disabled="quarantined"
+              @update:model-value="configure({ mid_side: $event === 'mid-side' })"
+            /><UiPopover align="end"
               ><template #trigger
                 ><UiIconButton
                   :label="t('pluginAnalysis.measurementSettings')"

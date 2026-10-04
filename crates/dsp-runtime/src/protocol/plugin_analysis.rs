@@ -12,6 +12,7 @@ pub struct PluginAnalysisSettings {
     pub tail_seconds: f64,
     pub tone_hz: f64,
     pub model_order: u32,
+    pub mid_side: bool,
 }
 
 impl PluginAnalysisSettings {

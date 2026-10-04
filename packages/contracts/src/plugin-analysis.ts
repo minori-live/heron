@@ -20,7 +20,8 @@ export const DEFAULT_PLUGIN_ANALYSIS_SETTINGS: PluginAnalysisSettings = {
   sweep_seconds: 1,
   tail_seconds: 0.25,
   tone_hz: 1000,
-  model_order: 5
+  model_order: 5,
+  mid_side: false
 }
 
 export function validPluginAnalysisSettings(value: unknown): value is PluginAnalysisSettings {
@@ -48,7 +49,8 @@ export function validPluginAnalysisSettings(value: unknown): value is PluginAnal
     s.tone_hz <= s.sample_rate * 0.45 &&
     Number.isInteger(s.model_order) &&
     s.model_order >= 3 &&
-    s.model_order <= 7
+    s.model_order <= 7 &&
+    typeof s.mid_side === "boolean"
   )
 }
 

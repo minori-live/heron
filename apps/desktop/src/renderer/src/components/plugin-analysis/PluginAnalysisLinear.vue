@@ -25,9 +25,13 @@ const paths = computed(() => [
   { value: "direct", label: t("pluginAnalysis.bothChannels") },
   ...props.report.responses.map((p, i) => ({
     value: String(i),
-    label: `${p.input ? "R" : "L"} → ${p.output ? "R" : "L"}`
+    label: `${channelName(p.input)} → ${channelName(p.output)}`
   }))
 ])
+function channelName(index: number): string {
+  if (props.report.settings.mid_side) return index ? "S" : "M"
+  return index ? "R" : "L"
+}
 const responses = computed(() =>
   props.report.responses.filter((p, i) =>
     path.value === "direct" ? p.input === p.output : i === Number(path.value)
@@ -35,7 +39,7 @@ const responses = computed(() =>
 )
 const series = computed<UiAnalysisSeries[]>(() =>
   responses.value.map((p, index) => ({
-    label: `${p.input ? "R" : "L"} → ${p.output ? "R" : "L"}`,
+    label: `${channelName(p.input)} → ${channelName(p.output)}`,
     color: index ? "var(--ui-color-action)" : "var(--ui-signal-mixer-input)",
     x:
       view.value === "impulse"

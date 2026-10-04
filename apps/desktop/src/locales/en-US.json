@@ -2245,6 +2245,9 @@
     "imd": "IMD",
     "orderResponse": "Per-order response",
     "orderLabel": "Order {order}",
-    "imdTones": "60 / 7000 Hz"
+    "imdTones": "60 / 7000 Hz",
+    "channelMode": "Channel mode",
+    "leftRight": "L/R",
+    "midSide": "M/S"
   }
 }

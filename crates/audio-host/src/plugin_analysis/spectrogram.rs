@@ -22,9 +22,9 @@ pub(super) fn linear_sweep(settings: &PluginAnalysisSettings) -> Vec<f64> {
 }
 
 pub(super) fn measure(
-    output: &[[f64; 2]],
+    output: &[f64],
     settings: &PluginAnalysisSettings,
-    channel: usize,
+    channel: u32,
     logarithmic_sweep: bool,
     cancel: &AtomicBool,
 ) -> Result<PluginAnalysisSpectrogram, PluginAnalysisFailure> {
@@ -49,9 +49,7 @@ pub(super) fn measure(
         for (i, bin) in bins.iter_mut().enumerate() {
             let index = center + i as isize - FFT_SIZE as isize / 2;
             let value = if index >= 0 {
-                output
-                    .get(index as usize)
-                    .map_or(0.0, |frame| frame[channel])
+                output.get(index as usize).copied().unwrap_or(0.0)
             } else {
                 0.0
             };
@@ -75,7 +73,7 @@ pub(super) fn measure(
         }
     }
     Ok(PluginAnalysisSpectrogram {
-        channel: channel as u32,
+        channel,
         logarithmic_sweep,
         columns: COLUMNS as u32,
         rows: ROWS as u32,

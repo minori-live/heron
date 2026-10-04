@@ -2245,6 +2245,9 @@
     "imd": "互调失真",
     "orderResponse": "各阶响应",
     "orderLabel": "第 {order} 阶",
-    "imdTones": "60 / 7000 Hz"
+    "imdTones": "60 / 7000 Hz",
+    "channelMode": "声道模式",
+    "leftRight": "L/R",
+    "midSide": "M/S"
   }
 }

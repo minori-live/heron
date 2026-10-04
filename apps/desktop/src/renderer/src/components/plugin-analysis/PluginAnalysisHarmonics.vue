@@ -13,10 +13,10 @@ const frequencyScale = ref("log")
 const magnitudeScale = ref("log")
 const colorMin = ref(-120)
 const colorMax = ref(12)
-const channels = [
-  { value: "0", label: "L" },
-  { value: "1", label: "R" }
-]
+const channels = computed(() => [
+  { value: "0", label: props.report.settings.mid_side ? "M" : "L" },
+  { value: "1", label: props.report.settings.mid_side ? "S" : "R" }
+])
 const views = computed(() => [
   { value: "2d", label: t("pluginAnalysis.spectrum2d") },
   { value: "1d", label: t("pluginAnalysis.orders1d") },
@@ -60,7 +60,13 @@ const series = computed(() =>
     : view.value === "thd"
       ? [
           {
-            label: channel.value === "0" ? "L" : "R",
+            label: props.report.settings.mid_side
+              ? channel.value === "0"
+                ? "M"
+                : "S"
+              : channel.value === "0"
+                ? "L"
+                : "R",
             x: harmonic.value.frequency_hz,
             y: harmonic.value.thd_percent
           }
