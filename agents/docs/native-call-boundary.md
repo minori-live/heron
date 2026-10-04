@@ -69,6 +69,12 @@ mirrored into the controller. Ozone 11 Exciter exercises this distinction during
 Plugin Analysis state cloning and parameter replay. See the
 [VST3 controller contract](https://steinbergmedia.github.io/vst3_doc/vstinterfaces/classSteinberg_1_1Vst_1_1IEditController.html).
 
+Concurrent loads of the same VST3 binary share one host context on the owning
+UI thread. A factory can retain module-wide callbacks, including the Linux run
+loop, so unloading an Analysis measurement clone must not invalidate callbacks
+while its lab instance remains loaded. The weak context cache does not extend
+the final module lifetime; context teardown still follows library teardown.
+
 Electron main creates one `BaseWindow` per native plug-in editor and registers
 its platform handle before sending `OpenPluginEditor`. A sandboxed
 `WebContentsView` renders the host-owned toolbar at the top of that window;

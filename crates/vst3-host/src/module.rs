@@ -1,6 +1,7 @@
 use std::{
     ffi::c_void,
     path::{Path, PathBuf},
+    rc::Rc,
 };
 
 use heron_vst3_host_sys::{
@@ -195,7 +196,7 @@ pub struct Module {
     exit: Option<heron_vst3_host_sys::abi::ModuleExit>,
     // Keep callbacks valid through ExitDll and dynamic-library static destructors. This must be
     // the last field so Rust drops it after the bundle/library fields above.
-    host_context: Option<Box<HostContext>>,
+    host_context: Option<Rc<HostContext>>,
 }
 
 impl Module {
@@ -228,7 +229,7 @@ impl Module {
     }
 
     fn install_host_context(&mut self) -> HostResult<()> {
-        let context = HostContext::new();
+        let context = HostContext::for_module(&self.binary_path);
         self.host_context = Some(context);
         let Some(factory3) = self.factory().query::<IPluginFactory3>().ok() else {
             return Ok(());
