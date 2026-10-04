@@ -31,19 +31,31 @@ const makeSeries = (report: PluginAnalysisReport): UiAnalysisSeries[] => {
   const selected = source?.waveforms.find((w) => w.waveform === waveform.value)
   if (!selected || !source) return []
   const count = Math.min(selected.input.length, selected.output.length)
+  if (count === 0) return []
   if (domain.value === "waveshaping") {
-    const shift = Math.max(0, Math.min(delay.value ?? source.delay_samples, count - 1))
-    const points = count - shift
+    const shift = Math.max(0, delay.value ?? source.delay_samples) / source.sample_stride
+    const points = Math.max(0, Math.floor(count - 1 - shift) + 1)
     return [
       {
         label: t("pluginAnalysis.output"),
         x: selected.input.slice(0, points),
-        y: selected.output.slice(shift, shift + points)
+        // Delay remains in audio samples; interpolate between retained points
+        // when downsampling makes that delay a fractional display index.
+        y: Array.from({ length: points }, (_, i) => {
+          const position = i + shift
+          const left = Math.floor(position)
+          const fraction = position - left
+          const a = selected.output[left]!
+          const b = selected.output[Math.min(left + 1, count - 1)]!
+          return a + (b - a) * fraction
+        })
       }
     ]
   }
-  const totalMs = source.duration_seconds * 1000
-  const x = Array.from({ length: count }, (_, i) => (i / Math.max(1, count - 1)) * totalMs)
+  const x = Array.from(
+    { length: count },
+    (_, i) => (i * source.sample_stride * 1000) / source.sample_rate
+  )
   return [
     {
       label: t("pluginAnalysis.input"),

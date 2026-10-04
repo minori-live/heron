@@ -4,4 +4,4 @@ import type { PluginAnalysisOscilloscopeWaveform } from "./PluginAnalysisOscillo
 /**
  * Captured standard waveforms plus the delay needed to align input and output.
  */
-export type PluginAnalysisOscilloscope = { channel: number, sample_rate: number, duration_seconds: number, delay_samples: number, waveforms: Array<PluginAnalysisOscilloscopeWaveform>, };
+export type PluginAnalysisOscilloscope = { channel: number, sample_rate: number, sample_stride: number, duration_seconds: number, delay_samples: number, waveforms: Array<PluginAnalysisOscilloscopeWaveform>, };

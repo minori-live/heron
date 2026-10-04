@@ -11,7 +11,11 @@ import {
   UiSegmentedControl,
   UiTabs
 } from "@heron/ui"
-import { DEFAULT_PLUGIN_ANALYSIS_SETTINGS, pluginDescriptorKey } from "@heron/contracts"
+import {
+  DEFAULT_PLUGIN_ANALYSIS_SETTINGS,
+  pluginDescriptorKey,
+  validPluginAnalysisSettings
+} from "@heron/contracts"
 import type { PluginDescriptor } from "@heron/contracts"
 import { analysisReport, analysisSnapshot } from "../../test/plugin-analysis"
 import MixerPluginSection from "../mixer/MixerPluginSection.vue"
@@ -42,7 +46,7 @@ describe("analysis measurement settings", () => {
       input.vm.$emit("update:modelValue", patches[index])
     numbers[0]!.vm.$emit("update:modelValue", null)
     expect(wrapper.emitted("configure")).toEqual([
-      [{ sample_rate: 44100, end_hz: 19845 }],
+      [{ sample_rate: 44100, start_hz: 20, end_hz: 19845, tone_hz: 1000 }],
       [{ block_size: 512 }],
       [{ start_hz: 100 }],
       [{ end_hz: 18000 }],
@@ -57,10 +61,46 @@ describe("analysis measurement settings", () => {
     expect(numbers[0]!.props("max")).toBe(8999)
     expect(numbers[1]!.props()).toMatchObject({ min: 201, max: 21600 })
     rate.vm.$emit("update:modelValue", "96000")
-    expect(wrapper.emitted("configure")?.at(-1)).toEqual([{ sample_rate: 96000, end_hz: 18000 }])
+    expect(wrapper.emitted("configure")?.at(-1)).toEqual([
+      { sample_rate: 96000, start_hz: 100, end_hz: 18000, tone_hz: 1000 }
+    ])
     expect(wrapper.findAllComponents(UiField).map((field) => field.props("label"))).toContain(
       "Settle / tail duration"
     )
+  })
+
+  it("keeps high tone and sweep frequencies valid when reducing the sample rate", () => {
+    const settings = {
+      ...DEFAULT_PLUGIN_ANALYSIS_SETTINGS,
+      sample_rate: 96000,
+      start_hz: 20000,
+      end_hz: 42000,
+      tone_hz: 40000
+    }
+    const wrapper = shallowMount(PluginAnalysisSettings, {
+      props: { settings },
+      global: { stubs: { UiField: false } }
+    })
+    const rate = wrapper.findAllComponents(UiSelect).find((c) => c.props("modelValue") === "96000")!
+    rate.vm.$emit("update:modelValue", "44100")
+
+    const patch = wrapper.emitted("configure")?.[0]?.[0]
+    expect(patch).toEqual({ sample_rate: 44100, start_hz: 9921.5, end_hz: 19845, tone_hz: 19845 })
+    expect(validPluginAnalysisSettings({ ...settings, ...(patch as object) })).toBe(true)
+  })
+
+  it("preserves a valid narrow low-frequency sweep when changing sample rate", () => {
+    const settings = { ...DEFAULT_PLUGIN_ANALYSIS_SETTINGS, start_hz: 10, end_hz: 21 }
+    const wrapper = shallowMount(PluginAnalysisSettings, {
+      props: { settings },
+      global: { stubs: { UiField: false } }
+    })
+    const rate = wrapper.findAllComponents(UiSelect).find((c) => c.props("modelValue") === "48000")!
+    rate.vm.$emit("update:modelValue", "44100")
+
+    const patch = wrapper.emitted("configure")?.[0]?.[0]
+    expect(patch).toEqual({ sample_rate: 44100, start_hz: 10, end_hz: 21, tone_hz: 1000 })
+    expect(validPluginAnalysisSettings({ ...settings, ...(patch as object) })).toBe(true)
   })
 })
 

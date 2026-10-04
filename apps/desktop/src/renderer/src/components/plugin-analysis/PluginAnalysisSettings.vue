@@ -17,6 +17,17 @@ const blocks = [64, 128, 256, 512, 1024].map((value) => ({
 function number(key: keyof PluginAnalysisSettings, value: number | null): void {
   if (value !== null) emit("configure", { [key]: value })
 }
+function sampleRate(value: string): void {
+  const rate = Number(value)
+  const limit = rate * 0.45
+  const end = Math.min(props.settings.end_hz, limit)
+  emit("configure", {
+    sample_rate: rate,
+    start_hz: props.settings.start_hz * 2 >= end ? end / 2 - 1 : props.settings.start_hz,
+    end_hz: end,
+    tone_hz: Math.min(props.settings.tone_hz, limit)
+  })
+}
 </script>
 <template>
   <section class="plugin-analysis-settings">
@@ -59,12 +70,7 @@ function number(key: keyof PluginAnalysisSettings, value: number | null): void {
         :id="controlId"
         :model-value="String(settings.sample_rate)"
         :options="rates"
-        @update:model-value="
-          emit('configure', {
-            sample_rate: Number($event),
-            end_hz: Math.min(props.settings.end_hz, Number($event) * 0.45)
-          })
-        "
+        @update:model-value="sampleRate($event)"
     /></UiField>
     <UiField v-slot="{ controlId }" :label="t('pluginAnalysis.blockSize')"
       ><UiSelect
