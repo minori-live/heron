@@ -3,6 +3,54 @@ use super::{
     PluginAnalysisHarmonics, PluginAnalysisOscilloscope, PluginAnalysisOscilloscopeWaveform,
     PluginAnalysisSpectrum, StereoRoute, lock_in, signal,
 };
+use rustfft::{Fft, FftPlanner, num_complex::Complex};
+use std::sync::Arc;
+
+/// A coherent capture places every measured order on an integer DFT bin.
+/// Transform its exact length once, without padding or a window, so all orders
+/// retain the lock-in's samples, frequency resolution and amplitude calibration.
+struct CoherentSpectrum {
+    fft: Option<Arc<dyn Fft<f64>>>,
+    bins: Vec<Complex<f64>>,
+    scratch: Vec<Complex<f64>>,
+}
+
+impl CoherentSpectrum {
+    fn new() -> Self {
+        Self {
+            fft: None,
+            bins: Vec::new(),
+            scratch: Vec::new(),
+        }
+    }
+
+    fn measure(&mut self, samples: &[[f64; 2]], route: StereoRoute) {
+        self.bins.resize(samples.len(), Complex::default());
+        for (bin, frame) in self.bins.iter_mut().zip(samples) {
+            *bin = Complex::new(route.measure(*frame), 0.0);
+        }
+        // Only the current length is reused: low-frequency captures can have
+        // distinct large lengths, whose plans need not remain resident.
+        if self
+            .fft
+            .as_ref()
+            .is_some_and(|fft| fft.len() != samples.len())
+        {
+            self.fft = None;
+        }
+        let fft = self
+            .fft
+            .get_or_insert_with(|| FftPlanner::new().plan_fft_forward(samples.len()));
+        self.scratch
+            .resize(fft.get_inplace_scratch_len(), Complex::default());
+        fft.process_with_scratch(&mut self.bins, &mut self.scratch);
+    }
+
+    fn amplitude(&self, bin: usize) -> f64 {
+        let value = self.bins[bin];
+        value.re.hypot(value.im) * 2.0 / self.bins.len() as f64
+    }
+}
 
 impl Chain {
     pub(super) fn harmonics(
@@ -18,6 +66,7 @@ impl Chain {
         };
         let peak = 10_f64.powf(self.settings.level_dbfs / 20.0);
         let rate = f64::from(self.settings.sample_rate);
+        let mut spectrum = CoherentSpectrum::new();
         for index in 0..36 {
             self.settle()?;
             let hz = self.settings.start_hz
@@ -33,18 +82,8 @@ impl Chain {
                 .collect();
             let output = self.capture_route(&input, route, 0, false)?;
             let samples = &output[warmup..];
-            let amplitude = |order: usize| {
-                let mut re = 0.0;
-                let mut im = 0.0;
-                for (i, frame) in samples.iter().enumerate() {
-                    let value = route.measure(*frame);
-                    let phase =
-                        std::f64::consts::TAU * cycles * order as f64 * i as f64 / length as f64;
-                    re += value * phase.cos();
-                    im += value * phase.sin();
-                }
-                re.hypot(im) * 2.0 / length as f64
-            };
+            spectrum.measure(samples, route);
+            let amplitude = |order: usize| spectrum.amplitude(cycles as usize * order);
             let fundamental = amplitude(1);
             report
                 .fundamental_gain_db
@@ -231,6 +270,10 @@ impl Chain {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "coherent_tests.rs"]
+mod tests;
 
 /// Hann-windowed, power-averaged spectrum. Keep every positive FFT bin so
 /// narrow harmonics, aliases and IMD sidebands survive the report boundary.

@@ -63,7 +63,10 @@ impl Drop for Capture {
 fn profile_analysis() {
     // Keep this a runtime guard so the ignored diagnostic still compiles in
     // ordinary debug test suites, without permitting debug timing claims.
-    assert!(!black_box(cfg!(debug_assertions)), "use cargo test --release");
+    assert!(
+        !black_box(cfg!(debug_assertions)),
+        "use cargo test --release"
+    );
     let runs = std::env::var("HERON_ANALYSIS_PROFILE_RUNS")
         .ok()
         .and_then(|value| value.parse::<usize>().ok())

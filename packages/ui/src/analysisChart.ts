@@ -20,6 +20,11 @@ import type { UiAnalysisHeatmap, UiAnalysisSeries } from "./types"
 
 use([LineChart, CustomChart, GridComponent, TooltipComponent, VisualMapComponent, CanvasRenderer])
 export { init }
+export {
+  analysisHeatmapCell,
+  analysisHeatmapImage,
+  invalidateAnalysisHeatmap
+} from "./analysisHeatmap"
 
 type AnalysisOption = ComposeOption<
   | LineSeriesOption
@@ -75,6 +80,14 @@ function escapeHtml(value: string): string {
   })
 }
 
+export function analysisHeatmapTooltip(
+  xLabel: string,
+  yLabel: string,
+  cell: readonly number[]
+): string {
+  return `${escapeHtml(xLabel)}: ${measurement(Number(cell[0]))}<br/>${escapeHtml(yLabel)}: ${measurement(Number(cell[5]))}–${measurement(Number(cell[6]))}<br/>${measurement(Number(cell[2]))} dBFS`
+}
+
 /** Keep the original measurements; color limits affect only their display. */
 export function analysisHeatmapCells(
   heatmap: UiAnalysisHeatmap,
@@ -109,7 +122,8 @@ export function analysisChartOption(
   input: AnalysisChartInput,
   layout: AnalysisChartLayout,
   style: CSSStyleDeclaration,
-  cells: number[][]
+  cells: number[][],
+  raster?: HTMLCanvasElement
 ): AnalysisOption {
   const token = (name: string): string => style.getPropertyValue(name).trim()
   const color = (value: string): string =>
@@ -153,28 +167,50 @@ export function analysisChartOption(
     clip: true
   }))
   if (input.heatmap) {
-    series.push({
-      type: "custom",
-      name: "dBFS",
-      data: cells,
-      encode: { x: [3, 4], y: [5, 6], tooltip: [0, 1, 2] },
-      clip: true,
-      progressive: 5000,
-      renderItem: (_, api) => {
-        const lower = api.coord([api.value(3), api.value(5)])
-        const upper = api.coord([api.value(4), api.value(6)])
-        const shape = graphic.clipRectByRect(
-          {
-            x: lower[0]!,
-            y: upper[1]!,
-            width: upper[0]! - lower[0]!,
-            height: lower[1]! - upper[1]!
-          },
-          { x: layout.left, y: layout.top, width: layout.width, height: layout.height }
-        )
-        return shape ? { type: "rect", shape, style: { fill: api.visual("color") } } : undefined
-      }
-    })
+    series.push(
+      raster
+        ? {
+            type: "custom",
+            name: "dBFS",
+            data: [[0, 0, input.colorDomain[0]]],
+            silent: true,
+            clip: true,
+            renderItem: () => ({
+              type: "image",
+              style: {
+                image: raster,
+                x: layout.left,
+                y: layout.top,
+                width: layout.width,
+                height: layout.height
+              }
+            })
+          }
+        : {
+            type: "custom",
+            name: "dBFS",
+            data: cells,
+            encode: { x: [3, 4], y: [5, 6], tooltip: [0, 1, 2] },
+            clip: true,
+            progressive: 5000,
+            renderItem: (_, api) => {
+              const lower = api.coord([api.value(3), api.value(5)])
+              const upper = api.coord([api.value(4), api.value(6)])
+              const shape = graphic.clipRectByRect(
+                {
+                  x: lower[0]!,
+                  y: upper[1]!,
+                  width: upper[0]! - lower[0]!,
+                  height: lower[1]! - upper[1]!
+                },
+                { x: layout.left, y: layout.top, width: layout.width, height: layout.height }
+              )
+              return shape
+                ? { type: "rect", shape, style: { fill: api.visual("color") } }
+                : undefined
+            }
+          }
+    )
   }
   return {
     animation: false,
@@ -227,7 +263,7 @@ export function analysisChartOption(
     },
     tooltip: {
       trigger: input.heatmap ? "item" : "axis",
-      triggerOn: "mousemove",
+      triggerOn: raster ? "none" : "mousemove",
       confine: true,
       transitionDuration: 0,
       backgroundColor: token("--ui-color-surface"),
@@ -244,9 +280,7 @@ export function analysisChartOption(
             const x = `${escapeHtml(input.xLabel)}: ${measurement(Number(value[0]))}`
             if (item.seriesType === "custom") {
               if (!Number.isFinite(value[2])) return []
-              return [
-                `${x}<br/>${escapeHtml(input.yLabel)}: ${measurement(Number(value[5]))}–${measurement(Number(value[6]))}<br/>${measurement(Number(value[2]))} dBFS`
-              ]
+              return [analysisHeatmapTooltip(input.xLabel, input.yLabel, value as number[])]
             }
             return [
               `${escapeHtml(item.seriesName ?? "")}<br/>${x}<br/>${escapeHtml(input.yLabel)}: ${measurement(Number(value[1]))}`
