@@ -4,6 +4,8 @@ mod tone;
 mod worker;
 pub(crate) use worker::{PluginAnalysisJobs, failed};
 mod performance;
+#[cfg(test)]
+mod profiling;
 mod signal;
 mod spectrogram;
 #[cfg(test)]
@@ -123,6 +125,8 @@ impl Chain {
         tail: usize,
         timed: bool,
     ) -> Result<Vec<[f64; 2]>, PluginAnalysisFailure> {
+        #[cfg(test)]
+        let _capture = profiling::capture(input.len() + tail);
         let (left_gain, right_gain) = route.gains();
         let total = input.len() + tail;
         let mut output = Vec::with_capacity(total);

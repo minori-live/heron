@@ -34,6 +34,8 @@ pub(super) fn analyze(
         [StereoRoute::Channel(0), StereoRoute::Channel(1)]
     };
     for (index, source) in routes.into_iter().enumerate() {
+        #[cfg(test)]
+        super::profiling::stage("linear");
         update("linear", index as f64 * 0.5);
         chain.settle()?;
         let silence = chain.capture_route(&[], source, settings.block_size as usize * 8, false)?;
@@ -100,6 +102,8 @@ pub(super) fn analyze(
             responses.push(response);
         }
         update("harmonics", 0.15 + index as f64 * 0.5);
+        #[cfg(test)]
+        super::profiling::stage("spectrogram");
         spectrograms.push(spectrogram::measure(
             &measured,
             &settings,
@@ -121,8 +125,12 @@ pub(super) fn analyze(
             false,
             &chain.cancel,
         )?);
+        #[cfg(test)]
+        super::profiling::stage("harmonics");
         harmonics.push(chain.harmonics(source)?);
         update("model", 0.3 + index as f64 * 0.5);
+        #[cfg(test)]
+        super::profiling::stage("model");
         chain.settle()?;
         let training = signal::noise(32768, 0x81723, peak);
         let training_output = chain.capture_route(&training, source, tail, false)?;
@@ -148,14 +156,22 @@ pub(super) fn analyze(
             },
             &chain.cancel,
         )?);
+        #[cfg(test)]
+        super::profiling::stage("distortion");
         distortion.push(chain.distortion(source)?);
+        #[cfg(test)]
+        super::profiling::stage("oscilloscope");
         oscilloscopes.push(chain.oscilloscope(source, latency)?);
+        #[cfg(test)]
+        super::profiling::stage("dynamics");
         dynamics.push(chain.dynamics(source)?);
         if chain.cancel.load(Ordering::Acquire) {
             return Err(PluginAnalysisFailure::Cancelled);
         }
     }
     update("performance", 0.95);
+    #[cfg(test)]
+    super::profiling::stage("performance");
     let block_sizes = chain.performance_scan()?;
     let times = &mut chain.times;
     let average = times.iter().sum::<f64>() / times.len().max(1) as f64;
