@@ -4,10 +4,10 @@ pub(in crate::runtime) fn is_vst3_command(command: &ControlCommand) -> bool {
     matches!(
         command,
         ControlCommand::Ping
-            | ControlCommand::StartPluginDoctor { .. }
-            | ControlCommand::PluginDoctorStatus { .. }
-            | ControlCommand::CancelPluginDoctor { .. }
-            | ControlCommand::ReleasePluginDoctor { .. }
+            | ControlCommand::StartPluginAnalysis { .. }
+            | ControlCommand::PluginAnalysisStatus { .. }
+            | ControlCommand::CancelPluginAnalysis { .. }
+            | ControlCommand::ReleasePluginAnalysis { .. }
             | ControlCommand::PrepareGraph { .. }
             | ControlCommand::ActivateGraph { .. }
             | ControlCommand::ActivateGraphCut { .. }

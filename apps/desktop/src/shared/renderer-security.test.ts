@@ -39,13 +39,17 @@ describe("resolveRendererEntrypoints", () => {
 })
 
 describe("isTrustedMainRendererUrl", () => {
-  it("classifies the doctor entry without granting main-renderer authority", () => {
-    expect(classifyRendererEntrypoint("heron-app://bundle/plugin-doctor.html")).toBe("doctor")
-    expect(classifyRendererEntrypoint("http://127.0.0.1:5173/plugin-doctor.html")).toBe("doctor")
-    expect(classifyRendererEntrypoint("heron-app://bundle/plugin-doctor.html?main=1")).toBeNull()
-    expect(isTrustedMainRendererUrl("heron-app://bundle/plugin-doctor.html", true, undefined)).toBe(
-      false
+  it("classifies the pluginAnalysis entry without granting main-renderer authority", () => {
+    expect(classifyRendererEntrypoint("heron-app://bundle/plugin-analysis.html")).toBe(
+      "plugin-analysis"
     )
+    expect(classifyRendererEntrypoint("http://127.0.0.1:5173/plugin-analysis.html")).toBe(
+      "plugin-analysis"
+    )
+    expect(classifyRendererEntrypoint("heron-app://bundle/plugin-analysis.html?main=1")).toBeNull()
+    expect(
+      isTrustedMainRendererUrl("heron-app://bundle/plugin-analysis.html", true, undefined)
+    ).toBe(false)
   })
   it("requires the exact main entry and rejects splash, query, and forged hosts", () => {
     expect(isTrustedMainRendererUrl(HERON_MAIN_RENDERER_URL, true, undefined)).toBe(true)

@@ -42,7 +42,7 @@ export default defineConfig(({ command }) => ({
       input: {
         main: resolve(import.meta.dirname, "src/renderer/index.html"),
         splash: resolve(import.meta.dirname, "src/renderer/splash.html"),
-        doctor: resolve(import.meta.dirname, "src/renderer/plugin-doctor.html")
+        pluginAnalysis: resolve(import.meta.dirname, "src/renderer/plugin-analysis.html")
       }
     }
   },

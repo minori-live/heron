@@ -1,9 +1,9 @@
-import type { HeronDesktopApi, HeronSplashApi, HeronDoctorApi } from "@heron/contracts"
+import type { HeronDesktopApi, HeronSplashApi, HeronPluginAnalysisApi } from "@heron/contracts"
 
 declare global {
   interface Window {
     heron: HeronDesktopApi
-    heronDoctor: HeronDoctorApi
+    heronPluginAnalysis: HeronPluginAnalysisApi
     heronSplash: HeronSplashApi
   }
 }

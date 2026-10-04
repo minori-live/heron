@@ -114,7 +114,7 @@
     "audioBenchmark": "音频性能基准测试…",
     "effectChainGraph": "效果链图…",
     "studioBasics": "Studio 基础教程…",
-    "pluginDoctor": "Plugin Analysis…"
+    "pluginAnalysis": "Plugin Analysis…"
   },
   "dialog": {
     "createLive": {
@@ -690,7 +690,7 @@
           "studio-basics": "Studio 基础教程",
           "audio-benchmark": "音频性能基准测试",
           "effect-chain-graph": "效果链图",
-          "plugin-doctor": "插件分析"
+          "plugin-analysis": "插件分析"
         }
       }
     },
@@ -2142,7 +2142,7 @@
     "validEffectMode": "请为此插入位置选择有效的输入效果器模式。",
     "waveformDescription": "波形，{channels} 个声道，{frames} 帧"
   },
-  "doctor": {
+  "pluginAnalysis": {
     "analysis": "分析报告",
     "level": "扫频输入电平",
     "sampleRate": "采样率",

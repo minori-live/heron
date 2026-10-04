@@ -62,7 +62,7 @@ pnpm --filter @heron/desktop run test:vst3-runtime \
   "$again_id" \
   "$synth_id"
 pnpm --filter @heron/desktop run test:clap-runtime "$CLAP_PLUGIN_FIXTURE"
-pnpm --filter @heron/desktop run test:plugin-doctor "$VST3_AGAIN_FIXTURE" "$again_id" "$CLAP_PLUGIN_FIXTURE"
+pnpm --filter @heron/desktop run test:plugin-analysis "$VST3_AGAIN_FIXTURE" "$again_id" "$CLAP_PLUGIN_FIXTURE"
 
 editor_smoke_log="$(mktemp "${RUNNER_TEMP:-/tmp}/heron-vst3-editor-smoke.XXXXXX.log")"
 trap 'rm -f "$editor_smoke_log"' EXIT

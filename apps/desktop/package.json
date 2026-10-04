@@ -18,7 +18,7 @@
     "test:coverage": "node ../../scripts/run-vitest-coverage.ts",
     "test:vst3-runtime": "node scripts/vst3-runtime-smoke.ts",
     "test:clap-runtime": "node scripts/clap-runtime-smoke.ts",
-    "test:plugin-doctor": "node scripts/plugin-doctor-smoke.ts",
+    "test:plugin-analysis": "node scripts/plugin-analysis-smoke.ts",
     "test:vst3-editor": "node scripts/vst3-editor-smoke-launch.ts",
     "test:builtin-vst3": "node scripts/builtin-vst3-smoke.ts && node scripts/audio-benchmark-smoke.ts",
     "verify:package-security": "node scripts/verify-electron-security.ts",

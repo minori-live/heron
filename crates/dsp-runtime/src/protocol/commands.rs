@@ -39,19 +39,19 @@ pub enum PriorityCommand {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum ControlCommand {
-    StartPluginDoctor {
+    StartPluginAnalysis {
         operation_id: String,
         instance_ids: Vec<String>,
-        settings: super::DoctorSettings,
+        settings: super::PluginAnalysisSettings,
         reported_latency_samples: u32,
     },
-    PluginDoctorStatus {
+    PluginAnalysisStatus {
         operation_id: String,
     },
-    CancelPluginDoctor {
+    CancelPluginAnalysis {
         operation_id: String,
     },
-    ReleasePluginDoctor {
+    ReleasePluginAnalysis {
         operation_id: String,
     },
     Ping,

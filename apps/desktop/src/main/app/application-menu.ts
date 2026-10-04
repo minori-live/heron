@@ -12,7 +12,7 @@ import { classifyRendererEntrypoint } from "../../shared/renderer-security"
 
 function requestApplicationCommand(command: ApplicationCommandId): void {
   const window =
-    command === "help.plugin-doctor"
+    command === "help.plugin-analysis"
       ? BrowserWindow.getAllWindows().find(
           (candidate) => classifyRendererEntrypoint(candidate.webContents.getURL()) === "main"
         )
@@ -157,9 +157,9 @@ function macApplicationMenu(
           accelerator("help.audio-benchmark")
         ),
         commandItem(
-          t("menu.pluginDoctor"),
-          "help.plugin-doctor",
-          accelerator("help.plugin-doctor")
+          t("menu.pluginAnalysis"),
+          "help.plugin-analysis",
+          accelerator("help.plugin-analysis")
         ),
         commandItem(
           t("menu.effectChainGraph"),

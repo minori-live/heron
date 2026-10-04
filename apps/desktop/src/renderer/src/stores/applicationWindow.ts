@@ -33,12 +33,12 @@ export const useApplicationWindowStore = defineStore("application-window", () =>
     )
   }
 
-  async function openPluginDoctor(): Promise<void> {
+  async function openPluginAnalysis(): Promise<void> {
     const target = projectStore.desktopSession
-    if (target) await window.heron.openPluginDoctor(mutationMeta(target, "plugin-doctor"))
+    if (target) await window.heron.openPluginAnalysis(mutationMeta(target, "plugin-analysis"))
   }
 
-  return { platform, subscribeCommands, execute, setTheme, openPluginDoctor }
+  return { platform, subscribeCommands, execute, setTheme, openPluginAnalysis }
 })
 
 if (import.meta.hot) {

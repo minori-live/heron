@@ -114,7 +114,7 @@
     "audioBenchmark": "Audio Performance Benchmark…",
     "effectChainGraph": "Effect Chain Graph…",
     "studioBasics": "Studio Basics…",
-    "pluginDoctor": "Plugin Analysis…"
+    "pluginAnalysis": "Plugin Analysis…"
   },
   "dialog": {
     "createLive": {
@@ -690,7 +690,7 @@
           "studio-basics": "Studio Basics",
           "audio-benchmark": "Audio performance benchmark",
           "effect-chain-graph": "Effect chain graph",
-          "plugin-doctor": "Plugin Analysis"
+          "plugin-analysis": "Plugin Analysis"
         }
       }
     },
@@ -2142,7 +2142,7 @@
     "validEffectMode": "Choose a valid input effect mode for this insert position.",
     "waveformDescription": "Waveform, {channels} channels, {frames} frames"
   },
-  "doctor": {
+  "pluginAnalysis": {
     "analysis": "Analysis report",
     "level": "Sweep input level",
     "sampleRate": "Sample rate",

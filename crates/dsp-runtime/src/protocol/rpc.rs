@@ -6,7 +6,7 @@ pub const IPC_PROTOCOL_VERSION: u8 = 2;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ResourceKind {
-    PluginDoctor,
+    PluginAnalysis,
     DesktopSession,
     ApplicationSettings,
     ProjectSession,

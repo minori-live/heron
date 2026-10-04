@@ -23,7 +23,7 @@ evidence belong in their owning documents rather than being copied into each ADR
 | [0013 — Live layer editing](0013-live-layer-editing.md)                                                | Accepted                           | Sparse Set/Patch overrides, editing scope, revisioned hierarchy persistence and version-1 upgrade     |
 | [0014 — Live runtime activation](0014-live-runtime-activation.md)                                      | Accepted                           | Embedded Live activation, bounded cut, volatile performance and layered Capture                       |
 | [0015 — Live layer plug-in state](0015-live-layer-plugin-state.md)                                     | Accepted                           | Binary layer state, independent parameter precedence and explicit complete-state Capture destinations |
-| [0016 — Plugin Analysis measurement sessions](0016-plugin-doctor.md)                                   | Accepted                           | Independent experiment chain, floating point excitation, measurement worker and revisioned reports    |
+| [0016 — Plugin Analysis measurement sessions](0016-plugin-analysis.md)                                 | Accepted                           | Independent experiment chain, floating point excitation, measurement worker and revisioned reports    |
 
 Accepted means the architecture is chosen, not that every feature or release
 acceptance test is complete. Each record states its implementation scope; the

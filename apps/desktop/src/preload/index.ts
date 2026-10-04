@@ -21,7 +21,7 @@ import { invokeRpc } from "./rpc"
 import { classifyRendererEntrypoint } from "../shared/renderer-security"
 
 const api: HeronDesktopApi = {
-  openPluginDoctor: (meta) => invokeRpc(IPC_CHANNELS.pluginDoctorOpen, meta),
+  openPluginAnalysis: (meta) => invokeRpc(IPC_CHANNELS.pluginAnalysisOpen, meta),
   updateSnapshot: (meta) => invokeRpc(IPC_CHANNELS.updateSnapshot, meta),
   updateCommand: (meta, command) => invokeRpc(IPC_CHANNELS.updateCommand, meta, command),
   subscribeUpdates: (listener) => {
@@ -225,12 +225,12 @@ if (entrypoint === "splash") {
   contextBridge.exposeInMainWorld("heronSplash", splashApi)
 } else if (entrypoint === "main") {
   contextBridge.exposeInMainWorld("heron", api)
-} else if (entrypoint === "doctor") {
-  const doctorApi: import("@heron/contracts").HeronDoctorApi = {
+} else if (entrypoint === "plugin-analysis") {
+  const pluginAnalysisApi: import("@heron/contracts").HeronPluginAnalysisApi = {
     platform: process.platform as HeronDesktopApi["platform"],
     snapshot: (meta, acknowledge) =>
-      invokeRpc(IPC_CHANNELS.pluginDoctorSnapshot, meta, acknowledge),
-    command: (meta, command) => invokeRpc(IPC_CHANNELS.pluginDoctorCommand, meta, command)
+      invokeRpc(IPC_CHANNELS.pluginAnalysisSnapshot, meta, acknowledge),
+    command: (meta, command) => invokeRpc(IPC_CHANNELS.pluginAnalysisCommand, meta, command)
   }
-  contextBridge.exposeInMainWorld("heronDoctor", doctorApi)
+  contextBridge.exposeInMainWorld("heronPluginAnalysis", pluginAnalysisApi)
 }

@@ -16,7 +16,7 @@ mod events;
 mod graph;
 mod midi_input;
 mod plugin;
-mod plugin_doctor;
+mod plugin_analysis;
 #[cfg(test)]
 pub mod plugin_failure_fixture;
 mod recording;
@@ -32,7 +32,7 @@ pub use events::*;
 pub use graph::*;
 pub use midi_input::*;
 pub use plugin::*;
-pub use plugin_doctor::*;
+pub use plugin_analysis::*;
 pub use recording::*;
 pub use responses::*;
 pub use rpc::*;
@@ -63,7 +63,7 @@ mod ts_export {
 
     pub(crate) fn export() -> Result<(), ts_rs::ExportError> {
         super::LiveMixerGraph::export_all(&config())?;
-        super::DoctorJobStatus::export_all(&config())
+        super::PluginAnalysisJobStatus::export_all(&config())
     }
 }
 

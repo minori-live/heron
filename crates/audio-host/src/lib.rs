@@ -9,7 +9,7 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-mod plugin_doctor;
+mod plugin_analysis;
 
 static ERROR_CORRELATION: AtomicU64 = AtomicU64::new(1);
 

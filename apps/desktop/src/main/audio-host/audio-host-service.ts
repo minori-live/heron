@@ -89,26 +89,28 @@ export type {
 export type { PreparedGraphDeployment } from "./audio-host-graph-transactions"
 
 export class AudioHostService {
-  private readonly doctorListeners = new Set<(notification: PluginHostNotification) => void>()
-  private readonly doctorShutdown = new Set<() => Promise<void>>()
+  private readonly pluginAnalysisListeners = new Set<
+    (notification: PluginHostNotification) => void
+  >()
+  private readonly pluginAnalysisShutdown = new Set<() => Promise<void>>()
 
-  subscribeDoctorShutdown(listener: () => Promise<void>): () => void {
-    this.doctorShutdown.add(listener)
-    return () => this.doctorShutdown.delete(listener)
+  subscribePluginAnalysisShutdown(listener: () => Promise<void>): () => void {
+    this.pluginAnalysisShutdown.add(listener)
+    return () => this.pluginAnalysisShutdown.delete(listener)
   }
 
-  subscribeDoctorNotifications(
+  subscribePluginAnalysisNotifications(
     listener: (notification: PluginHostNotification) => void
   ): () => void {
-    this.doctorListeners.add(listener)
-    return () => this.doctorListeners.delete(listener)
+    this.pluginAnalysisListeners.add(listener)
+    return () => this.pluginAnalysisListeners.delete(listener)
   }
 
-  doctorRequest(command: Record<string, unknown>): Promise<ControlResponse> {
+  pluginAnalysisRequest(command: Record<string, unknown>): Promise<ControlResponse> {
     return this.request(command)
   }
 
-  unloadDoctorPlugin(instanceId: string): Promise<void> {
+  unloadPluginAnalysisPlugin(instanceId: string): Promise<void> {
     return this.plugins.unloadPlugin(instanceId, true)
   }
   private readonly publicationGraph: ProjectGraphRef = {
@@ -234,8 +236,8 @@ export class AudioHostService {
       },
       (callback) => this.events.dispatchAra(callback),
       (notification) => {
-        if (notification.instanceId.startsWith("doctor-")) {
-          for (const listener of this.doctorListeners) listener(notification)
+        if (notification.instanceId.startsWith("plugin-analysis-")) {
+          for (const listener of this.pluginAnalysisListeners) listener(notification)
         } else this.events.dispatchPlugin(notification)
       },
       (request) => this.events.dispatchSidechain(request),
@@ -393,7 +395,8 @@ export class AudioHostService {
     const retiredInstanceIds = this.plugins
       .loadedInstanceIds()
       .filter(
-        (instanceId) => !instanceId.startsWith("doctor-") && !desiredInstanceIds.has(instanceId)
+        (instanceId) =>
+          !instanceId.startsWith("plugin-analysis-") && !desiredInstanceIds.has(instanceId)
       )
     const retired = await Promise.allSettled(
       retiredInstanceIds.map((instanceId) => this.plugins.unloadPlugin(instanceId))
@@ -812,7 +815,7 @@ export class AudioHostService {
   }
 
   async stop(): Promise<void> {
-    await Promise.all([...this.doctorShutdown].map((close) => close()))
+    await Promise.all([...this.pluginAnalysisShutdown].map((close) => close()))
     this.stopping = true
     this.stopUiDrain()
     await this.shutdownCurrentClient()

@@ -1,7 +1,7 @@
 export const IPC_PROTOCOL_VERSION = 2 as const
 
 export const RESOURCE_KINDS = [
-  "plugin-doctor",
+  "plugin-analysis",
   "desktop-session",
   "application-settings",
   "project-session",

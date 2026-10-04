@@ -11,7 +11,7 @@ export interface RendererEntrypoints {
   mode: "bundle" | "development"
 }
 
-export type RendererEntrypointKind = "main" | "splash" | "doctor" | null
+export type RendererEntrypointKind = "main" | "splash" | "plugin-analysis" | null
 
 export function classifyRendererEntrypoint(url: string): RendererEntrypointKind {
   try {
@@ -21,10 +21,10 @@ export function classifyRendererEntrypoint(url: string): RendererEntrypointKind 
     }
     const identity = `${candidate.protocol}//${candidate.host}${candidate.pathname}`
     if (
-      identity === `${HERON_RENDERER_SCHEME}://${HERON_RENDERER_HOST}/plugin-doctor.html` ||
-      identity === new URL("plugin-doctor.html", HERON_DEVELOPMENT_RENDERER_URL).toString()
+      identity === `${HERON_RENDERER_SCHEME}://${HERON_RENDERER_HOST}/plugin-analysis.html` ||
+      identity === new URL("plugin-analysis.html", HERON_DEVELOPMENT_RENDERER_URL).toString()
     ) {
-      return "doctor"
+      return "plugin-analysis"
     }
     if (identity === HERON_MAIN_RENDERER_URL || identity === HERON_DEVELOPMENT_RENDERER_URL) {
       return "main"

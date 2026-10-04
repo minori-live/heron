@@ -107,9 +107,9 @@ export interface ExternalProjectCommandNotification {
 }
 
 export const IPC_CHANNELS = {
-  pluginDoctorOpen: "plugin-doctor:open",
-  pluginDoctorSnapshot: "plugin-doctor:snapshot",
-  pluginDoctorCommand: "plugin-doctor:command",
+  pluginAnalysisOpen: "plugin-analysis:open",
+  pluginAnalysisSnapshot: "plugin-analysis:snapshot",
+  pluginAnalysisCommand: "plugin-analysis:command",
   updateSnapshot: "application-update:snapshot",
   updateCommand: "application-update:command",
   updateEvent: "application-update:event",
@@ -215,7 +215,7 @@ export interface HeronSplashApi {
 }
 
 export interface HeronDesktopApi {
-  openPluginDoctor(meta: RpcRequestMeta): Promise<RpcResult<void>>
+  openPluginAnalysis(meta: RpcRequestMeta): Promise<RpcResult<void>>
   updateSnapshot(meta: RpcRequestMeta): Promise<RpcResult<ApplicationUpdateSnapshot>>
   updateCommand(
     meta: RpcRequestMeta,

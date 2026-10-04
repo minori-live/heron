@@ -203,8 +203,8 @@ export function useApplicationCommands() {
           label: t("menu.audioBenchmark")
         },
         {
-          value: "help.plugin-doctor",
-          label: t("menu.pluginDoctor")
+          value: "help.plugin-analysis",
+          label: t("menu.pluginAnalysis")
         },
         {
           value: "help.effect-chain-graph",
@@ -405,8 +405,8 @@ export function useApplicationCommands() {
       case "help.audio-benchmark":
         benchmarkStore.open()
         break
-      case "help.plugin-doctor": {
-        await applicationWindowStore.openPluginDoctor()
+      case "help.plugin-analysis": {
+        await applicationWindowStore.openPluginAnalysis()
         break
       }
       case "help.effect-chain-graph":
