@@ -69,6 +69,7 @@ export interface PluginAnalysisSnapshot {
   phase: string
   progress: number
   report: PluginAnalysisReport | null
+  reportId: string | null
   reportRevision: number | null
   memory: {
     baselineBytes: number

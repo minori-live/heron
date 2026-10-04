@@ -72,6 +72,7 @@ export class PluginAnalysisService {
       phase: "",
       progress: 0,
       report: null,
+      reportId: null,
       reportRevision: null,
       memory: null,
       failure: null,
@@ -149,7 +150,6 @@ export class PluginAnalysisService {
   }
 
   private async apply(command: PluginAnalysisCommand): Promise<void> {
-    this.value.failure = null
     switch (command.type) {
       case "insert": {
         let descriptor = this.catalog().find((p) => pluginDescriptorKey(p) === command.pluginKey)
@@ -205,6 +205,8 @@ export class PluginAnalysisService {
             ...timing
           }
           this.reorder()
+          // A successful insert supersedes an earlier rejected/prepare failure.
+          this.value.failure = null
           this.changed("chain")
         } catch {
           this.value.failure = "prepare-failed"
@@ -290,6 +292,7 @@ export class PluginAnalysisService {
       case "refresh-catalog":
         try {
           await this.refreshCatalog()
+          if (this.value.failure === "catalog-unavailable") this.value.failure = null
         } catch {
           this.value.failure = "catalog-unavailable"
         }
@@ -399,6 +402,7 @@ export class PluginAnalysisService {
     this.value.status = "running"
     this.value.phase = "preparing"
     this.value.progress = 0
+    this.value.failure = null
     try {
       let latency = 0
       for (const plugin of plugins) {
@@ -511,6 +515,7 @@ export class PluginAnalysisService {
         if (terminal.state === "completed") {
           // One commit point after native processing and endpoint cleanup are confirmed.
           this.value.report = terminal.report
+          this.value.reportId = id
           this.value.reportRevision = revision
           this.value.memory = {
             baselineBytes,

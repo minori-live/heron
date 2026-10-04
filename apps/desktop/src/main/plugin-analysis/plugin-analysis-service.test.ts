@@ -44,7 +44,7 @@ const parameter: PluginParameterInfo = {
   defaultNormalized: 1
 }
 
-function arrange() {
+function arrange(options: { refreshCatalog?: () => Promise<unknown> } = {}) {
   let complete = false
   let cancelled = false
   const report: PluginAnalysisReport = {
@@ -96,7 +96,9 @@ function arrange() {
     host,
     () => [descriptor],
     { locale: "en-US", theme: "dark" },
-    () => 1000
+    () => 1000,
+    async (value) => value,
+    options.refreshCatalog
   )
   return {
     service,
@@ -277,5 +279,44 @@ describe("Plugin Analysis analysis session", () => {
     expect(host.pluginAnalysisRequest).toHaveBeenCalledWith(
       expect.objectContaining({ type: "release-plugin-analysis" })
     )
+  })
+
+  it("publishes a distinct report identity for a repeated analysis at the same revision", async () => {
+    const { service, complete } = arrange()
+    await service.command({ type: "analyze" }, "first")
+    await vi.advanceTimersByTimeAsync(0)
+    complete()
+    await vi.advanceTimersByTimeAsync(100)
+    const first = service.snapshot()
+    expect(first.status).toBe("complete")
+    expect(first.reportId).not.toBeNull()
+    await service.command({ type: "analyze" }, "second")
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.advanceTimersByTimeAsync(100)
+    const second = service.snapshot()
+    expect(second.status).toBe("complete")
+    expect(second.reportRevision).toBe(first.reportRevision)
+    expect(second.reportId).not.toBe(first.reportId)
+    await service.close()
+  })
+
+  it("retains a visible failure across unrelated commands and clears it when resolved", async () => {
+    const refreshCatalog = vi.fn<() => Promise<unknown>>(async () => {
+      throw new Error("scan failed")
+    })
+    const { service } = arrange({ refreshCatalog })
+    await service.command({ type: "refresh-catalog" }, "catalog-fail")
+    expect(service.snapshot().failure).toBe("catalog-unavailable")
+    await service.command({ type: "window", action: "minimize" }, "chrome")
+    await service.command({ type: "editor", instanceId: "missing" }, "editor")
+    await service.command(
+      { type: "insert", pluginKey: "missing", audioMode: "stereo", slotOrder: 0 },
+      "rejected-insert"
+    )
+    expect(service.snapshot().failure).toBe("catalog-unavailable")
+    refreshCatalog.mockImplementation(async () => undefined)
+    await service.command({ type: "refresh-catalog" }, "catalog-ok")
+    expect(service.snapshot().failure).toBeNull()
+    await service.close()
   })
 })
