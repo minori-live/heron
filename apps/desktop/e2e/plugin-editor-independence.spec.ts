@@ -82,6 +82,9 @@ test("Analysis plug-in editors stay independent of the main Editor and clean up 
       HERON_TEST_MOCK_AUDIO: "1"
     }
   })
+  // Playwright releases its Electron dispatcher after close, so retain the
+  // process while it is live for exit assertions and failure cleanup.
+  const electronProcess = application.process()
   try {
     await expect
       .poll(() => application.windows().some((page) => page.url().includes("index.html")))
@@ -207,8 +210,8 @@ test("Analysis plug-in editors stay independent of the main Editor and clean up 
       )
       .toEqual([])
     await application.close()
-    expect(application.process().exitCode).toBe(0)
+    expect(electronProcess.exitCode).toBe(0)
   } finally {
-    if (application.process().exitCode === null) await closeElectronApplication(application)
+    if (electronProcess.exitCode === null) await closeElectronApplication(application)
   }
 })
