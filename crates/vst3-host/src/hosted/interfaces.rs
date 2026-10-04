@@ -4,7 +4,8 @@ use heron_vst3_host_sys::{
     Steinberg::{
         IPlugFrame, IPlugView, IPlugViewContentScaleSupport, IPluginBase, TUID, ViewRect,
         Vst::{
-            IComponent, IConnectionPoint, IEditController, IMidiMapping, IUnitInfo, ParameterInfo,
+            self, IComponent, IConnectionPoint, IEditController, IMidiMapping, IUnitInfo,
+            ParameterInfo,
         },
     },
     abi::{
@@ -312,6 +313,39 @@ pub(super) fn check(operation: &'static str, result: i32) -> HostResult<()> {
     } else {
         Err(HostError::Operation { operation, result })
     }
+}
+
+pub(super) fn check_controller_parameter_sync(
+    operation: &'static str,
+    result: i32,
+) -> HostResult<()> {
+    // setParamNormalized synchronizes the controller's GUI; DSP changes travel
+    // separately through IParameterChanges. Some controllers (Ozone) return
+    // kResultFalse for this GUI update even while the processor accepts the
+    // parameter, so it must not prevent delivery or flushing of queued changes.
+    if result == 1 {
+        Ok(())
+    } else {
+        check(operation, result)
+    }
+}
+
+pub(super) fn validate_controller_parameter_edit(flags: Option<u32>) -> HostResult<()> {
+    let flags = flags.ok_or(HostError::Operation {
+        operation: "parameter ID not found",
+        result: -2147024809,
+    })?;
+    if flags
+        & (as_uint32(Vst::ParameterInfo_ParameterFlags_kIsReadOnly)
+            | as_uint32(Vst::ParameterInfo_ParameterFlags_kIsHidden))
+        != 0
+    {
+        return Err(HostError::Operation {
+            operation: "parameter is read-only or hidden",
+            result: -2147024891,
+        });
+    }
+    Ok(())
 }
 
 pub(super) fn is_not_implemented(result: i32) -> bool {

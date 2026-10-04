@@ -60,6 +60,15 @@ requests an immediate drain; an unref'd maintenance timer services plug-in and
 ARA timers. The embedded runtime must not create or pump a winit event loop,
 because Electron already owns the platform application loop.
 
+VST3 parameter changes reach the audio processor through its bounded parameter
+queue and `IAudioProcessor::process`. `IEditController::setParamNormalized` only
+synchronizes the controller UI. Its `kResultFalse` response does not reject an
+already queued processor change or suppress a requested parameter flush; other
+failure codes remain errors. This also applies to processor output parameters
+mirrored into the controller. Ozone 11 Exciter exercises this distinction during
+Plugin Analysis state cloning and parameter replay. See the
+[VST3 controller contract](https://steinbergmedia.github.io/vst3_doc/vstinterfaces/classSteinberg_1_1Vst_1_1IEditController.html).
+
 Electron main creates one `BaseWindow` per native plug-in editor and registers
 its platform handle before sending `OpenPluginEditor`. A sandboxed
 `WebContentsView` renders the host-owned toolbar at the top of that window;
