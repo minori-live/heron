@@ -81,6 +81,8 @@ const series = computed(() => [
     <PluginAnalysisPlot
       :title="t('pluginAnalysis.tabs.oscilloscope')"
       :x-label="domain === 'time' ? 'ms' : t('pluginAnalysis.input')"
+      :x-unit="domain === 'time' ? 'ms' : 'FS'"
+      y-unit="FS"
       :y-label="t('pluginAnalysis.amplitude')"
       :series="series"
     />

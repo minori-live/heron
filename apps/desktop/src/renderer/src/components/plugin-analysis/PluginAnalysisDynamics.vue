@@ -66,6 +66,8 @@ const series = computed(() => [
     <PluginAnalysisPlot
       :title="view === 'ramp' ? t('pluginAnalysis.ramp') : t('pluginAnalysis.attackRelease')"
       :x-label="view === 'ramp' ? t('pluginAnalysis.inputLevel') : 'ms'"
+      :x-unit="view === 'ramp' ? 'dBFS' : 'ms'"
+      y-unit="dBFS"
       :y-label="t('pluginAnalysis.outputLevel')"
       :series="series"
     />

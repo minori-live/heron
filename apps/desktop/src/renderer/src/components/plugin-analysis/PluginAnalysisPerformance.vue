@@ -38,6 +38,8 @@ const mib = (bytes: number) => (bytes / 1024 / 1024).toFixed(2)
       <PluginAnalysisPlot
         :title="t('pluginAnalysis.blockPerformance')"
         :x-label="t('pluginAnalysis.blockSize')"
+        x-unit="smp"
+        y-unit="μs"
         y-label="μs"
         :series="blockSeries"
       />

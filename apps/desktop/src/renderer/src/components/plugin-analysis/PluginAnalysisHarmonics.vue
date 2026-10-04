@@ -117,6 +117,16 @@ const title = computed(() =>
     <PluginAnalysisPlot
       :title="title"
       :x-label="view === '2d' ? 's' : 'Hz'"
+      :x-unit="view === '2d' ? 's' : 'Hz'"
+      :y-unit="
+        view === '2d'
+          ? 'Hz'
+          : view === 'fundamental'
+            ? 'dB'
+            : view === 'thd' || magnitudeScale === 'linear'
+              ? '%'
+              : 'dBc'
+      "
       :y-label="
         view === '2d'
           ? 'Hz'

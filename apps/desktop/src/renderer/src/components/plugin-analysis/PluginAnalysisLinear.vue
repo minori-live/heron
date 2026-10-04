@@ -114,6 +114,8 @@ function changeView(): void {
     <PluginAnalysisPlot
       :title="title"
       :x-label="view === 'impulse' ? 'ms' : 'Hz'"
+      :x-unit="view === 'impulse' ? 'ms' : 'Hz'"
+      :y-unit="view === 'magnitude' ? 'dB' : view === 'phase' ? '°' : 'FS'"
       :y-label="
         view === 'magnitude'
           ? t('pluginAnalysis.units.db')

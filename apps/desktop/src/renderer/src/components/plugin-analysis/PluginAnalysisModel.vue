@@ -123,6 +123,8 @@ const series = computed(() => [
   <section class="model-panel">
     <PluginAnalysisPlot
       :title="title"
+      :x-unit="view === 'static' ? 'FS' : view === 'filter' || view === 'orders' ? 'Hz' : 'ms'"
+      :y-unit="view === 'filter' || view === 'orders' ? 'dB' : 'FS'"
       :x-label="
         view === 'static'
           ? t('pluginAnalysis.input')

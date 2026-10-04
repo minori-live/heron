@@ -60,6 +60,8 @@ const tabs = computed(() =>
           <PluginAnalysisPlot
             :title="t('pluginAnalysis.frequency')"
             x-label="Hz"
+            x-unit="Hz"
+            y-unit="dB"
             :y-label="t('pluginAnalysis.units.db')"
             :series="[]"
             :y-domain="[-6, 6]"
@@ -72,6 +74,8 @@ const tabs = computed(() =>
           <PluginAnalysisPlot
             :title="t('pluginAnalysis.spectrum2d')"
             x-label="s"
+            x-unit="s"
+            y-unit="Hz"
             y-label="Hz"
             :series="[]"
             :x-domain="[0, snapshot.settings.sweep_seconds]"
@@ -95,6 +99,8 @@ const tabs = computed(() =>
         <section v-else class="empty-panel">
           <PluginAnalysisPlot
             :title="t('pluginAnalysis.nonlinearity')"
+            x-unit="FS"
+            y-unit="FS"
             :x-label="t('pluginAnalysis.input')"
             :y-label="t('pluginAnalysis.output')"
             :series="[]"

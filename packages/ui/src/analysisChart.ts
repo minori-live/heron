@@ -15,6 +15,7 @@ import {
 } from "echarts/components"
 import { CanvasRenderer } from "echarts/renderers"
 import type { AnalysisDomain } from "./analysisView"
+import { formatAxisTick, linearAxisStep } from "./analysisAxis"
 import type { UiAnalysisHeatmap, UiAnalysisSeries } from "./types"
 
 use([LineChart, CustomChart, GridComponent, TooltipComponent, VisualMapComponent, CanvasRenderer])
@@ -31,6 +32,10 @@ type AnalysisOption = ComposeOption<
 export interface AnalysisChartInput {
   xLabel: string
   yLabel: string
+  xUnit?: string
+  yUnit?: string
+  xMinimumStep?: number
+  yMinimumStep?: number
   series: readonly UiAnalysisSeries[]
   logarithmic: boolean
   xDomain: AnalysisDomain
@@ -112,6 +117,12 @@ export function analysisChartOption(
   const textColor = token("--ui-color-text-subtle")
   const borderColor = token("--ui-color-border")
   const fontFamily = token("--ui-type-family-data")
+  const xStep = linearAxisStep(
+    input.xDomain,
+    Math.max(2, Math.min(8, Math.floor(layout.width / 90))),
+    input.xMinimumStep ?? 0
+  )
+  const yStep = linearAxisStep(input.yDomain, 6, input.yMinimumStep ?? 0)
   const axis = {
     nameTextStyle: { color: textColor, fontFamily },
     axisLabel: { color: textColor, fontFamily, fontSize: 11, formatter: tick, hideOverlap: true },
@@ -179,6 +190,19 @@ export function analysisChartOption(
     xAxis: {
       ...axis,
       type: input.logarithmic ? "log" : "value",
+      minInterval: input.logarithmic ? undefined : input.xMinimumStep,
+      interval: !input.logarithmic && input.xMinimumStep ? xStep : undefined,
+      axisLabel: {
+        ...axis.axisLabel,
+        formatter: (value: number) =>
+          input.xUnit
+            ? formatAxisTick(
+                value,
+                input.logarithmic ? input.xMinimumStep || 1 : xStep,
+                input.xUnit
+              )
+            : tick(value)
+      },
       min: input.xDomain[0],
       max: input.xDomain[1],
       name: input.xLabel,
@@ -188,11 +212,18 @@ export function analysisChartOption(
     yAxis: {
       ...axis,
       type: "value",
+      minInterval: input.yMinimumStep,
+      interval: input.yMinimumStep ? yStep : undefined,
+      axisLabel: {
+        ...axis.axisLabel,
+        formatter: (value: number) =>
+          input.yUnit ? formatAxisTick(value, yStep, input.yUnit) : tick(value)
+      },
       min: input.yDomain[0],
       max: input.yDomain[1],
       name: input.yLabel,
       nameLocation: "middle",
-      nameGap: 46
+      nameGap: input.yUnit ? 74 : 46
     },
     tooltip: {
       trigger: input.heatmap ? "item" : "axis",
@@ -236,7 +267,7 @@ export function analysisChartOption(
           itemWidth: 10,
           itemHeight: Math.max(40, layout.height - 40),
           calculable: false,
-          text: [`${input.colorDomain[1]}`, `${input.colorDomain[0]}`],
+          text: [`${input.colorDomain[1]} dBFS`, `${input.colorDomain[0]} dBFS`],
           textStyle: { color: textColor, fontFamily },
           inRange: {
             color: Array.from({ length: 5 }, (_, i) => token(`--ui-analysis-energy-${i}`))

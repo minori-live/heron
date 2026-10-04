@@ -14,17 +14,55 @@ const input: AnalysisChartInput = {
   colorDomain: [-120, 12]
 }
 
+function numericAxis(option: ReturnType<typeof analysisChartOption>, key: "xAxis" | "yAxis") {
+  const axis = Array.isArray(option[key]) ? option[key][0] : option[key]
+  if (axis?.type !== "value" && axis?.type !== "log") throw new Error("Expected a numeric axis")
+  const formatter = axis.axisLabel?.formatter
+  if (typeof formatter !== "function") throw new Error("Expected the measurement formatter")
+  return { ...axis, format: (value: number) => formatter(value, 0, undefined) }
+}
+
 describe("analysis chart adapter", () => {
   it("keeps frequency, small-level and zero axis labels readable without changing their values", () => {
     const option = analysisChartOption(input, layout, document.createElement("div").style, [])
-    const axis = Array.isArray(option.xAxis) ? option.xAxis[0] : option.xAxis
-    if (axis?.type !== "value" && axis?.type !== "log") throw new Error("Expected a numeric axis")
-    const formatter = axis?.axisLabel?.formatter
-    if (typeof formatter !== "function") throw new Error("Expected the measurement formatter")
-    expect(formatter(20000, 0, undefined)).toBe("20k")
-    expect(formatter(0.0002, 0, undefined)).toBe("2.0e-4")
-    expect(formatter(-0.125, 0, undefined)).toBe("-0.125")
-    expect(formatter(0, 0, undefined)).toBe("0")
+    const x = numericAxis(option, "xAxis")
+    expect(x.format(20000)).toBe("20k")
+    expect(x.format(0.0002)).toBe("2.0e-4")
+    expect(x.format(-0.125)).toBe("-0.125")
+    expect(x.format(0)).toBe("0")
+    expect(numericAxis(option, "yAxis").format(12000)).toBe("12k")
+  })
+
+  it("maps unit resolution to linear grid spacing and logarithmic frequency labels", () => {
+    const style = document.createElement("div").style
+    const linear = analysisChartOption(
+      {
+        ...input,
+        xUnit: "ms",
+        xMinimumStep: 0.01,
+        xDomain: [1000, 1000.08],
+        yUnit: "dBFS",
+        yMinimumStep: 1,
+        yDomain: [-12, 0]
+      },
+      layout,
+      style,
+      []
+    )
+    const x = numericAxis(linear, "xAxis")
+    expect(x).toMatchObject({ type: "value", interval: 0.01, minInterval: 0.01 })
+    expect(x.format(1000.01)).toBe("1000.01 ms")
+    expect(numericAxis(linear, "yAxis").format(-6)).toBe("-6 dBFS")
+
+    const logarithmic = analysisChartOption(
+      { ...input, xUnit: "Hz", xMinimumStep: 1, logarithmic: true, xDomain: [20, 20000] },
+      layout,
+      style,
+      []
+    )
+    const frequency = numericAxis(logarithmic, "xAxis")
+    expect(frequency).toMatchObject({ type: "log", interval: undefined, minInterval: undefined })
+    expect(frequency.format(1001)).toBe("1.001 kHz")
   })
 
   it("clips zoomed spectrum cells to the plot while retaining their original measured coordinates", () => {

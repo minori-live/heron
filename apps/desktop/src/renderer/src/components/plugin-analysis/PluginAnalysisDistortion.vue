@@ -39,6 +39,8 @@ function percent(value: number | null | undefined): string {
     <PluginAnalysisPlot
       :title="mode === 'tone' ? t('pluginAnalysis.thdValue') : t('pluginAnalysis.imd')"
       x-label="Hz"
+      x-unit="Hz"
+      y-unit="dBFS"
       :y-label="t('pluginAnalysis.units.dbfs')"
       :series="series"
       :y-domain="[-160, 12]"

@@ -14,18 +14,23 @@ function unscaled(value: number, logarithmic: boolean): number {
 }
 
 /** Clamp a display domain to a finite, ordered, non-degenerate interval. */
-export function normalizeDomain(domain: AnalysisDomain, logarithmic: boolean): AnalysisDomain {
+export function normalizeDomain(
+  domain: AnalysisDomain,
+  logarithmic: boolean,
+  minimumSpan = MINIMUM_SPAN
+): AnalysisDomain {
   let [low, high] = domain
   if (!Number.isFinite(low) || !Number.isFinite(high)) return domain
   if (high < low) [low, high] = [high, low]
-  if (high - low < MINIMUM_SPAN) {
+  const span = Math.max(MINIMUM_SPAN, minimumSpan)
+  if (high - low < span) {
     const center = (low + high) / 2
-    low = center - MINIMUM_SPAN / 2
-    high = center + MINIMUM_SPAN / 2
+    low = center - span / 2
+    high = center + span / 2
   }
   if (logarithmic) {
     low = Math.max(LOG_FLOOR, low)
-    high = Math.max(low * (1 + 1e-9), high)
+    high = Math.max(low + span, low * (1 + 1e-9), high)
   }
   return [low, high]
 }
@@ -56,16 +61,21 @@ export function zoomDomain(
 /**
  * Shift a domain by a fraction of its visible span. A positive fraction moves
  * towards higher values so vertical wheel gestures on the frequency axis pan
- * in the direction the pointer implies.
+ * in the direction the pointer implies. Logarithmic pans stop at minimumValue
+ * by limiting the shared shift, preserving the visible frequency ratio.
  */
 export function panDomain(
   domain: AnalysisDomain,
   fraction: number,
-  logarithmic: boolean
+  logarithmic: boolean,
+  minimumValue = LOG_FLOOR
 ): AnalysisDomain {
   const low = scaled(domain[0], logarithmic)
   const high = scaled(domain[1], logarithmic)
-  const shift = (high - low) * fraction
+  const requestedShift = (high - low) * fraction
+  const shift = logarithmic
+    ? Math.max(requestedShift, scaled(minimumValue, true) - low)
+    : requestedShift
   return normalizeDomain(
     [unscaled(low + shift, logarithmic), unscaled(high + shift, logarithmic)],
     logarithmic

@@ -213,6 +213,8 @@ describe("analysis report composition", () => {
         title: "Frequency response",
         xLabel: "Hz",
         yLabel: "dB",
+        xUnit: "Hz",
+        yUnit: "dB",
         series,
         logarithmic: true,
         yDomain: [-12, 6]
@@ -224,6 +226,10 @@ describe("analysis report composition", () => {
       label: "Frequency response",
       xLabel: "Hz",
       yLabel: "dB",
+      xUnit: "Hz",
+      yUnit: "dB",
+      xMinimumStep: 1,
+      yMinimumStep: 1,
       series,
       logarithmic: true,
       yDomain: [-12, 6]
