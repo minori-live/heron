@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { CustomSeriesOption, LineSeriesOption } from "echarts/charts"
 import { analysisChartOption, analysisHeatmapCells, type AnalysisChartInput } from "./analysisChart"
+import { UI_DOMAIN_COLORS } from "./domainColors"
 
 const layout = { left: 64, top: 18, width: 800, height: 400 }
 const input: AnalysisChartInput = {
@@ -45,14 +46,14 @@ describe("analysis chart adapter", () => {
         {
           value: (index: number) => cell[index],
           coord: ([x, y]: number[]) => [64 + (x! - 2) * 400, 418 - (y! - 6000) / 30],
-          visual: () => "teal"
+          visual: () => UI_DOMAIN_COLORS.audioChannel
         } as unknown as Parameters<typeof render>[1]
       )
     // The center time cell extends beyond the zoomed x range; each band is clipped vertically.
     expect(renderCell(cells[2]!)).toMatchObject({
       type: "rect",
       shape: { x: 64, y: 218, width: 800, height: 200 },
-      style: { fill: "teal" }
+      style: { fill: UI_DOMAIN_COLORS.audioChannel }
     })
     expect(renderCell(cells[3]!)).toMatchObject({
       type: "rect",
@@ -63,8 +64,8 @@ describe("analysis chart adapter", () => {
 
   it("preserves curve styles and measurement gaps when nonpositive frequencies cannot use the log axis", () => {
     const style = document.createElement("div").style
-    style.setProperty("--ui-signal-mixer-input", "navy")
-    style.setProperty("--ui-color-action", "orange")
+    style.setProperty("--ui-signal-mixer-input", UI_DOMAIN_COLORS.audioChannel)
+    style.setProperty("--ui-color-action", UI_DOMAIN_COLORS.busChannel)
     const option = analysisChartOption(
       {
         ...input,
@@ -73,7 +74,7 @@ describe("analysis chart adapter", () => {
         series: [
           { label: "L", x: [-20, 0, 20, 200], y: [1, 2, 3, null] },
           { label: "R", x: [20, 200], y: [4, 5], dashed: true },
-          { label: "Reference", x: [20, 200], y: [6, 7], color: "purple" }
+          { label: "Reference", x: [20, 200], y: [6, 7], color: UI_DOMAIN_COLORS.masterChannel }
         ]
       },
       layout,
@@ -89,13 +90,13 @@ describe("analysis chart adapter", () => {
         [200, null]
       ],
       connectNulls: false,
-      itemStyle: { color: "navy" },
+      itemStyle: { color: UI_DOMAIN_COLORS.audioChannel },
       lineStyle: { type: "solid" }
     })
     expect(series[1]).toMatchObject({
-      itemStyle: { color: "orange" },
+      itemStyle: { color: UI_DOMAIN_COLORS.busChannel },
       lineStyle: { type: "dashed" }
     })
-    expect(series[2]).toMatchObject({ itemStyle: { color: "purple" } })
+    expect(series[2]).toMatchObject({ itemStyle: { color: UI_DOMAIN_COLORS.masterChannel } })
   })
 })
