@@ -118,8 +118,8 @@ export const UI_COMPONENT_CATALOG = {
   UiAnalysisPlot: entry(
     "AnalysisPlot.stories.ts",
     ["StereoResponse", "SweepSpectrogram"],
-    false,
-    ["default"],
+    true,
+    ["default", "pointer"],
     "workspace"
   ),
   UiDbScale: entry("MixerControls.stories.ts", ["DbScale"], false, ["default"], "workspace"),

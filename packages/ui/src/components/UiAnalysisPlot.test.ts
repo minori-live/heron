@@ -1,15 +1,28 @@
-import { enableAutoUnmount, mount } from "@vue/test-utils"
+import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils"
 import { nextTick } from "vue"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-
+import type { CustomSeriesOption, LineSeriesOption } from "echarts/charts"
+import type {
+  GridComponentOption,
+  TooltipComponentOption,
+  VisualMapComponentOption
+} from "echarts/components"
 import UiAnalysisPlot from "./UiAnalysisPlot.vue"
 
+const chart = vi.hoisted(() => ({
+  setOption: vi.fn(),
+  resize: vi.fn(),
+  dispose: vi.fn(),
+  dispatchAction: vi.fn()
+}))
+vi.mock("echarts/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("echarts/core")>()),
+  init: () => chart
+}))
+
 enableAutoUnmount(afterEach)
-
 let resize: (entries: { contentRect: { width: number; height: number } }[]) => void
-const observe = vi.fn()
 const disconnect = vi.fn()
-
 beforeEach(() => {
   vi.clearAllMocks()
   vi.stubGlobal(
@@ -18,232 +31,170 @@ beforeEach(() => {
       constructor(callback: typeof resize) {
         resize = callback
       }
-      observe = observe
+      observe = vi.fn()
       disconnect = disconnect
     }
   )
 })
-
-afterEach(() => {
-  vi.restoreAllMocks()
-  vi.unstubAllGlobals()
-})
+afterEach(() => vi.unstubAllGlobals())
 
 const responseProps = {
   label: "Stereo response",
-  xLabel: "Frequency (Hz)",
-  yLabel: "Level (dB)",
+  xLabel: "Hz",
+  yLabel: "dB",
   series: []
 }
-
-function captureHeatmap() {
-  const frames: ImageData[] = []
-  const urls: string[] = []
-  const context = {
-    createImageData: (width: number, height: number) => ({
-      width,
-      height,
-      colorSpace: "srgb",
-      data: new Uint8ClampedArray(width * height * 4)
-    }),
-    putImageData: (pixels: ImageData) => frames.push(pixels)
-  }
-  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
-    context as unknown as CanvasRenderingContext2D
-  )
-  vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockImplementation(() => {
-    const url = `data:image/png;base64,${btoa(String(frames.length))}`
-    urls.push(url)
-    return url
-  })
-  return { frames, urls }
+type Option = {
+  xAxis: { min: number; max: number; type: string }
+  yAxis: { min: number; max: number }
+  series: (LineSeriesOption | CustomSeriesOption)[]
+  tooltip: TooltipComponentOption
+  visualMap: VisualMapComponentOption
+  grid: GridComponentOption
 }
-
-function pixel(frame: ImageData, x: number, y: number) {
-  const offset = (y * frame.width + x) * 4
-  return {
-    red: frame.data[offset]!,
-    green: frame.data[offset + 1]!,
-    blue: frame.data[offset + 2]!,
-    alpha: frame.data[offset + 3]!
-  }
+function option(): Option {
+  return chart.setOption.mock.lastCall![0]
 }
-
-describe("UiAnalysisPlot", () => {
-  it("labels the response and keeps empty or nonfinite measurements on readable axes", async () => {
-    const plot = mount(UiAnalysisPlot, { props: responseProps })
-    const labels = () => plot.findAll("text").map((label) => label.text())
-
-    expect(plot.get('[role="img"]').attributes("aria-label")).toBe("Stereo response")
-    expect(labels()).toEqual(
-      expect.arrayContaining(["Frequency (Hz)", "Level (dB)", "20", "20k", "-1", "1"])
-    )
-
-    await plot.setProps({
-      series: [
-        {
-          label: "L",
-          x: [20, Number.NaN, 20000, Number.POSITIVE_INFINITY],
-          y: [-10, null, 0, Number.NaN, Number.POSITIVE_INFINITY]
-        }
-      ]
-    })
-
-    expect(labels()).toEqual(expect.arrayContaining(["20", "20k"]))
-    // Leave headroom below the lowest finite measurement.
-    const numericLabels = labels().map(Number).filter(Number.isFinite)
-    expect(Math.min(...numericLabels)).toBeLessThan(-10)
-    expect(labels().join(" ")).not.toMatch(/NaN|Infinity/)
-  })
-
-  it("uses the requested measurement domains and logarithmic frequency labels", () => {
-    const plot = mount(UiAnalysisPlot, {
-      props: {
-        ...responseProps,
-        logarithmic: true,
-        xDomain: [20, 20000],
-        yDomain: [-60, 0],
-        series: [{ label: "L", x: [100, 1000], y: [-20, -30] }]
-      }
-    })
-    const labels = plot.findAll("text").map((label) => label.text())
-
-    expect(labels).toEqual(
-      expect.arrayContaining(["20", "50", "100", "200", "500", "1k", "2k", "5k", "10k", "20k"])
-    )
-    expect(labels).toEqual(expect.arrayContaining(["-60", "-50", "-40", "-30", "-20", "-10", "0"]))
-  })
-
-  it("fits its host, preserves minimum plotting dimensions, and releases observation on unmount", async () => {
-    const plot = mount(UiAnalysisPlot, { props: responseProps })
-    expect(observe).toHaveBeenCalledExactlyOnceWith(plot.element)
-
-    resize([{ contentRect: { width: 1100, height: 600 } }])
-    await nextTick()
-    expect(plot.get("svg").attributes("viewBox")).toBe("0 0 1100 600")
-
-    resize([{ contentRect: { width: 0, height: 0 } }])
-    await nextTick()
-    expect(plot.get("svg").attributes("viewBox")).toBe("0 0 320 200")
-
-    resize([])
-    await nextTick()
-    expect(plot.get("svg").attributes("viewBox")).toBe("0 0 320 200")
-    plot.unmount()
-    expect(disconnect).toHaveBeenCalledOnce()
-  })
-
-  it("maps column-major energy upward, clamps missing and out-of-range bins, and repaints changed data", async () => {
-    const { frames, urls } = captureHeatmap()
-    const plot = mount(UiAnalysisPlot, {
-      props: {
-        ...responseProps,
-        label: "Sweep spectrum",
-        xLabel: "Time (s)",
-        yLabel: "Frequency (Hz)",
-        xDomain: [0, 6],
-        yDomain: [0, 24000],
-        heatmap: { columns: 2, rows: 2, values: [-200, 24, -54] }
-      }
-    })
-    await nextTick()
-
-    const first = frames[0]!
-    expect([first.width, first.height]).toEqual([2, 2])
-    // High frequency bins occupy the top row; low energy is blue, high energy red.
-    const high = pixel(first, 0, 0)
-    expect(high.red).toBeGreaterThan(high.green)
-    expect(high.red).toBeGreaterThan(high.blue)
-    expect(high.alpha).toBe(255)
-    const low = pixel(first, 0, 1)
-    expect(low.blue).toBeGreaterThan(low.red)
-    expect(low.blue).toBeGreaterThan(low.green)
-    expect(pixel(first, 1, 0)).toEqual(low)
-    const middle = pixel(first, 1, 1)
-    expect(middle.green).toBeGreaterThan(middle.red)
-    expect(middle.green).toBeGreaterThan(middle.blue)
-    const initialUrl = plot.get("image").attributes("href")
-    expect(initialUrl).toBe(urls.at(-1))
-    expect(plot.text()).toContain("-120")
-
-    await plot.setProps({ colorDomain: [-120, 168] })
-    const rescaled = pixel(frames.at(-1)!, 0, 0)
-    expect(rescaled.green).toBeGreaterThan(rescaled.red)
-    expect(rescaled.green).toBeGreaterThan(rescaled.blue)
-    const rescaledUrl = plot.get("image").attributes("href")
-    expect(rescaledUrl).toBe(urls.at(-1))
-    expect(rescaledUrl).not.toBe(initialUrl)
-    expect(plot.text()).toContain("168")
-
-    await plot.setProps({ heatmap: { columns: 1, rows: 2, values: [-120, 168] } })
-    const replacement = frames.at(-1)!
-    expect([replacement.width, replacement.height]).toEqual([1, 2])
-    expect(pixel(replacement, 0, 0)).toEqual(high)
-    expect(pixel(replacement, 0, 1)).toEqual(low)
-    expect(plot.get("image").attributes("href")).toBe(urls.at(-1))
-    expect(plot.get("image").attributes("href")).not.toBe(rescaledUrl)
-
-    await plot.setProps({ heatmap: undefined })
-    expect(plot.find("image").exists()).toBe(false)
-    expect(plot.text()).not.toContain("168")
-    expect(plot.text()).toContain("Time (s)")
-  })
-
-  it("retains the labeled axes when heatmap rasterization is unavailable", () => {
-    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null)
-    const plot = mount(UiAnalysisPlot, {
-      props: {
-        ...responseProps,
-        heatmap: { columns: 1, rows: 1, values: [-60] }
-      }
-    })
-
-    expect(plot.get('[role="img"]').attributes("aria-label")).toBe("Stereo response")
-    expect(plot.text()).toContain("Frequency (Hz)")
-    expect(plot.text()).toContain("Level (dB)")
-    expect(plot.find("image").exists()).toBe(false)
-  })
-})
-
-const series = [{ label: "L", x: [20, 200, 2000, 20000], y: [0, -6, -12, -24] }]
-
-function mountPlot() {
+function tooltip(params: unknown): string {
+  const formatter = option().tooltip.formatter as (params: unknown) => string
+  return formatter(params)
+}
+async function mountPlot() {
   const wrapper = mount(UiAnalysisPlot, {
-    props: { label: "Plot", xLabel: "Hz", yLabel: "dB", series, logarithmic: true }
+    props: {
+      ...responseProps,
+      logarithmic: true,
+      series: [{ label: "L", x: [20, 200, 2000, 20000], y: [0, -6, -12, -24] }]
+    }
   })
-  const svg = wrapper.get("svg")
-  Object.defineProperty(svg.element, "getBoundingClientRect", {
+  Object.defineProperty(wrapper.get('[aria-hidden="true"]').element, "getBoundingClientRect", {
     value: () => ({ left: 0, top: 0, width: 900, height: 440 })
   })
+  resize([{ contentRect: { width: 900, height: 440 } }])
+  await flushPromises()
+  await vi.waitFor(() => expect(chart.setOption).toHaveBeenCalled())
   return wrapper
 }
 
-describe("UiAnalysisPlot zoom gestures", () => {
-  it("zooms into a dragged region and restores the auto domain on double click", async () => {
-    const wrapper = mountPlot()
-    const host = wrapper.get(".ui-analysis-plot")
-    const before = wrapper.get("svg").text()
-
-    await host.trigger("pointerdown", { button: 0, pointerId: 1, clientX: 200, clientY: 100 })
-    await host.trigger("pointermove", { pointerId: 1, clientX: 420, clientY: 220 })
-    await host.trigger("pointerup", { pointerId: 1, clientX: 420, clientY: 220 })
-    const zoomed = wrapper.get("svg").text()
-    expect(zoomed).not.toBe(before)
-
-    await host.trigger("dblclick")
-    expect(wrapper.get("svg").text()).toBe(before)
+describe("UiAnalysisPlot measurement adapter", () => {
+  it("labels the plot and gives empty and nonfinite measurements readable domains and gaps", async () => {
+    const plot = mount(UiAnalysisPlot, { props: responseProps })
+    await flushPromises()
+    await vi.waitFor(() => expect(chart.setOption).toHaveBeenCalled())
+    expect(plot.get('[role="img"]').attributes("aria-label")).toBe("Stereo response")
+    expect(option().xAxis).toMatchObject({ min: 20, max: 20000 })
+    expect(option().yAxis).toMatchObject({ min: -1, max: 1 })
+    await plot.setProps({
+      series: [{ label: "L", x: [20, NaN, 20000, Infinity], y: [-10, null, 0, NaN] }]
+    })
+    expect(option().series[0]!.data).toEqual([
+      [20, -10],
+      [null, null],
+      [20000, 0],
+      [null, null]
+    ])
+    expect(option().yAxis.min).toBeLessThan(-10)
+    expect(Number.isFinite(option().yAxis.max)).toBe(true)
   })
 
-  it("resets when the requested domain changes", async () => {
-    const wrapper = mountPlot()
-    const host = wrapper.get(".ui-analysis-plot")
-    await host.trigger("pointerdown", { button: 0, pointerId: 2, clientX: 200, clientY: 100 })
-    await host.trigger("pointermove", { pointerId: 2, clientX: 420, clientY: 220 })
-    await host.trigger("pointerup", { pointerId: 2, clientX: 420, clientY: 220 })
+  it("shows each curve's original coordinates and units, omits missing values, and escapes labels", async () => {
+    const plot = await mountPlot()
+    await plot.setProps({ yLabel: "Level (dB)" })
+    expect(
+      tooltip([
+        { seriesType: "line", seriesName: "L <reference>", value: [1000.125, -6.1234567] },
+        { seriesType: "line", seriesName: "R", value: [1000.25, 0] },
+        { seriesType: "line", seriesName: "H8", value: [1000, null] }
+      ])
+    ).toBe(
+      "L &lt;reference&gt;<br/>Hz: 1000.125<br/>Level (dB): -6.1234567<br/><br/>R<br/>Hz: 1000.25<br/>Level (dB): 0"
+    )
+  })
 
-    await wrapper.setProps({ xDomain: [100, 1000] })
-    const labels = wrapper.get("svg").text()
-    expect(labels).toContain("100")
-    expect(labels).toContain("1k")
+  it("maps column-major FFT measurements to fixed time samples and frequency bands without clipping tooltip levels", async () => {
+    const plot = mount(UiAnalysisPlot, {
+      props: {
+        ...responseProps,
+        xLabel: "s",
+        yLabel: "Hz",
+        xDomain: [0, 6],
+        yDomain: [0, 24000],
+        heatmap: { columns: 2, rows: 2, values: [-160, 24, -54, NaN] }
+      }
+    })
+    await flushPromises()
+    await vi.waitFor(() => expect(chart.setOption).toHaveBeenCalled())
+    expect(option().series[0]!.data).toEqual([
+      [0, 6000, -160, 0, 3, 0, 12000],
+      [0, 18000, 24, 0, 3, 12000, 24000],
+      [6, 6000, -54, 3, 6, 0, 12000]
+    ])
+    const sample = { seriesType: "custom", value: (option().series[0]!.data as number[][])[1] }
+    const original = tooltip(sample)
+    expect(original).toBe("s: 0<br/>Hz: 12000–24000<br/>24 dBFS")
+    await plot.setProps({ colorDomain: [-60, 0] })
+    expect(option().visualMap).toMatchObject({ min: -60, max: 0, dimension: 2 })
+    expect(tooltip(sample)).toBe(original)
+    await plot.setProps({ heatmap: { columns: 1, rows: 1, values: [-30] } })
+    expect(option().series[0]!.data).toEqual([[0, 12000, -30, 0, 6, 0, 24000]])
+    await plot.setProps({ heatmap: undefined })
+    expect(option().series).toEqual([])
+    expect(option().visualMap).toEqual([])
+  })
+
+  it("resizes the chart and releases its resources when the plot is removed", async () => {
+    const plot = await mountPlot()
+    resize([{ contentRect: { width: 1100, height: 600 } }])
+    await nextTick()
+    expect(chart.resize).toHaveBeenLastCalledWith({ width: 1100, height: 600 })
+    expect(option().grid).toMatchObject({ width: 1014, height: 536 })
+    plot.unmount()
+    expect(disconnect).toHaveBeenCalledOnce()
+    expect(chart.dispose).toHaveBeenCalledOnce()
+  })
+})
+
+describe("UiAnalysisPlot view gestures", () => {
+  it("zooms a logarithmic selection, zooms out in reverse, resets mixed gestures and double clicks, and honors new domains", async () => {
+    const plot = await mountPlot()
+    const before = option().xAxis
+    const gesture = async (x0: number, y0: number, x1: number, y1: number) => {
+      await plot.trigger("pointerdown", { button: 0, pointerId: 1, clientX: x0, clientY: y0 })
+      await plot.trigger("pointermove", { pointerId: 1, clientX: x1, clientY: y1 })
+      await plot.trigger("pointerup", { pointerId: 1, clientX: x1, clientY: y1 })
+    }
+    await gesture(200, 100, 420, 220)
+    expect(option().xAxis.min).toBeGreaterThan(before.min)
+    expect(option().xAxis.max).toBeLessThan(before.max)
+    expect(option().xAxis.type).toBe("log")
+    const zoomed = option().xAxis
+    await gesture(420, 220, 200, 100)
+    expect(option().xAxis.max / option().xAxis.min).toBeGreaterThan(zoomed.max / zoomed.min)
+    await gesture(200, 220, 420, 100)
+    expect(option().xAxis).toEqual(before)
+    await gesture(200, 100, 420, 220)
+    await plot.trigger("dblclick")
+    expect(option().xAxis).toEqual(before)
+    await gesture(200, 100, 420, 220)
+    await plot.setProps({ xDomain: [100, 1000] })
+    expect(option().xAxis).toMatchObject({ min: 100, max: 1000 })
+  })
+
+  it("pans or zooms just the axis under the wheel, and preserves the view after cancellation", async () => {
+    const plot = await mountPlot()
+    const before = option().xAxis
+    const yBefore = option().yAxis
+    await plot.trigger("wheel", { clientX: 400, clientY: 420, deltaY: -1, ctrlKey: true })
+    expect(option().xAxis.max / option().xAxis.min).toBeLessThan(before.max / before.min)
+    expect(option().yAxis).toEqual(yBefore)
+    const xZoomed = option().xAxis
+    await plot.trigger("wheel", { clientX: 30, clientY: 200, deltaY: 1 })
+    expect(option().yAxis.min).toBeGreaterThan(yBefore.min)
+    expect(option().xAxis).toEqual(xZoomed)
+    await plot.trigger("pointerdown", { button: 0, clientX: 200, clientY: 100 })
+    await plot.trigger("pointermove", { clientX: 420, clientY: 220 })
+    await plot.trigger("pointercancel")
+    await plot.trigger("pointerup", { clientX: 420, clientY: 220 })
+    expect(option().xAxis).toEqual(xZoomed)
   })
 })
