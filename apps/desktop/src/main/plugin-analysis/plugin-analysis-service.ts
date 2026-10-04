@@ -588,10 +588,22 @@ export class PluginAnalysisService {
       if (!this.quarantined) {
         if (nativeStarted) {
           try {
-            await this.host.pluginAnalysisRequest({
+            const released = await this.host.pluginAnalysisRequest({
               type: "release-plugin-analysis",
               operation_id: id
             })
+            const outcome =
+              released.result.type === "plugin-analysis"
+                ? released.result.plugin_analysis_status
+                : undefined
+            if (
+              !outcome ||
+              outcome.state !== terminal?.state ||
+              (outcome.state === "failed" &&
+                terminal?.state === "failed" &&
+                outcome.failure !== terminal.failure)
+            )
+              this.quarantine()
           } catch {
             this.quarantine()
           }

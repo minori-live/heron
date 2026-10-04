@@ -549,6 +549,46 @@ describe("Plugin Analysis comparison batches", () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => vi.useRealTimers())
 
+  it("retains endpoints and the previous batch when native release is unconfirmed", async () => {
+    const { service, host, complete } = arrange()
+    await service.command({ type: "automatic", enabled: false }, "auto")
+    await insertEffect(service)
+    complete()
+    await service.command({ type: "analyze" }, "first")
+    await vi.advanceTimersByTimeAsync(0)
+    const previous = service.snapshot().reportId
+    const original = host.pluginAnalysisRequest.getMockImplementation()!
+    host.pluginAnalysisRequest.mockImplementation(async (command) =>
+      command.type === "release-plugin-analysis"
+        ? {
+            request_id: 1,
+            result: {
+              type: "plugin-analysis" as const,
+              plugin_analysis_status: {
+                state: "running" as const,
+                phase: "performance",
+                progress: 1
+              }
+            }
+          }
+        : original(command)
+    )
+    host.unloadPluginAnalysisPlugin.mockClear()
+    await service.command({ type: "comparison", enabled: true }, "compare")
+    await service.command({ type: "analyze" }, "second")
+    await vi.advanceTimersByTimeAsync(0)
+    expect(service.snapshot()).toMatchObject({
+      status: "quarantined",
+      failure: "cleanup-failed",
+      reportId: previous,
+      comparisonReport: null,
+      differenceReport: null
+    })
+    expect(host.unloadPluginAnalysisPlugin).not.toHaveBeenCalled()
+    await service.close()
+    expect(host.unloadPluginAnalysisPlugin).not.toHaveBeenCalled()
+  })
+
   it("keeps chain order independent and publishes a complete comparison batch once", async () => {
     const { service, host } = arrange()
     await service.command({ type: "automatic", enabled: false }, "auto")
