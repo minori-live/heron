@@ -11,6 +11,10 @@ const meta = {
     label: "Stereo response",
     xLabel: "Hz",
     yLabel: "dB",
+    xUnit: "Hz",
+    yUnit: "dB",
+    xMinimumStep: 1,
+    yMinimumStep: 1,
     logarithmic: true,
     series: [
       { label: "L", x, y: x.map((hz) => -10 * Math.log10(1 + (hz / 4000) ** 2)) },
@@ -25,7 +29,8 @@ async function hoverMeasurement(
   canvasElement: HTMLElement,
   xFraction: number,
   yFraction: number,
-  heatmap = false
+  heatmap = false,
+  measurementLabel = "dB:"
 ): Promise<HTMLElement> {
   const plot = within(canvasElement).getByRole("img")
   await waitFor(() => expect(plot.querySelector("canvas")).not.toBeNull())
@@ -34,11 +39,11 @@ async function hoverMeasurement(
     plot.querySelector("canvas")!.dispatchEvent(
       new MouseEvent("mousemove", {
         bubbles: true,
-        clientX: rect.left + 64 + (rect.width - (heatmap ? 124 : 86)) * xFraction,
+        clientX: rect.left + 96 + (rect.width - (heatmap ? 196 : 118)) * xFraction,
         clientY: rect.top + 18 + (rect.height - 64) * (1 - yFraction)
       })
     )
-    await expect(plot).toHaveTextContent(heatmap ? "dBFS" : "dB:")
+    await expect(plot).toHaveTextContent(heatmap ? "dBFS" : measurementLabel)
   })
   return plot
 }
@@ -69,6 +74,9 @@ export const SweepSpectrogram: Story = {
     series: [],
     xLabel: "s",
     yLabel: "Hz",
+    xUnit: "s",
+    yUnit: "Hz",
+    xMinimumStep: 0.001,
     xDomain: [0, 6],
     yDomain: [0, 24000],
     heatmap: {
@@ -85,5 +93,17 @@ export const SweepSpectrogram: Story = {
             : -120
       })
     }
+  }
+}
+export const NearZeroPhase: Story = {
+  args: {
+    label: "Phase response",
+    yLabel: "°",
+    yUnit: "°",
+    series: [{ label: "L", x, y: x.map((_, i) => Math.sin(i) * 1e-8) }]
+  },
+  play: async ({ canvasElement }) => {
+    const plot = await hoverMeasurement(canvasElement, 80 / 159, 0.5, false, "°:")
+    await expect(plot).toHaveTextContent(`°: ${Number((Math.sin(80) * 1e-8).toPrecision(8))}`)
   }
 }

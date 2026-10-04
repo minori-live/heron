@@ -45,14 +45,14 @@ describe("analysis chart adapter", () => {
         {
           value: (index: number) => cell[index],
           coord: ([x, y]: number[]) => [64 + (x! - 2) * 400, 418 - (y! - 6000) / 30],
-          visual: () => "#abcdef"
+          visual: () => "teal"
         } as unknown as Parameters<typeof render>[1]
       )
     // The center time cell extends beyond the zoomed x range; each band is clipped vertically.
     expect(renderCell(cells[2]!)).toMatchObject({
       type: "rect",
       shape: { x: 64, y: 218, width: 800, height: 200 },
-      style: { fill: "#abcdef" }
+      style: { fill: "teal" }
     })
     expect(renderCell(cells[3]!)).toMatchObject({
       type: "rect",
@@ -63,8 +63,8 @@ describe("analysis chart adapter", () => {
 
   it("preserves curve styles and measurement gaps when nonpositive frequencies cannot use the log axis", () => {
     const style = document.createElement("div").style
-    style.setProperty("--ui-signal-mixer-input", "#112233")
-    style.setProperty("--ui-color-action", "#445566")
+    style.setProperty("--ui-signal-mixer-input", "navy")
+    style.setProperty("--ui-color-action", "orange")
     const option = analysisChartOption(
       {
         ...input,
@@ -73,7 +73,7 @@ describe("analysis chart adapter", () => {
         series: [
           { label: "L", x: [-20, 0, 20, 200], y: [1, 2, 3, null] },
           { label: "R", x: [20, 200], y: [4, 5], dashed: true },
-          { label: "Reference", x: [20, 200], y: [6, 7], color: "#778899" }
+          { label: "Reference", x: [20, 200], y: [6, 7], color: "purple" }
         ]
       },
       layout,
@@ -89,13 +89,13 @@ describe("analysis chart adapter", () => {
         [200, null]
       ],
       connectNulls: false,
-      itemStyle: { color: "#112233" },
+      itemStyle: { color: "navy" },
       lineStyle: { type: "solid" }
     })
     expect(series[1]).toMatchObject({
-      itemStyle: { color: "#445566" },
+      itemStyle: { color: "orange" },
       lineStyle: { type: "dashed" }
     })
-    expect(series[2]).toMatchObject({ itemStyle: { color: "#778899" } })
+    expect(series[2]).toMatchObject({ itemStyle: { color: "purple" } })
   })
 })

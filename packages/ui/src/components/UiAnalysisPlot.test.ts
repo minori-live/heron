@@ -47,8 +47,19 @@ const responseProps = {
   series: []
 }
 type Option = {
-  xAxis: { min: number; max: number; type: string }
-  yAxis: { min: number; max: number }
+  xAxis: {
+    min: number
+    max: number
+    type: string
+    minInterval?: number
+    axisLabel: { formatter: (value: number) => string }
+  }
+  yAxis: {
+    min: number
+    max: number
+    minInterval?: number
+    axisLabel: { formatter: (value: number) => string }
+  }
   series: (LineSeriesOption | CustomSeriesOption)[]
   tooltip: TooltipComponentOption
   visualMap: VisualMapComponentOption
@@ -137,7 +148,12 @@ describe("UiAnalysisPlot measurement adapter", () => {
     expect(original).toBe("s: 0<br/>Hz: 12000–24000<br/>24 dBFS")
     expect(tooltip({ seriesType: "custom", value: [0, 12000, NaN, 0, 3, 0, 24000] })).toBe("")
     await plot.setProps({ colorDomain: [-60, 0] })
-    expect(option().visualMap).toMatchObject({ min: -60, max: 0, dimension: 2 })
+    expect(option().visualMap).toMatchObject({
+      min: -60,
+      max: 0,
+      dimension: 2,
+      text: ["0 dBFS", "-60 dBFS"]
+    })
     expect(tooltip(sample)).toBe(original)
     await plot.setProps({ heatmap: { columns: 1, rows: 1, values: [-30] } })
     expect(option().series[0]!.data).toEqual([[0, 12000, -30, 0, 6, 0, 24000]])
@@ -203,6 +219,37 @@ async function mountInteractivePlot() {
 }
 
 describe("UiAnalysisPlot navigation", () => {
+  it("applies unit resolution to automatic, explicit, wheel and rectangle domains while retaining measurements", async () => {
+    const { plot, drag, wheel, domains } = await mountInteractivePlot()
+    await plot.setProps({
+      xUnit: "Hz",
+      yUnit: "°",
+      xMinimumStep: 1,
+      yMinimumStep: 1,
+      yDomain: undefined,
+      series: [{ label: "L", x: [20, 20000], y: [-1e-8, 1e-8] }]
+    })
+    expect(domains().y).toEqual([-3, 3])
+    expect(option().yAxis.minInterval).toBe(1)
+    expect(option().yAxis.axisLabel.formatter(3)).toBe("3°")
+    expect(option().series[0]!.data).toEqual([
+      [20, -1e-8],
+      [20000, 1e-8]
+    ])
+    for (let i = 0; i < 40; i++) await wheel(32, 206, { ctrlKey: true, deltaY: -1 })
+    expect(domains().y[1]! - domains().y[0]!).toBeGreaterThanOrEqual(6 - 1e-10)
+    await drag([300, 180], [320, 200])
+    expect(domains().x[1]! - domains().x[0]!).toBeGreaterThanOrEqual(8 - 1e-10)
+    expect(domains().y[1]! - domains().y[0]!).toBeGreaterThanOrEqual(6 - 1e-10)
+    await plot.setProps({ yDomain: [-1e-7, 1e-7], yUnit: "%", yMinimumStep: 0.01 })
+    expect(domains().y[1]! - domains().y[0]!).toBeCloseTo(0.06)
+    expect(option().yAxis.axisLabel.formatter(0.02)).toBe("0.02%")
+    await plot.setProps({ xDomain: [20, 20000], logarithmic: true })
+    for (let i = 0; i < 50; i++) await wheel(471, 420, { deltaY: -1 })
+    expect(domains().x[0]).toBeGreaterThanOrEqual(1)
+    expect(domains().x[1]! - domains().x[0]!).toBeGreaterThanOrEqual(8 - 1e-10)
+  })
+
   it("maps a selection in a scaled plot to both measurement axes and restores the full view", async () => {
     const { plot, drag, domains } = await mountInteractivePlot()
     const initial = domains()

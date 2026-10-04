@@ -47,6 +47,13 @@ blocks. A plug-in call in progress must return before cancellation completes.
 
 ## Read the report
 
+Every axis and tick shows its unit; phase is in degrees (°). Linear amplitude
+uses FS, where 1 FS is amplitude 1.0 (0 dBFS peak). The spectrum color scale
+uses dBFS. Automatic scaling and zoom keep minimum grid steps of 1 Hz,
+1 dB/dBc/dBFS, 1°, 0.01%, 0.01 FS, 0.01 ms, 0.001 s, 0.1 μs or 1 sample,
+depending on the axis. Small measured values are preserved without magnifying
+numerical noise into a full-scale response.
+
 Hover over a curve to see the series name and measured coordinates in the displayed
 units. In the 2D sweep spectrum, hover over a cell to see its measurement time,
 frequency band and peak level in dBFS. Color-range limits change the colors;

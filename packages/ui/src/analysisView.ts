@@ -14,18 +14,23 @@ function unscaled(value: number, logarithmic: boolean): number {
 }
 
 /** Clamp a display domain to a finite, ordered, non-degenerate interval. */
-export function normalizeDomain(domain: AnalysisDomain, logarithmic: boolean): AnalysisDomain {
+export function normalizeDomain(
+  domain: AnalysisDomain,
+  logarithmic: boolean,
+  minimumSpan = MINIMUM_SPAN
+): AnalysisDomain {
   let [low, high] = domain
   if (!Number.isFinite(low) || !Number.isFinite(high)) return domain
   if (high < low) [low, high] = [high, low]
-  if (high - low < MINIMUM_SPAN) {
+  const span = Math.max(MINIMUM_SPAN, minimumSpan)
+  if (high - low < span) {
     const center = (low + high) / 2
-    low = center - MINIMUM_SPAN / 2
-    high = center + MINIMUM_SPAN / 2
+    low = center - span / 2
+    high = center + span / 2
   }
   if (logarithmic) {
     low = Math.max(LOG_FLOOR, low)
-    high = Math.max(low * (1 + 1e-9), high)
+    high = Math.max(low + span, low * (1 + 1e-9), high)
   }
   return [low, high]
 }

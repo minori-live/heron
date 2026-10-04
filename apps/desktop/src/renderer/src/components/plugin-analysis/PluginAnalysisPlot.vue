@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { UiAnalysisPlot, type UiAnalysisSeries, type UiAnalysisHeatmap } from "@heron/ui"
+import {
+  pluginAnalysisAxisLabel,
+  pluginAnalysisMinimumSteps,
+  type PluginAnalysisAxisUnit
+} from "./pluginAnalysisAxes"
 defineProps<{
   title: string
   xLabel: string
   yLabel: string
+  xUnit: PluginAnalysisAxisUnit
+  yUnit: PluginAnalysisAxisUnit
   series: UiAnalysisSeries[]
   logarithmic?: boolean
   xDomain?: readonly [number, number]
@@ -30,8 +37,12 @@ defineProps<{
     <div class="plot-stage">
       <UiAnalysisPlot
         :label="title"
-        :x-label="xLabel"
-        :y-label="yLabel"
+        :x-label="pluginAnalysisAxisLabel(xLabel, xUnit)"
+        :y-label="pluginAnalysisAxisLabel(yLabel, yUnit)"
+        :x-unit="xUnit"
+        :y-unit="yUnit"
+        :x-minimum-step="pluginAnalysisMinimumSteps[xUnit]"
+        :y-minimum-step="pluginAnalysisMinimumSteps[yUnit]"
         :series="series"
         :logarithmic="logarithmic"
         :x-domain="xDomain"

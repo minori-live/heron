@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, shallowRef, useTemplateRef, 
 import type { UiAnalysisHeatmap, UiAnalysisSeries } from "../types"
 import type { ECharts } from "echarts/core"
 import type * as AnalysisChart from "../analysisChart"
+import { axisDomain } from "../analysisAxis"
 import {
   normalizeDomain,
   panDomain,
@@ -22,13 +23,21 @@ const props = withDefaults(
     yDomain?: readonly [number, number]
     heatmap?: UiAnalysisHeatmap
     colorDomain?: readonly [number, number]
+    xUnit?: string
+    yUnit?: string
+    xMinimumStep?: number
+    yMinimumStep?: number
   }>(),
   {
     logarithmic: false,
     colorDomain: () => [-120, 12],
     xDomain: undefined,
     yDomain: undefined,
-    heatmap: undefined
+    heatmap: undefined,
+    xUnit: "",
+    yUnit: "",
+    xMinimumStep: 0,
+    yMinimumStep: 0
   }
 )
 const host = useTemplateRef<HTMLElement>("host")
@@ -59,7 +68,8 @@ const autoBounds = computed(() => {
       high = Math.max(high, y)
     }
   }
-  const padding = high === low ? 1 : (high - low) * 0.08
+  const padding =
+    high === low ? (props.yMinimumStep > 0 ? props.yMinimumStep * 3 : 1) : (high - low) * 0.08
   return {
     x: normalizeDomain(
       props.xDomain ?? (Number.isFinite(minX) ? [minX, maxX] : [20, 20000]),
@@ -69,13 +79,16 @@ const autoBounds = computed(() => {
   }
 })
 const bounds = computed(() => ({
-  x: viewX.value ?? autoBounds.value.x,
-  y: viewY.value ?? autoBounds.value.y
+  x: axisDomain(viewX.value ?? autoBounds.value.x, props.xMinimumStep, 8, props.logarithmic),
+  y: axisDomain(viewY.value ?? autoBounds.value.y, props.yMinimumStep, 6)
 }))
 const geometry = computed(() => ({
-  left: 64,
+  left: props.yUnit ? 96 : 64,
   top: 18,
-  width: Math.max(1, width.value - (props.heatmap ? 124 : 86)),
+  width: Math.max(
+    1,
+    width.value - (props.yUnit ? 96 : 64) - (props.heatmap ? (props.yUnit ? 100 : 60) : 22)
+  ),
   height: Math.max(1, height.value - 64)
 }))
 // Heatmap coordinates always use the measurement domain, even after zoom/pan.
@@ -94,6 +107,10 @@ function render(): void {
       {
         xLabel: props.xLabel,
         yLabel: props.yLabel,
+        xUnit: props.xUnit,
+        yUnit: props.yUnit,
+        xMinimumStep: props.xMinimumStep,
+        yMinimumStep: props.yMinimumStep,
         series: props.series,
         logarithmic: props.logarithmic,
         xDomain: bounds.value.x,
@@ -210,7 +227,17 @@ function onWheel(event: WheelEvent): void {
 }
 watch(
   () =>
-    JSON.stringify([props.xDomain, props.yDomain, props.logarithmic, props.xLabel, props.yLabel]),
+    JSON.stringify([
+      props.xDomain,
+      props.yDomain,
+      props.logarithmic,
+      props.xLabel,
+      props.yLabel,
+      props.xUnit,
+      props.yUnit,
+      props.xMinimumStep,
+      props.yMinimumStep
+    ]),
   () => resetView()
 )
 watch(

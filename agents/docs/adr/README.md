@@ -27,6 +27,7 @@ evidence belong in their owning documents rather than being copied into each ADR
 | [0017 — Plugin Analysis comparison](0017-plugin-analysis-comparison.md)                                | Accepted                           | Atomic two-chain reports, sample-domain difference, independent order FIRs and bounded measurement controls |
 | [0018 — Independent plug-in editor windows](0018-independent-plugin-editor-windows.md)                 | Accepted                           | Top-level plug-in windows with per-instance focus and cleanup                                               |
 | [0019 — Plugin Analysis waveform sample coordinates](0019-plugin-analysis-waveform-sampling.md)        | Accepted                           | Explicit sample spacing for time and latency-aligned plots                                                  |
+| [0020 — Plugin Analysis axis scales](0020-plugin-analysis-axis-scales.md)                              | Accepted                           | Explicit units, minimum grid steps and bounded display zoom                                                 |
 
 Accepted means the architecture is chosen, not that every feature or release
 acceptance test is complete. Each record states its implementation scope; the
@@ -36,7 +37,7 @@ used as permission to implement or claim an accepted compatibility commitment.
 ## 2026-09-06 baseline reset
 
 The numbers in this section's mapping table belong to a **superseded series**.
-Current records are 0001–0019; 0009 in the table below refers to the retired
+Current records are 0001–0020; 0009 in the table below refers to the retired
 record, not to any record in this series.
 
 At the maintainer's request, the previous 16 records were consolidated into this
@@ -104,7 +105,7 @@ Prefer one cohesive decision over a record for each implementation step.
 
 ## Lifecycle and review
 
-Use four digits and a short kebab-case title, starting the next record at **0020**.
+Use four digits and a short kebab-case title, starting the next record at **0021**.
 Copy [the template](template.md). Status is Proposed, Accepted, Superseded by
 ADR-NNNN, or Rejected. Accepted records change only for editorial corrections,
 links and explicit implementation-scope clarification; changing a decision
