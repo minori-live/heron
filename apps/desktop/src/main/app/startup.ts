@@ -125,7 +125,7 @@ export function startApplication(
         total: null
       })
       const window = createMainWindow(false)
-      const editorWindows = new ElectronPluginEditorWindows(window)
+      const editorWindows = new ElectronPluginEditorWindows()
       let editorClosedSequence = 0
       const audioHostService = new AudioHostService(
         applicationSettings.audioHostRuntime,

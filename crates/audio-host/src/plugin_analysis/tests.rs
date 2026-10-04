@@ -370,6 +370,8 @@ fn oscilloscope_captures_the_standard_waveforms() {
         .oscilloscope(super::StereoRoute::Channel(0), 7)
         .unwrap();
     assert_eq!(scope.delay_samples, 7);
+    assert_eq!(scope.sample_stride, 1);
+    assert_eq!(scope.duration_seconds, 192.0 / 48000.0);
     assert_eq!(scope.waveforms.len(), 4);
     for waveform in &scope.waveforms {
         assert_eq!(waveform.input.len(), waveform.output.len());
@@ -383,6 +385,34 @@ fn oscilloscope_captures_the_standard_waveforms() {
                 .all(|(a, b)| (a - b).abs() < 1e-3)
         );
     }
+}
+
+#[test]
+fn oscilloscope_reports_the_exact_retained_sample_spacing() {
+    let mut chain = Chain {
+        comparison_processors: None,
+        processors: Vec::new(),
+        settings: PluginAnalysisSettings {
+            tone_hz: 37.0,
+            ..settings()
+        },
+        cancel: Arc::new(AtomicBool::new(false)),
+        clock: 0,
+        times: Vec::new(),
+    };
+    let scope = chain
+        .oscilloscope(super::StereoRoute::Channel(0), 48)
+        .unwrap();
+    // The generated period rounds to 1297 samples; four cycles retain every
+    // thirteenth sample. The requested 37 Hz alone does not encode that spacing.
+    assert_eq!(scope.sample_stride, 13);
+    assert_eq!(scope.duration_seconds, 5188.0 / 48000.0);
+    assert_eq!(scope.delay_samples, 48);
+    assert_eq!(scope.waveforms[0].input.len(), 400);
+    let peak = 10_f64.powf(chain.settings.level_dbfs / 20.0);
+    let phase = ((12000 + 20 * 13) % 1297) as f64 / 1297.0;
+    let expected = peak * (std::f64::consts::TAU * phase).sin();
+    assert!((scope.waveforms[0].input[20] - expected).abs() < 1e-9);
 }
 
 #[test]
