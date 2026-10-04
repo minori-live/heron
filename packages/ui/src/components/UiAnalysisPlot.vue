@@ -218,7 +218,7 @@ function onWheel(event: WheelEvent): void {
     const logarithmic = axis === "x" && props.logarithmic
     const next = zoom
       ? zoomDomain(domain, valueAt(point.x, point.y, axis), factor, logarithmic)
-      : panDomain(domain, direction * 0.08, logarithmic)
+      : panDomain(domain, direction * 0.08, logarithmic, props.xMinimumStep)
     if (axis === "x") viewX.value = next
     else viewY.value = next
   }

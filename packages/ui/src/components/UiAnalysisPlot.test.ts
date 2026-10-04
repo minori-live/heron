@@ -246,8 +246,11 @@ describe("UiAnalysisPlot navigation", () => {
     expect(option().yAxis.axisLabel.formatter(0.02)).toBe("0.02%")
     await plot.setProps({ xDomain: [20, 20000], logarithmic: true })
     for (let i = 0; i < 50; i++) await wheel(471, 420, { deltaY: -1 })
-    expect(domains().x[0]).toBeGreaterThanOrEqual(1)
-    expect(domains().x[1]! - domains().x[0]!).toBeGreaterThanOrEqual(8 - 1e-10)
+    expect(domains().x[0]).toBe(1)
+    expect(domains().x[1]).toBeCloseTo(1000)
+    await wheel(471, 420)
+    expect(domains().x[0]).toBeGreaterThan(1)
+    expect(domains().x[1]! / domains().x[0]!).toBeCloseTo(1000)
   })
 
   it("maps a selection in a scaled plot to both measurement axes and restores the full view", async () => {
