@@ -70,6 +70,7 @@ const series = computed(() => [
       y-unit="dBFS"
       :y-label="t('pluginAnalysis.outputLevel')"
       :series="series"
+      :smooth="view === 'ramp'"
     />
     <footer class="toolbar">
       <UiSegmentedControl

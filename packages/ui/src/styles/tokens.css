@@ -267,7 +267,8 @@
   --ui-color-overlay: rgb(14 16 20 / 52%);
   --ui-color-text: var(--ui-palette-neutral-950);
   --ui-color-text-muted: var(--ui-palette-neutral-600);
-  --ui-color-text-subtle: var(--ui-palette-neutral-500);
+  --ui-color-text-subtle: var(--ui-palette-neutral-600);
+  --ui-color-text-faint: var(--ui-palette-neutral-600);
   --ui-color-text-inverse: var(--ui-palette-neutral-0);
   --ui-color-border: var(--ui-palette-neutral-200);
   --ui-color-border-strong: var(--ui-palette-neutral-400);

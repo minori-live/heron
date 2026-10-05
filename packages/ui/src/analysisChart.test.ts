@@ -23,6 +23,26 @@ function numericAxis(option: ReturnType<typeof analysisChartOption>, key: "xAxis
 }
 
 describe("analysis chart adapter", () => {
+  it("smooths response traces only when requested, retaining measurements and gaps", () => {
+    const measurement = { label: "Response", x: [20, 100, 1000, 20000], y: [0, 6, null, -12] }
+    const settings = { ...input, series: [measurement] }
+    const style = document.createElement("div").style
+    const option = analysisChartOption({ ...settings, smooth: true }, layout, style, [])
+    expect((option.series as LineSeriesOption[])[0]).toMatchObject({
+      smooth: 0.2,
+      smoothMonotone: "x",
+      connectNulls: false,
+      data: [
+        [20, 0],
+        [100, 6],
+        [1000, null],
+        [20000, -12]
+      ]
+    })
+    const raw = analysisChartOption(settings, layout, style, [])
+    expect((raw.series as LineSeriesOption[])[0]?.smooth).toBe(false)
+  })
+
   it("keeps frequency, small-level and zero axis labels readable without changing their values", () => {
     const option = analysisChartOption(input, layout, document.createElement("div").style, [])
     const x = numericAxis(option, "xAxis")

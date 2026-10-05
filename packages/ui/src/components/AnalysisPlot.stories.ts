@@ -16,6 +16,7 @@ const meta = {
     xMinimumStep: 1,
     yMinimumStep: 1,
     logarithmic: true,
+    smooth: true,
     series: [
       { label: "L", x, y: x.map((hz) => -10 * Math.log10(1 + (hz / 4000) ** 2)) },
       { label: "R", x, y: x.map((hz) => -10 * Math.log10(1 + (hz / 6000) ** 2)) }

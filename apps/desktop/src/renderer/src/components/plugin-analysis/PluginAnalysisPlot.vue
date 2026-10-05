@@ -5,19 +5,30 @@ import {
   pluginAnalysisMinimumSteps,
   type PluginAnalysisAxisUnit
 } from "./pluginAnalysisAxes"
-defineProps<{
-  title: string
-  xLabel: string
-  yLabel: string
-  xUnit: PluginAnalysisAxisUnit
-  yUnit: PluginAnalysisAxisUnit
-  series: UiAnalysisSeries[]
-  logarithmic?: boolean
-  xDomain?: readonly [number, number]
-  yDomain?: readonly [number, number]
-  heatmap?: UiAnalysisHeatmap
-  colorDomain?: readonly [number, number]
-}>()
+withDefaults(
+  defineProps<{
+    title: string
+    xLabel: string
+    yLabel: string
+    xUnit: PluginAnalysisAxisUnit
+    yUnit: PluginAnalysisAxisUnit
+    series: UiAnalysisSeries[]
+    logarithmic?: boolean
+    smooth?: boolean
+    xDomain?: readonly [number, number]
+    yDomain?: readonly [number, number]
+    heatmap?: UiAnalysisHeatmap
+    colorDomain?: readonly [number, number]
+  }>(),
+  {
+    smooth: true,
+    logarithmic: false,
+    xDomain: undefined,
+    yDomain: undefined,
+    heatmap: undefined,
+    colorDomain: undefined
+  }
+)
 </script>
 <template>
   <figure class="plugin-analysis-plot">
@@ -28,7 +39,8 @@ defineProps<{
           v-for="(item, index) in series"
           :key="index"
           :style="{
-            color: item.color ?? (index ? 'var(--ui-color-action)' : 'var(--ui-signal-mixer-input)')
+            '--analysis-series-color':
+              item.color ?? (index ? 'var(--ui-color-action)' : 'var(--ui-signal-mixer-input)')
           }"
           >{{ item.label }}</span
         ></span
@@ -45,6 +57,7 @@ defineProps<{
         :y-minimum-step="pluginAnalysisMinimumSteps[yUnit]"
         :series="series"
         :logarithmic="logarithmic"
+        :smooth="smooth"
         :x-domain="xDomain"
         :y-domain="yDomain"
         :heatmap="heatmap"
@@ -78,6 +91,7 @@ figcaption {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
+  color: var(--ui-color-text-muted);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
 .legend > span::before {
@@ -86,7 +100,7 @@ figcaption {
   width: 12px;
   height: 2px;
   margin-right: 6px;
-  background: currentColor;
+  background: var(--analysis-series-color);
   vertical-align: middle;
 }
 .plot-stage {

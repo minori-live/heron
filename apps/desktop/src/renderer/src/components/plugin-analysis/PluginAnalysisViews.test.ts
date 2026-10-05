@@ -36,6 +36,7 @@ describe("linear analysis presentation", () => {
       ["R → R", [-3, 0]]
     ])
     expect(plot.props("yDomain")).toEqual([-12, 6])
+    expect(plot.props("smooth")).toBe(true)
     wrapper.getComponent(UiSelect).vm.$emit("update:modelValue", "2")
     await nextTick()
     expect(plot.props("series")).toMatchObject([{ label: "L → R", x: [100, 1000], y: [-60, -40] }])
@@ -46,6 +47,7 @@ describe("linear analysis presentation", () => {
     const wrapper = shallowMount(PluginAnalysisLinear, { props: { report: analysisReport() } })
     const plot = wrapper.getComponent(PluginAnalysisPlot)
     await select(wrapper, "Response view", "phase")
+    expect(plot.props("smooth")).toBe(false)
     expect(plot.props("series")[0]?.y).toEqual([0, null])
     wrapper.getComponent(UiCheckbox).vm.$emit("update:modelValue", true)
     await nextTick()
@@ -53,6 +55,7 @@ describe("linear analysis presentation", () => {
     expect(plot.props("series")[1]?.y).toEqual([-30, -60])
     expect(plot.props("yLabel")).toBe("°")
     await select(wrapper, "Response view", "impulse")
+    expect(plot.props("smooth")).toBe(false)
     expect(plot.props("series")[0]).toMatchObject({ x: [1, 2], y: [1, 0.5] })
     expect(plot.props("series")[1]?.x).toEqual([0, 0.5])
     expect(plot.props()).toMatchObject({ xLabel: "ms", logarithmic: false, yDomain: undefined })

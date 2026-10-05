@@ -140,6 +140,7 @@ const series = computed(() => [
             : t('pluginAnalysis.amplitude')
       "
       :logarithmic="view === 'filter' || view === 'orders'"
+      :smooth="view !== 'impulse' && view !== 'validation'"
       :series="series"
     />
     <footer class="toolbar">

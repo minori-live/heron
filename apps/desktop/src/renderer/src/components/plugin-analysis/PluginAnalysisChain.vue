@@ -57,7 +57,7 @@ function insert(selection: PluginSelection, slotOrder: number): void {
         <span>{{ t("pluginAnalysis.inserts") }}</span>
         <UiIconButton
           size="sm"
-          variant="ghost"
+          variant="plain"
           :label="t('pluginAnalysis.rescan')"
           :disabled="quarantined || catalogBusy"
           :loading="catalogBusy"
@@ -66,6 +66,7 @@ function insert(selection: PluginSelection, slotOrder: number): void {
         /></UiIconButton>
       </div>
       <MixerPluginSection
+        class="analysis-inserts"
         :channel="channel"
         :inserts="inserts"
         :runtime="snapshot.runtime"
@@ -88,24 +89,32 @@ function insert(selection: PluginSelection, slotOrder: number): void {
   display: flex;
   flex-direction: column;
   width: 232px;
-  flex-shrink: 0;
+  flex: 1;
   overflow-y: auto;
   min-height: 0;
   border-right: 1px solid var(--ui-domain-mixer-strip-edge);
   background: var(--ui-domain-mixer-section);
 }
 .rack {
-  margin: 14px 10px 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  margin: 14px 10px;
   border: 1px solid var(--ui-domain-mixer-divider);
   border-radius: 4px;
   overflow: hidden;
+}
+.analysis-inserts {
+  flex: 1;
+  border-bottom: 0;
 }
 .rack-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
   padding: 4px 7px 0 9px;
-  color: var(--ui-color-text-muted);
+  color: var(--ui-domain-mixer-label-ink);
   font-size: var(--ui-type-size-caption);
 }
 </style>
