@@ -1,7 +1,8 @@
 use super::{CoherentSpectrum, StereoRoute};
 use crate::plugin_analysis::{Chain, lock_in};
 use heron_audio_plugin::{
-    AudioPluginProcessor, AudioPluginProcessorHandle, ProcessContext, SidechainSource,
+    AudioPluginProcessor, AudioPluginProcessorHandle, ProcessContext, ProcessOutcome,
+    SidechainSource,
 };
 use heron_dsp_runtime::protocol::PluginAnalysisSettings;
 use std::sync::{Arc, atomic::AtomicBool};
@@ -142,13 +143,13 @@ impl AudioPluginProcessor for Clip {
         frames: &mut [[f32; 2]],
         _: &dyn SidechainSource,
         _: &ProcessContext,
-    ) -> bool {
+    ) -> ProcessOutcome {
         for frame in frames {
             for value in frame {
                 *value = value.clamp(-0.2, 0.2);
             }
         }
-        true
+        ProcessOutcome::Processed
     }
 }
 
