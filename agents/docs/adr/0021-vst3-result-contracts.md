@@ -6,6 +6,10 @@
 - Scope: VST3 result interpretation and contained operation failures; existing runtime states and ownership remain defined by ADR-0001
 - Related: [Native boundary](../native-call-boundary.md), [Runtime ownership](0001-runtime-ownership-and-transactions.md)
 
+The optional extension lookup policy below is superseded by
+[ADR-0022](0022-vst3-optional-interface-denials.md). All other method policies
+remain in effect.
+
 ## Context
 
 VST3 uses `tresult` for several distinct contracts: operation completion,

@@ -67,7 +67,9 @@ successful postconditions, and unknown result codes remain operation failures.
 Recognize the explicitly supported SDK-native and COM-compatible encodings;
 keep host-originated validation, queue and temporary availability failures
 separate from raw SDK results. See
-[ADR-0021](adr/0021-vst3-result-contracts.md) for the method policies.
+[ADR-0021](adr/0021-vst3-result-contracts.md) for the method policies and
+[ADR-0022](adr/0022-vst3-optional-interface-denials.md) for the bounded
+False-with-null compatibility allowance in optional interface queries.
 
 VST3 parameter changes reach the audio processor through its bounded parameter
 queue and `IAudioProcessor::process`. Enqueue commits the parameter request;

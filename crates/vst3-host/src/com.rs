@@ -136,15 +136,7 @@ impl<I: ComInterface> ComPtr<I> {
 
     /// Queries another interface exposed by the same VST3 object.
     pub fn query<J: ComInterface>(&self) -> HostResult<ComPtr<J>> {
-        let mut output = std::ptr::null_mut::<c_void>();
-        let result = unsafe {
-            // SAFETY: ComPtr guarantees a live interface. Every VST3
-            // interface begins with the FUnknown methods, and output points to
-            // writable storage for the returned owned reference.
-            let unknown = self.pointer.cast::<FUnknown>().as_ptr();
-            let table = unknown_vtable(unknown);
-            ((*table).query_interface)(unknown, J::IID.as_ptr(), std::ptr::addr_of_mut!(output))
-        };
+        let (result, output) = self.query_raw::<J>();
         if result != 0 {
             return Err(HostError::Operation {
                 operation: "queryInterface",
@@ -158,18 +150,38 @@ impl<I: ComInterface> ComPtr<I> {
         }
     }
 
-    /// Queries an optional extension without hiding malformed successful
-    /// responses or errors other than the SDK's explicit no-interface result.
+    fn query_raw<J: ComInterface>(&self) -> (i32, *mut c_void) {
+        let mut output = std::ptr::null_mut::<c_void>();
+        let result = unsafe {
+            // SAFETY: ComPtr guarantees a live interface. Every VST3
+            // interface begins with the FUnknown methods, and output points to
+            // writable storage for the returned owned reference.
+            let unknown = self.pointer.cast::<FUnknown>().as_ptr();
+            let table = unknown_vtable(unknown);
+            ((*table).query_interface)(unknown, J::IID.as_ptr(), std::ptr::addr_of_mut!(output))
+        };
+        (result, output)
+    }
+
+    /// Queries an optional extension. Some third-party wrappers return False
+    /// with no interface instead of NoInterface; tolerate that denial here only.
+    /// Malformed successes and unexpected failures remain errors.
     pub fn query_optional<J: ComInterface>(&self) -> HostResult<Option<ComPtr<J>>> {
-        match self.query::<J>() {
-            Ok(interface) => Ok(Some(interface)),
-            Err(HostError::Operation { result, .. })
-                if crate::results::ResultCode::decode(result)
-                    == crate::results::ResultCode::NoInterface =>
-            {
-                Ok(None)
-            }
-            Err(error) => Err(error),
+        use crate::results::ResultCode;
+
+        let (result, output) = self.query_raw::<J>();
+        match ResultCode::decode(result) {
+            ResultCode::Accepted => unsafe {
+                // SAFETY: success returns one owned reference matching J::IID;
+                // from_raw rejects a null success before it can be used.
+                ComPtr::from_raw(output.cast::<J>(), "queryInterface").map(Some)
+            },
+            ResultCode::NoInterface => Ok(None),
+            ResultCode::Declined if output.is_null() => Ok(None),
+            _ => Err(HostError::Operation {
+                operation: "queryInterface",
+                result,
+            }),
         }
     }
 }
@@ -227,6 +239,7 @@ mod tests {
         references: AtomicU32,
         null_on_success: AtomicBool,
         query_result: AtomicI32,
+        nonnull_on_failure: AtomicBool,
     }
 
     impl FakeUnknown {
@@ -236,6 +249,7 @@ mod tests {
                 references: AtomicU32::new(1),
                 null_on_success: AtomicBool::new(null_on_success),
                 query_result: AtomicI32::new(0),
+                nonnull_on_failure: AtomicBool::new(false),
             })
         }
 
@@ -257,7 +271,13 @@ mod tests {
         let result = fake.query_result.load(Ordering::Relaxed);
         if result != 0 {
             // SAFETY: output was validated as writable pointer storage.
-            unsafe { output.write(std::ptr::null_mut()) };
+            unsafe {
+                output.write(if fake.nonnull_on_failure.load(Ordering::Relaxed) {
+                    this.cast()
+                } else {
+                    std::ptr::null_mut()
+                })
+            };
             return result;
         }
         // SAFETY: callers supply a VST3 TUID, which is exactly 16 bytes.
@@ -368,13 +388,31 @@ mod tests {
         let owner = unsafe { ComPtr::<FUnknown>::from_raw(fake.as_unknown(), "fixture") }
             .expect("owned fake interface");
         assert!(owner.query_optional::<IBStream>().unwrap().is_none());
-        for result in [1, 4, -7] {
+        for result in [-1, NO_INTERFACE, -2147483644, 1] {
+            fake.query_result.store(result, Ordering::Relaxed);
+            assert!(owner.query_optional::<IBStream>().unwrap().is_none());
+            assert!(matches!(owner.query::<IBStream>(),
+                Err(HostError::Operation { result: actual, .. }) if actual == result));
+            assert_eq!(fake.references.load(Ordering::Relaxed), 1);
+        }
+        for result in [3, 4, -7] {
             fake.query_result.store(result, Ordering::Relaxed);
             assert!(matches!(owner.query_optional::<FUnknown>(),
                 Err(HostError::Operation { operation: "queryInterface", result: actual })
                 if actual == result));
         }
+        fake.query_result.store(1, Ordering::Relaxed);
+        fake.nonnull_on_failure.store(true, Ordering::Relaxed);
+        assert!(matches!(
+            owner.query_optional::<FUnknown>(),
+            Err(HostError::Operation { result: 1, .. })
+        ));
+        fake.nonnull_on_failure.store(false, Ordering::Relaxed);
         fake.query_result.store(0, Ordering::Relaxed);
+        let extension = owner.query_optional::<FUnknown>().unwrap().unwrap();
+        assert_eq!(extension.as_ptr(), owner.as_ptr());
+        assert_eq!(fake.references.load(Ordering::Relaxed), 2);
+        drop(extension);
         fake.null_on_success.store(true, Ordering::Relaxed);
         assert!(matches!(
             owner.query_optional::<FUnknown>(),
