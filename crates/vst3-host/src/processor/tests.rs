@@ -2,6 +2,75 @@ use super::*;
 
 use heron_vst3_host_sys::Steinberg::Vst;
 
+struct RestartTarget {
+    active: bool,
+    activation_attempts: usize,
+    deactivate_result: i32,
+    activate_result: i32,
+}
+
+impl RestartTarget {
+    fn deactivate(&mut self) -> HostResult<()> {
+        // A rejected lifecycle setter may already have changed the plug-in.
+        self.active = false;
+        check("setActive(false)", self.deactivate_result)
+    }
+
+    fn activate(&mut self) -> HostResult<()> {
+        assert!(!self.active, "restart must deactivate before activation");
+        self.activation_attempts += 1;
+        self.active = true;
+        check("setActive(true)", self.activate_result)
+    }
+
+    fn restart(&mut self) -> HostResult<()> {
+        restart_transition(self, Self::deactivate, Self::activate)
+    }
+}
+
+#[test]
+fn rejected_deactivation_keeps_restart_uncertain_and_prevents_activation() {
+    let mut target = RestartTarget {
+        active: true,
+        activation_attempts: 0,
+        deactivate_result: 1,
+        activate_result: 0,
+    };
+    assert!(matches!(
+        target.restart(),
+        Err(HostError::CommitUncertain { source, .. })
+        if matches!(*source, HostError::Operation {
+            operation: "setActive(false)", result: 1,
+        })
+    ));
+    assert!(!target.active);
+    assert_eq!(target.activation_attempts, 0);
+}
+
+#[test]
+fn failed_activation_is_uncertain_until_an_explicit_restart_establishes_active_state() {
+    let mut target = RestartTarget {
+        active: true,
+        activation_attempts: 0,
+        deactivate_result: 0,
+        activate_result: 1,
+    };
+    assert!(matches!(
+        target.restart(),
+        Err(HostError::CommitUncertain { source, .. })
+        if matches!(*source, HostError::Operation {
+            operation: "setActive(true)", result: 1,
+        })
+    ));
+    assert!(target.active);
+    assert_eq!(target.activation_attempts, 1);
+
+    target.activate_result = 0;
+    assert!(target.restart().is_ok());
+    assert!(target.active);
+    assert_eq!(target.activation_attempts, 2);
+}
+
 #[test]
 fn audio_layouts_report_their_input_and_output_channel_contracts() {
     assert_eq!(AudioLayout::Mono.input_channels(), 1);
@@ -15,10 +84,10 @@ fn audio_layouts_report_their_input_and_output_channel_contracts() {
 #[test]
 fn optional_calls_accept_every_sdk_not_implemented_encoding() {
     for result in [3, 0x8000_4001_u32 as i32, 0x8000_0001_u32 as i32] {
-        assert!(check_optional("optional fixture", result).is_ok());
+        assert!(check_processing_notification("setProcessing", result).is_ok());
     }
-    assert!(check_optional("optional fixture", 1).is_err());
-    assert!(check_optional("optional fixture", 0x8000_0008_u32 as i32).is_err());
+    assert!(check_processing_notification("setProcessing", 1).is_err());
+    assert!(check_processing_notification("setProcessing", 0x8000_0008_u32 as i32).is_err());
 }
 
 #[test]
@@ -40,10 +109,10 @@ fn midi_note_ids_never_enter_the_plugin_reserved_negative_range() {
 
 #[test]
 fn optional_vst3_operations_accept_not_implemented_only() {
-    assert!(check_optional("setProcessing", 0).is_ok());
-    assert!(check_optional("setProcessing", -2147467263).is_ok());
+    assert!(check_processing_notification("setProcessing", 0).is_ok());
+    assert!(check_processing_notification("setProcessing", -2147467263).is_ok());
     assert!(matches!(
-        check_optional("setProcessing", -1),
+        check_processing_notification("setProcessing", -1),
         Err(HostError::Operation {
             operation: "setProcessing",
             result: -1,
@@ -204,10 +273,7 @@ fn auxiliary_input_connection_rejects_invalid_bus_storage_and_block_shapes() {
     for input in [&invalid_bus, &wrong_channels, &short_left, &short_right] {
         assert!(matches!(
             storage.connect_aux(input, 8),
-            Err(HostError::Operation {
-                result: -2147024809,
-                ..
-            })
+            Err(HostError::InvalidArgument { .. })
         ));
     }
 
@@ -215,9 +281,8 @@ fn auxiliary_input_connection_rejects_invalid_bus_storage_and_block_shapes() {
     storage.channel_pointers.pop();
     assert!(matches!(
         storage.connect_aux(&mono, 8),
-        Err(HostError::Operation {
+        Err(HostError::InvalidArgument {
             operation: "aux audio input bus storage",
-            result: -2147024809,
         })
     ));
 
@@ -307,7 +372,7 @@ fn main_bus_validation_distinguishes_effect_and_instrument_inputs() {
             PluginKind::Effect,
             AudioLayout::Stereo,
         ),
-        Err(HostError::Operation {
+        Err(HostError::InvalidArgument {
             operation: "main audio input layout",
             ..
         })
@@ -319,7 +384,7 @@ fn main_bus_validation_distinguishes_effect_and_instrument_inputs() {
             PluginKind::Effect,
             AudioLayout::Mono,
         ),
-        Err(HostError::Operation {
+        Err(HostError::InvalidArgument {
             operation: "main audio output layout",
             ..
         })
@@ -386,4 +451,154 @@ fn empty_bus_storage_has_a_null_sdk_channel_array() {
     assert!(storage.channel_pointers[0].is_empty());
     // SAFETY: the storage builder initializes the sample32 union member.
     assert!(unsafe { storage.descriptors[0].__bindgen_anon_1.channelBuffers32 }.is_null());
+}
+
+#[test]
+fn arrangement_refusal_adopts_a_consistent_auxiliary_counter_offer() {
+    use super::buses::{negotiate_and_verify_arrangements, read_negotiated_arrangements};
+    use std::cell::RefCell;
+
+    let outputs = RefCell::new(vec![
+        (Vst::SpeakerArr::kStereo, 2),
+        (Vst::SpeakerArr::kStereo, 2),
+    ]);
+    let proposed = RefCell::new(Vec::new());
+    let result = negotiate_and_verify_arrangements(
+        vec![Vst::SpeakerArr::kStereo],
+        vec![Vst::SpeakerArr::kStereo; 2],
+        |inputs, requested_outputs| {
+            assert_eq!(inputs, [Vst::SpeakerArr::kStereo]);
+            proposed.borrow_mut().push(requested_outputs.to_vec());
+            outputs.borrow_mut()[1] = (Vst::SpeakerArr::kMono, 1);
+            1
+        },
+        || {
+            read_negotiated_arrangements(
+                1,
+                2,
+                |direction| {
+                    if direction == Vst::BusDirections_kInput {
+                        1
+                    } else {
+                        outputs.borrow().len() as i32
+                    }
+                },
+                |direction, index| {
+                    Ok(if direction == Vst::BusDirections_kInput {
+                        (Vst::SpeakerArr::kStereo, 2)
+                    } else {
+                        outputs.borrow()[index as usize]
+                    })
+                },
+            )
+        },
+    );
+
+    assert!(result.is_ok());
+    assert_eq!(
+        *proposed.borrow(),
+        vec![
+            vec![Vst::SpeakerArr::kStereo, Vst::SpeakerArr::kStereo],
+            vec![Vst::SpeakerArr::kStereo, Vst::SpeakerArr::kMono],
+        ]
+    );
+}
+
+#[test]
+fn second_arrangement_refusal_cannot_hide_an_inconsistent_actual_auxiliary_bus() {
+    use super::buses::{negotiate_and_verify_arrangements, read_negotiated_arrangements};
+    use std::cell::RefCell;
+
+    let auxiliary = RefCell::new((Vst::SpeakerArr::kStereo, 2));
+    let proposals = RefCell::new(0);
+    let result = negotiate_and_verify_arrangements(
+        vec![Vst::SpeakerArr::kStereo],
+        vec![Vst::SpeakerArr::kStereo; 2],
+        |_, _| {
+            *proposals.borrow_mut() += 1;
+            // The first rejection offers mono. The confirmation then corrupts
+            // only the auxiliary channel count, while the main bus stays valid.
+            *auxiliary.borrow_mut() = (
+                Vst::SpeakerArr::kMono,
+                if *proposals.borrow() == 1 { 1 } else { 2 },
+            );
+            1
+        },
+        || {
+            read_negotiated_arrangements(
+                1,
+                2,
+                |direction| {
+                    if direction == Vst::BusDirections_kInput {
+                        1
+                    } else {
+                        2
+                    }
+                },
+                |direction, index| {
+                    Ok(if direction == Vst::BusDirections_kOutput && index == 1 {
+                        *auxiliary.borrow()
+                    } else {
+                        (Vst::SpeakerArr::kStereo, 2)
+                    })
+                },
+            )
+        },
+    );
+
+    assert!(matches!(result, Err(HostError::InvalidArgument { .. })));
+    assert_eq!(*proposals.borrow(), 2);
+}
+
+#[test]
+fn accepted_arrangement_still_requires_unchanged_bus_counts_and_consistent_information() {
+    use super::buses::{negotiate_and_verify_arrangements, read_negotiated_arrangements};
+
+    let changed_count = negotiate_and_verify_arrangements(
+        Vec::new(),
+        vec![Vst::SpeakerArr::kStereo],
+        |_, _| 0,
+        || {
+            read_negotiated_arrangements(
+                0,
+                1,
+                |direction| {
+                    if direction == Vst::BusDirections_kInput {
+                        0
+                    } else {
+                        2
+                    }
+                },
+                |_, _| Ok((Vst::SpeakerArr::kStereo, 2)),
+            )
+        },
+    );
+    assert!(matches!(
+        changed_count,
+        Err(HostError::InvalidArgument { .. })
+    ));
+
+    let inconsistent = negotiate_and_verify_arrangements(
+        Vec::new(),
+        vec![Vst::SpeakerArr::kStereo],
+        |_, _| 0,
+        || {
+            read_negotiated_arrangements(
+                0,
+                1,
+                |direction| {
+                    if direction == Vst::BusDirections_kInput {
+                        0
+                    } else {
+                        1
+                    }
+                },
+                |_, _| Ok((Vst::SpeakerArr::kStereo, 1)),
+            )
+        },
+    );
+    assert!(matches!(
+        inconsistent,
+        Err(HostError::InvalidArgument { .. })
+    ));
 }

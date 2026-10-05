@@ -3,12 +3,16 @@ import { createPinia, setActivePinia } from "pinia"
 import type {
   LiveWorkspaceSnapshot,
   OperationStatusSnapshot,
+  PluginRuntimeEvent,
+  RpcEvent,
   RpcRequestMeta,
   RpcResult
 } from "@heron/contracts"
+import { IPC_PROTOCOL_VERSION } from "@heron/contracts"
 import { useLiveStore } from "./live"
 import { useProjectStore } from "./project"
 import { useLiveWorkspaceStore } from "./liveWorkspace"
+import { useAudioRuntimeStore } from "./audioRuntime"
 import { useGlobalDialog } from "../composables/useGlobalDialog"
 
 const desktop = { kind: "desktop-session" as const, id: "desktop", epoch: "epoch", generation: 1 }
@@ -114,6 +118,100 @@ function fixture() {
 describe("Live document store", () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+  })
+
+  it("keeps Live processor health unchanged by operation notices while accepting process failures", () => {
+    const bridge: { listener: ((event: RpcEvent<PluginRuntimeEvent>) => void) | null } = {
+      listener: null
+    }
+    window.heron.subscribePluginRuntime = vi.fn((listener) => {
+      bridge.listener = listener
+      return () => {
+        bridge.listener = null
+      }
+    })
+    const { live } = fixture()
+    const audio = useAudioRuntimeStore()
+    audio.audioHostRef = { kind: "audio-host", id: "host", epoch: "audio-epoch", generation: 1 }
+    const published = workspace()
+    published.mode = "perform"
+    published.performance = {
+      activeLayerId: null,
+      generation: 3,
+      runtimeRevision: 4,
+      snapshot: { graph: published.graph, parameterValues: [] },
+      uncapturedFields: [],
+      runtimePluginIds: { "document-plugin": "native-plugin" }
+    }
+    live.applyWorkspace(published)
+    const health = structuredClone(audio.lifecycle)
+    const event = (
+      sequence: number,
+      payload: PluginRuntimeEvent
+    ): RpcEvent<PluginRuntimeEvent> => ({
+      protocolVersion: IPC_PROTOCOL_VERSION,
+      sourceEpoch: "audio-epoch",
+      sequence,
+      resourceRevision: 4,
+      payload
+    })
+    const notice: PluginRuntimeEvent = {
+      kind: "operation-failed",
+      instanceId: "native-plugin",
+      phase: "state-save",
+      error: {
+        code: "dependency-failed",
+        category: "dependency-failed",
+        outcome: "not-committed",
+        retry: "never",
+        correlationId: "state-save-1",
+        userMessageKey: "errors.pluginOperationFailed",
+        details: {
+          type: "plugin-operation",
+          format: "vst3",
+          instanceId: "native-plugin",
+          stage: "state-save",
+          operation: "getState",
+          result: 1
+        }
+      }
+    }
+    expect(bridge.listener).not.toBeNull()
+    bridge.listener?.(event(1, notice))
+    expect(live.error).not.toBe("")
+    expect(live.pluginFailures).toEqual({})
+    expect(audio.lifecycle).toEqual(health)
+    expect(live.quarantined).toBe(false)
+    expect(live.needsReconciliation).toBe(false)
+
+    bridge.listener?.(
+      event(2, {
+        instanceId: "native-plugin",
+        instanceGeneration: 3,
+        graphRevision: 4,
+        category: "plugin-rejected",
+        stage: "process",
+        outcome: "failed",
+        recoverable: true,
+        diagnosticId: "process-1",
+        message: "process rejected"
+      })
+    )
+    expect(live.pluginFailures["document-plugin"]).toMatchObject({
+      instanceId: "document-plugin",
+      stage: "process",
+      diagnosticId: "process-1"
+    })
+    bridge.listener?.(event(3, notice))
+    expect(live.pluginFailures["document-plugin"]).toMatchObject({
+      instanceId: "document-plugin",
+      stage: "process",
+      diagnosticId: "process-1"
+    })
+    expect(audio.lifecycle).toEqual(health)
+    live.error = ""
+    bridge.listener?.(event(4, { ...notice, instanceId: "other-workspace-plugin" }))
+    expect(live.error).toBe("")
   })
 
   it("keeps editing selection local and falls back after deleting its layer or replacing the document", () => {

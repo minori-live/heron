@@ -159,12 +159,16 @@ fn parameter_value(runtime: &Vst3Runtime, instance_id: &str, parameter_id: u32) 
         .map(|parameter| parameter.normalized)
 }
 
+#[path = "embedded_editors/operation_error.rs"]
+mod operation_error;
+use operation_error::EditorOperationError;
+
 fn apply_parameter_value(
     runtime: &mut Vst3Runtime,
     instance_id: &str,
     parameter_id: u32,
     normalized: f64,
-) -> Result<(), String> {
+) -> Result<(), EditorOperationError> {
     use heron_dsp_runtime::protocol::ParameterGesture;
     runtime.set_parameter_from_editor(
         instance_id,
@@ -178,7 +182,13 @@ fn apply_parameter_value(
         normalized,
         ParameterGesture::Perform,
     )?;
-    runtime.set_parameter_from_editor(instance_id, parameter_id, normalized, ParameterGesture::End)
+    runtime.set_parameter_from_editor(
+        instance_id,
+        parameter_id,
+        normalized,
+        ParameterGesture::End,
+    )?;
+    Ok(())
 }
 
 fn push_edit(history: &mut VecDeque<ParameterEdit>, edit: ParameterEdit) {
@@ -294,7 +304,7 @@ fn attach_embedded_native_editor(
     instance_id: &str,
     host: &mut EmbeddedEditorHost,
     events: &Rc<RefCell<VecDeque<EmbeddedEditorHostEvent>>>,
-) -> Result<(), String> {
+) -> Result<(), EditorOperationError> {
     let attachment = EmbeddedNativeEditor::attach(
         runtime,
         instance_id,
@@ -468,13 +478,15 @@ impl EmbeddedUiHost {
         &mut self,
         instance_id: &str,
         action: PluginEditorAction,
-    ) -> Result<PluginEditorToolbarState, String> {
+    ) -> Result<PluginEditorToolbarState, EditorOperationError> {
         if self
             .clap
             .as_ref()
             .is_some_and(|runtime| runtime.contains(instance_id))
         {
-            return self.apply_clap_editor_action(instance_id, action);
+            return self
+                .apply_clap_editor_action(instance_id, action)
+                .map_err(EditorOperationError::Clap);
         }
         let events = Rc::clone(&self.embedded_editor_events);
         let host_events = self.host_events.clone();
@@ -528,16 +540,22 @@ impl EmbeddedUiHost {
             PluginEditorAction::Compare { slot } => {
                 let target = usize::from(slot == PluginEditorCompareSlot::B);
                 if target != host.compare_slot {
-                    let current = EditorPluginState::Vst3(runtime.editor_state(instance_id)?);
+                    let current = EditorPluginState::Vst3(
+                        runtime
+                            .editor_state(instance_id)
+                            .map_err(EditorOperationError::StateSave)?,
+                    );
                     let slots = host
                         .compare_slots
                         .as_mut()
                         .ok_or_else(|| "A/B comparison is unavailable".to_owned())?;
                     let target_state = slots[target].clone();
                     let EditorPluginState::Vst3(target_state) = &target_state else {
-                        return Err("A/B state belongs to a different plug-in format".to_owned());
+                        return Err("A/B state belongs to a different plug-in format".into());
                     };
-                    runtime.restore_editor_state(instance_id, target_state)?;
+                    runtime
+                        .restore_editor_state(instance_id, target_state)
+                        .map_err(EditorOperationError::Restore)?;
                     slots[host.compare_slot] = current;
                     host.compare_slot = target;
                     runtime.mark_editor_state_dirty(instance_id);
@@ -553,7 +571,11 @@ impl EmbeddedUiHost {
                     .ok_or_else(|| "VST3 instance class is unavailable".to_owned())?;
                 *clipboard = Some((
                     class_id,
-                    EditorPluginState::Vst3(runtime.editor_state(instance_id)?),
+                    EditorPluginState::Vst3(
+                        runtime
+                            .editor_state(instance_id)
+                            .map_err(EditorOperationError::StateSave)?,
+                    ),
                 ));
             }
             PluginEditorAction::Paste => {
@@ -567,9 +589,11 @@ impl EmbeddedUiHost {
                     .map(|(_, state)| state.clone())
                     .ok_or_else(|| "Copied settings belong to a different plug-in".to_owned())?;
                 let EditorPluginState::Vst3(vst3_state) = &state else {
-                    return Err("Copied settings belong to a different plug-in format".to_owned());
+                    return Err("Copied settings belong to a different plug-in format".into());
                 };
-                runtime.restore_editor_state(instance_id, vst3_state)?;
+                runtime
+                    .restore_editor_state(instance_id, vst3_state)
+                    .map_err(EditorOperationError::Restore)?;
                 runtime.mark_editor_state_dirty(instance_id);
                 if let Some(slots) = host.compare_slots.as_mut() {
                     slots[host.compare_slot] = state;

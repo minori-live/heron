@@ -300,9 +300,25 @@ fn execute_rejects_invalid_load_and_parameter_envelopes_before_native_loading() 
         },
     ];
     for command in cases {
+        let ControlResult::Error { error } = runtime.execute(command) else {
+            panic!("an invalid plug-in envelope must produce a typed failure");
+        };
+        assert_eq!(
+            error.outcome,
+            heron_dsp_runtime::protocol::RpcMutationOutcome::NotCommitted
+        );
+        assert_ne!(
+            error.category,
+            heron_dsp_runtime::protocol::RpcErrorCategory::InvariantViolation
+        );
         assert!(matches!(
-            runtime.execute(command),
-            ControlResult::Error { .. }
+            error.details,
+            Some(
+                heron_dsp_runtime::protocol::RpcErrorDetails::PluginOperation {
+                    instance_id: Some(_),
+                    ..
+                }
+            )
         ));
     }
 }

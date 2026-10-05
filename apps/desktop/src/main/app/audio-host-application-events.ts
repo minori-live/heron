@@ -73,6 +73,20 @@ export class AudioHostApplicationEventBridge {
         await this.options.markProjectDirty()
       } else if (notification.kind === "open-editor") {
         await this.options.plugins.openEditor(notification.instanceId)
+      } else if (notification.kind === "operation-failed" && notification.error) {
+        this.pluginRuntimeSequence += 1
+        this.broadcast(IPC_CHANNELS.pluginRuntimeEvent, {
+          protocolVersion: IPC_PROTOCOL_VERSION,
+          sourceEpoch: this.options.audioHost.helperEpoch() ?? "0",
+          sequence: this.pluginRuntimeSequence,
+          resourceRevision: this.pluginRuntimeSequence,
+          payload: {
+            kind: "operation-failed",
+            instanceId: notification.instanceId,
+            phase: notification.phase ?? null,
+            error: notification.error
+          }
+        })
       }
     })
 

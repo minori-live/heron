@@ -5,6 +5,8 @@ import type {
   ProjectGraphSnapshot,
   PluginDescriptor,
   PluginRuntimeFailure,
+  PluginRuntimeEvent,
+  RpcError,
   ProjectWorkspaceSnapshot,
   RpcEvent,
   RpcResult
@@ -233,6 +235,65 @@ describe("plugin store", () => {
       },
       revision: 0
     })
+  })
+
+  it("shows a rejected operation while preserving the active processor and editor", async () => {
+    const bridge: { listener: ((event: RpcEvent<PluginRuntimeEvent>) => void) | null } = {
+      listener: null
+    }
+    window.heron.subscribePluginRuntime = vi.fn((listener) => {
+      bridge.listener = listener
+      return () => {
+        bridge.listener = null
+      }
+    })
+    window.heron.listPlugins = vi.fn().mockResolvedValue(
+      success({
+        scannerVersion: 7,
+        scanning: false,
+        scannedAt: 1,
+        plugins: []
+      })
+    )
+    const store = usePluginStore()
+    await store.load()
+    store.runtime = {
+      "plugin-1": {
+        instanceId: "plugin-1",
+        state: "active",
+        editorOpen: true,
+        latencySamples: 64,
+        tailSamples: 0,
+        error: null
+      }
+    }
+    const before = structuredClone(store.runtime)
+    const error: RpcError = {
+      code: "dependency-failed",
+      category: "dependency-failed",
+      outcome: "not-committed",
+      retry: "never",
+      correlationId: "vst3-operation-1",
+      userMessageKey: "errors.pluginOperationFailed",
+      details: {
+        type: "plugin-operation",
+        format: "vst3",
+        instanceId: "plugin-1",
+        stage: "state-save",
+        operation: "IComponent::getState",
+        result: 1
+      }
+    }
+    bridge.listener?.({
+      protocolVersion: IPC_PROTOCOL_VERSION,
+      sourceEpoch: "helper-epoch",
+      sequence: 1,
+      resourceRevision: 1,
+      payload: { kind: "operation-failed", instanceId: "plugin-1", phase: "save-state", error }
+    })
+    expect(store.error).not.toBe("")
+    expect(useMixerStore().error).toBe(store.error)
+    expect(store.runtime).toEqual(before)
   })
 
   it("forces lightweight rediscovery when the user requests a manual rescan", async () => {

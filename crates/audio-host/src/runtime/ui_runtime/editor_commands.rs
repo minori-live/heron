@@ -82,7 +82,7 @@ impl EmbeddedUiHost {
             }) => {
                 let result = match self.apply_embedded_editor_action(&instance_id, action) {
                     Ok(state) => ControlResult::PluginEditorToolbar { state },
-                    Err(message) => control_error! { message },
+                    Err(error) => error.into_control_result(&instance_id),
                 };
                 let _ = reply.send(result);
                 return;
@@ -194,7 +194,7 @@ impl EmbeddedUiHost {
                         self.next_ara_tick = Some(Instant::now());
                         ControlResult::Accepted
                     }
-                    Err(message) => control_error! { message },
+                    Err(error) => ControlResult::Error { error: *error },
                 };
                 let _ = reply.send(result);
                 return;
@@ -222,7 +222,7 @@ impl EmbeddedUiHost {
                         }
                         ControlResult::Accepted
                     }
-                    Err(message) => control_error! { message },
+                    Err(error) => ControlResult::Error { error: *error },
                 };
                 let _ = reply.send(result);
                 return;
@@ -249,7 +249,7 @@ impl EmbeddedUiHost {
                         }
                         ControlResult::Accepted
                     }
-                    Err(message) => control_error! { message },
+                    Err(error) => ControlResult::Error { error: *error },
                 };
                 let _ = reply.send(result);
                 return;
@@ -547,7 +547,7 @@ impl EmbeddedUiHost {
                     }
                 }
                 for (instance_id, failure) in restart_failures {
-                    self.publish_plugin_runtime_failure(&instance_id, "vst3-restart", failure);
+                    self.publish_vst3_operation_failure(&instance_id, "vst3-restart", &failure);
                 }
                 let (callback_generation, transport_state) = self.audio_engine.heartbeat_snapshot();
                 ControlResult::Heartbeat {
@@ -566,10 +566,10 @@ impl EmbeddedUiHost {
                 let mut result = runtime.execute(command);
                 if matches!(result, ControlResult::PluginLoaded { .. })
                     && let Some(instance_id) = loaded_id.as_ref()
-                    && let Err(message) = runtime.sync_ara_graph(self.ara_graph.as_ref())
+                    && let Err(error) = runtime.sync_ara_graph(self.ara_graph.as_ref())
                 {
                     let _ = runtime.unload_plugin(instance_id);
-                    result = control_error! { message };
+                    result = ControlResult::Error { error: *error };
                 }
                 if matches!(result, ControlResult::PluginLoaded { .. })
                     && let Some(instance_id) = loaded_id

@@ -1,5 +1,5 @@
 import { IPC_CHANNELS } from "@heron/contracts"
-import type { PluginRuntimeFailure } from "@heron/contracts"
+import type { PluginRuntimeFailure, RpcError } from "@heron/contracts"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type {
   AraHostCallback,
@@ -140,6 +140,40 @@ describe("AudioHostApplicationEventBridge", () => {
         payload: expect.objectContaining({ instanceId: "plugin-1", stage: "process" })
       })
     )
+  })
+
+  it("publishes an operation rejection without manufacturing a processor failure", async () => {
+    const error: RpcError = {
+      code: "dependency-failed",
+      category: "dependency-failed",
+      outcome: "not-committed",
+      retry: "never",
+      correlationId: "vst3-operation-1",
+      userMessageKey: "errors.pluginOperationFailed",
+      details: {
+        type: "plugin-operation",
+        format: "vst3",
+        instanceId: "plugin-1",
+        stage: "editor",
+        operation: "IPlugView::attached",
+        result: 1
+      }
+    }
+    await pluginHandler({
+      instanceId: "plugin-1",
+      kind: "operation-failed",
+      value: error.userMessageKey,
+      error,
+      phase: "open-editor"
+    })
+    expect(send).toHaveBeenCalledWith(
+      IPC_CHANNELS.pluginRuntimeEvent,
+      expect.objectContaining({
+        payload: { kind: "operation-failed", instanceId: "plugin-1", phase: "open-editor", error }
+      })
+    )
+    expect(markProjectDirty).not.toHaveBeenCalled()
+    expect(openEditor).not.toHaveBeenCalled()
   })
 
   it("commits side-chain changes before acknowledging and broadcasting them", async () => {

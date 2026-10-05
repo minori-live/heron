@@ -147,7 +147,7 @@ impl PlugView {
     }
 
     pub fn set_content_scale_factor(&self, factor: f32) -> HostResult<bool> {
-        let Ok(scale) = self.view.query::<IPlugViewContentScaleSupport>() else {
+        let Some(scale) = self.view.query_optional::<IPlugViewContentScaleSupport>()? else {
             return Ok(false);
         };
         let table = unsafe {
@@ -156,10 +156,20 @@ impl PlugView {
                 .as_ptr()
                 .cast::<*const PlugViewContentScaleSupportVTable>()
         };
-        Ok(unsafe {
+        let result = unsafe {
             // SAFETY: scale interface is live and factor is supplied by validated host settings.
-            ((*table).set_content_scale_factor)(scale.as_ptr(), factor) == 0
-        })
+            ((*table).set_content_scale_factor)(scale.as_ptr(), factor)
+        };
+        match crate::results::ResultCode::decode(result) {
+            crate::results::ResultCode::Accepted => Ok(true),
+            crate::results::ResultCode::Declined | crate::results::ResultCode::NotImplemented => {
+                Ok(false)
+            }
+            _ => Err(HostError::Operation {
+                operation: "IPlugViewContentScaleSupport::setContentScaleFactor",
+                result,
+            }),
+        }
     }
 }
 
@@ -175,9 +185,16 @@ pub(super) fn create_controller(
             controller_id.as_mut_ptr(),
         )
     };
-    if result != 0 {
-        return Ok((processor.component().query::<IEditController>().ok(), false));
+    if matches!(
+        crate::results::ResultCode::decode(result),
+        crate::results::ResultCode::Declined | crate::results::ResultCode::NotImplemented
+    ) {
+        return Ok((
+            processor.component().query_optional::<IEditController>()?,
+            false,
+        ));
     }
+    check("IComponent::getControllerClassId", result)?;
     let controller = module.create::<IEditController>(ClassId::from_tuid(controller_id))?;
     check("IEditController::initialize", unsafe {
         // SAFETY: controller is newly created and shares the live host context.
@@ -307,60 +324,20 @@ pub(super) fn optional_unit_string_result(
     }
 }
 
-pub(super) fn check(operation: &'static str, result: i32) -> HostResult<()> {
-    if result == 0 {
-        Ok(())
-    } else {
-        Err(HostError::Operation { operation, result })
-    }
-}
-
-pub(super) fn check_controller_parameter_sync(
-    operation: &'static str,
-    result: i32,
-) -> HostResult<()> {
-    // setParamNormalized synchronizes the controller's GUI; DSP changes travel
-    // separately through IParameterChanges. Some controllers (Ozone) return
-    // kResultFalse for this GUI update even while the processor accepts the
-    // parameter, so it must not prevent delivery or flushing of queued changes.
-    if result == 1 {
-        Ok(())
-    } else {
-        check(operation, result)
-    }
-}
+pub(super) use crate::results::require_success as check;
 
 pub(super) fn validate_controller_parameter_edit(flags: Option<u32>) -> HostResult<()> {
-    let flags = flags.ok_or(HostError::Operation {
+    let flags = flags.ok_or(HostError::InvalidArgument {
         operation: "parameter ID not found",
-        result: -2147024809,
     })?;
     if flags
         & (as_uint32(Vst::ParameterInfo_ParameterFlags_kIsReadOnly)
             | as_uint32(Vst::ParameterInfo_ParameterFlags_kIsHidden))
         != 0
     {
-        return Err(HostError::Operation {
+        return Err(HostError::InvalidArgument {
             operation: "parameter is read-only or hidden",
-            result: -2147024891,
         });
     }
     Ok(())
-}
-
-pub(super) fn is_not_implemented(result: i32) -> bool {
-    // SDK-native kNotImplemented on macOS/Linux plus the COM-compatible
-    // encodings used by Windows toolchains and some cross-platform wrappers.
-    [3, 0x8000_4001_u32 as i32, 0x8000_0001_u32 as i32].contains(&result)
-}
-
-pub(super) fn check_optional_controller_state(
-    operation: &'static str,
-    result: i32,
-) -> HostResult<()> {
-    if result == 0 || is_not_implemented(result) {
-        Ok(())
-    } else {
-        Err(HostError::Operation { operation, result })
-    }
 }

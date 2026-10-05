@@ -29,10 +29,11 @@ mod buses;
 
 use buses::{
     InitializedComponent, activate_event_input_buses, apply_bus_activation_overrides,
-    audio_bus_count, audio_bus_descriptors, audio_bus_is_active, check, check_optional,
-    component_table, configure_audio_bus_activation, negotiate_bus_arrangements,
-    prepare_audio_bus_storage, presentation_latency_table, process_context_requirements_table,
-    processor_table, silence_flags, validate_bus_address, validate_main_bus_layout,
+    audio_bus_count, audio_bus_descriptors, audio_bus_is_active, check,
+    check_processing_notification, component_table, configure_audio_bus_activation,
+    negotiate_bus_arrangements, prepare_audio_bus_storage, presentation_latency_table,
+    process_context_requirements_table, processor_table, silence_flags, validate_bus_address,
+    validate_main_bus_layout,
 };
 
 #[cfg(test)]
@@ -173,15 +174,13 @@ impl AudioBusStorage {
 
     fn connect_aux(&mut self, input: &AuxiliaryAudioInput, frames: usize) -> HostResult<()> {
         let Some(descriptor) = self.descriptors.get_mut(input.bus_index) else {
-            return Err(HostError::Operation {
+            return Err(HostError::InvalidArgument {
                 operation: "aux audio input bus index",
-                result: -2147024809,
             });
         };
         let Some(pointers) = self.channel_pointers.get_mut(input.bus_index) else {
-            return Err(HostError::Operation {
+            return Err(HostError::InvalidArgument {
                 operation: "aux audio input bus storage",
-                result: -2147024809,
             });
         };
         let channels = usize::from(input.channels);
@@ -189,9 +188,8 @@ impl AudioBusStorage {
             || input.left.len() < frames
             || (channels == 2 && input.right.len() < frames)
         {
-            return Err(HostError::Operation {
+            return Err(HostError::InvalidArgument {
                 operation: "aux audio input block shape",
-                result: -2147024809,
             });
         }
         pointers[0] = input.left.as_ptr().cast_mut();
@@ -298,9 +296,8 @@ impl StereoProcessor {
         hook: impl FnOnce(*mut std::ffi::c_void) -> HostResult<T>,
     ) -> HostResult<(Self, HeapProd<QueuedParameter>, T)> {
         if kind == PluginKind::Instrument && layout == AudioLayout::MonoToStereo {
-            return Err(HostError::Operation {
+            return Err(HostError::InvalidArgument {
                 operation: "instrument audio layout",
-                result: -2147024809,
             });
         }
         let component = module.create::<IComponent>(class_id)?;
@@ -315,7 +312,7 @@ impl StereoProcessor {
             std::mem::MaybeUninit::<ProcessContext>::zeroed().assume_init()
         });
         if kind == PluginKind::Instrument {
-            check_optional("IComponent::setIoMode(simple)", unsafe {
+            crate::results::io_mode_result(unsafe {
                 // SAFETY: setIoMode is an optional Created-state call made before initialize.
                 ((*component_table(&component)).set_io_mode)(
                     component.as_ptr(),
@@ -337,9 +334,9 @@ impl StereoProcessor {
         let mut lifecycle = InitializedComponent::new(component);
         let hook_result = hook(lifecycle.component().as_ptr().cast())?;
         let processor = lifecycle.component().query::<IAudioProcessor>()?;
+        let presentation_latency = processor.query_optional::<IAudioPresentationLatency>()?;
         lifecycle.set_processor(processor);
         let (component, processor) = lifecycle.take();
-        let presentation_latency = processor.query::<IAudioPresentationLatency>().ok();
         Ok((
             Self {
                 processor,
@@ -376,8 +373,7 @@ impl StereoProcessor {
         }
         self.process_context_requirements = self
             .processor
-            .query::<IProcessContextRequirements>()
-            .ok()
+            .query_optional::<IProcessContextRequirements>()?
             .map_or_else(legacy_process_context_requirements, |requirements| unsafe {
                 // SAFETY: requirements is a live extension queried from the initialized processor.
                 ((*process_context_requirements_table(&requirements))
@@ -419,13 +415,16 @@ impl StereoProcessor {
                 std::ptr::addr_of_mut!(setup),
             )
         })?;
+        // A rejected setter may still have entered the active state. Record
+        // the cleanup obligation before calling it so failure teardown also
+        // attempts setProcessing(false) and setActive(false).
+        self.active = true;
         check("setActive(true)", unsafe {
             // SAFETY: all buses and processing configuration are set.
             ((*component_table).set_active)(self.component.as_ptr(), 1)
         })?;
-        self.active = true;
         self.apply_presentation_latency()?;
-        check_optional("setProcessing(true)", unsafe {
+        check_processing_notification("setProcessing(true)", unsafe {
             // SAFETY: component is active.
             ((*processor_table).set_processing)(self.processor.as_ptr(), 1)
         })?;
@@ -433,8 +432,7 @@ impl StereoProcessor {
     }
 
     pub(crate) fn restart_processing(&mut self) -> HostResult<()> {
-        self.deactivate()?;
-        self.activate()
+        restart_transition(self, Self::deactivate, Self::activate)
     }
 
     pub(crate) fn set_bus_active(
@@ -462,15 +460,13 @@ impl StereoProcessor {
 
     pub(crate) fn configure_aux_input_buses(&mut self, indices: &[u32]) -> HostResult<()> {
         if self.active {
-            return Err(HostError::Operation {
+            return Err(HostError::InvalidArgument {
                 operation: "configure aux audio inputs before activation",
-                result: -2147024809,
             });
         }
         for &index in indices {
-            let index = i32::try_from(index).map_err(|_| HostError::Operation {
+            let index = i32::try_from(index).map_err(|_| HostError::InvalidArgument {
                 operation: "aux audio input bus index",
-                result: -2147024809,
             })?;
             validate_bus_address(
                 &self.component,
@@ -529,19 +525,19 @@ impl StereoProcessor {
                 {
                     continue;
                 }
-                check(
-                    "IAudioPresentationLatency::setAudioPresentationLatencySamples",
-                    unsafe {
-                        // SAFETY: the interface and component are activated, and index identifies an
-                        // active audio bus returned by IComponent::getBusCount.
-                        ((*table).set_audio_presentation_latency_samples)(
-                            interface.as_ptr(),
-                            as_bus_direction(direction),
-                            index,
-                            latency,
-                        )
-                    },
-                )?;
+                let result = unsafe {
+                    // SAFETY: the interface and component are activated, and index identifies an
+                    // active audio bus returned by IComponent::getBusCount.
+                    ((*table).set_audio_presentation_latency_samples)(
+                        interface.as_ptr(),
+                        as_bus_direction(direction),
+                        index,
+                        latency,
+                    )
+                };
+                if let Err(error) = crate::results::presentation_latency_result(result) {
+                    eprintln!("VST3 presentation latency hint rejected: {error}");
+                }
             }
         }
         Ok(())
@@ -551,7 +547,7 @@ impl StereoProcessor {
         if !self.active {
             return Ok(());
         }
-        check_optional("setProcessing(false)", unsafe {
+        check_processing_notification("setProcessing(false)", unsafe {
             // SAFETY: the component is processing and this runs while the
             // processor lease is paused on the owning control thread.
             ((*processor_table(&self.processor)).set_processing)(self.processor.as_ptr(), 0)
@@ -654,9 +650,8 @@ impl StereoProcessor {
             || output_left.len() != frames
             || output_right.len() != frames
         {
-            return Err(HostError::Operation {
+            return Err(HostError::InvalidArgument {
                 operation: "process block shape",
-                result: -2147024809,
             });
         }
         let mut input_channels = [input_left.as_mut_ptr(), input_right.as_mut_ptr()];
@@ -902,6 +897,19 @@ impl StereoProcessor {
         self.input_parameters
             .add_value(parameter_id, sample_offset, value.clamp(0.0, 1.0))
     }
+}
+
+fn restart_transition<T>(
+    target: &mut T,
+    deactivate: impl FnOnce(&mut T) -> HostResult<()>,
+    activate: impl FnOnce(&mut T) -> HostResult<()>,
+) -> HostResult<()> {
+    deactivate(target)
+        .and_then(|()| activate(target))
+        .map_err(|source| HostError::CommitUncertain {
+            operation: "restart plug-in processing",
+            source: Box::new(source),
+        })
 }
 
 impl Drop for StereoProcessor {

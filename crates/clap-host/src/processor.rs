@@ -25,7 +25,8 @@ use clap_sys::{
     process::{CLAP_PROCESS_ERROR, CLAP_PROCESS_SLEEP, clap_process},
 };
 use heron_audio_plugin::{
-    AudioPluginProcessor, AudioPortToken, ParameterToken, ProcessContext, SidechainSource,
+    AudioPluginProcessor, AudioPortToken, ParameterToken, PluginProcessFailure, ProcessContext,
+    ProcessOutcome, SidechainSource,
 };
 
 use crate::{ClapAudioPort, ClapHostRequests, ClapNotePort, host::AudioThreadScope};
@@ -296,30 +297,30 @@ impl ClapProcessorHandle {
         })
     }
 
-    fn start(&mut self) -> bool {
+    fn start(&mut self) -> ProcessOutcome {
         if self.started_here {
-            return true;
+            return ProcessOutcome::Processed;
         }
         if self
             .lifecycle
             .compare_exchange(1, 2, Ordering::AcqRel, Ordering::Acquire)
             .is_err()
         {
-            return false;
+            return ProcessOutcome::TemporarilyUnavailable;
         }
         // SAFETY: The lifecycle transition guarantees one audio-thread start.
         let Some(start) = (unsafe { self.plugin.0.as_ref() }).start_processing else {
             self.lifecycle.store(1, Ordering::Release);
-            return false;
+            return ProcessOutcome::Failed(PluginProcessFailure::Rejected);
         };
         let _audio_thread = AudioThreadScope::enter();
         // SAFETY: This call occurs on the processing thread after activation.
         if !unsafe { start(self.plugin.0.as_ptr()) } {
             self.lifecycle.store(1, Ordering::Release);
-            return false;
+            return ProcessOutcome::Failed(PluginProcessFailure::Rejected);
         }
         self.started_here = true;
-        true
+        ProcessOutcome::Processed
     }
 
     fn push_note(
@@ -454,9 +455,13 @@ impl AudioPluginProcessor for ClapProcessorHandle {
         frames: &mut [[f32; 2]],
         sidechains: &dyn SidechainSource,
         context: &ProcessContext,
-    ) -> bool {
-        if frames.len() > self.maximum_frames || !self.start() {
-            return false;
+    ) -> ProcessOutcome {
+        if frames.len() > self.maximum_frames {
+            return ProcessOutcome::Failed(PluginProcessFailure::Rejected);
+        }
+        let start = self.start();
+        if !start.is_processed() {
+            return start;
         }
         self.drain_parameters(true);
         let process_requested = self.requests.take_process_request();
@@ -466,7 +471,7 @@ impl AudioPluginProcessor for ClapProcessorHandle {
             && frames.iter().all(|frame| *frame == [0.0, 0.0])
         {
             frames.fill([0.0, 0.0]);
-            return true;
+            return ProcessOutcome::Processed;
         }
         let frame_count = frames.len();
         for (port_index, port) in self.inputs.iter_mut().enumerate() {
@@ -532,7 +537,7 @@ impl AudioPluginProcessor for ClapProcessorHandle {
         self.events.events.clear();
         self.events.sysex.clear();
         if status == CLAP_PROCESS_ERROR {
-            return false;
+            return ProcessOutcome::Failed(PluginProcessFailure::Rejected);
         }
         self.sleeping = status == CLAP_PROCESS_SLEEP;
         if let Some(output) = self.outputs.first() {
@@ -548,7 +553,7 @@ impl AudioPluginProcessor for ClapProcessorHandle {
                     .map_or(0.0, |channel| channel[index]);
             }
         }
-        true
+        ProcessOutcome::Processed
     }
 
     fn parameter(&mut self, offset: usize, token: ParameterToken, value: f64) -> bool {

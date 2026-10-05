@@ -145,7 +145,17 @@ export interface RpcInvariantViolationDetails {
   component: "main" | "project-worker" | "audio-host" | "offline-worker"
 }
 
+export interface RpcPluginOperationDetails {
+  type: "plugin-operation"
+  format: "vst3" | "clap"
+  instanceId?: string
+  stage: "initialize" | "restore" | "process" | "parameter" | "editor" | "state-save" | "ara"
+  operation: string
+  result?: number
+}
+
 export type RpcErrorDetails =
+  | RpcPluginOperationDetails
   | RpcValidationErrorDetails
   | RpcDocumentFormatErrorDetails
   | RpcProtocolMismatchDetails
@@ -176,6 +186,42 @@ interface RpcErrorBase<
 }
 
 export type RpcError =
+  | RpcErrorBase<
+      "validation-failed",
+      "validation",
+      "not-committed",
+      "never",
+      RpcPluginOperationDetails
+    >
+  | RpcErrorBase<"resource-busy", "busy", "not-committed", "safe", RpcPluginOperationDetails>
+  | RpcErrorBase<
+      "stale-resource",
+      "stale-resource",
+      "not-committed",
+      "after-reconcile",
+      RpcPluginOperationDetails
+    >
+  | RpcErrorBase<
+      "dependency-failed",
+      "dependency-failed",
+      "unknown",
+      "after-reconcile",
+      RpcPluginOperationDetails
+    >
+  | RpcErrorBase<
+      "dependency-failed",
+      "dependency-failed",
+      "not-committed",
+      "never",
+      RpcPluginOperationDetails
+    >
+  | RpcErrorBase<
+      "dependency-failed",
+      "dependency-failed",
+      "quarantined",
+      "after-reconcile",
+      RpcPluginOperationDetails
+    >
   | RpcErrorBase<
       "validation-failed",
       "validation",

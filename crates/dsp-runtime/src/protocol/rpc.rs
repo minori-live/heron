@@ -135,6 +135,17 @@ pub enum RpcStaleReason {
     rename_all_fields = "camelCase"
 )]
 pub enum RpcErrorDetails {
+    /// A plug-in operation failure. The method name and native result are
+    /// diagnostic context; category, outcome and retry define host policy.
+    PluginOperation {
+        format: super::PluginFormat,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        instance_id: Option<String>,
+        stage: super::PluginFailureStage,
+        operation: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        result: Option<i32>,
+    },
     ValidationFailed {
         #[serde(skip_serializing_if = "Option::is_none")]
         field: Option<String>,

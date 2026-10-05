@@ -160,14 +160,13 @@ pub(super) fn prepare_audio_bus_storage(
                 std::ptr::addr_of_mut!(info),
             )
         })?;
-        let channels = usize::try_from(info.channelCount).map_err(|_| HostError::Operation {
-            operation: "audio bus channel count",
-            result: -2147024809,
-        })?;
-        if channels > 64 {
-            return Err(HostError::Operation {
+        let channels =
+            usize::try_from(info.channelCount).map_err(|_| HostError::InvalidArgument {
                 operation: "audio bus channel count",
-                result: -2147024809,
+            })?;
+        if channels > 64 {
+            return Err(HostError::InvalidArgument {
+                operation: "audio bus channel count",
             });
         }
         channel_counts.push(channels);
@@ -269,15 +268,13 @@ pub(super) fn validate_main_bus_layout(
     if kind == PluginKind::Effect
         && inputs.descriptors.first().map(|bus| bus.numChannels) != Some(layout.input_channels())
     {
-        return Err(HostError::Operation {
+        return Err(HostError::InvalidArgument {
             operation: "main audio input layout",
-            result: -2147024809,
         });
     }
     if outputs.descriptors.first().map(|bus| bus.numChannels) != Some(layout.output_channels()) {
-        return Err(HostError::Operation {
+        return Err(HostError::InvalidArgument {
             operation: "main audio output layout",
-            result: -2147024809,
         });
     }
     Ok(())
@@ -298,15 +295,13 @@ pub(super) fn configure_audio_bus_activation(
     let input_count = audio_bus_count(component, Vst::BusDirections_kInput);
     let output_count = audio_bus_count(component, Vst::BusDirections_kOutput);
     if kind == PluginKind::Effect && input_count == 0 {
-        return Err(HostError::Operation {
+        return Err(HostError::InvalidArgument {
             operation: "audio input bus count",
-            result: -2147024809,
         });
     }
     if output_count == 0 {
-        return Err(HostError::Operation {
+        return Err(HostError::InvalidArgument {
             operation: "audio output bus count",
-            result: -2147024809,
         });
     }
 
@@ -348,9 +343,8 @@ pub(super) fn validate_bus_address(
     index: i32,
 ) -> HostResult<()> {
     if !(0..=1).contains(&media_type) || !(0..=1).contains(&direction) || index < 0 {
-        return Err(HostError::Operation {
+        return Err(HostError::InvalidArgument {
             operation: "VST3 bus address",
-            result: -2147024809,
         });
     }
     let count = unsafe {
@@ -358,9 +352,8 @@ pub(super) fn validate_bus_address(
         ((*component_table(component)).get_bus_count)(component.as_ptr(), media_type, direction)
     };
     if index >= count.max(0) {
-        return Err(HostError::Operation {
+        return Err(HostError::InvalidArgument {
             operation: "VST3 bus index",
-            result: -2147024809,
         });
     }
     Ok(())
@@ -404,21 +397,63 @@ fn bus_arrangement(
     Ok(arrangement)
 }
 
-fn bus_arrangement_or(
-    processor: &ComPtr<IAudioProcessor>,
-    direction: BusDirections,
-    index: i32,
-    fallback: SpeakerArrangement,
-) -> SpeakerArrangement {
-    bus_arrangement(processor, direction, index).unwrap_or(fallback)
+/// Makes at most one counter-offer and verifies the final state even when the
+/// plug-in returns Ok. Both proposal calls may mutate arrangements on False.
+pub(super) fn negotiate_and_verify_arrangements(
+    mut inputs: Vec<SpeakerArrangement>,
+    mut outputs: Vec<SpeakerArrangement>,
+    mut propose: impl FnMut(&mut [SpeakerArrangement], &mut [SpeakerArrangement]) -> i32,
+    mut read_back: impl FnMut() -> HostResult<(Vec<SpeakerArrangement>, Vec<SpeakerArrangement>)>,
+) -> HostResult<()> {
+    let result = propose(&mut inputs, &mut outputs);
+    if result == 1 {
+        (inputs, outputs) = read_back()?;
+        let confirmation = propose(&mut inputs, &mut outputs);
+        if confirmation != 1 {
+            check("setBusArrangements", confirmation)?;
+        }
+    } else {
+        check("setBusArrangements", result)?;
+    }
+    read_back().map(|_| ())
 }
 
-/// Negotiate speaker arrangements the way Steinberg hosts do:
-/// propose layouts for every audio bus (`getBusCount`), treat `kResultFalse`
-/// as a counter-offer, then adopt the plug-in's `getBusArrangement` values.
-///
-/// Multi-out instruments (Kontakt) reject a single-bus proposal; passing the
-/// full bus count lets them adapt while we still only activate the main out.
+pub(super) fn read_negotiated_arrangements(
+    expected_inputs: usize,
+    expected_outputs: usize,
+    mut read_count: impl FnMut(BusDirections) -> i32,
+    mut read_bus: impl FnMut(BusDirections, i32) -> HostResult<(SpeakerArrangement, i32)>,
+) -> HostResult<(Vec<SpeakerArrangement>, Vec<SpeakerArrangement>)> {
+    let mut read_direction =
+        |direction, expected| {
+            let count =
+                usize::try_from(read_count(direction)).map_err(|_| HostError::InvalidArgument {
+                    operation: "negative negotiated audio bus count",
+                })?;
+            if count != expected {
+                return Err(HostError::InvalidArgument {
+                    operation: "audio bus count changed during arrangement negotiation",
+                });
+            }
+            (0..count).map(|index| {
+            let (arrangement, channels) = read_bus(direction, index as i32)?;
+            if !(0..=64).contains(&channels) || channels as u32 != arrangement.count_ones() {
+                return Err(HostError::InvalidArgument {
+                    operation: "negotiated audio bus information disagrees with arrangement",
+                });
+            }
+            Ok(arrangement)
+        }).collect::<HostResult<Vec<_>>>()
+        };
+    Ok((
+        read_direction(Vst::BusDirections_kInput, expected_inputs)?,
+        read_direction(Vst::BusDirections_kOutput, expected_outputs)?,
+    ))
+}
+
+/// Propose every audio bus, adopt one counter-offer, then validate every actual
+/// arrangement against getBusInfo and the original bus counts. The caller still
+/// validates the main layout against Heron's exact layout or owned adapter.
 pub(super) fn negotiate_bus_arrangements(
     component: &ComPtr<IComponent>,
     processor: &ComPtr<IAudioProcessor>,
@@ -427,12 +462,10 @@ pub(super) fn negotiate_bus_arrangements(
     let input_count = audio_bus_count(component, Vst::BusDirections_kInput) as usize;
     let output_count = audio_bus_count(component, Vst::BusDirections_kOutput) as usize;
     if output_count == 0 {
-        return Err(HostError::Operation {
+        return Err(HostError::InvalidArgument {
             operation: "audio output bus count",
-            result: -2147024809,
         });
     }
-
     let desired_main = if layout.output_channels() == 1 {
         Vst::SpeakerArr::kMono
     } else {
@@ -443,96 +476,70 @@ pub(super) fn negotiate_bus_arrangements(
     } else {
         Vst::SpeakerArr::kStereo
     };
-
-    let mut inputs = (0..input_count)
-        .map(|index| {
-            if index == 0 {
-                desired_input
-            } else {
-                bus_arrangement_or(
-                    processor,
-                    Vst::BusDirections_kInput,
-                    index as i32,
-                    Vst::SpeakerArr::kStereo,
-                )
-            }
-        })
-        .collect::<Vec<_>>();
-    let mut outputs = (0..output_count)
-        .map(|index| {
-            if index == 0 {
-                desired_main
-            } else {
-                bus_arrangement_or(
-                    processor,
-                    Vst::BusDirections_kOutput,
-                    index as i32,
-                    Vst::SpeakerArr::kStereo,
-                )
-            }
-        })
-        .collect::<Vec<_>>();
-
-    let processor_table = processor_table(processor);
-    let result = unsafe {
-        // SAFETY: input/output arrangement arrays stay live for the call and
-        // lengths match IComponent::getBusCount for each direction.
-        ((*processor_table).set_bus_arrangements)(
-            processor.as_ptr(),
-            if inputs.is_empty() {
-                std::ptr::null_mut()
-            } else {
-                inputs.as_mut_ptr()
-            },
-            inputs.len() as i32,
-            outputs.as_mut_ptr(),
-            outputs.len() as i32,
-        )
+    let arrangements = |count, direction, desired| {
+        (0..count)
+            .map(|index| {
+                if index == 0 {
+                    Ok(desired)
+                } else {
+                    bus_arrangement(processor, direction, index as i32)
+                }
+            })
+            .collect::<HostResult<Vec<_>>>()
     };
-    // kResultOk / kResultTrue == 0: accepted as proposed.
-    if result == 0 {
-        return Ok(());
-    }
-    // kResultFalse == 1: plug-in rejected the proposal but may have adapted.
-    // Read back every bus and continue — matching Cubase/Logic negotiation.
-    if result != 1 {
-        return Err(HostError::Operation {
-            operation: "setBusArrangements",
-            result,
-        });
-    }
-
-    for (index, arrangement) in inputs.iter_mut().enumerate() {
-        *arrangement = bus_arrangement(processor, Vst::BusDirections_kInput, index as i32)?;
-    }
-    for (index, arrangement) in outputs.iter_mut().enumerate() {
-        *arrangement = bus_arrangement(processor, Vst::BusDirections_kOutput, index as i32)?;
-    }
-
-    let confirm = unsafe {
-        // SAFETY: same as the proposal call; arrays still match getBusCount.
-        ((*processor_table).set_bus_arrangements)(
-            processor.as_ptr(),
-            if inputs.is_empty() {
-                std::ptr::null_mut()
-            } else {
-                inputs.as_mut_ptr()
-            },
-            inputs.len() as i32,
-            outputs.as_mut_ptr(),
-            outputs.len() as i32,
-        )
-    };
-    // After adopting the plug-in's arrangements, either Ok or False is fine —
-    // Steinberg's reject workflow proceeds to setActive after getBusArrangement.
-    if confirm == 0 || confirm == 1 {
-        Ok(())
-    } else {
-        Err(HostError::Operation {
-            operation: "setBusArrangements",
-            result: confirm,
-        })
-    }
+    let inputs = arrangements(input_count, Vst::BusDirections_kInput, desired_input)?;
+    let outputs = arrangements(output_count, Vst::BusDirections_kOutput, desired_main)?;
+    negotiate_and_verify_arrangements(
+        inputs,
+        outputs,
+        |inputs, outputs| unsafe {
+            // SAFETY: arrays remain live for the synchronous call. Counts were read
+            // from this inactive component and readback rejects any changed counts.
+            ((*processor_table(processor)).set_bus_arrangements)(
+                processor.as_ptr(),
+                if inputs.is_empty() {
+                    std::ptr::null_mut()
+                } else {
+                    inputs.as_mut_ptr()
+                },
+                inputs.len() as i32,
+                outputs.as_mut_ptr(),
+                outputs.len() as i32,
+            )
+        },
+        || {
+            read_negotiated_arrangements(
+                input_count,
+                output_count,
+                |direction| unsafe {
+                    // SAFETY: component is initialized and direction is an SDK value.
+                    ((*component_table(component)).get_bus_count)(
+                        component.as_ptr(),
+                        as_media_type(Vst::MediaTypes_kAudio),
+                        as_bus_direction(direction),
+                    )
+                },
+                |direction, index| {
+                    let arrangement = bus_arrangement(processor, direction, index)?;
+                    let mut info = unsafe {
+                        // SAFETY: BusInfo is an SDK POD; getBusInfo fills writable storage.
+                        std::mem::MaybeUninit::<BusInfo>::zeroed().assume_init()
+                    };
+                    check("get audio bus info after arrangement negotiation", unsafe {
+                        // SAFETY: readback checked getBusCount and index is in that range.
+                        ((*component_table(component)).get_bus_info)(
+                            component.as_ptr(),
+                            as_media_type(Vst::MediaTypes_kAudio),
+                            as_bus_direction(direction),
+                            index,
+                            std::ptr::addr_of_mut!(info),
+                        )
+                    })?;
+                    Ok((arrangement, info.channelCount))
+                },
+            )
+        },
+    )
 }
 
 pub(super) fn activate_event_input_buses(component: &ComPtr<IComponent>) -> HostResult<()> {
@@ -597,24 +604,6 @@ pub(super) fn process_context_requirements_table(
     }
 }
 
-pub(super) fn check(operation: &'static str, result: i32) -> HostResult<()> {
-    if result == 0 {
-        Ok(())
-    } else {
-        Err(HostError::Operation { operation, result })
-    }
-}
-
-pub(super) fn check_optional(operation: &'static str, result: i32) -> HostResult<()> {
-    // Valid components may inherit a default kNotImplemented implementation.
-    // The SDK uses a small sequential result on macOS/Linux and HRESULT-shaped
-    // values in its COM-compatible configurations, so accept every SDK encoding.
-    // setupProcessing plus setActive still establishes a legal processing
-    // lifecycle when an optional hint is ignored.
-    const SDK_NOT_IMPLEMENTED: [i32; 3] = [3, 0x8000_4001_u32 as i32, 0x8000_0001_u32 as i32];
-    if result == 0 || SDK_NOT_IMPLEMENTED.contains(&result) {
-        Ok(())
-    } else {
-        Err(HostError::Operation { operation, result })
-    }
-}
+pub(super) use crate::results::{
+    processing_notification_result as check_processing_notification, require_success as check,
+};

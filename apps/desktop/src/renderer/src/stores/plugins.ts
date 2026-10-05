@@ -173,6 +173,12 @@ export const usePluginStore = defineStore("plugins", () => {
       markEditorClosed(event.payload.instanceId)
     })
     unsubscribeRuntime ??= window.heron.subscribePluginRuntime((event) => {
+      if ("kind" in event.payload) {
+        if (!runtime.value[event.payload.instanceId]) return
+        error.value = rpcErrorMessage(event.payload.error)
+        mixerStore.error = error.value
+        return
+      }
       const failure = event.payload
       const current = runtime.value[failure.instanceId]
       runtime.value = {

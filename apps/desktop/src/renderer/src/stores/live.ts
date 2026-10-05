@@ -46,7 +46,10 @@ export const useLiveStore = defineStore("live", () => {
   const pluginFailures = livePluginRuntime(
     workspace,
     () => audioRuntime.audioHostRef?.epoch,
-    () => pending.value || needsReconciliation.value
+    () => pending.value || needsReconciliation.value,
+    (failure) => {
+      error.value = rpcErrorMessage(failure)
+    }
   )
   const quarantined = computed(
     () => recovery.value?.quarantined === true || workspace.value?.mode === "quarantined"

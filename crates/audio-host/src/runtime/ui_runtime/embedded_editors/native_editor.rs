@@ -15,7 +15,7 @@ use crate::{
     vst3::Vst3Runtime,
 };
 
-use super::EmbeddedEditorHostEvent;
+use super::{EditorOperationError, EmbeddedEditorHostEvent};
 
 const DEFAULT_WIDTH: i32 = 800;
 const DEFAULT_HEIGHT: i32 = 600;
@@ -69,7 +69,7 @@ impl EmbeddedNativeEditor {
         display_scale: f64,
         top_inset: u32,
         events: Rc<RefCell<VecDeque<EmbeddedEditorHostEvent>>>,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, EditorOperationError> {
         let view = runtime.create_view(instance_id)?;
         let zoom = f64::from(preference.zoom_percent) / 100.0;
         let scale = EditorScale {
@@ -77,9 +77,8 @@ impl EmbeddedNativeEditor {
             display: display_scale,
             top_inset,
         };
-        let plugin_scaled = view
-            .set_content_scale_factor(plugin_content_scale(display_scale, zoom))
-            .map_err(|error| format!("Could not set the plug-in UI scale: {error}"))?;
+        let plugin_scaled =
+            view.set_content_scale_factor(plugin_content_scale(display_scale, zoom))?;
         let strategy = ScaleStrategy::resolve(plugin_scaled);
         let size = initial_view_rect(&view);
         let initial_geometry = geometry(size, strategy, display_scale, zoom, top_inset);
@@ -145,9 +144,7 @@ impl EmbeddedNativeEditor {
             // SAFETY: the boxed frame has a stable address and is retained until detach.
             view.set_frame(frame.as_interface())
         } {
-            return Err(format!(
-                "Could not set IPlugFrame for the plug-in UI: {error}"
-            ));
+            return Err(error.into());
         }
         let (attach_handle, platform_type) = {
             let container = container.borrow();
@@ -163,7 +160,7 @@ impl EmbeddedNativeEditor {
                 // SAFETY: null clears the frame before failed-attach resources are dropped.
                 view.set_frame(std::ptr::null_mut())
             };
-            return Err(format!("Could not attach the plug-in UI: {error}"));
+            return Err(error.into());
         }
 
         let final_size = view

@@ -10,7 +10,7 @@ mod spec;
 
 pub use heron_audio_plugin::{
     AudioPluginProcessor, AudioPluginProcessorHandle, ParameterToken, ProcessContext,
-    SidechainSource,
+    ProcessOutcome, SidechainSource,
 };
 pub use resources::{AudioClipSource, RenderResources};
 pub use runtime::{

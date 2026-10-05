@@ -28,6 +28,16 @@ impl EmbeddedUiHost {
                     PluginFailureCategory::InvalidOutput,
                     "the plug-in produced non-finite audio",
                 ),
+                PluginProcessFailure::NativeRejected(_) => (
+                    PluginFailureCategory::PluginRejected,
+                    "the plug-in rejected an audio processing block",
+                ),
+            };
+            let message = match report.failure {
+                PluginProcessFailure::NativeRejected(result) => {
+                    format!("{message} (native result {result:#010x})")
+                }
+                _ => message.to_owned(),
             };
             let diagnostic_id = format!("plugin:{instance_id}:process");
             if matches!(
@@ -41,7 +51,7 @@ impl EmbeddedUiHost {
                         outcome: PluginFailureOutcome::Failed,
                         recoverable: true,
                         diagnostic_id,
-                        message: message.to_owned(),
+                        message,
                     },
                 }),
                 Err(std_mpsc::TrySendError::Full(_))
@@ -140,6 +150,24 @@ impl EmbeddedUiHost {
             });
         }
     }
+
+    pub(super) fn publish_vst3_operation_failure(
+        &self,
+        instance_id: &str,
+        phase: &str,
+        failure: &heron_vst3_host::HostError,
+    ) {
+        let error = crate::vst3::failures::plugin_rpc_error(
+            Some(instance_id),
+            PluginFailureStage::Initialize,
+            failure,
+        );
+        let _ = self.host_events.try_send(HostEvent::RuntimeFailure {
+            error,
+            plugin_instance_id: Some(instance_id.to_owned()),
+            phase: Some(phase.to_owned()),
+        });
+    }
 }
 
 #[cfg(test)]
@@ -187,6 +215,20 @@ mod tests {
         );
         host.poll_plugin_process_failures();
         assert!(events.try_recv().is_err());
+    }
+
+    #[test]
+    fn native_process_rejections_keep_the_result_in_control_thread_diagnostics() {
+        let (host, events) = host(1);
+        insert_failed_processor(&host, FixtureFailure::NativeRejected(1));
+
+        host.poll_plugin_process_failures();
+
+        assert_process_failure(
+            events.recv().expect("failure event should be published"),
+            PluginFailureCategory::PluginRejected,
+            "the plug-in rejected an audio processing block (native result 0x00000001)",
+        );
     }
 
     #[test]

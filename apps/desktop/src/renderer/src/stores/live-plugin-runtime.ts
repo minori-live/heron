@@ -1,5 +1,11 @@
 import { onScopeDispose, shallowRef, watch, type ShallowRef } from "vue"
-import type { LiveWorkspaceSnapshot, PluginRuntimeFailure, RpcEvent } from "@heron/contracts"
+import type {
+  LiveWorkspaceSnapshot,
+  PluginRuntimeFailure,
+  PluginRuntimeEvent,
+  RpcError,
+  RpcEvent
+} from "@heron/contracts"
 
 const PENDING_FAILURE_LIMIT = 128
 
@@ -7,7 +13,8 @@ const PENDING_FAILURE_LIMIT = 128
 export function livePluginRuntime(
   workspace: ShallowRef<LiveWorkspaceSnapshot | null>,
   audioHostEpoch: () => string | undefined,
-  settling: () => boolean
+  settling: () => boolean,
+  operationFailed: (error: RpcError) => void
 ) {
   const failures = shallowRef<Record<string, PluginRuntimeFailure>>({})
   const pending = new Map<string, RpcEvent<PluginRuntimeFailure>>()
@@ -24,18 +31,23 @@ export function livePluginRuntime(
     }
   }
 
-  function receive(event: RpcEvent<PluginRuntimeFailure>): void {
+  function receive(event: RpcEvent<PluginRuntimeEvent>): void {
     if (!workspace.value || event.sourceEpoch !== audioHostEpoch() || event.sequence <= sequence)
       return
     sequence = event.sequence
     const documentId = Object.keys(nativeIds).find(
       (id) => nativeIds[id] === event.payload.instanceId
     )
+    if ("kind" in event.payload) {
+      if (documentId) operationFailed(event.payload.error)
+      return
+    }
+    const failureEvent: RpcEvent<PluginRuntimeFailure> = { ...event, payload: event.payload }
     if (documentId) {
       accept(documentId, event.payload)
     } else if (settling()) {
       pending.delete(event.payload.instanceId)
-      pending.set(event.payload.instanceId, structuredClone(event))
+      pending.set(event.payload.instanceId, structuredClone(failureEvent))
       while (pending.size > PENDING_FAILURE_LIMIT) pending.delete(pending.keys().next().value!)
     }
   }

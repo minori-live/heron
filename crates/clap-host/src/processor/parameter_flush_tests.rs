@@ -9,7 +9,9 @@ use clap_sys::{
     plugin::clap_plugin,
     process::{CLAP_PROCESS_CONTINUE, clap_process},
 };
-use heron_audio_plugin::{AudioPluginProcessor, AudioPortToken, ProcessContext, SidechainSource};
+use heron_audio_plugin::{
+    AudioPluginProcessor, AudioPortToken, ProcessContext, ProcessOutcome, SidechainSource,
+};
 
 use super::super::{ClapParameterGesture, ClapProcessorHandle};
 
@@ -125,6 +127,27 @@ unsafe extern "C" fn process(plugin: *const clap_plugin, process: *const clap_pr
 }
 
 #[test]
+fn an_endpoint_waiting_for_the_clap_audio_lifecycle_can_start_after_retirement() {
+    let mut harness = Harness::new();
+    harness
+        .processor
+        .lifecycle
+        .store(2, std::sync::atomic::Ordering::Release);
+    assert_eq!(
+        harness.processor.start(),
+        ProcessOutcome::TemporarilyUnavailable
+    );
+    assert!(!harness.processor.started_here);
+
+    harness
+        .processor
+        .lifecycle
+        .store(1, std::sync::atomic::Ordering::Release);
+    assert_eq!(harness.processor.start(), ProcessOutcome::Processed);
+    assert!(harness.processor.started_here);
+}
+
+#[test]
 fn inactive_flush_delivers_edits_without_gestures_or_replaying_them() {
     let mut harness = Harness::new();
     harness.queue_edit();
@@ -218,6 +241,7 @@ fn realtime_processing_retains_the_complete_parameter_gesture() {
         harness
             .processor
             .process_block(&mut [[0.0; 2]; 16], &NoSidechains, &context)
+            .is_processed()
     );
     assert_eq!(
         harness.fixture.received,

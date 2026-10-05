@@ -226,6 +226,7 @@
     "audioEngineUnavailable": "音频引擎不可用。",
     "projectUnavailable": "工程不可用。",
     "pluginUnavailable": "插件运行时不可用，请重新打开编辑器或协调工程状态。",
+    "pluginOperationFailed": "插件操作失败，请检查插件状态后重试。",
     "midiUnavailable": "MIDI 运行时不可用，请协调音频会话状态后重试。",
     "projectQuarantined": "失败的工程候选会话已被隔离。",
     "graphDependencyFailed": "图依赖准备失败，请协调工程状态后重试。"

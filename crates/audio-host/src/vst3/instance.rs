@@ -1,8 +1,10 @@
 use heron_audio_plugin::{AudioPluginProcessorHandle, ParameterTokenMap};
 use heron_dsp_runtime::block::MAX_PLUGIN_BLOCK_FRAMES;
-use heron_vst3_host::{HostedPlugin, Vst3AuxInputConfig, Vst3ProcessorHandle};
+use heron_vst3_host::{
+    HostError, HostResult, HostedPlugin, Vst3AuxInputConfig, Vst3ProcessorHandle,
+};
 
-use super::{Instance, InstanceConfiguration, LoadPluginRequest};
+use super::{Instance, InstanceConfiguration, LoadPluginRequest, transactions};
 
 impl InstanceConfiguration {
     pub(super) fn from_request(request: &LoadPluginRequest) -> Self {
@@ -28,21 +30,15 @@ impl Instance {
         direction: i32,
         index: i32,
         active: bool,
-    ) -> Result<(), String> {
-        let primary = self
-            .plugin
-            .set_bus_active(media_type, direction, index, active);
-        let secondary = self.secondary.as_ref().map_or(Ok(()), |plugin| {
-            plugin.set_bus_active(media_type, direction, index, active)
-        });
-        match (primary, secondary) {
-            (Ok(()), Ok(())) => Ok(()),
-            (Err(primary), Ok(())) => Err(primary.to_string()),
-            (Ok(()), Err(secondary)) => Err(format!("secondary dual-mono bus: {secondary}")),
-            (Err(primary), Err(secondary)) => Err(format!(
-                "primary bus: {primary}; secondary dual-mono bus: {secondary}"
-            )),
-        }
+    ) -> HostResult<()> {
+        transactions::set_bus_active(
+            &self.plugin,
+            self.secondary.as_ref(),
+            media_type,
+            direction,
+            index,
+            active,
+        )
     }
 
     pub(super) fn has_outstanding_processor_leases(&self) -> bool {
@@ -101,15 +97,15 @@ pub(super) fn vst3_input_index(port_key: &str) -> Option<u32> {
 
 pub(super) fn allocate_parameter_tokens(
     plugin: &HostedPlugin,
-) -> Result<ParameterTokenMap<u32>, String> {
+) -> HostResult<ParameterTokenMap<u32>> {
     let native_ids = plugin
-        .parameters()
-        .map_err(|error| error.to_string())?
+        .parameters()?
         .into_iter()
         .map(|parameter| parameter.id)
         .collect::<Vec<_>>();
-    ParameterTokenMap::from_native_ids(native_ids)
-        .ok_or_else(|| "VST3 parameter count exceeds runtime token capacity".to_owned())
+    ParameterTokenMap::from_native_ids(native_ids).ok_or(HostError::InvalidArgument {
+        operation: "VST3 parameter count exceeds runtime token capacity",
+    })
 }
 
 pub(super) fn max_tail(left: Option<u32>, right: Option<u32>) -> Option<u32> {

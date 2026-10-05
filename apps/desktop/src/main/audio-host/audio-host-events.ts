@@ -6,7 +6,8 @@ import type {
   PluginFailureCategory,
   PluginFailureOutcome,
   PluginFailureStage,
-  PluginRuntimeFailure
+  PluginRuntimeFailure,
+  RpcError
 } from "@heron/contracts"
 import { decodeAudioDeviceRecovery } from "./audio-device-recovery"
 import type { NativeAudioDeviceRecoverySnapshot } from "./audio-device-recovery"
@@ -24,6 +25,9 @@ export interface PluginHostNotification {
   instanceId: string
   kind: string
   value: string
+  /** Present for an operation notice; does not change the processor's health. */
+  error?: RpcError
+  phase?: string
 }
 
 export interface PluginSidechainRouteRequest {
@@ -87,6 +91,49 @@ const pluginFailureStages = new Set<PluginFailureStage>([
   "ara"
 ])
 const pluginFailureOutcomes = new Set<PluginFailureOutcome>(["failed", "quarantined"])
+
+function decodePluginOperationError(value: unknown): RpcError | null {
+  if (!value || typeof value !== "object") return null
+  const error = value as Record<string, unknown>
+  const details = error.details as Record<string, unknown> | undefined
+  if (
+    !details ||
+    typeof details !== "object" ||
+    details.type !== "plugin-operation" ||
+    (details.format !== "vst3" && details.format !== "clap") ||
+    (details.instanceId !== undefined && typeof details.instanceId !== "string") ||
+    !pluginFailureStages.has(details.stage as PluginFailureStage) ||
+    typeof details.operation !== "string" ||
+    details.operation.length === 0 ||
+    (details.result !== undefined &&
+      (!Number.isInteger(details.result) ||
+        (details.result as number) < -2147483648 ||
+        (details.result as number) > 2147483647)) ||
+    typeof error.correlationId !== "string" ||
+    error.correlationId.length === 0 ||
+    typeof error.code !== "string" ||
+    typeof error.category !== "string" ||
+    typeof error.outcome !== "string" ||
+    typeof error.retry !== "string" ||
+    typeof error.userMessageKey !== "string" ||
+    error.userMessageKey.length === 0 ||
+    error.resource !== undefined
+  )
+    return null
+  const policy = `${error.code}:${error.category}:${error.outcome}:${error.retry}`
+  if (
+    !new Set([
+      "validation-failed:validation:not-committed:never",
+      "resource-busy:busy:not-committed:safe",
+      "stale-resource:stale-resource:not-committed:after-reconcile",
+      "dependency-failed:dependency-failed:unknown:after-reconcile",
+      "dependency-failed:dependency-failed:not-committed:never",
+      "dependency-failed:dependency-failed:quarantined:after-reconcile"
+    ]).has(policy)
+  )
+    return null
+  return error as unknown as RpcError
+}
 const pluginFailureFields = new Set([
   "instance_id",
   "instance_generation",
@@ -272,6 +319,9 @@ export function drainHostEvents(
       source_channel_id?: string | null
       recovery?: AudioHostDeviceRecovery | null
       failure?: unknown
+      error?: unknown
+      plugin_instance_id?: unknown
+      phase?: unknown
     }
     if (decoded.type === "audio-device-recovery-changed") {
       const recovery = decodeAudioDeviceRecovery(decoded.recovery)
@@ -279,6 +329,25 @@ export function drainHostEvents(
     } else if (decoded.type === "plugin-failure") {
       const failure = decodePluginRuntimeFailure(decoded.failure)
       if (failure) pluginFailures.push(failure)
+    } else if (decoded.type === "runtime-failure") {
+      const error = decodePluginOperationError(decoded.error)
+      if (
+        error &&
+        typeof decoded.plugin_instance_id === "string" &&
+        decoded.plugin_instance_id.length > 0 &&
+        (error.details?.type !== "plugin-operation" ||
+          error.details.instanceId === decoded.plugin_instance_id)
+      ) {
+        pluginNotifications.push({
+          instanceId: decoded.plugin_instance_id,
+          kind: "operation-failed",
+          value: error.userMessageKey,
+          error,
+          ...(typeof decoded.phase === "string" ? { phase: decoded.phase } : {})
+        })
+      } else {
+        console.error("Audio runtime operation failed", decoded.error)
+      }
     } else if (decoded.type === "graph-published" && decoded.revision !== undefined) {
       // Telemetry carries the same revision; draining avoids idle event buildup.
     } else if (
