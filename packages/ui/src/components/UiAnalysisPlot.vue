@@ -51,6 +51,7 @@ const viewY = ref<AnalysisDomain | null>(null)
 const drag = ref<{ x0: number; y0: number; x1: number; y1: number } | null>(null)
 let observer: ResizeObserver | undefined
 let themeObserver: MutationObserver | undefined
+let heatmapRaster: HTMLCanvasElement | undefined
 const autoBounds = computed(() => {
   let minX = Infinity
   let maxX = -Infinity
@@ -102,6 +103,28 @@ const heatmapCells = computed(() => {
 })
 function render(): void {
   if (!chart || !adapter.value || !host.value) return
+  const style = getComputedStyle(host.value)
+  heatmapRaster = props.heatmap
+    ? adapter.value.analysisHeatmapImage(
+        props.heatmap,
+        props.colorDomain,
+        Array.from({ length: 5 }, (_, index) =>
+          style.getPropertyValue(`--ui-analysis-energy-${index}`).trim()
+        ),
+        {
+          xDomain: normalizeDomain(props.xDomain ?? [20, 20000], props.logarithmic),
+          yDomain: normalizeDomain(props.yDomain ?? [-1, 1], false),
+          viewX: bounds.value.x,
+          viewY: bounds.value.y,
+          width: geometry.value.width,
+          height: geometry.value.height,
+          logarithmic: props.logarithmic
+        },
+        window.devicePixelRatio || 1,
+        heatmapRaster
+      )
+    : undefined
+  if (heatmapRaster) chart.dispatchAction({ type: "hideTip" })
   chart.setOption(
     adapter.value.analysisChartOption(
       {
@@ -119,8 +142,9 @@ function render(): void {
         colorDomain: props.colorDomain
       },
       geometry.value,
-      getComputedStyle(host.value),
-      heatmapCells.value
+      style,
+      heatmapRaster ? [] : heatmapCells.value,
+      heatmapRaster
     ),
     { notMerge: true }
   )
@@ -129,7 +153,7 @@ function resetView(): void {
   viewX.value = null
   viewY.value = null
 }
-function localPoint(event: PointerEvent | WheelEvent): { x: number; y: number } {
+function localPoint(event: MouseEvent): { x: number; y: number } {
   const element = chartHost.value
   if (!element) return { x: 0, y: 0 }
   const rect = element.getBoundingClientRect()
@@ -137,6 +161,32 @@ function localPoint(event: PointerEvent | WheelEvent): { x: number; y: number } 
     x: ((event.clientX - rect.left) * width.value) / (rect.width || 1),
     y: ((event.clientY - rect.top) * height.value) / (rect.height || 1)
   }
+}
+function hideHeatmapTip(): void {
+  if (!heatmapRaster) return
+  chart?.dispatchAction({ type: "updateAxisPointer", currTrigger: "leave" })
+  chart?.dispatchAction({ type: "hideTip" })
+}
+function onHeatmapHover(event: MouseEvent): void {
+  if (!heatmapRaster || !props.heatmap || !adapter.value || drag.value) return
+  const point = localPoint(event)
+  const { left, top, width: w, height: h } = geometry.value
+  if (point.x < left || point.x > left + w || point.y < top || point.y > top + h)
+    return hideHeatmapTip()
+  chart?.dispatchAction({ type: "updateAxisPointer", x: point.x, y: point.y })
+  const cell = adapter.value.analysisHeatmapCell(
+    props.heatmap,
+    normalizeDomain(props.xDomain ?? [20, 20000], props.logarithmic),
+    normalizeDomain(props.yDomain ?? [-1, 1], false),
+    valueAt(point.x, point.y, "x"),
+    valueAt(point.x, point.y, "y")
+  )
+  if (!cell) {
+    chart?.dispatchAction({ type: "hideTip" })
+    return
+  }
+  const content = adapter.value.analysisHeatmapTooltip(props.xLabel, props.yLabel, cell)
+  chart?.dispatchAction({ type: "showTip", x: point.x, y: point.y, tooltip: { content } })
 }
 function onPointerDown(event: PointerEvent): void {
   if (event.button !== 0) return
@@ -226,6 +276,13 @@ function onWheel(event: WheelEvent): void {
   if (!xOnly) apply("y")
 }
 watch(
+  () => props.heatmap,
+  (heatmap) => {
+    if (heatmap) adapter.value?.invalidateAnalysisHeatmap(heatmap)
+  },
+  { deep: true, flush: "sync" }
+)
+watch(
   () =>
     JSON.stringify([
       props.xDomain,
@@ -277,6 +334,8 @@ onMounted(async () => {
     width: width.value,
     height: height.value
   })
+  // A caller can retain and edit a measurement while its plot is unmounted.
+  if (props.heatmap) adapter.value.invalidateAnalysisHeatmap(props.heatmap)
   render()
   themeObserver = new MutationObserver(render)
   for (let element = host.value; element; element = element.parentElement) {
@@ -303,6 +362,8 @@ onBeforeUnmount(() => {
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
     @pointercancel="drag = null"
+    @mousemove="onHeatmapHover"
+    @mouseleave="hideHeatmapTip"
     @wheel="onWheel"
     @dblclick="resetView"
   >

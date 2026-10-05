@@ -8,6 +8,7 @@ import type {
   VisualMapComponentOption
 } from "echarts/components"
 import UiAnalysisPlot from "./UiAnalysisPlot.vue"
+import { UI_DOMAIN_COLORS } from "../domainColors"
 
 const chart = vi.hoisted(() => ({
   init: vi.fn(),
@@ -171,6 +172,99 @@ describe("UiAnalysisPlot measurement adapter", () => {
     plot.unmount()
     expect(disconnect).toHaveBeenCalledOnce()
     expect(chart.dispose).toHaveBeenCalledOnce()
+  })
+
+  it("shows original raster measurements on hover after zoom, hiding gaps and preserving HTML escaping", async () => {
+    const context = {
+      createImageData: (width: number, height: number) => ({
+        data: new Uint8ClampedArray(width * height * 4)
+      }),
+      putImageData: vi.fn(),
+      drawImage: vi.fn(),
+      imageSmoothingEnabled: true
+    }
+    const getContext = vi
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockReturnValue(context as unknown as CanvasRenderingContext2D)
+    try {
+      const { plot, drag } = await mountInteractivePlot()
+      await plot.setProps({
+        xLabel: "Time <s>",
+        yLabel: "Hz",
+        xDomain: [0, 6],
+        yDomain: [0, 24000],
+        heatmap: { columns: 3, rows: 2, values: [-160, 24.1234567, -54, NaN, -18, -42] }
+      })
+      expect(option().series).toHaveLength(2)
+      expect(context.imageSmoothingEnabled).toBe(false)
+      const hover = (x: number, y: number) =>
+        plot.trigger("mousemove", { clientX: 100 + x / 2, clientY: 50 + y / 2 })
+      await hover(100, 112)
+      expect(chart.dispatchAction).toHaveBeenCalledWith({
+        type: "updateAxisPointer",
+        x: 100,
+        y: 112
+      })
+      expect(chart.dispatchAction).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          type: "showTip",
+          tooltip: { content: "Time &lt;s&gt;: 0<br/>Hz: 12000–24000<br/>24.123457 dBFS" }
+        })
+      )
+      await drag([64, 18], [471, 206])
+      await hover(100, 112)
+      expect(chart.dispatchAction).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          type: "showTip",
+          tooltip: { content: "Time &lt;s&gt;: 0<br/>Hz: 12000–24000<br/>24.123457 dBFS" }
+        })
+      )
+      await hover(800, 112)
+      expect(chart.dispatchAction).toHaveBeenLastCalledWith({ type: "hideTip" })
+      await plot.trigger("mouseleave")
+      expect(chart.dispatchAction).toHaveBeenLastCalledWith({ type: "hideTip" })
+    } finally {
+      getContext.mockRestore()
+    }
+  })
+
+  it("refreshes cached cell colors when the same measurement is edited while unmounted", async () => {
+    const painted: number[][] = []
+    const context = {
+      createImageData: (width: number, height: number) => ({
+        data: new Uint8ClampedArray(width * height * 4)
+      }),
+      putImageData: (image: { data: Uint8ClampedArray }) => painted.push([...image.data]),
+      drawImage: vi.fn(),
+      imageSmoothingEnabled: true
+    }
+    const getContext = vi
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockReturnValue(context as unknown as CanvasRenderingContext2D)
+    const heatmap = { columns: 1, rows: 1, values: [-60] }
+    const render = () =>
+      mount(UiAnalysisPlot, {
+        attachTo: document.body,
+        props: { ...responseProps, heatmap, colorDomain: [-60, 0] },
+        attrs: {
+          style: {
+            "--ui-analysis-energy-0": UI_DOMAIN_COLORS.audioChannel,
+            "--ui-analysis-energy-4": UI_DOMAIN_COLORS.busChannel
+          }
+        }
+      })
+    try {
+      const first = render()
+      await vi.dynamicImportSettled()
+      expect(painted.at(-1)).toEqual([79, 140, 255, 255])
+      first.unmount()
+      heatmap.values[0] = 0
+      render()
+      await vi.dynamicImportSettled()
+      expect(painted.at(-1)).toEqual([232, 184, 95, 255])
+    } finally {
+      getContext.mockRestore()
+    }
   })
 
   it("does not create chart resources when removed before the lazy adapter finishes loading", async () => {
