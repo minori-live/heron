@@ -1,6 +1,7 @@
 use super::{Job, PluginAnalysisJobs, failed};
 use heron_audio_plugin::{
-    AudioPluginProcessor, AudioPluginProcessorHandle, ProcessContext, SidechainSource,
+    AudioPluginProcessor, AudioPluginProcessorHandle, PluginProcessFailure, ProcessContext,
+    ProcessOutcome, SidechainSource,
 };
 use heron_dsp_runtime::protocol::{
     PluginAnalysisFailure, PluginAnalysisJobStatus, PluginAnalysisSettings,
@@ -56,14 +57,20 @@ impl AudioPluginProcessor for GatedProcessor {
         _: &mut [[f32; 2]],
         _: &dyn SidechainSource,
         _: &ProcessContext,
-    ) -> bool {
+    ) -> ProcessOutcome {
         self.entered.send(()).unwrap();
         // A failed assertion must not leave the job's Drop waiting forever.
-        self.resume
+        if self
+            .resume
             .lock()
             .unwrap()
             .recv_timeout(Duration::from_secs(5))
             .is_ok()
+        {
+            ProcessOutcome::Processed
+        } else {
+            ProcessOutcome::Failed(PluginProcessFailure::Rejected)
+        }
     }
 
     fn retire(&mut self) {
@@ -132,11 +139,11 @@ impl AudioPluginProcessor for MatrixProcessor {
         frames: &mut [[f32; 2]],
         _: &dyn SidechainSource,
         _: &ProcessContext,
-    ) -> bool {
+    ) -> ProcessOutcome {
         for frame in frames {
             *frame = [frame[0] * 0.5, frame[0] * 0.25 + frame[1]];
         }
-        true
+        ProcessOutcome::Processed
     }
 }
 
@@ -269,8 +276,8 @@ impl AudioPluginProcessor for RejectingProcessor {
         _: &mut [[f32; 2]],
         _: &dyn SidechainSource,
         _: &ProcessContext,
-    ) -> bool {
-        false
+    ) -> ProcessOutcome {
+        ProcessOutcome::Failed(PluginProcessFailure::Rejected)
     }
 }
 

@@ -305,6 +305,55 @@ describe("drainHostEvents", () => {
       }
     ])
   })
+
+  it("delivers a rejected restart as an operation notice without failing the processor", () => {
+    const notices: unknown[] = []
+    const failures: unknown[] = []
+    const error = {
+      code: "dependency-failed",
+      category: "dependency-failed",
+      outcome: "not-committed",
+      retry: "never",
+      correlationId: "restart-1",
+      userMessageKey: "errors.pluginOperationFailed",
+      details: {
+        type: "plugin-operation",
+        format: "vst3",
+        instanceId: "fx-1",
+        stage: "initialize",
+        operation: "setActive",
+        result: 1
+      }
+    }
+    drainHostEvents(
+      clientWithEvents([
+        {
+          type: "runtime-failure",
+          plugin_instance_id: "fx-1",
+          phase: "vst3-restart",
+          error
+        }
+      ]),
+      async () => {},
+      new Set(),
+      undefined,
+      undefined,
+      (notice) => notices.push(notice),
+      undefined,
+      undefined,
+      (failure) => failures.push(failure)
+    )
+    expect(notices).toEqual([
+      {
+        instanceId: "fx-1",
+        kind: "operation-failed",
+        value: "errors.pluginOperationFailed",
+        error,
+        phase: "vst3-restart"
+      }
+    ])
+    expect(failures).toEqual([])
+  })
 })
 
 describe("AraCallbackSequenceTracker", () => {

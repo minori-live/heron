@@ -59,7 +59,7 @@ import type {
   PluginParameterCommand,
   PluginParameterEnqueueResult,
   PluginParameterInfo,
-  PluginRuntimeFailure,
+  PluginRuntimeEvent,
   PluginRuntimeStatus,
   PluginScanEvent,
   PluginScanRequest
@@ -424,7 +424,7 @@ export interface HeronDesktopApi {
   subscribePluginEditorClosed(
     listener: (event: RpcEvent<{ instanceId: string }>) => void
   ): () => void
-  subscribePluginRuntime(listener: (event: RpcEvent<PluginRuntimeFailure>) => void): () => void
+  subscribePluginRuntime(listener: (event: RpcEvent<PluginRuntimeEvent>) => void): () => void
   retryPlugin(meta: RpcRequestMeta, instanceId: string): Promise<RpcResult<PluginRuntimeStatus>>
   subscribeAraCallbacks(listener: (event: RpcEvent<AraCallbackNotification>) => void): () => void
   getPluginParameters(meta: RpcRequestMeta): Promise<RpcResult<PluginParameterInfo[]>>

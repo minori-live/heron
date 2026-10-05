@@ -1,6 +1,7 @@
 use crate::{HostProcessContext, ProcessorLease, processor::AuxiliaryAudioInput};
 use heron_audio_plugin::{
-    AudioPluginProcessor, ProcessContext as AudioPluginProcessContext, SidechainSource,
+    AudioPluginProcessor, PluginProcessFailure, ProcessContext as AudioPluginProcessContext,
+    ProcessOutcome, SidechainSource,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -36,6 +37,36 @@ pub struct Vst3ProcessorHandle {
 struct SampleDelay {
     samples: Vec<f32>,
     cursor: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ProcessorChannel {
+    Stereo,
+    Left,
+    Right,
+}
+
+impl ProcessorChannel {
+    fn mono_index(self) -> Option<usize> {
+        match self {
+            Self::Stereo => None,
+            Self::Left => Some(0),
+            Self::Right => Some(1),
+        }
+    }
+}
+
+fn process_channels(
+    dual_mono: bool,
+    mut process: impl FnMut(ProcessorChannel) -> ProcessOutcome,
+) -> ProcessOutcome {
+    if !dual_mono {
+        return process(ProcessorChannel::Stereo);
+    }
+    match process(ProcessorChannel::Left) {
+        ProcessOutcome::Processed => process(ProcessorChannel::Right),
+        unavailable => unavailable,
+    }
 }
 
 impl SampleDelay {
@@ -134,11 +165,21 @@ impl Vst3ProcessorHandle {
     pub fn process_block_with_sidechain_source<'a>(
         &mut self,
         frames: &mut [[f32; 2]],
-        mut source: impl FnMut(u32) -> Option<&'a [[f32; 2]]>,
+        source: impl FnMut(u32) -> Option<&'a [[f32; 2]]>,
         context: &HostProcessContext,
     ) -> bool {
+        self.process_outcome_with_sidechain_source(frames, source, context)
+            .is_processed()
+    }
+
+    fn process_outcome_with_sidechain_source<'a>(
+        &mut self,
+        frames: &mut [[f32; 2]],
+        mut source: impl FnMut(u32) -> Option<&'a [[f32; 2]]>,
+        context: &HostProcessContext,
+    ) -> ProcessOutcome {
         if frames.len() > self.input_left.len() {
-            return false;
+            return ProcessOutcome::Failed(PluginProcessFailure::Rejected);
         }
         let frame_count = frames.len();
         for (index, frame) in frames.iter().enumerate() {
@@ -148,66 +189,59 @@ impl Vst3ProcessorHandle {
         self.output_left[..frame_count].fill(0.0);
         self.output_right[..frame_count].fill(0.0);
 
-        match &mut self.secondary {
-            Some(secondary) => {
-                fill_sidechain_scratch(
-                    &mut self.sidechain_scratch,
-                    &mut source,
-                    frame_count,
-                    Some(0),
-                );
-                self.auxiliary_input[..frame_count].fill(0.0);
-                self.auxiliary_output[..frame_count].fill(0.0);
-                if !self.primary.process_block_with_aux(
-                    &mut self.input_left[..frame_count],
-                    &mut self.auxiliary_input[..frame_count],
-                    &mut self.output_left[..frame_count],
-                    &mut self.auxiliary_output[..frame_count],
-                    &self.sidechain_scratch,
-                    context,
-                ) {
-                    return false;
+        let outcome = process_channels(self.secondary.is_some(), |channel| {
+            fill_sidechain_scratch(
+                &mut self.sidechain_scratch,
+                &mut source,
+                frame_count,
+                channel.mono_index(),
+            );
+            match channel {
+                ProcessorChannel::Left => {
+                    self.auxiliary_input[..frame_count].fill(0.0);
+                    self.auxiliary_output[..frame_count].fill(0.0);
+                    self.primary.process_block_with_aux(
+                        &mut self.input_left[..frame_count],
+                        &mut self.auxiliary_input[..frame_count],
+                        &mut self.output_left[..frame_count],
+                        &mut self.auxiliary_output[..frame_count],
+                        &self.sidechain_scratch,
+                        context,
+                    )
                 }
-                fill_sidechain_scratch(
-                    &mut self.sidechain_scratch,
-                    &mut source,
-                    frame_count,
-                    Some(1),
-                );
-                self.auxiliary_input[..frame_count].fill(0.0);
-                self.auxiliary_output[..frame_count].fill(0.0);
-                if !secondary.process_block_with_aux(
-                    &mut self.input_right[..frame_count],
-                    &mut self.auxiliary_input[..frame_count],
-                    &mut self.output_right[..frame_count],
-                    &mut self.auxiliary_output[..frame_count],
-                    &self.sidechain_scratch,
-                    context,
-                ) {
-                    for (index, frame) in frames.iter().enumerate() {
-                        self.output_right[index] = frame[1];
-                    }
+                ProcessorChannel::Right => {
+                    self.auxiliary_input[..frame_count].fill(0.0);
+                    self.auxiliary_output[..frame_count].fill(0.0);
+                    let Some(secondary) = &mut self.secondary else {
+                        return ProcessOutcome::Failed(PluginProcessFailure::Rejected);
+                    };
+                    secondary.process_block_with_aux(
+                        &mut self.input_right[..frame_count],
+                        &mut self.auxiliary_input[..frame_count],
+                        &mut self.output_right[..frame_count],
+                        &mut self.auxiliary_output[..frame_count],
+                        &self.sidechain_scratch,
+                        context,
+                    )
                 }
-            }
-            None => {
-                fill_sidechain_scratch(&mut self.sidechain_scratch, &mut source, frame_count, None);
-                if !self.primary.process_block_with_aux(
+                ProcessorChannel::Stereo => self.primary.process_block_with_aux(
                     &mut self.input_left[..frame_count],
                     &mut self.input_right[..frame_count],
                     &mut self.output_left[..frame_count],
                     &mut self.output_right[..frame_count],
                     &self.sidechain_scratch,
                     context,
-                ) {
-                    return false;
-                }
+                ),
             }
+        });
+        if !outcome.is_processed() {
+            return outcome;
         }
         for (index, frame) in frames.iter_mut().enumerate() {
             frame[0] = self.left_delay.process(self.output_left[index]);
             frame[1] = self.right_delay.process(self.output_right[index]);
         }
-        true
+        ProcessOutcome::Processed
     }
 
     pub fn note_on(&mut self, offset: usize, channel: u8, key: u8, velocity: u8, id: i32) -> bool {
@@ -281,7 +315,7 @@ impl AudioPluginProcessor for Vst3ProcessorHandle {
         frames: &mut [[f32; 2]],
         sidechains: &dyn SidechainSource,
         context: &AudioPluginProcessContext,
-    ) -> bool {
+    ) -> ProcessOutcome {
         let context = HostProcessContext {
             project_time_samples: context.project_time_samples,
             continuous_time_samples: context.continuous_time_samples,
@@ -293,7 +327,7 @@ impl AudioPluginProcessor for Vst3ProcessorHandle {
             playing: context.playing,
             recording: context.recording,
         };
-        self.process_block_with_sidechain_source(
+        self.process_outcome_with_sidechain_source(
             frames,
             |bus_index| sidechains.frames(heron_audio_plugin::AudioPortToken::new(bus_index)),
             &context,
@@ -370,7 +404,41 @@ fn fill_sidechain_scratch<'a>(
 
 #[cfg(test)]
 mod tests {
-    use super::{AuxiliaryAudioInput, SampleDelay, fill_sidechain_scratch};
+    use super::{
+        AuxiliaryAudioInput, PluginProcessFailure, ProcessOutcome, ProcessorChannel, SampleDelay,
+        fill_sidechain_scratch, process_channels,
+    };
+
+    #[test]
+    fn dual_mono_rejection_from_either_channel_fails_the_entire_block() {
+        for rejected_channel in [ProcessorChannel::Left, ProcessorChannel::Right] {
+            let mut visited = Vec::new();
+            let outcome = process_channels(true, |channel| {
+                visited.push(channel);
+                if channel == rejected_channel {
+                    ProcessOutcome::Failed(PluginProcessFailure::NativeRejected(1))
+                } else {
+                    ProcessOutcome::Processed
+                }
+            });
+            assert_eq!(
+                outcome,
+                ProcessOutcome::Failed(PluginProcessFailure::NativeRejected(1))
+            );
+            assert_eq!(visited.last(), Some(&rejected_channel));
+        }
+    }
+
+    #[test]
+    fn dual_mono_pause_does_not_run_the_second_channel() {
+        let mut calls = 0;
+        let outcome = process_channels(true, |_| {
+            calls += 1;
+            ProcessOutcome::TemporarilyUnavailable
+        });
+        assert_eq!(outcome, ProcessOutcome::TemporarilyUnavailable);
+        assert_eq!(calls, 1);
+    }
 
     #[test]
     fn dual_mono_lane_delay_aligns_the_shorter_processor() {

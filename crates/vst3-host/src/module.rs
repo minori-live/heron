@@ -231,7 +231,7 @@ impl Module {
     fn install_host_context(&mut self) -> HostResult<()> {
         let context = HostContext::for_module(&self.binary_path);
         self.host_context = Some(context);
-        let Some(factory3) = self.factory().query::<IPluginFactory3>().ok() else {
+        let Some(factory3) = self.factory().query_optional::<IPluginFactory3>()? else {
             return Ok(());
         };
         let table = unsafe {
@@ -242,13 +242,7 @@ impl Module {
             // SAFETY: the context is stored in Module and outlives the factory reference.
             ((*table).set_host_context)(factory3.as_ptr(), self.host_context().as_unknown())
         };
-        if result < 0 && !is_not_implemented(result) {
-            return Err(HostError::Operation {
-                operation: "IPluginFactory3::setHostContext",
-                result,
-            });
-        }
-        Ok(())
+        crate::results::factory_context_result(result)
     }
 
     pub(crate) fn host_context(&self) -> &HostContext {
@@ -345,7 +339,7 @@ impl Module {
             // IPluginFactory vtable pointer.
             *factory.cast::<*const PluginFactoryVTable>()
         };
-        let factory2 = self.factory().query::<IPluginFactory2>().ok();
+        let factory2 = self.factory().query_optional::<IPluginFactory2>()?;
         let count = unsafe {
             // SAFETY: table belongs to factory.
             ((*table).count_classes)(factory)
@@ -419,10 +413,6 @@ impl Module {
             supports_storing_audio_file_chunks: raw.supports_storing_audio_file_chunks != 0,
         })
     }
-}
-
-fn is_not_implemented(result: i32) -> bool {
-    [3, 0x8000_4001_u32 as i32, 0x8000_0001_u32 as i32].contains(&result)
 }
 
 struct ClassInfo2Fields {

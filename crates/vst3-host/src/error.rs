@@ -41,6 +41,33 @@ pub enum HostError {
         /// The raw VST3 result code.
         result: i32,
     },
+    /// Invalid host input, independent of a plug-in return code.
+    #[error("invalid input for '{operation}'")]
+    InvalidArgument { operation: &'static str },
+    /// The plug-in returned metadata that cannot satisfy the host contract.
+    #[error("invalid plug-in data for '{operation}'")]
+    InvalidPluginData { operation: &'static str },
+    /// A requested operation requires a capability the host does not provide.
+    #[error("unsupported host operation '{operation}'")]
+    UnsupportedOperation { operation: &'static str },
+    /// The bounded parameter queue rejected a change before its commit point.
+    #[error("bounded queue is full for '{operation}'")]
+    QueueFull { operation: &'static str },
+    /// A committed operation could not establish its final processor state.
+    #[error("outcome of '{operation}' requires reconciliation: {source}")]
+    CommitUncertain {
+        operation: &'static str,
+        #[source]
+        source: Box<HostError>,
+    },
+    /// Both an operation and its attempt to recover a usable instance failed.
+    #[error("'{operation}' failed: {source}; recovery also failed: {recovery}")]
+    RecoveryFailed {
+        operation: &'static str,
+        #[source]
+        source: Box<HostError>,
+        recovery: Box<HostError>,
+    },
     /// The ARA companion lifecycle failed before the VST3 component could be activated.
     #[error("ARA host operation failed: {0}")]
     Ara(String),

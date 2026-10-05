@@ -8,16 +8,34 @@ use std::{
     hash::Hash,
     sync::{
         Arc,
-        atomic::{AtomicU8, AtomicU32, AtomicU64, Ordering},
+        atomic::{AtomicU32, AtomicU64, Ordering},
     },
 };
 
 /// A recoverable processing failure observed at the format-neutral boundary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[repr(u8)]
 pub enum PluginProcessFailure {
-    Rejected = 1,
-    InvalidOutput = 2,
+    Rejected,
+    InvalidOutput,
+    /// A format-native processing call returned a rejection code.
+    NativeRejected(i32),
+}
+
+/// Result of one real-time processing attempt.
+///
+/// Host-owned pauses and a busy endpoint do not imply that a plug-in failed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProcessOutcome {
+    Processed,
+    TemporarilyUnavailable,
+    Failed(PluginProcessFailure),
+}
+
+impl ProcessOutcome {
+    #[must_use]
+    pub const fn is_processed(self) -> bool {
+        matches!(self, Self::Processed)
+    }
 }
 
 /// Stable runtime context captured with a processing failure.
@@ -29,17 +47,28 @@ pub struct PluginProcessFailureReport {
 }
 
 impl PluginProcessFailure {
-    const fn from_byte(value: u8) -> Option<Self> {
-        match value {
+    const fn from_state(value: u64) -> Option<Self> {
+        match value & 0x7f {
             1 => Some(Self::Rejected),
             2 => Some(Self::InvalidOutput),
+            3 => Some(Self::NativeRejected((value >> 32) as u32 as i32)),
             _ => None,
+        }
+    }
+
+    const fn state(self) -> u64 {
+        match self {
+            Self::Rejected => 1,
+            Self::InvalidOutput => 2,
+            Self::NativeRejected(result) => (result as u32 as u64) << 32 | 3,
         }
     }
 }
 
 struct PluginProcessFailureState {
-    failure: AtomicU8,
+    // Publish the category and native result together so every clone observes
+    // the same first failure, even when reporting races with another caller.
+    failure: AtomicU64,
     instance_generation: AtomicU32,
     graph_revision: AtomicU64,
 }
@@ -47,7 +76,7 @@ struct PluginProcessFailureState {
 impl PluginProcessFailureState {
     fn new() -> Self {
         Self {
-            failure: AtomicU8::new(0),
+            failure: AtomicU64::new(0),
             instance_generation: AtomicU32::new(1),
             graph_revision: AtomicU64::new(0),
         }
@@ -56,11 +85,11 @@ impl PluginProcessFailureState {
     fn mark(&self, failure: PluginProcessFailure) {
         let _ =
             self.failure
-                .compare_exchange(0, failure as u8, Ordering::Release, Ordering::Relaxed);
+                .compare_exchange(0, failure.state(), Ordering::Release, Ordering::Relaxed);
     }
 
     fn failure(&self) -> Option<PluginProcessFailure> {
-        PluginProcessFailure::from_byte(self.failure.load(Ordering::Acquire) & 0x7f)
+        PluginProcessFailure::from_state(self.failure.load(Ordering::Acquire))
     }
 }
 
@@ -175,12 +204,14 @@ pub trait SidechainSource {
 pub trait AudioPluginProcessor: Send {
     fn clone_box(&self) -> Box<dyn AudioPluginProcessor>;
 
+    /// Only `Failed` records a sticky instance failure. Temporary host-owned
+    /// unavailability emits dry audio or silence for this block and can resume.
     fn process_block(
         &mut self,
         frames: &mut [[f32; 2]],
         sidechains: &dyn SidechainSource,
         context: &ProcessContext,
-    ) -> bool;
+    ) -> ProcessOutcome;
 
     /// Balances format-specific audio-thread lifecycle before a graph endpoint
     /// is returned to the control thread. Must not allocate or block.
@@ -278,10 +309,13 @@ impl AudioPluginProcessorHandle {
         if self.failure.failure().is_some() {
             return false;
         }
-        let processed = self.inner.process_block(frames, sidechains, context);
-        if !processed {
-            self.failure.mark(PluginProcessFailure::Rejected);
-            return false;
+        match self.inner.process_block(frames, sidechains, context) {
+            ProcessOutcome::Processed => {}
+            ProcessOutcome::TemporarilyUnavailable => return false,
+            ProcessOutcome::Failed(failure) => {
+                self.failure.mark(failure);
+                return false;
+            }
         }
         if frames
             .iter()
@@ -327,7 +361,7 @@ impl AudioPluginProcessorHandle {
                 Ordering::Acquire,
             ) {
                 Ok(_) => {
-                    return PluginProcessFailure::from_byte(state).map(|failure| {
+                    return PluginProcessFailure::from_state(state).map(|failure| {
                         PluginProcessFailureReport {
                             failure,
                             instance_generation: self
@@ -346,7 +380,7 @@ impl AudioPluginProcessorHandle {
     /// Makes a previously taken failure eligible for reporting again when the
     /// bounded host-event queue could not accept it.
     pub fn make_process_failure_reportable(&self) {
-        self.failure.failure.fetch_and(0x7f, Ordering::Release);
+        self.failure.failure.fetch_and(!0x80, Ordering::Release);
     }
 
     /// Re-arms a processor after an explicit user retry. This does not rebuild
@@ -432,7 +466,7 @@ impl Clone for AudioPluginProcessorHandle {
 mod tests {
     use super::{
         AudioPluginProcessor, AudioPluginProcessorHandle, AudioPortToken, ParameterTokenMap,
-        PluginProcessFailure, ProcessContext, SidechainSource,
+        PluginProcessFailure, ProcessContext, ProcessOutcome, SidechainSource,
     };
 
     #[derive(Clone)]
@@ -448,12 +482,12 @@ mod tests {
             frames: &mut [[f32; 2]],
             _sidechains: &dyn SidechainSource,
             _context: &ProcessContext,
-        ) -> bool {
+        ) -> ProcessOutcome {
             for frame in frames {
                 frame[0] *= 2.0;
                 frame[1] = 0.0;
             }
-            true
+            ProcessOutcome::Processed
         }
     }
 
@@ -470,13 +504,31 @@ mod tests {
             frames: &mut [[f32; 2]],
             _sidechains: &dyn SidechainSource,
             _context: &ProcessContext,
-        ) -> bool {
+        ) -> ProcessOutcome {
             frames[0][0] = 4.0;
-            false
+            ProcessOutcome::Failed(PluginProcessFailure::Rejected)
         }
     }
 
     struct NoSidechains;
+
+    #[derive(Clone)]
+    struct NativeFailureProcessor(i32);
+
+    impl AudioPluginProcessor for NativeFailureProcessor {
+        fn clone_box(&self) -> Box<dyn AudioPluginProcessor> {
+            Box::new(self.clone())
+        }
+
+        fn process_block(
+            &mut self,
+            _frames: &mut [[f32; 2]],
+            _sidechains: &dyn SidechainSource,
+            _context: &ProcessContext,
+        ) -> ProcessOutcome {
+            ProcessOutcome::Failed(PluginProcessFailure::NativeRejected(self.0))
+        }
+    }
 
     #[derive(Clone)]
     struct NonFiniteProcessor;
@@ -491,9 +543,9 @@ mod tests {
             frames: &mut [[f32; 2]],
             _sidechains: &dyn SidechainSource,
             _context: &ProcessContext,
-        ) -> bool {
+        ) -> ProcessOutcome {
             frames[0][1] = f32::NAN;
-            true
+            ProcessOutcome::Processed
         }
     }
 
@@ -602,5 +654,26 @@ mod tests {
                 .map(|report| report.failure),
             Some(PluginProcessFailure::InvalidOutput)
         );
+    }
+
+    #[test]
+    fn native_rejection_keeps_the_first_result_across_clones_and_report_retry() {
+        let mut processor = AudioPluginProcessorHandle::new(NativeFailureProcessor(-7));
+        let mut cloned = processor.clone();
+        let mut frames = [[0.25, 0.5]];
+        processor.set_failure_context(7, 11);
+
+        assert!(!processor.process_block(&mut frames, &NoSidechains, &process_context()));
+        let report = cloned.take_unreported_process_failure().unwrap();
+        assert_eq!(report.failure, PluginProcessFailure::NativeRejected(-7));
+        assert_eq!((report.instance_generation, report.graph_revision), (7, 11));
+        assert!(!cloned.process_block(&mut frames, &NoSidechains, &process_context()));
+        assert_eq!(processor.take_unreported_process_failure(), None);
+
+        cloned.make_process_failure_reportable();
+        assert_eq!(processor.take_unreported_process_failure(), Some(report));
+        assert!(processor.retry_after_process_failure());
+        assert!(!cloned.process_block(&mut frames, &NoSidechains, &process_context()));
+        assert_eq!(processor.take_unreported_process_failure(), Some(report));
     }
 }

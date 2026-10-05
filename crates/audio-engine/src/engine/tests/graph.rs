@@ -1,6 +1,9 @@
 use super::*;
 use crate::ApplicationCaptureLogicalTarget;
-use heron_audio_plugin::{AudioPluginProcessor, AudioPluginProcessorHandle, SidechainSource};
+use heron_audio_plugin::{
+    AudioPluginProcessor, AudioPluginProcessorHandle, PluginProcessFailure, ProcessOutcome,
+    SidechainSource,
+};
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -16,9 +19,9 @@ impl AudioPluginProcessor for MutatingFailedProcessor {
         frames: &mut [[f32; 2]],
         _sidechains: &dyn SidechainSource,
         _context: &ProcessContext,
-    ) -> bool {
+    ) -> ProcessOutcome {
         frames.fill([99.0, 99.0]);
-        false
+        ProcessOutcome::Failed(PluginProcessFailure::Rejected)
     }
 }
 

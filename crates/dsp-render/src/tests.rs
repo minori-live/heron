@@ -1,3 +1,4 @@
+use heron_audio_plugin::ProcessOutcome;
 use std::{
     alloc::{GlobalAlloc, Layout, System},
     cell::Cell,
@@ -75,12 +76,12 @@ impl AudioPluginProcessor for GainPlugin {
         frames: &mut [[f32; 2]],
         _sidechains: &dyn SidechainSource,
         _context: &ProcessContext,
-    ) -> bool {
+    ) -> ProcessOutcome {
         for frame in frames {
             frame[0] *= self.0;
             frame[1] *= self.0;
         }
-        true
+        ProcessOutcome::Processed
     }
 }
 
@@ -113,8 +114,8 @@ impl AudioPluginProcessor for RecordingPlugin {
         _frames: &mut [[f32; 2]],
         _sidechains: &dyn SidechainSource,
         _context: &ProcessContext,
-    ) -> bool {
-        true
+    ) -> ProcessOutcome {
+        ProcessOutcome::Processed
     }
 
     fn note_on(&mut self, _offset: usize, channel: u8, key: u8, velocity: u8, _id: i32) -> bool {
@@ -156,12 +157,12 @@ impl AudioPluginProcessor for ContextProbe {
         _frames: &mut [[f32; 2]],
         _sidechains: &dyn SidechainSource,
         context: &ProcessContext,
-    ) -> bool {
+    ) -> ProcessOutcome {
         self.0
             .lock()
             .expect("context log should not be poisoned")
             .push(*context);
-        true
+        ProcessOutcome::Processed
     }
 }
 

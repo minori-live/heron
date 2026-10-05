@@ -1,6 +1,7 @@
 use super::{Chain, PluginAnalysisJobs, model, signal, spectrogram};
 use heron_audio_plugin::{
-    AudioPluginProcessor, AudioPluginProcessorHandle, ProcessContext, SidechainSource,
+    AudioPluginProcessor, AudioPluginProcessorHandle, ProcessContext, ProcessOutcome,
+    SidechainSource,
 };
 use heron_dsp_runtime::protocol::{
     PluginAnalysisFailure, PluginAnalysisJobStatus, PluginAnalysisSettings,
@@ -182,13 +183,13 @@ impl AudioPluginProcessor for Square {
         frames: &mut [[f32; 2]],
         _: &dyn SidechainSource,
         _: &ProcessContext,
-    ) -> bool {
+    ) -> ProcessOutcome {
         for frame in frames {
             for value in frame {
                 *value += 0.5 * *value * *value;
             }
         }
-        true
+        ProcessOutcome::Processed
     }
 }
 
@@ -269,8 +270,8 @@ impl AudioPluginProcessor for Retiring {
         _: &mut [[f32; 2]],
         _: &dyn SidechainSource,
         _: &ProcessContext,
-    ) -> bool {
-        true
+    ) -> ProcessOutcome {
+        ProcessOutcome::Processed
     }
 }
 
@@ -311,11 +312,11 @@ impl AudioPluginProcessor for InvertRight {
         frames: &mut [[f32; 2]],
         _: &dyn SidechainSource,
         _: &ProcessContext,
-    ) -> bool {
+    ) -> ProcessOutcome {
         for frame in frames {
             frame[1] = -frame[1];
         }
-        true
+        ProcessOutcome::Processed
     }
 }
 
@@ -450,9 +451,9 @@ impl AudioPluginProcessor for InvalidOutput {
         frames: &mut [[f32; 2]],
         _: &dyn SidechainSource,
         _: &ProcessContext,
-    ) -> bool {
+    ) -> ProcessOutcome {
         frames[0][0] = f32::NAN;
-        true
+        ProcessOutcome::Processed
     }
 }
 
@@ -494,13 +495,13 @@ impl AudioPluginProcessor for Gain {
         frames: &mut [[f32; 2]],
         _: &dyn SidechainSource,
         _: &ProcessContext,
-    ) -> bool {
+    ) -> ProcessOutcome {
         for frame in frames {
             for value in frame {
                 *value *= self.0;
             }
         }
-        true
+        ProcessOutcome::Processed
     }
 }
 

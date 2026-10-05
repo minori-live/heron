@@ -157,6 +157,21 @@ impl<I: ComInterface> ComPtr<I> {
             ComPtr::from_raw(output.cast::<J>(), "queryInterface")
         }
     }
+
+    /// Queries an optional extension without hiding malformed successful
+    /// responses or errors other than the SDK's explicit no-interface result.
+    pub fn query_optional<J: ComInterface>(&self) -> HostResult<Option<ComPtr<J>>> {
+        match self.query::<J>() {
+            Ok(interface) => Ok(Some(interface)),
+            Err(HostError::Operation { result, .. })
+                if crate::results::ResultCode::decode(result)
+                    == crate::results::ResultCode::NoInterface =>
+            {
+                Ok(None)
+            }
+            Err(error) => Err(error),
+        }
+    }
 }
 
 impl<I: ComInterface> Clone for ComPtr<I> {
@@ -200,7 +215,7 @@ mod tests {
     use super::*;
     use std::{
         os::raw::c_char,
-        sync::atomic::{AtomicBool, AtomicU32, Ordering},
+        sync::atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering},
     };
 
     const INVALID_ARGUMENT: i32 = -2147024809;
@@ -211,6 +226,7 @@ mod tests {
         vtable: *const FUnknownVTable,
         references: AtomicU32,
         null_on_success: AtomicBool,
+        query_result: AtomicI32,
     }
 
     impl FakeUnknown {
@@ -219,6 +235,7 @@ mod tests {
                 vtable: &FAKE_UNKNOWN_VTABLE,
                 references: AtomicU32::new(1),
                 null_on_success: AtomicBool::new(null_on_success),
+                query_result: AtomicI32::new(0),
             })
         }
 
@@ -237,6 +254,12 @@ mod tests {
         }
         // SAFETY: the test only installs this vtable on a live FakeUnknown allocation.
         let fake = unsafe { &*this.cast::<FakeUnknown>() };
+        let result = fake.query_result.load(Ordering::Relaxed);
+        if result != 0 {
+            // SAFETY: output was validated as writable pointer storage.
+            unsafe { output.write(std::ptr::null_mut()) };
+            return result;
+        }
         // SAFETY: callers supply a VST3 TUID, which is exactly 16 bytes.
         let requested = unsafe { std::slice::from_raw_parts(requested, 16) };
         if requested != iid::FUNKNOWN {
@@ -336,5 +359,28 @@ mod tests {
         ));
         drop(owner);
         assert_eq!(null_success.references.load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
+    fn optional_query_only_degrades_an_absent_extension() {
+        let mut fake = FakeUnknown::new(false);
+        // SAFETY: the fake owns one initial reference and a matching live vtable.
+        let owner = unsafe { ComPtr::<FUnknown>::from_raw(fake.as_unknown(), "fixture") }
+            .expect("owned fake interface");
+        assert!(owner.query_optional::<IBStream>().unwrap().is_none());
+        for result in [1, 4, -7] {
+            fake.query_result.store(result, Ordering::Relaxed);
+            assert!(matches!(owner.query_optional::<FUnknown>(),
+                Err(HostError::Operation { operation: "queryInterface", result: actual })
+                if actual == result));
+        }
+        fake.query_result.store(0, Ordering::Relaxed);
+        fake.null_on_success.store(true, Ordering::Relaxed);
+        assert!(matches!(
+            owner.query_optional::<FUnknown>(),
+            Err(HostError::NullInterface("queryInterface"))
+        ));
+        drop(owner);
+        assert_eq!(fake.references.load(Ordering::Relaxed), 0);
     }
 }

@@ -107,13 +107,14 @@ pub(super) mod test_support {
     use super::*;
     use heron_audio_plugin::{
         AudioPluginProcessor, AudioPluginProcessorHandle, AudioPortToken, ProcessContext,
-        SidechainSource,
+        ProcessOutcome, SidechainSource,
     };
 
     #[derive(Clone, Copy)]
     pub(super) enum FixtureFailure {
         Rejected,
         InvalidOutput,
+        NativeRejected(i32),
     }
 
     #[derive(Clone)]
@@ -131,14 +132,19 @@ pub(super) mod test_support {
             frames: &mut [[f32; 2]],
             _sidechains: &dyn SidechainSource,
             _context: &ProcessContext,
-        ) -> bool {
+        ) -> ProcessOutcome {
             match self.failure {
-                Some(FixtureFailure::Rejected) => false,
+                Some(FixtureFailure::Rejected) => {
+                    ProcessOutcome::Failed(PluginProcessFailure::Rejected)
+                }
                 Some(FixtureFailure::InvalidOutput) => {
                     frames[0][0] = f32::NAN;
-                    true
+                    ProcessOutcome::Processed
                 }
-                None => true,
+                Some(FixtureFailure::NativeRejected(result)) => {
+                    ProcessOutcome::Failed(PluginProcessFailure::NativeRejected(result))
+                }
+                None => ProcessOutcome::Processed,
             }
         }
     }

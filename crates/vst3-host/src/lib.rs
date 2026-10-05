@@ -17,6 +17,7 @@ mod output_parameter_bridge;
 mod parameter_changes;
 mod processor;
 mod processor_handle;
+mod results;
 mod stream;
 
 pub use ara::{AraMainFactory, AraPluginEntry};

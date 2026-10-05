@@ -340,6 +340,16 @@ export interface PluginRuntimeFailure {
   message: string
 }
 
+/** An operation-level rejection does not change the processor's health. */
+export interface PluginOperationFailure {
+  kind: "operation-failed"
+  instanceId: string
+  phase: string | null
+  error: import("./rpc").RpcError
+}
+
+export type PluginRuntimeEvent = PluginRuntimeFailure | PluginOperationFailure
+
 export interface PluginRuntimeStatus {
   instanceId: string
   state: PluginRuntimeState

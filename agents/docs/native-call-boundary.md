@@ -60,14 +60,34 @@ requests an immediate drain; an unref'd maintenance timer services plug-in and
 ARA timers. The embedded runtime must not create or pump a winit event loop,
 because Electron already owns the platform application loop.
 
+VST3 results follow the called method's contract. False can decline a capability,
+usage hint or layout request; NotImplemented is valid for specific optional
+operations. Required lifecycle, complete state and DSP operations still need
+successful postconditions, and unknown result codes remain operation failures.
+Recognize the explicitly supported SDK-native and COM-compatible encodings;
+keep host-originated validation, queue and temporary availability failures
+separate from raw SDK results. See
+[ADR-0021](adr/0021-vst3-result-contracts.md) for the method policies.
+
 VST3 parameter changes reach the audio processor through its bounded parameter
-queue and `IAudioProcessor::process`. `IEditController::setParamNormalized` only
-synchronizes the controller UI. Its `kResultFalse` response does not reject an
-already queued processor change or suppress a requested parameter flush; other
-failure codes remain errors. This also applies to processor output parameters
+queue and `IAudioProcessor::process`. Enqueue commits the parameter request;
+`IEditController::setParamNormalized` only synchronizes the controller UI. A
+subsequent controller failure is diagnostic and does not reject the committed
+processor change or suppress a requested parameter flush. A real flush failure
+retains its own failure outcome. This also applies to processor output parameters
 mirrored into the controller. Ozone 11 Exciter exercises this distinction during
 Plugin Analysis state cloning and parameter replay. See the
 [VST3 controller contract](https://steinbergmedia.github.io/vst3_doc/vstinterfaces/classSteinberg_1_1Vst_1_1IEditController.html).
+
+Bus-arrangement refusal requires reading back the actual layout: a plug-in may
+have changed its buses before returning False. Complete state refusal preserves
+committed bytes and requires known-state recovery before the affected instance
+can resume. Declined controller synchronization does not change whether component
+state was accepted, and an existing nonempty controller state cannot silently be
+discarded. A temporary control-thread processing pause produces a typed unavailable
+block and permits later processing; it does not mark the instance permanently
+failed. These rules retain the ownership and failure containment states in
+[ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
 
 Concurrent loads of the same VST3 binary share one host context on the owning
 UI thread. A factory can retain module-wide callbacks, including the Linux run

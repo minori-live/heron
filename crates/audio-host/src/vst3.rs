@@ -9,13 +9,21 @@ use heron_audio_plugin::ParameterTokenMap;
 use heron_dsp_runtime::protocol::{
     BinaryPayload, ControlCommand, ControlResult, LiveMixerGraph, ParameterCommand,
     ParameterGesture, PluginAudioMode, PluginAuxInputConfiguration, PluginEditorPreference,
-    PluginParameter,
+    PluginFailureStage, PluginParameter,
 };
-use heron_vst3_host::{AudioLayout, ClassId, HostedPlugin, PlugView, PluginKind, Vst3HostRequest};
+use heron_vst3_host::{
+    AudioLayout, ClassId, HostError, HostResult, HostedPlugin, PlugView, PluginKind,
+    Vst3HostRequest,
+};
 
+pub(crate) mod failures;
 mod graph_instances;
 mod instance;
 
+use failures::{
+    candidate_error, diagnostic_error, invalid_argument, missing_instance, plugin_error,
+    recovered_error,
+};
 use instance::{allocate_parameter_tokens, max_tail, vst3_input_index};
 
 use crate::{
@@ -33,7 +41,7 @@ pub struct Vst3Runtime {
     ara_factories: HashMap<(String, String), Rc<AraFactoryHost>>,
     next_runtime_handle: u32,
     next_ara_callback_sequence: u64,
-    restart_failures: Vec<(String, String)>,
+    restart_failures: Vec<(String, HostError)>,
     pending_host_requests: VecDeque<(String, Vst3HostRequest)>,
     staged_graph_instances: HashMap<String, HashMap<String, Instance>>,
     rollback_graph_instances: HashMap<String, HashMap<String, Instance>>,
@@ -129,7 +137,11 @@ impl Vst3Runtime {
                 ara_factory_class_id,
             } => {
                 if locator.format != heron_dsp_runtime::protocol::PluginFormat::Vst3 {
-                    return control_error("plug-in locator is not VST3");
+                    return invalid_argument(
+                        &instance_id,
+                        PluginFailureStage::Initialize,
+                        "plug-in locator is not VST3",
+                    );
                 }
                 let chunk = |key: &str| {
                     state
@@ -140,15 +152,33 @@ impl Vst3Runtime {
                 };
                 let component_state = match chunk("component") {
                     Ok(bytes) => bytes,
-                    Err(message) => return control_error(message),
+                    Err(_) => {
+                        return invalid_argument(
+                            &instance_id,
+                            PluginFailureStage::Restore,
+                            "component state was not materialized",
+                        );
+                    }
                 };
                 let controller_state = match chunk("controller") {
                     Ok(bytes) => bytes,
-                    Err(message) => return control_error(message),
+                    Err(_) => {
+                        return invalid_argument(
+                            &instance_id,
+                            PluginFailureStage::Restore,
+                            "controller state was not materialized",
+                        );
+                    }
                 };
                 let ara_document_state = match chunk("ara-document") {
                     Ok(bytes) => bytes,
-                    Err(message) => return control_error(message),
+                    Err(_) => {
+                        return invalid_argument(
+                            &instance_id,
+                            PluginFailureStage::Restore,
+                            "ARA state was not materialized",
+                        );
+                    }
                 };
                 self.load_plugin(LoadPluginRequest {
                     instance_id,
@@ -180,7 +210,11 @@ impl Vst3Runtime {
                 Some(parameter_id) => {
                     self.set_parameter_plain(&instance_id, parameter_id, value, gesture)
                 }
-                None => control_error("VST3 parameter key is invalid"),
+                None => invalid_argument(
+                    &instance_id,
+                    PluginFailureStage::Parameter,
+                    "VST3 parameter key is invalid",
+                ),
             },
             ControlCommand::SavePluginState { instance_id } => self.save_state(&instance_id),
             ControlCommand::OpenPluginEditor {
@@ -192,7 +226,11 @@ impl Vst3Runtime {
             | ControlCommand::ConfigurePluginEditorAppearance { .. }
             | ControlCommand::ApplyPluginEditorAction { .. }
             | ControlCommand::ResolvePluginSidechainRoute { .. } => ControlResult::Accepted,
-            _ => control_error("command is not a VST3 runtime command"),
+            _ => invalid_argument(
+                "",
+                PluginFailureStage::Initialize,
+                "command is not a VST3 runtime command",
+            ),
         }
     }
 
@@ -293,13 +331,14 @@ impl Vst3Runtime {
             .collect()
     }
 
-    pub fn create_view(&self, instance_id: &str) -> Result<PlugView, String> {
+    pub fn create_view(&self, instance_id: &str) -> HostResult<PlugView> {
         self.instances
             .get(instance_id)
-            .ok_or_else(|| "VST3 instance is not loaded".to_owned())?
+            .ok_or(HostError::InvalidArgument {
+                operation: "VST3 instance is not loaded",
+            })?
             .plugin
             .create_view()
-            .map_err(|error| error.to_string())
     }
 
     pub fn display_name(&self, instance_id: &str) -> Option<&str> {
@@ -314,22 +353,22 @@ impl Vst3Runtime {
             .map(|instance| instance.plugin.class_id().to_string())
     }
 
-    pub fn parameters(&self, instance_id: &str) -> Result<Vec<PluginParameter>, String> {
+    pub fn parameters(&self, instance_id: &str) -> HostResult<Vec<PluginParameter>> {
         let instance = self
             .instances
             .get(instance_id)
-            .ok_or_else(|| "VST3 instance is not loaded".to_owned())?;
-        let parameters = instance
-            .plugin
-            .parameters()
-            .map_err(|error| error.to_string())?;
+            .ok_or(HostError::InvalidArgument {
+                operation: "VST3 instance is not loaded",
+            })?;
+        let parameters = instance.plugin.parameters()?;
         parameters
             .into_iter()
             .map(|parameter| {
-                let runtime_token = instance
-                    .parameter_tokens
-                    .token(parameter.id)
-                    .ok_or_else(|| "VST3 parameter token table is stale".to_owned())?;
+                let runtime_token = instance.parameter_tokens.token(parameter.id).ok_or(
+                    HostError::InvalidArgument {
+                        operation: "VST3 parameter token table is stale",
+                    },
+                )?;
                 Ok(PluginParameter {
                     parameter_key: format!("vst3:{}", parameter.id),
                     runtime_token,
@@ -360,13 +399,14 @@ impl Vst3Runtime {
         instance_id: &str,
         parameter_id: u32,
         normalized: f64,
-    ) -> Result<String, String> {
+    ) -> HostResult<String> {
         self.instances
             .get(instance_id)
-            .ok_or_else(|| "VST3 instance is not loaded".to_owned())?
+            .ok_or(HostError::InvalidArgument {
+                operation: "VST3 instance is not loaded",
+            })?
             .plugin
             .format_parameter_value(parameter_id, normalized)
-            .map_err(|error| error.to_string())
     }
 
     pub fn mark_editor_state_dirty(&mut self, instance_id: &str) {
@@ -390,11 +430,13 @@ impl Vst3Runtime {
             .and_then(|instance| instance.plugin.dispatch_run_loop(now))
     }
 
-    pub fn editor_state(&self, instance_id: &str) -> Result<EditorPluginState, String> {
+    pub fn editor_state(&self, instance_id: &str) -> HostResult<EditorPluginState> {
         let instance = self
             .instances
             .get(instance_id)
-            .ok_or_else(|| "VST3 instance is not loaded".to_owned())?;
+            .ok_or(HostError::InvalidArgument {
+                operation: "VST3 instance is not loaded",
+            })?;
         instance
             .plugin
             .save_state()
@@ -402,28 +444,25 @@ impl Vst3Runtime {
                 component_state,
                 controller_state,
             })
-            .map_err(|error| error.to_string())
     }
 
     pub fn restore_editor_state(
         &self,
         instance_id: &str,
         state: &EditorPluginState,
-    ) -> Result<(), String> {
+    ) -> HostResult<()> {
         let instance = self
             .instances
             .get(instance_id)
-            .ok_or_else(|| "VST3 instance is not loaded".to_owned())?;
-        let primary_before = instance
-            .plugin
-            .save_state()
-            .map_err(|error| format!("could not preserve the current plug-in state: {error}"))?;
+            .ok_or(HostError::InvalidArgument {
+                operation: "VST3 instance is not loaded",
+            })?;
+        let primary_before = instance.plugin.save_state()?;
         let secondary_before = instance
             .secondary
             .as_ref()
             .map(HostedPlugin::save_state)
-            .transpose()
-            .map_err(|error| format!("could not preserve the current dual-mono state: {error}"))?;
+            .transpose()?;
         if let Err(error) = instance
             .plugin
             .restore_state(&state.component_state, &state.controller_state)
@@ -432,10 +471,12 @@ impl Vst3Runtime {
                 .plugin
                 .restore_state(&primary_before.0, &primary_before.1);
             return Err(match rollback {
-                Ok(()) => format!("could not restore plug-in state: {error}"),
-                Err(rollback_error) => format!(
-                    "could not restore plug-in state: {error}; recovery also failed: {rollback_error}"
-                ),
+                Ok(()) => recovered_error(error),
+                Err(recovery) => HostError::RecoveryFailed {
+                    operation: "restore editor state",
+                    source: Box::new(error),
+                    recovery: Box::new(recovery),
+                },
             });
         }
         if let Some(secondary) = &instance.secondary
@@ -449,12 +490,12 @@ impl Vst3Runtime {
                 secondary.restore_state(&before.0, &before.1)
             });
             return Err(match (primary_rollback, secondary_rollback) {
-                (Ok(()), Ok(())) => {
-                    format!("could not restore dual-mono plug-in state: {error}")
-                }
-                (primary, secondary) => format!(
-                    "could not restore dual-mono plug-in state: {error}; recovery failed (primary: {primary:?}, secondary: {secondary:?})"
-                ),
+                (Ok(()), Ok(())) => recovered_error(error),
+                (Err(recovery), _) | (_, Err(recovery)) => HostError::RecoveryFailed {
+                    operation: "restore dual-mono editor state",
+                    source: Box::new(error),
+                    recovery: Box::new(recovery),
+                },
             });
         }
         Ok(())
@@ -466,11 +507,17 @@ impl Vst3Runtime {
         parameter_id: u32,
         normalized: f64,
         gesture: ParameterGesture,
-    ) -> Result<(), String> {
+    ) -> Result<(), Box<heron_dsp_runtime::protocol::RpcError>> {
         match self.set_parameter(instance_id, parameter_id, normalized, gesture) {
             ControlResult::Accepted => Ok(()),
-            ControlResult::Error { error } => Err(error.user_message_key),
-            _ => Err("unexpected VST3 parameter result".into()),
+            ControlResult::Error { error } => Err(Box::new(error)),
+            _ => Err(Box::new(failures::plugin_rpc_error(
+                Some(instance_id),
+                PluginFailureStage::Parameter,
+                &HostError::InvalidArgument {
+                    operation: "unexpected VST3 parameter result",
+                },
+            ))),
         }
     }
 
@@ -484,11 +531,15 @@ impl Vst3Runtime {
                     .parameter_tokens
                     .native_id(command.parameter_token)
                 else {
-                    return control_error("VST3 parameter token is stale");
+                    return invalid_argument(
+                        &instance_id,
+                        PluginFailureStage::Parameter,
+                        "VST3 parameter token is stale",
+                    );
                 };
                 self.set_parameter_plain(&instance_id, parameter_id, command.value, command.gesture)
             }
-            None => control_error("VST3 runtime handle is stale"),
+            None => missing_instance("", PluginFailureStage::Parameter),
         }
     }
 
@@ -531,12 +582,12 @@ impl Vst3Runtime {
                 continue;
             }
             if let Err(error) = instance.plugin.apply_restart_requests(primary) {
-                self.restart_failures.push((id.clone(), error.to_string()));
+                self.restart_failures.push((id.clone(), error));
             }
             if let Some(secondary_plugin) = &mut instance.secondary
                 && let Err(error) = secondary_plugin.apply_restart_requests(secondary)
             {
-                self.restart_failures.push((id.clone(), error.to_string()));
+                self.restart_failures.push((id.clone(), error));
             }
             if bus_activation_changed
                 || request.contains(heron_vst3_host::Vst3RestartRequest::LATENCY_CHANGED)
@@ -564,7 +615,7 @@ impl Vst3Runtime {
             .collect()
     }
 
-    pub fn take_restart_failures(&mut self) -> Vec<(String, String)> {
+    pub fn take_restart_failures(&mut self) -> Vec<(String, HostError)> {
         std::mem::take(&mut self.restart_failures)
     }
 
@@ -588,11 +639,23 @@ impl Vst3Runtime {
         Ok(applied)
     }
 
-    pub fn sync_ara_graph(&mut self, graph: Option<&LiveMixerGraph>) -> Result<(), String> {
-        for instance in self.instances.values_mut() {
+    pub fn sync_ara_graph(
+        &mut self,
+        graph: Option<&LiveMixerGraph>,
+    ) -> Result<(), Box<heron_dsp_runtime::protocol::RpcError>> {
+        for (instance_id, instance) in &mut self.instances {
             let Instance { ara, plugin, .. } = instance;
             if let Some(ara) = ara {
-                plugin.with_processing_paused(|| ara.sync_live_graph(graph))?;
+                plugin
+                    .with_processing_paused(|| ara.sync_live_graph(graph))
+                    .map_err(|error| {
+                        failures::uncertain_diagnostic_rpc_error(
+                            instance_id,
+                            PluginFailureStage::Ara,
+                            "sync ARA graph",
+                            error,
+                        )
+                    })?;
             }
         }
         Ok(())
@@ -692,12 +755,20 @@ impl Vst3Runtime {
         }
         let class_id = match class_id.parse::<ClassId>() {
             Ok(class_id) => class_id,
-            Err(error) => return control_error(&error.to_string()),
+            Err(error) => {
+                return plugin_error(&instance_id, PluginFailureStage::Initialize, &error);
+            }
         };
         let kind = match plugin_kind.as_str() {
             "effect" => PluginKind::Effect,
             "instrument" => PluginKind::Instrument,
-            _ => return control_error("unsupported VST3 plugin kind"),
+            _ => {
+                return invalid_argument(
+                    &instance_id,
+                    PluginFailureStage::Initialize,
+                    "unsupported VST3 plugin kind",
+                );
+            }
         };
         let layout = match audio_mode {
             PluginAudioMode::Mono | PluginAudioMode::DualMono => AudioLayout::Mono,
@@ -709,7 +780,11 @@ impl Vst3Runtime {
             .map(|input| vst3_input_index(&input.input_port_key))
             .collect::<Option<Vec<_>>>()
         else {
-            return control_error("VST3 input port key is invalid");
+            return invalid_argument(
+                &instance_id,
+                PluginFailureStage::Initialize,
+                "VST3 input port key is invalid",
+            );
         };
         if kind == PluginKind::Instrument
             && matches!(
@@ -733,7 +808,9 @@ impl Vst3Runtime {
                 let factory_key = (module_path.clone(), factory_class_id.clone());
                 let parsed_factory_class_id = match factory_class_id.parse::<ClassId>() {
                     Ok(class_id) => class_id,
-                    Err(error) => return control_error(&error.to_string()),
+                    Err(error) => {
+                        return plugin_error(&instance_id, PluginFailureStage::Initialize, &error);
+                    }
                 };
                 let shared_factory = self.ara_factories.get(&factory_key).cloned();
                 let ara_instance_id = instance_id.clone();
@@ -763,7 +840,9 @@ impl Vst3Runtime {
                         self.ara_factories.entry(factory_key).or_insert(factory);
                         (plugin, Some(ara))
                     }
-                    Err(error) => return control_error(&error.to_string()),
+                    Err(error) => {
+                        return plugin_error(&instance_id, PluginFailureStage::Initialize, &error);
+                    }
                 }
             }
             None => match HostedPlugin::create_with_layout_and_aux_inputs(
@@ -775,7 +854,9 @@ impl Vst3Runtime {
                 &active_aux_bus_indices,
             ) {
                 Ok(plugin) => (plugin, None),
-                Err(error) => return control_error(&error.to_string()),
+                Err(error) => {
+                    return plugin_error(&instance_id, PluginFailureStage::Initialize, &error);
+                }
             },
         };
         let secondary = if audio_mode == PluginAudioMode::DualMono {
@@ -788,7 +869,9 @@ impl Vst3Runtime {
                 &active_aux_bus_indices,
             ) {
                 Ok(plugin) => Some(plugin),
-                Err(error) => return control_error(&error.to_string()),
+                Err(error) => {
+                    return plugin_error(&instance_id, PluginFailureStage::Initialize, &error);
+                }
             }
         } else {
             None
@@ -796,13 +879,13 @@ impl Vst3Runtime {
         if (!component_state.is_empty() || !controller_state.is_empty())
             && let Err(error) = plugin.restore_state(&component_state, &controller_state)
         {
-            return control_error(&error.to_string());
+            return candidate_error(&instance_id, PluginFailureStage::Restore, &error);
         }
         if let Some(secondary) = &secondary
             && (!component_state.is_empty() || !controller_state.is_empty())
             && let Err(error) = secondary.restore_state(&component_state, &controller_state)
         {
-            return control_error(&error.to_string());
+            return candidate_error(&instance_id, PluginFailureStage::Restore, &error);
         }
         if let Some(secondary) = &secondary {
             plugin.mirror_parameters_to(secondary);
@@ -820,7 +903,9 @@ impl Vst3Runtime {
         self.next_runtime_handle = self.next_runtime_handle.wrapping_add(1).max(1);
         let parameter_tokens = match allocate_parameter_tokens(&plugin) {
             Ok(tokens) => tokens,
-            Err(error) => return control_error(&error),
+            Err(error) => {
+                return plugin_error(&instance_id, PluginFailureStage::Initialize, &error);
+            }
         };
         let display_name = Path::new(&module_path)
             .file_stem()
@@ -850,9 +935,12 @@ impl Vst3Runtime {
     }
 
     fn plugin_parameters(&self, instance_id: &str) -> ControlResult {
+        if !self.instances.contains_key(instance_id) {
+            return missing_instance(instance_id, PluginFailureStage::Parameter);
+        }
         match self.parameters(instance_id) {
             Ok(parameters) => ControlResult::PluginParameters { parameters },
-            Err(error) => control_error(&error),
+            Err(error) => plugin_error(instance_id, PluginFailureStage::Parameter, &error),
         }
     }
 
@@ -864,7 +952,7 @@ impl Vst3Runtime {
         gesture: ParameterGesture,
     ) -> ControlResult {
         let Some(instance) = self.instances.get(instance_id) else {
-            return control_error("VST3 instance is not loaded");
+            return missing_instance(instance_id, PluginFailureStage::Parameter);
         };
         if gesture == ParameterGesture::Begin {
             return ControlResult::Accepted;
@@ -875,7 +963,7 @@ impl Vst3Runtime {
             gesture == ParameterGesture::End,
         );
         if let Err(error) = primary_result {
-            return control_error(&error.to_string());
+            return plugin_error(instance_id, PluginFailureStage::Parameter, &error);
         }
         if gesture == ParameterGesture::Perform {
             push_pending_host_request(
@@ -895,20 +983,24 @@ impl Vst3Runtime {
         gesture: ParameterGesture,
     ) -> ControlResult {
         let Some(instance) = self.instances.get(instance_id) else {
-            return control_error("VST3 instance is not loaded");
+            return missing_instance(instance_id, PluginFailureStage::Parameter);
         };
         if gesture == ParameterGesture::Begin {
             return ControlResult::Accepted;
         }
         if !value.is_finite() {
-            return control_error("VST3 parameter value is invalid");
+            return invalid_argument(
+                instance_id,
+                PluginFailureStage::Parameter,
+                "VST3 parameter value is invalid",
+            );
         }
         if let Err(error) = instance.plugin.set_parameter_plain(
             parameter_id,
             value,
             gesture == ParameterGesture::End,
         ) {
-            return control_error(&error.to_string());
+            return plugin_error(instance_id, PluginFailureStage::Parameter, &error);
         }
         if gesture == ParameterGesture::Perform {
             push_pending_host_request(
@@ -922,7 +1014,7 @@ impl Vst3Runtime {
 
     fn save_state(&mut self, instance_id: &str) -> ControlResult {
         let Some(instance) = self.instances.get_mut(instance_id) else {
-            return control_error("VST3 instance is not loaded");
+            return missing_instance(instance_id, PluginFailureStage::StateSave);
         };
         let ara_document_state = match &mut instance.ara {
             Some(ara) => match instance
@@ -930,7 +1022,14 @@ impl Vst3Runtime {
                 .with_processing_paused(|| ara.save_archive())
             {
                 Ok(archive) => archive,
-                Err(error) => return control_error(&error),
+                Err(error) => {
+                    return diagnostic_error(
+                        instance_id,
+                        PluginFailureStage::Ara,
+                        "save ARA archive",
+                        error,
+                    );
+                }
             },
             None => instance.ara_document_state.clone(),
         };
@@ -954,7 +1053,7 @@ impl Vst3Runtime {
                     ],
                 },
             },
-            Err(error) => control_error(&error.to_string()),
+            Err(error) => plugin_error(instance_id, PluginFailureStage::StateSave, &error),
         }
     }
 
@@ -964,10 +1063,14 @@ impl Vst3Runtime {
         preference: PluginEditorPreference,
     ) -> ControlResult {
         if !self.instances.contains_key(instance_id) {
-            return control_error("VST3 instance is not loaded");
+            return missing_instance(instance_id, PluginFailureStage::Editor);
         }
         if !preference.is_valid() {
-            return control_error("VST3 editor zoom is outside 50...400");
+            return invalid_argument(
+                instance_id,
+                PluginFailureStage::Editor,
+                "VST3 editor zoom is outside 50...400",
+            );
         }
         ControlResult::PluginEditor {
             active_mode: preference.mode,
@@ -1019,12 +1122,6 @@ fn push_pending_host_request(
 
 fn is_audio_benchmark_instance(instance_id: &str) -> bool {
     instance_id.starts_with("__heron-audio-benchmark-")
-}
-
-fn control_error(message: &str) -> ControlResult {
-    control_error! {
-        message: message.to_owned(),
-    }
 }
 
 #[cfg(test)]

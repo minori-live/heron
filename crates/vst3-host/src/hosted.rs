@@ -28,15 +28,16 @@ use crate::{
 };
 
 mod interfaces;
+mod parameters;
 mod processor_lease;
+mod state;
 
 pub use interfaces::PlugView;
 pub use processor_lease::ProcessorLease;
 
 use interfaces::{
-    check, check_controller_parameter_sync, check_optional_controller_state, component_table,
-    connection_table, controller_parameter_flags, controller_parameter_ids, controller_table,
-    create_controller, is_not_implemented, midi_mapping_table, optional_unit_string_result,
+    check, component_table, connection_table, controller_parameter_flags, controller_parameter_ids,
+    controller_table, create_controller, midi_mapping_table, optional_unit_string_result,
     unit_info_table, utf16_string, validate_controller_parameter_edit,
 };
 use processor_lease::ProcessorCell;
@@ -97,27 +98,36 @@ struct MidiMappingTable {
 }
 
 impl MidiMappingTable {
-    fn query(controller: Option<&ComPtr<IEditController>>) -> Self {
+    fn query(controller: Option<&ComPtr<IEditController>>) -> HostResult<Self> {
         let parameters = (0..MIDI_MAPPING_CHANNELS * MIDI_MAPPING_CONTROLLERS)
             .map(|_| AtomicU32::new(UNMAPPED_PARAMETER))
             .collect::<Vec<_>>()
             .into_boxed_slice();
-        let Some(mapping) = controller.and_then(|value| value.query::<IMidiMapping>().ok()) else {
-            return Self { parameters };
+        let Some(mapping) = controller
+            .map(|value| value.query_optional::<IMidiMapping>())
+            .transpose()?
+            .flatten()
+        else {
+            return Ok(Self { parameters });
         };
         let table = Self { parameters };
         table.refresh_mapping(&mapping);
-        table
+        Ok(table)
     }
 
-    fn refresh(&self, controller: Option<&ComPtr<IEditController>>) {
-        let Some(mapping) = controller.and_then(|value| value.query::<IMidiMapping>().ok()) else {
+    fn refresh(&self, controller: Option<&ComPtr<IEditController>>) -> HostResult<()> {
+        let Some(mapping) = controller
+            .map(|value| value.query_optional::<IMidiMapping>())
+            .transpose()?
+            .flatten()
+        else {
             for parameter in &self.parameters {
                 parameter.store(UNMAPPED_PARAMETER, Ordering::Release);
             }
-            return;
+            return Ok(());
         };
         self.refresh_mapping(&mapping);
+        Ok(())
     }
 
     fn refresh_mapping(&self, mapping: &ComPtr<IMidiMapping>) {
@@ -165,7 +175,7 @@ pub struct HostedPlugin {
     midi_mapping: Arc<MidiMappingTable>,
     controller: Option<ComPtr<IEditController>>,
     connections: Option<ComponentConnections>,
-    handler: Option<Box<ComponentHandler>>,
+    _handler: Option<Box<ComponentHandler>>,
     shared: Arc<HandlerShared>,
     output_parameter_reader: OutputParameterReader,
     controller_initialized: bool,
@@ -184,8 +194,8 @@ struct ComponentConnections {
 
 /// Owns an initialized edit controller while `HostedPlugin` construction can
 /// still fail. Its drop order mirrors the successful host teardown: detach the
-/// component handler, release the handler, terminate a separately initialized
-/// controller, then release the controller interface.
+/// component handler, terminate a separately initialized controller and release
+/// its interface while the handler still lives.
 struct InitializedController {
     controller: Option<ComPtr<IEditController>>,
     handler: Option<Box<ComponentHandler>>,
@@ -207,20 +217,25 @@ impl InitializedController {
         self.controller.as_ref()
     }
 
-    fn attach_handler(&mut self, mut handler: Box<ComponentHandler>) -> HostResult<()> {
+    fn attach_handler(&mut self, handler: Box<ComponentHandler>) -> HostResult<()> {
         let Some(controller) = &self.controller else {
             return Ok(());
         };
+        self.handler = Some(handler);
+        // Even a rejected setter may have retained the callback. Keep it alive
+        // and attempt detachment during construction cleanup.
+        self.handler_attached = true;
         check("IEditController::setComponentHandler", unsafe {
             // SAFETY: controller is initialized and handler has a stable Box
             // address that this guard retains until it detaches the handler.
             ((*controller_table(controller)).set_component_handler)(
                 controller.as_ptr(),
-                handler.as_interface(),
+                self.handler
+                    .as_mut()
+                    .expect("handler was retained")
+                    .as_interface(),
             )
         })?;
-        self.handler = Some(handler);
-        self.handler_attached = true;
         Ok(())
     }
 
@@ -257,7 +272,6 @@ impl Drop for InitializedController {
             }
             self.handler_attached = false;
         }
-        self.handler.take();
         if self.initialized_separately {
             if let Some(controller) = &self.controller {
                 unsafe {
@@ -270,6 +284,8 @@ impl Drop for InitializedController {
             }
             self.initialized_separately = false;
         }
+        self.controller.take();
+        self.handler.take();
     }
 }
 
@@ -284,6 +300,7 @@ impl ComponentConnections {
             component_connected: false,
             controller_connected: false,
         };
+        connections.component_connected = true;
         check("IConnectionPoint::connect(component)", unsafe {
             // SAFETY: both retained connection points are initialized and live.
             ((*connection_table(&connections.component)).connect)(
@@ -291,7 +308,7 @@ impl ComponentConnections {
                 connections.controller.as_ptr(),
             )
         })?;
-        connections.component_connected = true;
+        connections.controller_connected = true;
         check("IConnectionPoint::connect(controller)", unsafe {
             // SAFETY: both retained connection points are initialized and live.
             ((*connection_table(&connections.controller)).connect)(
@@ -299,7 +316,6 @@ impl ComponentConnections {
                 connections.component.as_ptr(),
             )
         })?;
-        connections.controller_connected = true;
         Ok(connections)
     }
 }
@@ -307,7 +323,8 @@ impl ComponentConnections {
 impl Drop for ComponentConnections {
     fn drop(&mut self) {
         unsafe {
-            // SAFETY: each successful connect is balanced once while both retained peers live.
+            // SAFETY: each attempted connect is cleaned up while both retained
+            // peers live, including a rejected call with partial side effects.
             if self.controller_connected {
                 ((*connection_table(&self.controller)).disconnect)(
                     self.controller.as_ptr(),
@@ -427,21 +444,22 @@ impl HostedPlugin {
         let (output_parameter_writer, output_parameter_reader) =
             output_parameter_bridge(parameter_ids);
         processor.set_output_parameter_writer(output_parameter_writer);
-        let midi_mapping = Arc::new(MidiMappingTable::query(controller_lifecycle.controller()));
+        let midi_mapping = Arc::new(MidiMappingTable::query(controller_lifecycle.controller())?);
         if controller_lifecycle.controller().is_some() {
             controller_lifecycle.attach_handler(ComponentHandler::new(shared.clone()))?;
         }
         let connections = if separate_controller {
             match (
-                processor.component().query::<IConnectionPoint>(),
+                processor.component().query_optional::<IConnectionPoint>(),
                 controller_lifecycle
                     .controller()
                     .ok_or(HostError::NullInterface("IEditController"))?
-                    .query::<IConnectionPoint>(),
+                    .query_optional::<IConnectionPoint>(),
             ) {
-                (Ok(component), Ok(controller)) => {
+                (Ok(Some(component)), Ok(Some(controller))) => {
                     Some(ComponentConnections::connect(component, controller)?)
                 }
+                (Ok(_), Ok(_)) => None,
                 (Err(error), _) | (_, Err(error)) => return Err(error),
             }
         } else {
@@ -457,7 +475,7 @@ impl HostedPlugin {
                 midi_mapping,
                 controller,
                 connections,
-                handler,
+                _handler: handler,
                 shared,
                 output_parameter_reader,
                 controller_initialized,
@@ -542,8 +560,10 @@ impl HostedPlugin {
         index: i32,
         active: bool,
     ) -> HostResult<()> {
-        self.processor
-            .with_paused(|processor| processor.set_bus_active(media_type, direction, index, active))
+        self.processor.with_paused_policy(
+            |processor| processor.set_bus_active(media_type, direction, index, active),
+            |error| matches!(error, HostError::CommitUncertain { .. }),
+        )
     }
 
     /// Informs the optional VST3 presentation-latency interface about the time before the
@@ -563,7 +583,9 @@ impl HostedPlugin {
         let Some(unit_info) = self
             .controller
             .as_ref()
-            .and_then(|controller| controller.query::<IUnitInfo>().ok())
+            .map(|controller| controller.query_optional::<IUnitInfo>())
+            .transpose()?
+            .flatten()
         else {
             return Ok(None);
         };
@@ -573,9 +595,8 @@ impl HostedPlugin {
         // SAFETY: unit_info is live on its owning UI thread.
         let list_count = unsafe { ((*table).get_program_list_count)(unit_info.as_ptr()) };
         if unit_count < 0 || list_count < 0 {
-            return Err(HostError::Operation {
+            return Err(HostError::InvalidPluginData {
                 operation: "IUnitInfo count",
-                result: -2147024809,
             });
         }
 
@@ -605,9 +626,8 @@ impl HostedPlugin {
                 ((*table).get_program_list_info)(unit_info.as_ptr(), index, &mut raw)
             })?;
             if raw.programCount < 0 {
-                return Err(HostError::Operation {
+                return Err(HostError::InvalidPluginData {
                     operation: "IUnitInfo program count",
-                    result: -2147024809,
                 });
             }
             let mut programs = Vec::with_capacity(raw.programCount as usize);
@@ -661,7 +681,9 @@ impl HostedPlugin {
         let Some(unit_info) = self
             .controller
             .as_ref()
-            .and_then(|controller| controller.query::<IUnitInfo>().ok())
+            .map(|controller| controller.query_optional::<IUnitInfo>())
+            .transpose()?
+            .flatten()
         else {
             return Ok(None);
         };
@@ -778,13 +800,12 @@ impl HostedPlugin {
 
     pub fn apply_restart_requests(&mut self, request: crate::Vst3RestartRequest) -> HostResult<()> {
         if request.contains(crate::Vst3RestartRequest::RELOAD_COMPONENT) {
-            return Err(HostError::Operation {
+            return Err(HostError::UnsupportedOperation {
                 operation: "restartComponent(kReloadComponent) requires instance reload",
-                result: -2147467259,
             });
         }
         if request.contains(crate::Vst3RestartRequest::MIDI_CC_ASSIGNMENT_CHANGED) {
-            self.midi_mapping.refresh(self.controller.as_ref());
+            self.midi_mapping.refresh(self.controller.as_ref())?;
         }
         if request.contains(crate::Vst3RestartRequest::PARAM_ID_MAPPING_CHANGED) {
             let parameter_ids = self
@@ -802,7 +823,7 @@ impl HostedPlugin {
             || request.contains(crate::Vst3RestartRequest::LATENCY_CHANGED)
         {
             self.processor
-                .with_paused(StereoProcessor::restart_processing)?;
+                .with_paused_policy(StereoProcessor::restart_processing, |_| true)?;
         }
         Ok(())
     }
@@ -812,7 +833,6 @@ impl HostedPlugin {
             return Ok(0);
         };
         let table = controller_table(controller);
-        let mut first_error = None;
         let applied = self.output_parameter_reader.drain(|id, value| {
             let result = unsafe {
                 // SAFETY: the controller is live and this method only runs on its owning UI
@@ -820,15 +840,14 @@ impl HostedPlugin {
                 // into the processor's input queue.
                 ((*table).set_parameter_normalized)(controller.as_ptr(), id, value)
             };
-            if let Err(error) = check_controller_parameter_sync(
+            if let Err(error) = crate::results::controller_sync_result(
                 "IEditController::setParamNormalized(output)",
                 result,
-            ) && first_error.is_none()
-            {
-                first_error = Some(error);
+            ) {
+                eprintln!("VST3 controller output synchronization rejected: {error}");
             }
         });
-        first_error.map_or(Ok(applied), Err)
+        Ok(applied)
     }
 
     pub fn parameters(&self) -> HostResult<Vec<HostedParameter>> {
@@ -918,168 +937,6 @@ impl HostedPlugin {
         Ok(parameters)
     }
 
-    pub fn set_parameter(&self, id: u32, normalized: f64, flush: bool) -> HostResult<()> {
-        if !normalized.is_finite() || !(0.0..=1.0).contains(&normalized) {
-            return Err(HostError::Operation {
-                operation: "parameter value outside 0...1",
-                result: -2147024809,
-            });
-        }
-        if let Some(controller) = &self.controller {
-            validate_controller_parameter_edit(controller_parameter_flags(controller, id)?)?;
-        }
-        if !self.shared.enqueue_parameter(id, normalized) {
-            return Err(HostError::Operation {
-                operation: "realtime parameter queue full",
-                result: 1,
-            });
-        }
-        if let Some(controller) = &self.controller {
-            check_controller_parameter_sync("IEditController::setParamNormalized", unsafe {
-                // SAFETY: controller is live on its UI thread and the value is normalized.
-                ((*controller_table(controller)).set_parameter_normalized)(
-                    controller.as_ptr(),
-                    id,
-                    normalized,
-                )
-            })?;
-        }
-        if flush {
-            self.processor
-                .with_paused(StereoProcessor::flush_parameters)?;
-        }
-        Ok(())
-    }
-
-    pub fn set_parameter_plain(&self, id: u32, value: f64, flush: bool) -> HostResult<()> {
-        if !value.is_finite() {
-            return Err(HostError::Operation {
-                operation: "parameter plain value is not finite",
-                result: -2147024809,
-            });
-        }
-        let Some(controller) = &self.controller else {
-            return Err(HostError::NullInterface("IEditController"));
-        };
-        let normalized = unsafe {
-            // SAFETY: Controller is live and the ID is validated by the same
-            // checks performed by `set_parameter`.
-            ((*controller_table(controller)).plain_to_normalized)(controller.as_ptr(), id, value)
-        };
-        self.set_parameter(id, normalized, flush)
-    }
-
-    pub fn format_parameter_value(&self, id: u32, normalized: f64) -> HostResult<String> {
-        if !normalized.is_finite() || !(0.0..=1.0).contains(&normalized) {
-            return Err(HostError::Operation {
-                operation: "parameter value outside 0...1",
-                result: -2147024809,
-            });
-        }
-        let Some(controller) = &self.controller else {
-            return Ok(String::new());
-        };
-        let mut text = [0_u16; 128];
-        let result = unsafe {
-            // SAFETY: controller is live, the normalized value is validated, and text is writable
-            // String128 storage for the duration of this synchronous call.
-            ((*controller_table(controller)).parameter_string)(
-                controller.as_ptr(),
-                id,
-                normalized,
-                text.as_mut_ptr(),
-            )
-        };
-        Ok(if result == 0 {
-            utf16_string(&text)
-        } else {
-            String::new()
-        })
-    }
-
-    pub fn restore_state(&self, component_state: &[u8], controller_state: &[u8]) -> HostResult<()> {
-        self.processor.with_paused(|processor| {
-            processor.deactivate()?;
-            let restore_result = (|| {
-                let mut component_stream = MemoryStream::from_slice(component_state);
-                check("IComponent::setState", unsafe {
-                    // SAFETY: the component is initialized but inactive, and
-                    // the stream remains valid for this synchronous call.
-                    ((*component_table(processor.component())).set_state)(
-                        processor.component().as_ptr(),
-                        component_stream.as_interface(),
-                    )
-                })?;
-                if let Some(controller) = &self.controller {
-                    component_stream.rewind();
-                    check_optional_controller_state(
-                        "IEditController::setComponentState",
-                        unsafe {
-                            // SAFETY: controller and stream are live on the UI thread.
-                            ((*controller_table(controller)).set_component_state)(
-                                controller.as_ptr(),
-                                component_stream.as_interface(),
-                            )
-                        },
-                    )?;
-                    if !controller_state.is_empty() {
-                        let mut stream = MemoryStream::from_slice(controller_state);
-                        check("IEditController::setState", unsafe {
-                            // SAFETY: controller and stream are live on the UI thread.
-                            ((*controller_table(controller)).set_state)(
-                                controller.as_ptr(),
-                                stream.as_interface(),
-                            )
-                        })?;
-                    }
-                }
-                Ok(())
-            })();
-            // Re-enter a usable processing state even when a malformed plug-in
-            // state was rejected; callers still receive the restore failure.
-            let activation_result = processor.activate();
-            restore_result.and(activation_result)
-        })
-    }
-
-    pub fn save_state(&self) -> HostResult<(Vec<u8>, Vec<u8>)> {
-        let component_state = self.processor.with_paused(|processor| {
-            processor.flush_parameters()?;
-            let mut stream = MemoryStream::empty();
-            check("IComponent::getState", unsafe {
-                // SAFETY: component is live, processing is paused, and stream is writable.
-                ((*component_table(processor.component())).get_state)(
-                    processor.component().as_ptr(),
-                    stream.as_interface(),
-                )
-            })?;
-            Ok(stream.into_bytes())
-        })?;
-        let controller_state = if let Some(controller) = &self.controller {
-            let mut stream = MemoryStream::empty();
-            let result = unsafe {
-                // SAFETY: controller is live on the owning UI thread and stream is writable.
-                ((*controller_table(controller)).get_state)(
-                    controller.as_ptr(),
-                    stream.as_interface(),
-                )
-            };
-            if result == 0 {
-                stream.into_bytes()
-            } else if is_not_implemented(result) {
-                Vec::new()
-            } else {
-                return Err(HostError::Operation {
-                    operation: "IEditController::getState",
-                    result,
-                });
-            }
-        } else {
-            Vec::new()
-        };
-        Ok((component_state, controller_state))
-    }
-
     pub fn create_view(&self) -> HostResult<PlugView> {
         let controller = self
             .controller
@@ -1109,7 +966,6 @@ impl Drop for HostedPlugin {
                 );
             }
         }
-        self.handler.take();
         if self.controller_initialized {
             if let Some(controller) = &self.controller {
                 unsafe {
@@ -1121,6 +977,9 @@ impl Drop for HostedPlugin {
             }
             self.controller_initialized = false;
         }
+        // Field drop order releases the processor and controller before the
+        // handler, so even a rejected detach cannot leave a dangling callback
+        // during their lifecycle teardown.
     }
 }
 

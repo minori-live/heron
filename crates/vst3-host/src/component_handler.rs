@@ -25,7 +25,10 @@ use heron_vst3_host_sys::{
     },
     iid,
 };
-use ringbuf::{HeapProd, traits::Producer};
+use ringbuf::{
+    HeapProd,
+    traits::{Observer, Producer},
+};
 
 use crate::processor::QueuedParameter;
 
@@ -104,6 +107,12 @@ impl HandlerShared {
     }
 
     pub(crate) fn enqueue_parameter(&self, id: u32, value: f64) -> bool {
+        // All producers are serialized on the UI thread and consumers only
+        // free space. Reserve admission across both mono lanes before either
+        // queue changes; a full mirror cannot leave a partial parameter edit.
+        if !self.can_enqueue_parameter() {
+            return false;
+        }
         let producer = unsafe {
             // SAFETY: VST3 controller and IComponentHandler calls are serialized on the host UI
             // thread. The matching consumer is exclusively owned by the audio processor.
@@ -125,6 +134,17 @@ impl HandlerShared {
             (&*self.parameter_mirror.get())
                 .as_ref()
                 .is_none_or(|mirror| mirror.enqueue_parameter(id, value))
+        }
+    }
+
+    fn can_enqueue_parameter(&self) -> bool {
+        unsafe {
+            // SAFETY: only the serialized UI producer inspects these queues and
+            // the mirror is immutable after construction, as in enqueue_parameter.
+            !(&*self.parameter_producer.get()).is_full()
+                && (&*self.parameter_mirror.get())
+                    .as_ref()
+                    .is_none_or(|mirror| mirror.can_enqueue_parameter())
         }
     }
 
