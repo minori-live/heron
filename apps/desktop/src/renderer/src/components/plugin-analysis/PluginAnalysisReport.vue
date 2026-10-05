@@ -55,7 +55,15 @@ const tabs = computed(() =>
     />
     <UiTabs v-model="tab" :items="tabs" :label="t('pluginAnalysis.analysis')" appearance="analysis">
       <template #linear
-        ><PluginAnalysisLinear v-if="report" :report="report" :comparison="overlay" />
+        ><PluginAnalysisLinear
+          v-if="report"
+          :report="report"
+          :comparison="overlay"
+          :report-id="snapshot.reportId"
+          :report-revision="snapshot.reportRevision"
+          :revision="snapshot.revision"
+          :comparison-mode="snapshot.comparisonEnabled ? comparisonMode : 'single'"
+          :stale="snapshot.reportRevision !== snapshot.revision" />
         <section v-else class="empty-panel">
           <PluginAnalysisPlot
             :title="t('pluginAnalysis.frequency')"

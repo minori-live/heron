@@ -122,6 +122,28 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
         { timeout: 45000 }
       )
       .toEqual({ level: 6, fft: 32768, excitation: "delta" })
+    // This raw native unity response exercises the bundled module Worker under
+    // Electron's real file:// origin and CSP, beyond browser-only IPC fixtures.
+    await pluginAnalysis
+      .getByRole("combobox", { name: "Input → output", exact: true })
+      .selectOption({ label: "L → L" })
+    await expect(pluginAnalysis.getByRole("spinbutton", { name: "EQ quota" })).toHaveValue("3")
+    await pluginAnalysis.getByRole("button", { name: "Fit EQ", exact: true }).click()
+    const eqResult = pluginAnalysis.getByRole("region", { name: "EQ fit result", exact: true })
+    await expect(eqResult).toBeVisible()
+    const eqMetrics = await eqResult.evaluate((element) => {
+      const value = (label: string): number => {
+        const term = [...element.querySelectorAll("dt")].find((item) => item.textContent === label)
+        return Number.parseFloat(term!.nextElementSibling!.textContent.replaceAll("−", "-"))
+      }
+      return { overallGain: value("Overall Gain"), rmsError: value("RMS error") }
+    })
+    expect(Math.abs(eqMetrics.overallGain)).toBeLessThan(0.05)
+    expect(eqMetrics.rmsError).toBeLessThan(0.05)
+    await pluginAnalysis.screenshot({
+      path: test.info().outputPath("native-eq-fit.png"),
+      fullPage: true
+    })
     const compare = pluginAnalysis.getByRole("checkbox", { name: "Compare chains" })
     await compare.focus()
     await compare.press("Space")

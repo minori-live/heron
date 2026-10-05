@@ -10,12 +10,22 @@ import {
 } from "@heron/ui"
 import type { PluginAnalysisReport } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
-const props = defineProps<{ report: PluginAnalysisReport; comparison?: PluginAnalysisReport }>()
+import PluginAnalysisEqFit from "./PluginAnalysisEqFit.vue"
+const props = defineProps<{
+  report: PluginAnalysisReport
+  comparison?: PluginAnalysisReport
+  reportId?: string | null
+  reportRevision?: number | null
+  revision?: number
+  comparisonMode?: string
+  stale?: boolean
+}>()
 const { t } = useI18n()
 const view = ref("magnitude")
 const path = ref("direct")
 const compensate = ref(false)
 const stored = shallowRef<UiAnalysisSeries[]>([])
+const fitted = shallowRef<UiAnalysisSeries | null>(null)
 const modes = computed(() => [
   { value: "magnitude", label: t("pluginAnalysis.magnitude") },
   { value: "phase", label: t("pluginAnalysis.phase") },
@@ -28,15 +38,19 @@ const paths = computed(() => [
     label: `${channelName(p.input)} → ${channelName(p.output)}`
   }))
 ])
-function channelName(index: number): string {
-  if (props.report.settings.mid_side) return index ? "S" : "M"
+function channelName(index: number, report = props.report): string {
+  if (report.settings.mid_side) return index ? "S" : "M"
   return index ? "R" : "L"
 }
 const makeSeries = (report: PluginAnalysisReport, chain?: number): UiAnalysisSeries[] =>
   report.responses
-    .filter((p, i) => (path.value === "direct" ? p.input === p.output : i === Number(path.value)))
+    .filter((p) => {
+      if (path.value === "direct") return p.input === p.output
+      const selected = props.report.responses[Number(path.value)]
+      return selected && p.input === selected.input && p.output === selected.output
+    })
     .map((p, index) => ({
-      label: `${chain === undefined ? "" : t(`pluginAnalysis.chain${chain + 1}`) + " · "}${channelName(p.input)} → ${channelName(p.output)}`,
+      label: `${chain === undefined ? "" : t(`pluginAnalysis.chain${chain + 1}`) + " · "}${channelName(p.input, report)} → ${channelName(p.output, report)}`,
       color:
         chain === 1
           ? "var(--ui-color-action)"
@@ -73,7 +87,11 @@ const series = computed(() => [
   ...makeSeries(props.report, props.comparison ? 0 : undefined),
   ...(props.comparison ? makeSeries(props.comparison, 1) : [])
 ])
-const displayed = computed(() => [...stored.value, ...series.value])
+const displayed = computed(() => [
+  ...stored.value,
+  ...series.value,
+  ...(view.value === "magnitude" && fitted.value ? [fitted.value] : [])
+])
 const responseDomain = computed<readonly [number, number] | undefined>(() => {
   if (view.value === "impulse") return undefined
   const values = displayed.value.flatMap((s) =>
@@ -107,6 +125,7 @@ function store(): void {
 }
 function changeView(): void {
   stored.value = []
+  fitted.value = null
 }
 </script>
 <template>
@@ -124,7 +143,7 @@ function changeView(): void {
             : t('pluginAnalysis.amplitude')
       "
       :logarithmic="view !== 'impulse'"
-      :smooth="view === 'magnitude'"
+      :smooth="view === 'magnitude' && !fitted"
       :series="displayed"
       :y-domain="responseDomain"
     />
@@ -150,6 +169,18 @@ function changeView(): void {
         t("pluginAnalysis.clear")
       }}</UiButton>
     </footer>
+    <PluginAnalysisEqFit
+      v-if="view === 'magnitude'"
+      :report="report"
+      :comparison="comparison"
+      :path="path"
+      :report-id="reportId"
+      :report-revision="reportRevision"
+      :revision="revision"
+      :mode="comparisonMode ?? (comparison ? 'parallel' : 'single')"
+      :stale="stale"
+      @overlay="fitted = $event"
+    />
   </section>
 </template>
 <style scoped>
@@ -158,6 +189,10 @@ function changeView(): void {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+}
+.linear-panel > :deep(.plugin-analysis-plot) {
+  min-height: 300px;
 }
 .toolbar {
   display: flex;
