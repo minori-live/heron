@@ -2,85 +2,19 @@ use std::{
     cell::{Cell, UnsafeCell},
     marker::PhantomData,
     ptr::NonNull,
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    },
+    sync::Arc,
 };
 
 use heron_audio_plugin::{PluginProcessFailure, ProcessOutcome};
 
 use crate::{HostError, StereoProcessor, processor::HostProcessContext};
 
+use super::processing_access::{ProcessingAccess, ProcessingClaim};
 use super::{MIDI_AFTERTOUCH, MIDI_PITCH_BEND, MIDI_PROGRAM_CHANGE, MidiMappingTable};
 
 pub(super) struct ProcessorCell {
     processor: UnsafeCell<StereoProcessor>,
     access: ProcessingAccess,
-}
-
-#[derive(Default)]
-// Both flags use one sequentially consistent order: after audio claims processing,
-// either it observes the UI pause or the UI observes the audio claim and waits.
-struct ProcessingAccess {
-    paused: AtomicBool,
-    processing: AtomicBool,
-}
-
-impl ProcessingAccess {
-    fn with_paused<T>(&self, action: impl FnOnce() -> T) -> T {
-        let was_paused = self.paused.swap(true, Ordering::SeqCst);
-        while self.processing.load(Ordering::SeqCst) {
-            std::hint::spin_loop();
-        }
-        let result = action();
-        self.paused.store(was_paused, Ordering::SeqCst);
-        result
-    }
-
-    fn with_paused_recovery<T, E>(&self, action: impl FnOnce() -> Result<T, E>) -> Result<T, E> {
-        self.paused.store(true, Ordering::SeqCst);
-        while self.processing.load(Ordering::SeqCst) {
-            std::hint::spin_loop();
-        }
-        let result = action();
-        self.paused.store(result.is_err(), Ordering::SeqCst);
-        result
-    }
-
-    fn with_paused_policy<T, E>(
-        &self,
-        action: impl FnOnce() -> Result<T, E>,
-        quarantine: impl FnOnce(&E) -> bool,
-    ) -> Result<T, E> {
-        let was_paused = self.paused.swap(true, Ordering::SeqCst);
-        while self.processing.load(Ordering::SeqCst) {
-            std::hint::spin_loop();
-        }
-        let result = action();
-        let keep_paused = result.as_ref().err().is_some_and(quarantine);
-        self.paused
-            .store(was_paused || keep_paused, Ordering::SeqCst);
-        result
-    }
-
-    fn try_access<T>(&self, action: impl FnOnce() -> T) -> Option<T> {
-        if self.paused.load(Ordering::SeqCst) || self.processing.swap(true, Ordering::SeqCst) {
-            return None;
-        }
-        if self.paused.load(Ordering::SeqCst) {
-            self.processing.store(false, Ordering::SeqCst);
-            return None;
-        }
-        let result = action();
-        self.processing.store(false, Ordering::SeqCst);
-        Some(result)
-    }
-
-    fn process(&self, action: impl FnOnce() -> ProcessOutcome) -> ProcessOutcome {
-        self.try_access(action)
-            .unwrap_or(ProcessOutcome::TemporarilyUnavailable)
-    }
 }
 
 impl ProcessorCell {
@@ -95,6 +29,30 @@ impl ProcessorCell {
         self.access.with_paused(|| unsafe {
             // SAFETY: paused prevents the audio lease from entering and processing is false, so
             // the UI thread has exclusive access until paused is cleared.
+            action(&mut *self.processor.get())
+        })
+    }
+
+    pub(super) fn with_access_paused<T>(&self, action: impl FnOnce() -> T) -> T {
+        self.access.with_paused(action)
+    }
+
+    pub(super) fn with_pair_transaction<T>(
+        &self,
+        secondary: Option<&Self>,
+        recovery: bool,
+        action: impl FnOnce() -> crate::HostResult<T>,
+    ) -> crate::HostResult<T> {
+        self.access
+            .with_pair_transaction(secondary.map(|lane| &lane.access), recovery, action)
+    }
+
+    pub(super) fn with_paused_restart<T>(
+        &self,
+        action: impl FnOnce(&mut StereoProcessor) -> crate::HostResult<T>,
+    ) -> crate::HostResult<T> {
+        self.access.with_paused_restart(|| unsafe {
+            // SAFETY: the access guard paused and drained the audio lease.
             action(&mut *self.processor.get())
         })
     }
@@ -133,6 +91,43 @@ pub struct ProcessorLease {
     pub(super) _not_sync: PhantomData<Cell<()>>,
 }
 
+pub(crate) struct ProcessorAccess<'a> {
+    processor: &'a UnsafeCell<StereoProcessor>,
+    _claim: ProcessingClaim<'a>,
+}
+
+impl ProcessorAccess<'_> {
+    pub(crate) fn process_block_with_aux(
+        &mut self,
+        input_left: &mut [f32],
+        input_right: &mut [f32],
+        output_left: &mut [f32],
+        output_right: &mut [f32],
+        auxiliary_inputs: &[crate::processor::AuxiliaryAudioInput],
+        context: &HostProcessContext,
+    ) -> ProcessOutcome {
+        let result = unsafe {
+            // SAFETY: the held exclusive claim excludes UI mutation and other
+            // callback access for the complete lifetime of this endpoint.
+            (&mut *self.processor.get()).process_stereo_with_aux_context(
+                input_left,
+                input_right,
+                output_left,
+                output_right,
+                auxiliary_inputs,
+                Some(context),
+            )
+        };
+        match result {
+            Ok(()) => ProcessOutcome::Processed,
+            Err(HostError::Operation { result, .. }) => {
+                ProcessOutcome::Failed(PluginProcessFailure::NativeRejected(result))
+            }
+            Err(_) => ProcessOutcome::Failed(PluginProcessFailure::Rejected),
+        }
+    }
+}
+
 impl Clone for ProcessorLease {
     fn clone(&self) -> Self {
         Self {
@@ -149,6 +144,18 @@ impl Clone for ProcessorLease {
 unsafe impl Send for ProcessorLease {}
 
 impl ProcessorLease {
+    pub(crate) fn try_processing(&self) -> Option<ProcessorAccess<'_>> {
+        let cell = unsafe {
+            // SAFETY: the owner keeps the stable cell alive for the lease's
+            // lifetime, including any claim borrowing this lease.
+            self.cell.as_ref()
+        };
+        Some(ProcessorAccess {
+            processor: &cell.processor,
+            _claim: cell.access.try_claim()?,
+        })
+    }
+
     pub fn process_block(
         &mut self,
         input_left: &mut [f32],
@@ -177,32 +184,17 @@ impl ProcessorLease {
         auxiliary_inputs: &[crate::processor::AuxiliaryAudioInput],
         context: &HostProcessContext,
     ) -> ProcessOutcome {
-        let cell = unsafe {
-            // SAFETY: HostedPlugin keeps the stable ProcessorCell allocation alive for the helper
-            // lifetime and graph retirement prevents use after owner drop.
-            self.cell.as_ref()
+        let Some(mut access) = self.try_processing() else {
+            return ProcessOutcome::TemporarilyUnavailable;
         };
-        cell.access.process(|| {
-            let result = unsafe {
-                // SAFETY: processing is an exclusive single-audio-thread guard and the UI pause path
-                // waits for it to clear before accessing the processor.
-                (&mut *cell.processor.get()).process_stereo_with_aux_context(
-                    input_left,
-                    input_right,
-                    output_left,
-                    output_right,
-                    auxiliary_inputs,
-                    Some(context),
-                )
-            };
-            match result {
-                Ok(()) => ProcessOutcome::Processed,
-                Err(HostError::Operation { result, .. }) => {
-                    ProcessOutcome::Failed(PluginProcessFailure::NativeRejected(result))
-                }
-                Err(_) => ProcessOutcome::Failed(PluginProcessFailure::Rejected),
-            }
-        })
+        access.process_block_with_aux(
+            input_left,
+            input_right,
+            output_left,
+            output_right,
+            auxiliary_inputs,
+            context,
+        )
     }
 
     pub fn note_on(

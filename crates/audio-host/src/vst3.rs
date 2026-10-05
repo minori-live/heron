@@ -19,10 +19,10 @@ use heron_vst3_host::{
 pub(crate) mod failures;
 mod graph_instances;
 mod instance;
+mod transactions;
 
 use failures::{
     candidate_error, diagnostic_error, invalid_argument, missing_instance, plugin_error,
-    recovered_error,
 };
 use instance::{allocate_parameter_tokens, max_tail, vst3_input_index};
 
@@ -457,48 +457,7 @@ impl Vst3Runtime {
             .ok_or(HostError::InvalidArgument {
                 operation: "VST3 instance is not loaded",
             })?;
-        let primary_before = instance.plugin.save_state()?;
-        let secondary_before = instance
-            .secondary
-            .as_ref()
-            .map(HostedPlugin::save_state)
-            .transpose()?;
-        if let Err(error) = instance
-            .plugin
-            .restore_state(&state.component_state, &state.controller_state)
-        {
-            let rollback = instance
-                .plugin
-                .restore_state(&primary_before.0, &primary_before.1);
-            return Err(match rollback {
-                Ok(()) => recovered_error(error),
-                Err(recovery) => HostError::RecoveryFailed {
-                    operation: "restore editor state",
-                    source: Box::new(error),
-                    recovery: Box::new(recovery),
-                },
-            });
-        }
-        if let Some(secondary) = &instance.secondary
-            && let Err(error) =
-                secondary.restore_state(&state.component_state, &state.controller_state)
-        {
-            let primary_rollback = instance
-                .plugin
-                .restore_state(&primary_before.0, &primary_before.1);
-            let secondary_rollback = secondary_before.as_ref().map_or(Ok(()), |before| {
-                secondary.restore_state(&before.0, &before.1)
-            });
-            return Err(match (primary_rollback, secondary_rollback) {
-                (Ok(()), Ok(())) => recovered_error(error),
-                (Err(recovery), _) | (_, Err(recovery)) => HostError::RecoveryFailed {
-                    operation: "restore dual-mono editor state",
-                    source: Box::new(error),
-                    recovery: Box::new(recovery),
-                },
-            });
-        }
-        Ok(())
+        transactions::restore_editor_state(&instance.plugin, instance.secondary.as_ref(), state)
     }
 
     pub fn set_parameter_from_editor(

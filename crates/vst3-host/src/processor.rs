@@ -432,14 +432,7 @@ impl StereoProcessor {
     }
 
     pub(crate) fn restart_processing(&mut self) -> HostResult<()> {
-        (|| {
-            self.deactivate()?;
-            self.activate()
-        })()
-        .map_err(|source| HostError::CommitUncertain {
-            operation: "restart plug-in processing",
-            source: Box::new(source),
-        })
+        restart_transition(self, Self::deactivate, Self::activate)
     }
 
     pub(crate) fn set_bus_active(
@@ -904,6 +897,19 @@ impl StereoProcessor {
         self.input_parameters
             .add_value(parameter_id, sample_offset, value.clamp(0.0, 1.0))
     }
+}
+
+fn restart_transition<T>(
+    target: &mut T,
+    deactivate: impl FnOnce(&mut T) -> HostResult<()>,
+    activate: impl FnOnce(&mut T) -> HostResult<()>,
+) -> HostResult<()> {
+    deactivate(target)
+        .and_then(|()| activate(target))
+        .map_err(|source| HostError::CommitUncertain {
+            operation: "restart plug-in processing",
+            source: Box::new(source),
+        })
 }
 
 impl Drop for StereoProcessor {

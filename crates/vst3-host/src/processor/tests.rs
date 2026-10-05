@@ -2,6 +2,75 @@ use super::*;
 
 use heron_vst3_host_sys::Steinberg::Vst;
 
+struct RestartTarget {
+    active: bool,
+    activation_attempts: usize,
+    deactivate_result: i32,
+    activate_result: i32,
+}
+
+impl RestartTarget {
+    fn deactivate(&mut self) -> HostResult<()> {
+        // A rejected lifecycle setter may already have changed the plug-in.
+        self.active = false;
+        check("setActive(false)", self.deactivate_result)
+    }
+
+    fn activate(&mut self) -> HostResult<()> {
+        assert!(!self.active, "restart must deactivate before activation");
+        self.activation_attempts += 1;
+        self.active = true;
+        check("setActive(true)", self.activate_result)
+    }
+
+    fn restart(&mut self) -> HostResult<()> {
+        restart_transition(self, Self::deactivate, Self::activate)
+    }
+}
+
+#[test]
+fn rejected_deactivation_keeps_restart_uncertain_and_prevents_activation() {
+    let mut target = RestartTarget {
+        active: true,
+        activation_attempts: 0,
+        deactivate_result: 1,
+        activate_result: 0,
+    };
+    assert!(matches!(
+        target.restart(),
+        Err(HostError::CommitUncertain { source, .. })
+        if matches!(*source, HostError::Operation {
+            operation: "setActive(false)", result: 1,
+        })
+    ));
+    assert!(!target.active);
+    assert_eq!(target.activation_attempts, 0);
+}
+
+#[test]
+fn failed_activation_is_uncertain_until_an_explicit_restart_establishes_active_state() {
+    let mut target = RestartTarget {
+        active: true,
+        activation_attempts: 0,
+        deactivate_result: 0,
+        activate_result: 1,
+    };
+    assert!(matches!(
+        target.restart(),
+        Err(HostError::CommitUncertain { source, .. })
+        if matches!(*source, HostError::Operation {
+            operation: "setActive(true)", result: 1,
+        })
+    ));
+    assert!(target.active);
+    assert_eq!(target.activation_attempts, 1);
+
+    target.activate_result = 0;
+    assert!(target.restart().is_ok());
+    assert!(target.active);
+    assert_eq!(target.activation_attempts, 2);
+}
+
 #[test]
 fn audio_layouts_report_their_input_and_output_channel_contracts() {
     assert_eq!(AudioLayout::Mono.input_channels(), 1);

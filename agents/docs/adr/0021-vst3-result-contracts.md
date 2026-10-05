@@ -84,12 +84,27 @@ from optional controller synchronization; UI acceptance is not evidence that
 processor state was restored, nor is UI refusal evidence that accepted component
 bytes were rejected.
 
+IO and latency restarts keep processing unavailable if deactivation or
+reactivation fails, and report an uncertain mutation requiring reconciliation.
+An explicit successful restart establishes the active processing configuration
+and clears its own restart barrier. It cannot clear a barrier caused by a failed
+state restore or a committed parameter flush: successful lifecycle calls do not
+establish those data postconditions. A complete successful state recovery can
+clear these barriers after it establishes the requested known state.
+
+Dual-mono mutations keep both processor leases paused through the complete
+paired operation. If only one lane accepts a bus update, a successful local
+restart or state restore cannot prove that the lanes share the same retained
+bus configuration; preserve that paired uncertainty until rebuilding establishes
+a shared configuration.
+
 A temporary control-thread pause makes that block unavailable to processing.
 It does not transition the instance into permanent failure. The callback uses
 the existing bounded contained-output behavior and can resume once the pause
-ends. Actual process failure retains the existing failure signal and explicit
-recovery semantics. This distinction introduces no new runtime state or process
-boundary.
+ends. Nested control operations retain the enclosing pause until its owner
+finishes, including when an inner recovery succeeds. Actual process failure
+retains the existing failure signal and explicit recovery semantics. This
+distinction introduces no new runtime state or process boundary.
 
 ### Sources and implementation scope
 

@@ -29,8 +29,10 @@ use crate::{
 
 mod interfaces;
 mod parameters;
+mod processing_access;
 mod processor_lease;
 mod state;
+mod transactions;
 
 pub use interfaces::PlugView;
 pub use processor_lease::ProcessorLease;
@@ -493,7 +495,7 @@ impl HostedPlugin {
 
     /// Runs one controller-thread operation while no audio lease can enter `process`.
     pub fn with_processing_paused<T>(&self, action: impl FnOnce() -> T) -> T {
-        self.processor.with_paused(|_| action())
+        self.processor.with_access_paused(action)
     }
 
     #[must_use]
@@ -560,10 +562,9 @@ impl HostedPlugin {
         index: i32,
         active: bool,
     ) -> HostResult<()> {
-        self.processor.with_paused_policy(
-            |processor| processor.set_bus_active(media_type, direction, index, active),
-            |error| matches!(error, HostError::CommitUncertain { .. }),
-        )
+        self.processor.with_paused_restart(|processor| {
+            processor.set_bus_active(media_type, direction, index, active)
+        })
     }
 
     /// Informs the optional VST3 presentation-latency interface about the time before the
@@ -823,7 +824,7 @@ impl HostedPlugin {
             || request.contains(crate::Vst3RestartRequest::LATENCY_CHANGED)
         {
             self.processor
-                .with_paused_policy(StereoProcessor::restart_processing, |_| true)?;
+                .with_paused_restart(StereoProcessor::restart_processing)?;
         }
         Ok(())
     }

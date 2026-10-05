@@ -40,7 +40,7 @@ struct SampleDelay {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum ProcessorChannel {
+pub(crate) enum ProcessorChannel {
     Stereo,
     Left,
     Right,
@@ -56,15 +56,27 @@ impl ProcessorChannel {
     }
 }
 
-fn process_channels(
+pub(crate) fn process_channels<T>(
     dual_mono: bool,
-    mut process: impl FnMut(ProcessorChannel) -> ProcessOutcome,
+    mut acquire: impl FnMut(ProcessorChannel) -> Option<T>,
+    mut process: impl FnMut(ProcessorChannel, &mut T) -> ProcessOutcome,
 ) -> ProcessOutcome {
     if !dual_mono {
-        return process(ProcessorChannel::Stereo);
+        let Some(mut access) = acquire(ProcessorChannel::Stereo) else {
+            return ProcessOutcome::TemporarilyUnavailable;
+        };
+        return process(ProcessorChannel::Stereo, &mut access);
     }
-    match process(ProcessorChannel::Left) {
-        ProcessOutcome::Processed => process(ProcessorChannel::Right),
+    // Claim both lanes before advancing either, and retain both claims through
+    // the complete block. UI mutations drain the pair through its primary claim.
+    let Some(mut primary) = acquire(ProcessorChannel::Left) else {
+        return ProcessOutcome::TemporarilyUnavailable;
+    };
+    let Some(mut secondary) = acquire(ProcessorChannel::Right) else {
+        return ProcessOutcome::TemporarilyUnavailable;
+    };
+    match process(ProcessorChannel::Left, &mut primary) {
+        ProcessOutcome::Processed => process(ProcessorChannel::Right, &mut secondary),
         unavailable => unavailable,
     }
 }
@@ -189,51 +201,55 @@ impl Vst3ProcessorHandle {
         self.output_left[..frame_count].fill(0.0);
         self.output_right[..frame_count].fill(0.0);
 
-        let outcome = process_channels(self.secondary.is_some(), |channel| {
-            fill_sidechain_scratch(
-                &mut self.sidechain_scratch,
-                &mut source,
-                frame_count,
-                channel.mono_index(),
-            );
-            match channel {
-                ProcessorChannel::Left => {
-                    self.auxiliary_input[..frame_count].fill(0.0);
-                    self.auxiliary_output[..frame_count].fill(0.0);
-                    self.primary.process_block_with_aux(
+        let outcome = process_channels(
+            self.secondary.is_some(),
+            |channel| match channel {
+                ProcessorChannel::Stereo | ProcessorChannel::Left => self.primary.try_processing(),
+                ProcessorChannel::Right => self.secondary.as_ref()?.try_processing(),
+            },
+            |channel, access| {
+                fill_sidechain_scratch(
+                    &mut self.sidechain_scratch,
+                    &mut source,
+                    frame_count,
+                    channel.mono_index(),
+                );
+                match channel {
+                    ProcessorChannel::Left => {
+                        self.auxiliary_input[..frame_count].fill(0.0);
+                        self.auxiliary_output[..frame_count].fill(0.0);
+                        access.process_block_with_aux(
+                            &mut self.input_left[..frame_count],
+                            &mut self.auxiliary_input[..frame_count],
+                            &mut self.output_left[..frame_count],
+                            &mut self.auxiliary_output[..frame_count],
+                            &self.sidechain_scratch,
+                            context,
+                        )
+                    }
+                    ProcessorChannel::Right => {
+                        self.auxiliary_input[..frame_count].fill(0.0);
+                        self.auxiliary_output[..frame_count].fill(0.0);
+                        access.process_block_with_aux(
+                            &mut self.input_right[..frame_count],
+                            &mut self.auxiliary_input[..frame_count],
+                            &mut self.output_right[..frame_count],
+                            &mut self.auxiliary_output[..frame_count],
+                            &self.sidechain_scratch,
+                            context,
+                        )
+                    }
+                    ProcessorChannel::Stereo => access.process_block_with_aux(
                         &mut self.input_left[..frame_count],
-                        &mut self.auxiliary_input[..frame_count],
-                        &mut self.output_left[..frame_count],
-                        &mut self.auxiliary_output[..frame_count],
-                        &self.sidechain_scratch,
-                        context,
-                    )
-                }
-                ProcessorChannel::Right => {
-                    self.auxiliary_input[..frame_count].fill(0.0);
-                    self.auxiliary_output[..frame_count].fill(0.0);
-                    let Some(secondary) = &mut self.secondary else {
-                        return ProcessOutcome::Failed(PluginProcessFailure::Rejected);
-                    };
-                    secondary.process_block_with_aux(
                         &mut self.input_right[..frame_count],
-                        &mut self.auxiliary_input[..frame_count],
+                        &mut self.output_left[..frame_count],
                         &mut self.output_right[..frame_count],
-                        &mut self.auxiliary_output[..frame_count],
                         &self.sidechain_scratch,
                         context,
-                    )
+                    ),
                 }
-                ProcessorChannel::Stereo => self.primary.process_block_with_aux(
-                    &mut self.input_left[..frame_count],
-                    &mut self.input_right[..frame_count],
-                    &mut self.output_left[..frame_count],
-                    &mut self.output_right[..frame_count],
-                    &self.sidechain_scratch,
-                    context,
-                ),
-            }
-        });
+            },
+        );
         if !outcome.is_processed() {
             return outcome;
         }
@@ -413,14 +429,18 @@ mod tests {
     fn dual_mono_rejection_from_either_channel_fails_the_entire_block() {
         for rejected_channel in [ProcessorChannel::Left, ProcessorChannel::Right] {
             let mut visited = Vec::new();
-            let outcome = process_channels(true, |channel| {
-                visited.push(channel);
-                if channel == rejected_channel {
-                    ProcessOutcome::Failed(PluginProcessFailure::NativeRejected(1))
-                } else {
-                    ProcessOutcome::Processed
-                }
-            });
+            let outcome = process_channels(
+                true,
+                |_| Some(()),
+                |channel, _| {
+                    visited.push(channel);
+                    if channel == rejected_channel {
+                        ProcessOutcome::Failed(PluginProcessFailure::NativeRejected(1))
+                    } else {
+                        ProcessOutcome::Processed
+                    }
+                },
+            );
             assert_eq!(
                 outcome,
                 ProcessOutcome::Failed(PluginProcessFailure::NativeRejected(1))
@@ -432,10 +452,14 @@ mod tests {
     #[test]
     fn dual_mono_pause_does_not_run_the_second_channel() {
         let mut calls = 0;
-        let outcome = process_channels(true, |_| {
-            calls += 1;
-            ProcessOutcome::TemporarilyUnavailable
-        });
+        let outcome = process_channels(
+            true,
+            |_| Some(()),
+            |_, _| {
+                calls += 1;
+                ProcessOutcome::TemporarilyUnavailable
+            },
+        );
         assert_eq!(outcome, ProcessOutcome::TemporarilyUnavailable);
         assert_eq!(calls, 1);
     }

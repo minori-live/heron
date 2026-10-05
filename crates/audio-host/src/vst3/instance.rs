@@ -4,7 +4,7 @@ use heron_vst3_host::{
     HostError, HostResult, HostedPlugin, Vst3AuxInputConfig, Vst3ProcessorHandle,
 };
 
-use super::{Instance, InstanceConfiguration, LoadPluginRequest};
+use super::{Instance, InstanceConfiguration, LoadPluginRequest, transactions};
 
 impl InstanceConfiguration {
     pub(super) fn from_request(request: &LoadPluginRequest) -> Self {
@@ -31,17 +31,14 @@ impl Instance {
         index: i32,
         active: bool,
     ) -> HostResult<()> {
-        self.plugin
-            .set_bus_active(media_type, direction, index, active)?;
-        if let Some(secondary) = &self.secondary
-            && let Err(source) = secondary.set_bus_active(media_type, direction, index, active)
-        {
-            return Err(HostError::CommitUncertain {
-                operation: "dual-mono bus activation",
-                source: Box::new(source),
-            });
-        }
-        Ok(())
+        transactions::set_bus_active(
+            &self.plugin,
+            self.secondary.as_ref(),
+            media_type,
+            direction,
+            index,
+            active,
+        )
     }
 
     pub(super) fn has_outstanding_processor_leases(&self) -> bool {
