@@ -1,5 +1,6 @@
 use super::{CStr, NativeContainerGeometry, NativeParentHandle, c_void, nonzero_extent};
 use std::ffi::{c_char, c_double};
+use std::sync::OnceLock;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -110,17 +111,16 @@ impl Container {
                 }
                 return Err("Electron editor parent has no AppKit window".into());
             }
-            let window_class = unsafe {
-                // SAFETY: NSWindow is a process-lifetime Objective-C class name.
-                objc_getClass(c"NSWindow".as_ptr())
-            };
-            if window_class.is_null() {
-                unsafe {
-                    // SAFETY: balances initWithFrame: before returning the error.
-                    send_void(view, sel_registerName(c"release".as_ptr()));
+            let window_class = match editor_window_class() {
+                Ok(class) => class,
+                Err(error) => {
+                    unsafe {
+                        // SAFETY: balances initWithFrame: before returning the error.
+                        send_void(view, sel_registerName(c"release".as_ptr()));
+                    }
+                    return Err(error.into());
                 }
-                return Err("AppKit NSWindow class is unavailable".into());
-            }
+            };
             // SAFETY: parent and parent_window are live AppKit objects on the main thread.
             let screen_frame = unsafe { child_window_frame(parent, parent_window, geometry) };
             let allocated_window = unsafe {
@@ -321,6 +321,50 @@ impl Container {
             );
         }
     }
+}
+
+fn editor_window_class() -> Result<Class, &'static str> {
+    // Registered Objective-C classes live for the process lifetime. Store the
+    // address, not an AppKit instance; window operations stay on the UI thread.
+    static CLASS: OnceLock<Result<usize, &'static str>> = OnceLock::new();
+    CLASS
+        .get_or_init(|| unsafe {
+            // SAFETY: names and type encodings are static C strings. We register
+            // this subclass once, before allocating any instances of it.
+            let superclass = objc_getClass(c"NSWindow".as_ptr());
+            if superclass.is_null() {
+                return Err("AppKit NSWindow class is unavailable");
+            }
+            let class = objc_allocateClassPair(superclass, c"HeronPluginEditorWindow".as_ptr(), 0);
+            if class.is_null() {
+                return Err("could not allocate AppKit plug-in editor window class");
+            }
+            // A borderless NSWindow normally refuses key status. Mouse hit tests
+            // still work, but makeKeyWindow cannot route keyboard input to it.
+            // Keep canBecomeMain inherited so the child remains an editor surface.
+            #[cfg(target_arch = "aarch64")]
+            let signature = c"B@:";
+            #[cfg(not(target_arch = "aarch64"))]
+            let signature = c"c@:";
+            if class_addMethod(
+                class,
+                sel_registerName(c"canBecomeKeyWindow".as_ptr()),
+                editor_window_can_become_key,
+                signature.as_ptr(),
+            ) == 0
+            {
+                // SAFETY: the class has not been registered or instantiated.
+                objc_disposeClassPair(class);
+                return Err("could not enable AppKit plug-in editor keyboard focus");
+            }
+            objc_registerClassPair(class);
+            Ok(class as usize)
+        })
+        .map(|address| address as Class)
+}
+
+extern "C" fn editor_window_can_become_key(_window: *mut c_void, _selector: Sel) -> c_char {
+    1
 }
 
 fn container_frame(geometry: NativeContainerGeometry) -> Rect {
@@ -651,6 +695,15 @@ unsafe fn send_void_rect(receiver: *mut c_void, selector: Sel, value: Rect) {
 #[link(name = "objc")]
 unsafe extern "C" {
     fn objc_getClass(name: *const c_char) -> Class;
+    fn objc_allocateClassPair(superclass: Class, name: *const c_char, extra_bytes: usize) -> Class;
+    fn objc_registerClassPair(class: Class);
+    fn objc_disposeClassPair(class: Class);
+    fn class_addMethod(
+        class: Class,
+        selector: Sel,
+        implementation: extern "C" fn(*mut c_void, Sel) -> c_char,
+        types: *const c_char,
+    ) -> c_char;
     fn sel_registerName(name: *const c_char) -> Sel;
     fn objc_msgSend();
 }
