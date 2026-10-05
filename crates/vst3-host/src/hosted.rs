@@ -446,7 +446,6 @@ impl HostedPlugin {
         let (output_parameter_writer, output_parameter_reader) =
             output_parameter_bridge(parameter_ids);
         processor.set_output_parameter_writer(output_parameter_writer);
-        let midi_mapping = Arc::new(MidiMappingTable::query(controller_lifecycle.controller())?);
         if controller_lifecycle.controller().is_some() {
             controller_lifecycle.attach_handler(ComponentHandler::new(shared.clone()))?;
         }
@@ -467,6 +466,10 @@ impl HostedPlugin {
         } else {
             None
         };
+        // Separate controllers can resolve MIDI assignments through their
+        // component connection (including JUCE wrappers). Query only after
+        // both connection points have been connected.
+        let midi_mapping = Arc::new(MidiMappingTable::query(controller_lifecycle.controller())?);
         processor.configure_aux_input_buses(active_aux_input_buses)?;
         processor.activate()?;
         let (controller, handler, controller_initialized) = controller_lifecycle.take();
