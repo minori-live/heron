@@ -124,6 +124,7 @@ function changeView(): void {
             : t('pluginAnalysis.amplitude')
       "
       :logarithmic="view !== 'impulse'"
+      :smooth="view === 'magnitude'"
       :series="displayed"
       :y-domain="responseDomain"
     />

@@ -19,6 +19,7 @@ const props = withDefaults(
     yLabel: string
     series: readonly UiAnalysisSeries[]
     logarithmic?: boolean
+    smooth?: boolean
     xDomain?: readonly [number, number]
     yDomain?: readonly [number, number]
     heatmap?: UiAnalysisHeatmap
@@ -30,6 +31,7 @@ const props = withDefaults(
   }>(),
   {
     logarithmic: false,
+    smooth: false,
     colorDomain: () => [-120, 12],
     xDomain: undefined,
     yDomain: undefined,
@@ -136,6 +138,7 @@ function render(): void {
         yMinimumStep: props.yMinimumStep,
         series: props.series,
         logarithmic: props.logarithmic,
+        smooth: props.smooth,
         xDomain: bounds.value.x,
         yDomain: bounds.value.y,
         heatmap: props.heatmap,
@@ -304,6 +307,7 @@ watch(
       props.xLabel,
       props.yLabel,
       props.logarithmic,
+      props.smooth,
       props.heatmap,
       props.colorDomain,
       bounds.value,

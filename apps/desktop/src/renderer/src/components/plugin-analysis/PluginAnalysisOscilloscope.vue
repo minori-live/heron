@@ -85,6 +85,7 @@ const series = computed(() => [
       y-unit="FS"
       :y-label="t('pluginAnalysis.amplitude')"
       :series="series"
+      :smooth="false"
     />
     <footer class="toolbar">
       <UiSegmentedControl

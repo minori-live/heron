@@ -43,6 +43,7 @@ export interface AnalysisChartInput {
   yMinimumStep?: number
   series: readonly UiAnalysisSeries[]
   logarithmic: boolean
+  smooth?: boolean
   xDomain: AnalysisDomain
   yDomain: AnalysisDomain
   heatmap?: UiAnalysisHeatmap
@@ -156,6 +157,9 @@ export function analysisChartOption(
       return [x, y !== null && y !== undefined && Number.isFinite(y) ? y : null]
     }),
     showSymbol: false,
+    // Interpolate the display only; tooltips still use the measured samples.
+    smooth: input.smooth ? 0.2 : false,
+    smoothMonotone: input.smooth ? "x" : undefined,
     connectNulls: false,
     lineStyle: { width: 1.7, type: item.dashed ? "dashed" : "solid" },
     itemStyle: {
