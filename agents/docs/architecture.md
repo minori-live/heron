@@ -184,6 +184,12 @@ layout probing remains isolated; the embedded runtime never retries a layout
 that the probe did not validate. See
 [ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
 
+Before runtime loading, isolated capability probes target the selected native
+identity, and main caches results by the complete plug-in locator. Other classes
+in the same artifact do not participate in that selection's deep inspection.
+Catalog enumeration retains its full-artifact scope. See
+[ADR-0023](adr/0023-plugin-scoped-runtime-probes.md).
+
 `heron-clap-host` is the only owner of CLAP unsafe FFI and depends directly on
 the pinned `clap-sys` version. It separates a main-thread, `!Send + !Sync`
 control instance from a `Send + !Sync` audio endpoint. Factory probing occurs

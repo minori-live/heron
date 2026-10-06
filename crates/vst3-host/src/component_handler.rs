@@ -207,6 +207,8 @@ pub(crate) struct ComponentHandler {
     vtable: *const ComponentHandlerVTable,
     references: AtomicU32,
     shared: Arc<HandlerShared>,
+    #[cfg(test)]
+    lifetime: Arc<()>,
     handler2: ComponentHandler2Interface,
     bus_activation: BusActivationInterface,
     unit_handler: UnitHandlerInterface,
@@ -244,11 +246,18 @@ struct SecondaryInterface {
 }
 
 impl ComponentHandler {
+    #[cfg(test)]
+    pub(crate) fn callback_lifetime(&self) -> std::sync::Weak<()> {
+        Arc::downgrade(&self.lifetime)
+    }
+
     pub(crate) fn new(shared: Arc<HandlerShared>) -> Box<Self> {
         let mut handler = Box::new(Self {
             vtable: &COMPONENT_HANDLER_VTABLE,
             references: AtomicU32::new(1),
             shared,
+            #[cfg(test)]
+            lifetime: Arc::new(()),
             handler2: ComponentHandler2Interface {
                 vtable: &COMPONENT_HANDLER2_VTABLE,
                 owner: std::ptr::null_mut(),

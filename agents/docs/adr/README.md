@@ -30,6 +30,7 @@ evidence belong in their owning documents rather than being copied into each ADR
 | [0020 — Plugin Analysis axis scales](0020-plugin-analysis-axis-scales.md)                              | Accepted                           | Explicit units, minimum grid steps and bounded display zoom                                                 |
 | [0021 — VST3 result contracts](0021-vst3-result-contracts.md)                                          | Accepted                           | Method-specific SDK results, operation commit outcomes and contained failure domains                        |
 | [0022 — Optional VST3 interface denials](0022-vst3-optional-interface-denials.md)                      | Accepted                           | False-with-null compatibility for optional queries; required interfaces remain strict                       |
+| [0023 — Plug-in scoped runtime probes](0023-plugin-scoped-runtime-probes.md)                           | Accepted                           | Selected native identity, isolated capability inspection and independent runtime probe caching              |
 | [0025 — Plugin Analysis parametric EQ fitting](0025-plugin-analysis-eq-fitting.md)                     | Accepted                           | Independent secure fit window, authoritative measured paths and cancellable digital EQ fitting              |
 
 Accepted means the architecture is chosen, not that every feature or release
@@ -40,7 +41,7 @@ used as permission to implement or claim an accepted compatibility commitment.
 ## 2026-09-06 baseline reset
 
 The numbers in this section's mapping table belong to a **superseded series**.
-Current records are 0001–0022 and 0025; 0009 in the table below refers to the retired
+Current records are 0001–0023 and 0025; 0009 in the table below refers to the retired
 record, not to any record in this series.
 
 At the maintainer's request, the previous 16 records were consolidated into this
