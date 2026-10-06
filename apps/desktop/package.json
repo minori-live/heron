@@ -20,6 +20,7 @@
     "test:sentry-symbols": "node --test scripts/sentry-symbol-files.test.ts",
     "test:coverage": "node ../../scripts/run-vitest-coverage.ts",
     "test:vst3-runtime": "node scripts/vst3-runtime-smoke.ts",
+    "test:vst3-exit": "node scripts/vst3-exit-smoke.ts",
     "test:clap-runtime": "node scripts/clap-runtime-smoke.ts",
     "test:plugin-analysis": "node scripts/plugin-analysis-smoke.ts",
     "test:vst3-editor": "node scripts/vst3-editor-smoke-launch.ts",
