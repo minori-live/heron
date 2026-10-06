@@ -62,6 +62,8 @@ export interface ApplicationSettings {
   recordingBitDepth: RecordingBitDepth
   theme: ThemePreference
   locale: AppLocale
+  welcomeCompleted: boolean
+  diagnosticsEnabled: boolean
   meterPeakHold: MeterPeakHold
   meterReturnRate: MeterReturnRate
   midiCenterCStandard: MidiCenterCStandard
@@ -88,6 +90,8 @@ export type ApplicationSettingsPatch = Partial<
     | "recordingBitDepth"
     | "theme"
     | "locale"
+    | "welcomeCompleted"
+    | "diagnosticsEnabled"
     | "meterPeakHold"
     | "meterReturnRate"
     | "midiCenterCStandard"

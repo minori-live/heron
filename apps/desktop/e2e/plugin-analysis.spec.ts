@@ -8,7 +8,7 @@ import {
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { closeElectronApplication } from "./support"
+import { completeWelcomeSetup, closeElectronApplication } from "./support"
 
 async function openPluginAnalysis(application: ElectronApplication, page: Page): Promise<void> {
   if (process.platform === "darwin") {
@@ -57,6 +57,7 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
       .poll(() => application.windows().some((page) => page.url().includes("index.html")))
       .toBe(true)
     const main = application.windows().find((page) => page.url().includes("index.html"))!
+    await completeWelcomeSetup(main)
     await openPluginAnalysis(application, main)
     await expect
       .poll(() => application.windows().some((page) => page.url().includes("plugin-analysis.html")))

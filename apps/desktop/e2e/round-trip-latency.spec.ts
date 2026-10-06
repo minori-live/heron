@@ -2,6 +2,7 @@ import { test, expect, _electron as electron } from "@playwright/test"
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
+import { completeWelcomeSetup } from "./support"
 
 test("measures mock round-trip latency through the desktop boundary", async () => {
   const testRoot = await mkdtemp(join(tmpdir(), "heron-loopback-e2e-"))
@@ -32,6 +33,7 @@ test("measures mock round-trip latency through the desktop boundary", async () =
         predicate: (candidate) => !candidate.url().includes("splash.html")
       }))
     await page.waitForLoadState("domcontentloaded")
+    await completeWelcomeSetup(page)
     await expect(page.getByRole("heading", { name: /Make sound/ })).toBeVisible()
 
     const runtime = await page.evaluate(async () => {

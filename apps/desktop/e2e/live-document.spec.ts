@@ -8,7 +8,7 @@ import {
 import { mkdtemp, stat } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { closeElectronApplication, expectNear } from "./support"
+import { completeWelcomeSetup, closeElectronApplication, expectNear } from "./support"
 
 async function expectWorkspaceGeometry(page: Page): Promise<void> {
   const geometry = await page.locator(".live-shell").evaluate((shell) => {
@@ -185,6 +185,7 @@ test("Live reuses the Studio shell and Mixer through editing, save, reopen and S
     })
     page.setDefaultTimeout(20_000)
     await page.waitForLoadState("domcontentloaded")
+    await completeWelcomeSetup(page)
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.getByRole("button", { name: "New Live" }).click()
     await expect(page.locator(".live-shell .live-document-title")).toContainText("Untitled Live")

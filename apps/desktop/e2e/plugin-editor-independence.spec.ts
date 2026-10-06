@@ -14,7 +14,7 @@ import {
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { closeElectronApplication } from "./support"
+import { completeWelcomeSetup, closeElectronApplication } from "./support"
 
 async function snapshot(page: Page): Promise<PluginAnalysisSnapshot> {
   return page.evaluate(async () => {
@@ -90,6 +90,7 @@ test("Analysis plug-in editors stay independent of the main Editor and clean up 
       .poll(() => application.windows().some((page) => page.url().includes("index.html")))
       .toBe(true)
     const main = application.windows().find((page) => page.url().includes("index.html"))!
+    await completeWelcomeSetup(main)
     const mainWindow = await application.browserWindow(main)
     if (process.platform === "darwin") {
       await application.evaluate(({ Menu }) => {

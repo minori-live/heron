@@ -26,6 +26,8 @@ import GlobalDialogHost from "./components/dialog/GlobalDialogHost.vue"
 import LiveCaptureHost from "./components/live/LiveCaptureHost.vue"
 import AudioDeviceRecoveryHost from "./components/device-recovery/AudioDeviceRecoveryHost.vue"
 import TutorialHost from "./components/tutorial/TutorialHost.vue"
+import WelcomeSetupHost from "./components/onboarding/WelcomeSetupHost.vue"
+import { useWelcomeSetupStore } from "./stores/welcomeSetup"
 import AppChrome from "./components/application/AppChrome.vue"
 import AppRouteView from "./components/application/AppRouteView.vue"
 import { DEFAULT_LOCALE, rekaLocale } from "../../shared/i18n"
@@ -46,8 +48,14 @@ const { desktopSession } = storeToRefs(projectStore)
 const { ready: lifecycleReady } = storeToRefs(lifecycleStore)
 const { audioHostRef } = storeToRefs(audioRuntimeStore)
 const { platform, menus, execute: executeApplicationCommand } = useApplicationCommands()
-const themePreference = computed(() => settings.value?.theme ?? "system")
-const documentLocale = computed(() => settings.value?.locale ?? DEFAULT_LOCALE)
+const welcomeStore = useWelcomeSetupStore()
+const { required: welcomeRequired } = storeToRefs(welcomeStore)
+const themePreference = computed(() =>
+  welcomeRequired.value ? welcomeStore.theme : (settings.value?.theme ?? "system")
+)
+const documentLocale = computed(() =>
+  welcomeRequired.value ? welcomeStore.locale : (settings.value?.locale ?? DEFAULT_LOCALE)
+)
 const uiLocale = computed(() => rekaLocale(documentLocale.value))
 
 useLocaleFonts(documentLocale)
@@ -63,10 +71,11 @@ watch(
 )
 
 watch(
-  () => settings.value?.locale,
+  documentLocale,
   (locale) => {
-    if (locale) setAppLocale(locale)
-  }
+    setAppLocale(locale)
+  },
+  { immediate: true }
 )
 
 watch(
@@ -116,10 +125,11 @@ onUnmounted(() => {
     <AppChrome
       v-if="lifecycleReady"
       :platform="platform"
-      :menus="menus"
+      :menus="welcomeRequired ? [] : menus"
       @command="executeApplicationCommand"
     >
-      <AppRouteView />
+      <WelcomeSetupHost v-if="welcomeRequired" />
+      <AppRouteView v-else />
     </AppChrome>
     <GlobalOperationHost />
     <AudioBenchmarkHost />

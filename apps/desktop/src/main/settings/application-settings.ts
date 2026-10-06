@@ -295,6 +295,8 @@ export class ApplicationSettingsStore {
       recordingBitDepth: "float32",
       theme: "system",
       locale: DEFAULT_LOCALE,
+      welcomeCompleted: false,
+      diagnosticsEnabled: false,
       meterPeakHold: "800ms",
       meterReturnRate: DEFAULT_METER_RETURN_RATE,
       midiCenterCStandard: "roland-c4",
@@ -333,6 +335,8 @@ export class ApplicationSettingsStore {
           : value.recordingBitDepth,
         theme: isThemePreference(raw.theme) ? raw.theme : value.theme,
         locale: isAppLocale(raw.locale) ? raw.locale : value.locale,
+        welcomeCompleted: raw.welcomeCompleted === true,
+        diagnosticsEnabled: raw.diagnosticsEnabled === true,
         meterPeakHold: isMeterPeakHold(raw.meterPeakHold) ? raw.meterPeakHold : value.meterPeakHold,
         meterReturnRate: isMeterReturnRate(raw.meterReturnRate)
           ? raw.meterReturnRate
@@ -419,6 +423,12 @@ export class ApplicationSettingsStore {
     if (patch.locale !== undefined) {
       if (!isAppLocale(patch.locale)) throw new TypeError("Unsupported locale preference")
       current.locale = patch.locale
+    }
+    for (const key of ["welcomeCompleted", "diagnosticsEnabled"] as const) {
+      if (patch[key] !== undefined) {
+        if (typeof patch[key] !== "boolean") throw new TypeError(`${key} must be a boolean`)
+        current[key] = patch[key]
+      }
     }
     if (patch.meterPeakHold !== undefined) {
       if (!isMeterPeakHold(patch.meterPeakHold)) throw new TypeError("Unsupported meter peak hold")

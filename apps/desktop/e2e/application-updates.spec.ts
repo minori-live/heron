@@ -2,7 +2,7 @@ import { expect, test, _electron as electron } from "@playwright/test"
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { closeElectronApplication } from "./support"
+import { completeWelcomeSetup, closeElectronApplication } from "./support"
 
 test("ordinary builds expose disabled updates through the real preload boundary", async () => {
   const testRoot = await mkdtemp(join(tmpdir(), "heron-updates-e2e-"))
@@ -28,6 +28,7 @@ test("ordinary builds expose disabled updates through the real preload boundary"
         predicate: (candidate) => !candidate.url().includes("splash.html")
       }))
     await page.waitForLoadState("domcontentloaded")
+    await completeWelcomeSetup(page)
     await expect(page.getByRole("button", { name: "New Studio", exact: true })).toBeVisible()
     await page.evaluate(() => {
       window.location.hash = "/settings/system"

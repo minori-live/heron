@@ -995,6 +995,12 @@
           "separateHint": "Separate mode creates one lane per channel and remains compatible with future surround formats."
         }
       }
+    },
+    "diagnostics": {
+      "title": "Crash and performance data",
+      "description": "Choose whether to help improve Heron by sharing diagnostics.",
+      "label": "Allow sending crash and performance data",
+      "choiceDescription": "Optional and off by default. Your choice is saved; data reporting will become available in a future update."
     }
   },
   "effectGraph": {
@@ -2295,5 +2301,14 @@
     "segmentLevel": "Segment {segment} level",
     "segmentDuration": "Segment {segment} duration",
     "blockPerformance": "Processing time by block size"
+  },
+  "onboarding": {
+    "title": "Welcome to Heron",
+    "description": "Make yourself at home before starting your first session.",
+    "changeLater": "You can change these choices anytime in System settings.",
+    "continue": "Continue",
+    "retry": "Retry",
+    "saveError": "Your choices could not be saved. Please try again.",
+    "loadError": "Your settings could not be loaded. Please retry."
   }
 }

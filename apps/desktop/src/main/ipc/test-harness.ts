@@ -73,6 +73,8 @@ export const defaultSettings: ApplicationSettings = {
   recordingBitDepth: "float32",
   theme: "system",
   locale: "en-US",
+  welcomeCompleted: true,
+  diagnosticsEnabled: false,
   meterPeakHold: "2s",
   meterReturnRate: "iec-type-i",
   midiCenterCStandard: "roland-c4",

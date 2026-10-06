@@ -217,6 +217,11 @@ export function validateSettingsPatch(value: unknown): ApplicationSettingsPatch 
   ) {
     throw new TypeError("Unsupported MIDI center C standard")
   }
+  for (const key of ["welcomeCompleted", "diagnosticsEnabled"] as const) {
+    if (patch[key] !== undefined && typeof patch[key] !== "boolean") {
+      throw new TypeError(`${key} must be a boolean`)
+    }
+  }
   if (patch.tutorials !== undefined) {
     patch.tutorials = validateTutorialPreferences(patch.tutorials)
   }

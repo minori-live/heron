@@ -2,7 +2,12 @@ import { test, expect, _electron as electron } from "@playwright/test"
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { closeElectronApplication, dismissAutomaticTutorial, expectNear } from "./support"
+import {
+  completeWelcomeSetup,
+  closeElectronApplication,
+  dismissAutomaticTutorial,
+  expectNear
+} from "./support"
 
 test("records into a Large Object and reopens the PGlite project archive", async () => {
   test.setTimeout(180_000)
@@ -49,6 +54,7 @@ test("records into a Large Object and reopens the PGlite project archive", async
     page.on("console", (message) => console.log(`renderer ${message.type()}: ${message.text()}`))
     page.on("pageerror", (error) => console.log(`renderer error: ${error.message}`))
     await page.waitForLoadState("domcontentloaded")
+    await completeWelcomeSetup(page)
     expect(page.url()).toMatch(/^heron-app:\/\/bundle\/index\.html(?:#.*)?$/)
     expect(
       await page.evaluate(() => ({

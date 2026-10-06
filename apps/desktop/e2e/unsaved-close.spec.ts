@@ -2,7 +2,7 @@ import { expect, test, _electron as electron } from "@playwright/test"
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { dismissAutomaticTutorial } from "./support"
+import { completeWelcomeSetup, dismissAutomaticTutorial } from "./support"
 
 test("prompts before closing a project with a committed mutation", async () => {
   test.setTimeout(90_000)
@@ -33,6 +33,7 @@ test("prompts before closing a project with a committed mutation", async () => {
         predicate: (candidate) => !candidate.url().includes("splash.html")
       }))
     await page.waitForLoadState("domcontentloaded")
+    await completeWelcomeSetup(page)
     await expect(page.getByRole("heading", { name: /Make sound/ })).toBeVisible()
 
     await page.getByRole("button", { name: "New Studio", exact: true }).click()

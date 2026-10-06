@@ -9,6 +9,18 @@ Application settings apply across projects. Project settings describe the
 current session. For the platform compatibility matrix, see
 [Supported backends and plug-in formats](supported-backends.md).
 
+## First launch
+
+On first launch, choose a light, dark, or system-following theme and an English
+or Simplified Chinese interface. Theme and language preview immediately. Choose
+whether to allow sending crash and performance data, then select **Continue**.
+The welcome setup appears once; if saving fails, retry without losing your choices.
+Existing installations also see setup once when upgrading to this version.
+
+Reporting is optional and off by default. This version saves your preference;
+data reporting will become available in a future update. Change the preference
+anytime under **System settings → Display → General**.
+
 ## Audio engine
 
 The engine page controls how the isolated native audio service runs. Use the
