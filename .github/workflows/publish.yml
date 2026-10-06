@@ -102,7 +102,8 @@ jobs:
       - name: Download installers
         uses: actions/download-artifact@v8
         with:
-          pattern: heron-*
+          # Keep independently retained Sentry symbols out of release assets.
+          pattern: "heron-{windows-x64,linux-x64,linux-arm64,macos-universal}"
           path: release-assets
           merge-multiple: true
 
@@ -142,10 +143,36 @@ jobs:
           fi
 
       - name: Keep only installable release assets
+        id: assets
         shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
         run: |
           find release-assets -maxdepth 1 -type f \
             \( -name '*.yml' -o -name '*.blockmap' \) -delete
+
+          expected_assets=(
+            "Heron-$RELEASE_VERSION-win-x64.exe"
+            "Heron-$RELEASE_VERSION-linux-x86_64.AppImage"
+            "Heron-$RELEASE_VERSION-linux-arm64.AppImage"
+            "Heron-$RELEASE_VERSION-mac-universal.dmg"
+            "Heron-$RELEASE_VERSION-mac-universal.zip"
+          )
+          for asset in "${expected_assets[@]}"; do
+            if [[ ! -f "release-assets/$asset" || -L "release-assets/$asset" ]]; then
+              echo "::error::Missing regular installer file: $asset"
+              exit 1
+            fi
+          done
+          if [[ "$(find release-assets -mindepth 1 -maxdepth 1 | wc -l)" -ne "${#expected_assets[@]}" ]]; then
+            echo "::error::Release assets contain unexpected files or directories."
+            exit 1
+          fi
+          {
+            echo 'installers<<EOF'
+            printf 'release-assets/%s\n' "${expected_assets[@]}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Generate SHA-256 checksums
         shell: bash
@@ -156,7 +183,7 @@ jobs:
         if: github.event.repository.visibility == 'public'
         uses: actions/attest@v4
         with:
-          subject-path: release-assets/*
+          subject-path: ${{ steps.assets.outputs.installers }}
 
       - name: Create or update draft GitHub release
         shell: bash
