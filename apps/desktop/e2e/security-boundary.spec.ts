@@ -2,6 +2,7 @@ import { expect, test, _electron as electron } from "@playwright/test"
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
+import { completeWelcomeSetup } from "./support"
 
 test("loads fixed custom-protocol entrypoints with isolated preload bridges", async () => {
   test.setTimeout(90_000)
@@ -51,6 +52,7 @@ test("loads fixed custom-protocol entrypoints with isolated preload bridges", as
       }))
     ).toEqual({ heron: "object", heronSplash: "undefined" })
 
+    await completeWelcomeSetup(page)
     await expect(page.getByRole("heading", { name: /Make sound/ })).toBeVisible()
     await page.evaluate(() => {
       window.location.hash = "/settings/system"

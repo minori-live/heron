@@ -277,6 +277,17 @@ export function useApplicationCommands() {
   }
 
   async function execute(command: ApplicationCommandId): Promise<void> {
+    if (
+      applicationSettingsStore.settings?.welcomeCompleted !== true &&
+      ![
+        "application.quit",
+        "window.close",
+        "view.toggle-full-screen",
+        "application.about"
+      ].includes(command)
+    )
+      return
+
     switch (command) {
       case "project.new":
         await createProject()

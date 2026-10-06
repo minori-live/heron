@@ -15,6 +15,8 @@ function settings(overrides: Partial<ApplicationSettings> = {}): ApplicationSett
     recordingBitDepth: "pcm24",
     theme: "system",
     locale: "en-US",
+    welcomeCompleted: true,
+    diagnosticsEnabled: false,
     meterPeakHold: "800ms",
     meterReturnRate: "iec-type-i",
     midiCenterCStandard: "yamaha-c3",

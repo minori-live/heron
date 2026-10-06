@@ -25,7 +25,8 @@ import { useStudioWorkspaceStore } from "../stores/studioWorkspace"
 import { useLiveWorkspaceStore } from "../stores/liveWorkspace"
 import { useMediaBrowserStore } from "../stores/mediaBrowser"
 import { useApplicationWindowStore } from "../stores/applicationWindow"
-import { rpcEvent } from "../test/ipc"
+import { rpcEvent, testSettings } from "../test/ipc"
+import { useApplicationSettingsStore } from "../stores/applicationSettings"
 
 const session: ProjectSession = {
   id: "project",
@@ -134,6 +135,7 @@ function closedBootstrap(): ApplicationBootstrapSnapshot {
 
 function createHarness() {
   const pinia = createPinia()
+  useApplicationSettingsStore(pinia).settings = testSettings()
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -229,6 +231,16 @@ describe("useApplicationCommands", () => {
       },
       warnings: []
     })
+  })
+
+  it("holds native project commands until welcome setup is saved", async () => {
+    const { pinia, wrapper } = createHarness()
+    useApplicationSettingsStore(pinia).settings = testSettings({ welcomeCompleted: false })
+    const create = vi.spyOn(useProjectStore(pinia), "create")
+    nativeCommandListener?.(rpcEvent("project.new"))
+    await flushPromises()
+    expect(create).not.toHaveBeenCalled()
+    wrapper.unmount()
   })
 
   it("opens application preferences without requiring a project", async () => {

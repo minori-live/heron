@@ -134,6 +134,30 @@ export const useApplicationSettingsStore = defineStore("application-settings", (
     )
   }
 
+  async function saveWelcomePreferences(
+    patch: Pick<ApplicationSettings, "theme" | "locale" | "diagnosticsEnabled">
+  ): Promise<boolean> {
+    try {
+      return await applyMutation("settings-welcome", (meta) =>
+        window.heron.updateApplicationSettings(meta, { ...patch, welcomeCompleted: true })
+      )
+    } catch {
+      error.value = t("onboarding.saveError")
+      return false
+    }
+  }
+
+  async function setDiagnosticsEnabled(diagnosticsEnabled: boolean): Promise<boolean> {
+    try {
+      return await applyMutation("settings-diagnostics", (meta) =>
+        window.heron.updateApplicationSettings(meta, { diagnosticsEnabled })
+      )
+    } catch {
+      error.value = t("onboarding.saveError")
+      return false
+    }
+  }
+
   async function setTheme(theme: ThemePreference): Promise<void> {
     if (!settings.value) await load()
     if (!settings.value || settings.value.theme === theme) return
@@ -387,6 +411,8 @@ export const useApplicationSettingsStore = defineStore("application-settings", (
     applySnapshot,
     load,
     update,
+    saveWelcomePreferences,
+    setDiagnosticsEnabled,
     setTheme,
     setLocale,
     setTutorialAutoStart,

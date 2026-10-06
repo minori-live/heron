@@ -44,6 +44,51 @@ describe("ApplicationSettingsStore", () => {
     })
   })
 
+  it("requires welcome setup and explicit diagnostics consent for fresh and legacy settings", async () => {
+    const userData = await mkdtemp(join(tmpdir(), "heron-welcome-settings-"))
+    const fresh = new ApplicationSettingsStore(userData)
+    expect(await fresh.get()).toMatchObject({ welcomeCompleted: false, diagnosticsEnabled: false })
+    await writeFile(
+      join(userData, "settings.json"),
+      JSON.stringify({ theme: "dark", diagnosticsEnabled: "yes" })
+    )
+    const legacy = new ApplicationSettingsStore(userData)
+    expect(await legacy.get()).toMatchObject({
+      theme: "dark",
+      welcomeCompleted: false,
+      diagnosticsEnabled: false
+    })
+    await legacy.update({
+      theme: "light",
+      locale: "zh-cmn-Hans-CN",
+      diagnosticsEnabled: true,
+      welcomeCompleted: true
+    })
+    expect(await new ApplicationSettingsStore(userData).get()).toMatchObject({
+      theme: "light",
+      locale: "zh-cmn-Hans-CN",
+      diagnosticsEnabled: true,
+      welcomeCompleted: true
+    })
+    await legacy.update({ diagnosticsEnabled: false })
+    expect(await new ApplicationSettingsStore(userData).get()).toMatchObject({
+      welcomeCompleted: true,
+      diagnosticsEnabled: false
+    })
+  })
+
+  it("does not persist welcome completion if another choice is invalid", async () => {
+    const userData = await mkdtemp(join(tmpdir(), "heron-welcome-invalid-"))
+    const store = new ApplicationSettingsStore(userData)
+    await expect(
+      store.update({ welcomeCompleted: true, diagnosticsEnabled: "yes" as unknown as boolean })
+    ).rejects.toThrow()
+    expect(await new ApplicationSettingsStore(userData).get()).toMatchObject({
+      welcomeCompleted: false,
+      diagnosticsEnabled: false
+    })
+  })
+
   it("recovers and persists versioned tutorial preferences", async () => {
     const userData = await mkdtemp(join(tmpdir(), "heron-tutorial-settings-"))
     await writeFile(

@@ -2,7 +2,13 @@ import { flushPromises, mount } from "@vue/test-utils"
 import { createPinia } from "pinia"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import DisplaySettings from "./DisplaySettings.vue"
-import { rpcSuccess, settingsSnapshot, testBootstrap, testSettings } from "../../test/ipc"
+import {
+  rpcFailure,
+  rpcSuccess,
+  settingsSnapshot,
+  testBootstrap,
+  testSettings
+} from "../../test/ipc"
 
 describe("DisplaySettings", () => {
   beforeEach(() => {
@@ -55,13 +61,31 @@ describe("DisplaySettings", () => {
     expect(chineseOption!.attributes("aria-pressed")).toBe("true")
   })
 
+  it("preserves the disabled consent when a settings save fails", async () => {
+    window.heron.updateApplicationSettings = vi.fn(async () => rpcFailure("errors.operationFailed"))
+    const wrapper = mount(DisplaySettings, { global: { plugins: [createPinia()] } })
+    await flushPromises()
+    const consent = wrapper
+      .findAll("label")
+      .find((label) => label.text().includes("Allow sending crash"))!
+      .get("input")
+    await consent.setValue(true)
+    await flushPromises()
+    expect(consent.element).toHaveProperty("checked", false)
+    expect(wrapper.get('[role="alert"]').text()).not.toBe("")
+    wrapper.unmount()
+  })
+
   it("disables automatic Studio Basics from the tutorials setting", async () => {
     const wrapper = mount(DisplaySettings, {
       global: { plugins: [createPinia()] }
     })
     await flushPromises()
 
-    const checkbox = wrapper.get('input[type="checkbox"]')
+    const checkbox = wrapper
+      .findAll("label")
+      .find((label) => label.text().includes("Automatically show Studio Basics"))!
+      .get("input")
     expect(checkbox.element).toHaveProperty("checked", true)
     await checkbox.setValue(false)
     await flushPromises()

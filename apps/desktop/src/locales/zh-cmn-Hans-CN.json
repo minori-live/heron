@@ -995,6 +995,12 @@
           "separateHint": "分离模式为每个通道创建一条轨道，并兼容未来的环绕声格式。"
         }
       }
+    },
+    "diagnostics": {
+      "title": "崩溃和性能数据",
+      "description": "选择是否通过发送诊断数据帮助改进 Heron。",
+      "label": "允许发送崩溃和性能数据",
+      "choiceDescription": "此选项可选，默认关闭。你的选择会被保存，数据发送功能将在后续版本中启用。"
     }
   },
   "effectGraph": {
@@ -2356,5 +2362,14 @@
     "segmentLevel": "第 {segment} 段电平",
     "segmentDuration": "第 {segment} 段时长",
     "blockPerformance": "不同处理块大小的耗时"
+  },
+  "onboarding": {
+    "title": "欢迎使用 Heron",
+    "description": "开始创作前，先设置适合你的工作环境。",
+    "changeLater": "你可以随时在系统设置中更改这些选项。",
+    "continue": "继续",
+    "retry": "重试",
+    "saveError": "未能保存你的选择，请重试。",
+    "loadError": "未能加载设置，请重试。"
   }
 }

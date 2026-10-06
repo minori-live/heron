@@ -2,7 +2,12 @@ import { test, expect, _electron as electron } from "@playwright/test"
 import { mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { closeElectronApplication, dismissAutomaticTutorial, expectNear } from "./support"
+import {
+  completeWelcomeSetup,
+  closeElectronApplication,
+  dismissAutomaticTutorial,
+  expectNear
+} from "./support"
 
 test("settings retain persistent selection outlines, dense buttons and stacked previews", async () => {
   const testInfo = test.info()
@@ -51,6 +56,7 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
       .toBe(true)
     const page = application.windows().find((page) => page.url().includes("index.html"))!
     await page.waitForLoadState("domcontentloaded")
+    await completeWelcomeSetup(page)
     await expect(page.getByRole("button", { name: "New Studio", exact: true })).toBeVisible()
     await page.evaluate(() => {
       window.location.hash = "/settings/system"

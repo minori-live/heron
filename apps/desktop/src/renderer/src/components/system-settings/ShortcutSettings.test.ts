@@ -31,6 +31,8 @@ function applicationSettings(shortcuts: ShortcutPreferences): ApplicationSetting
     recordingBitDepth: "float32",
     theme: "system",
     locale: "en-US",
+    welcomeCompleted: true,
+    diagnosticsEnabled: false,
     meterPeakHold: "800ms",
     meterReturnRate: "iec-type-i",
     midiCenterCStandard: "roland-c4",

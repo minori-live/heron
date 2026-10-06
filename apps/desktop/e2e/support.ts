@@ -1,5 +1,11 @@
 import { expect, type ElectronApplication, type Page } from "@playwright/test"
 
+/** Set up a fresh profile before testing a different product workflow. */
+export async function completeWelcomeSetup(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Continue", exact: true }).click()
+  await expect(page.getByRole("heading", { name: "Welcome to Heron", exact: true })).toBeHidden()
+}
+
 export async function dismissAutomaticTutorial(page: Page): Promise<void> {
   const overlay = page.locator(".driver-overlay")
   await overlay.waitFor({ state: "visible" })
