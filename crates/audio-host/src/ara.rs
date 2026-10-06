@@ -442,7 +442,7 @@ pub(crate) struct AraFactoryHost {
 
 impl AraFactoryHost {
     pub(crate) fn create(
-        module: &Module,
+        module: &Rc<Module>,
         factory_class_id: ClassId,
     ) -> Result<Rc<Self>, HostError> {
         let info = module.ara_factory_info(factory_class_id)?;
@@ -456,8 +456,8 @@ impl AraFactoryHost {
             .map_err(|error| HostError::Ara(error.to_string()))?;
         let main_factory = module.create_ara_main_factory(factory_class_id)?;
         let loaded_factory: Box<LoadedFactory<'static>> = Box::new(unsafe {
-            // SAFETY: main_factory retains the immutable ARA factory. Field order drops this
-            // loaded guard (and uninitializes ARA) before releasing that provider.
+            // SAFETY: main_factory retains the immutable ARA factory and its initialized
+            // module. Field order uninitializes ARA before releasing the provider/module.
             LoadedFactory::load(
                 main_factory.factory_ptr().cast::<ARAFactory>(),
                 generation,

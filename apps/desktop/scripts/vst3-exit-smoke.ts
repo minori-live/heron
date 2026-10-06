@@ -5,9 +5,12 @@ import { createRequire } from "node:module"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-const [pluginPath, nativeId, cycles = "3", runsArgument = "3"] = process.argv.slice(2)
+const [pluginPath, nativeId, cycles = "3", runsArgument = "3", araFactoryId] = process.argv.slice(2)
 const runs = Number(runsArgument)
-assert(pluginPath && nativeId, "Usage: vst3-exit-smoke.ts <VST3 path> <native ID> [cycles] [runs]")
+assert(
+  pluginPath && nativeId,
+  "Usage: vst3-exit-smoke.ts <VST3 path> <native ID> [cycles] [runs] [ARA factory ID]"
+)
 assert(
   Number.isInteger(Number(cycles)) && Number(cycles) >= 1 && Number(cycles) <= 100,
   "Expected 1–100 cycles"
@@ -25,7 +28,11 @@ try {
   )
   for (let run = 0; run < runs; run++) {
     const child = spawn(electron as string, [fixture, pluginPath, nativeId, cycles], {
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
+      env: {
+        ...process.env,
+        ELECTRON_RUN_AS_NODE: undefined,
+        HERON_VST3_EXIT_SMOKE_ARA_FACTORY_ID: araFactoryId
+      },
       stdio: ["ignore", "pipe", "inherit"]
     })
     let output = ""

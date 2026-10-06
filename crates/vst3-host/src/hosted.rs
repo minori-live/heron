@@ -348,7 +348,7 @@ impl HostedPlugin {
         sample_rate: f64,
         kind: PluginKind,
         layout: AudioLayout,
-        hook: impl FnOnce(&Module, *mut c_void) -> HostResult<T>,
+        hook: impl FnOnce(&Rc<Module>, *mut c_void) -> HostResult<T>,
     ) -> HostResult<(Self, T)> {
         Self::create_with_layout_aux_and_hook(
             module_path,
@@ -368,7 +368,7 @@ impl HostedPlugin {
         kind: PluginKind,
         layout: AudioLayout,
         active_aux_input_buses: &[u32],
-        hook: impl FnOnce(&Module, *mut c_void) -> HostResult<T>,
+        hook: impl FnOnce(&Rc<Module>, *mut c_void) -> HostResult<T>,
     ) -> HostResult<(Self, T)> {
         let module = Rc::new(Module::open(module_path)?);
         Self::create_from_module(
@@ -389,7 +389,7 @@ impl HostedPlugin {
         kind: PluginKind,
         layout: AudioLayout,
         active_aux_input_buses: &[u32],
-        hook: impl FnOnce(&Module, *mut c_void) -> HostResult<T>,
+        hook: impl FnOnce(&Rc<Module>, *mut c_void) -> HostResult<T>,
     ) -> HostResult<(Self, T)> {
         let hook_module = Rc::clone(&module);
         let (mut processor, parameter_producer, hook_result) =
