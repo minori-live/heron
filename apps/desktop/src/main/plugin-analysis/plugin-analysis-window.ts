@@ -8,10 +8,20 @@ import {
 } from "../../shared/renderer-security"
 import type { IpcHandlerContext } from "../ipc/context"
 import { PluginAnalysisService } from "./plugin-analysis-service"
+import { PluginAnalysisEqFitWindow } from "./plugin-analysis-eq-fit-window"
 
 export class PluginAnalysisWindow {
   window: BrowserWindow | null = null
   service: PluginAnalysisService | null = null
+  readonly eqFit = new PluginAnalysisEqFitWindow(() =>
+    this.closing ||
+    this.disposed ||
+    !this.window ||
+    this.window.isDestroyed() ||
+    this.window.webContents.isDestroyed()
+      ? null
+      : this.service
+  )
   private closing: Promise<void> | null = null
   private closeGeneration = 0
   private disposed = false
@@ -58,6 +68,7 @@ export class PluginAnalysisWindow {
       (descriptor) => this.context.plugins.resolveDescriptorForRuntime(descriptor),
       () => this.context.plugins.scan({ force: true, retryQuarantined: true })
     )
+    this.eqFit.resetOwner()
     this.service = service
     try {
       const window = new BrowserWindow({
@@ -76,11 +87,18 @@ export class PluginAnalysisWindow {
       this.service = service
       window.webContents.setWindowOpenHandler(() => ({ action: "deny" }))
       window.webContents.on("will-navigate", (event) => event.preventDefault())
+      const retire = () => {
+        if (this.window === window && !this.closing) void this.close()
+      }
       window.on("close", (event) => {
         event.preventDefault()
-        void this.close()
+        retire()
       })
-      window.webContents.on("render-process-gone", () => void this.close())
+      // Forced/DevTools target destruction can skip the cancellable window close
+      // event. Retire the same owner on every terminal path, before native cleanup.
+      window.once("closed", retire)
+      window.webContents.on("destroyed", retire)
+      window.webContents.on("render-process-gone", retire)
       window.once("ready-to-show", () => {
         if (!window.isDestroyed()) window.show()
       })
@@ -109,6 +127,8 @@ export class PluginAnalysisWindow {
 
   close(): Promise<void> {
     this.closeGeneration += 1
+    // Destroy its renderer/worker before native session cleanup can block.
+    this.eqFit.resetOwner()
     if (this.closing) return this.closing
     const service = this.service
     const window = this.window

@@ -8,6 +8,7 @@ import type { PluginAnalysisSnapshot } from "@heron/contracts"
 import { usePluginAnalysisStore } from "../../stores/pluginAnalysis"
 import { analysisSnapshot } from "../../test/plugin-analysis"
 import { setAppLocale } from "../../i18n"
+import { rpcSuccess } from "../../test/ipc"
 import AppTitleBar from "../application/AppTitleBar.vue"
 import PluginAnalysisApp from "./PluginAnalysisApp.vue"
 import PluginAnalysisChain from "./PluginAnalysisChain.vue"
@@ -16,7 +17,12 @@ import PluginAnalysisSettings from "./PluginAnalysisSettings.vue"
 beforeEach(() => {
   Object.defineProperty(window, "heronPluginAnalysis", {
     configurable: true,
-    value: { platform: "win32" }
+    value: {
+      platform: "win32",
+      setEqFitSelection: vi.fn(async (_meta, request) =>
+        rpcSuccess({ sequence: request.sequence, selectionRevision: 1, opened: request.open })
+      )
+    }
   })
 })
 

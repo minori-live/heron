@@ -1,4 +1,4 @@
-# ADR-0023: Welcome setup and diagnostics consent
+# ADR-0026: Welcome setup and diagnostics consent
 
 - Status: Accepted
 - Date: 2026-10-06

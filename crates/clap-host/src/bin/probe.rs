@@ -1,12 +1,17 @@
 use std::{
     env,
-    path::{Path, PathBuf},
+    path::Path,
     process::{Command, ExitCode, Stdio},
 };
 
 use clap_sys::ext::audio_ports::CLAP_AUDIO_PORT_IS_MAIN;
 use heron_clap_host::{ClapDescriptor, ClapInstance, ClapModule};
 use serde::{Deserialize, Serialize};
+
+#[path = "probe/arguments.rs"]
+mod arguments;
+#[path = "probe/selection.rs"]
+mod selection;
 
 const CHILD_ID_ENV: &str = "HERON_CLAP_PROBE_PLUGIN_ID";
 const SOFT_MODE_ENV: &str = "HERON_CLAP_PROBE_MODE";
@@ -202,34 +207,31 @@ fn child(path: &Path, plugin_id: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn parent(path: &Path, soft: bool) -> Result<(), String> {
+fn parent(path: &Path, soft: bool, plugin_id: Option<&str>) -> Result<(), String> {
     let module = ClapModule::open(path).map_err(|error| error.to_string())?;
     let descriptors = module.descriptors().map_err(|error| error.to_string())?;
     let vendor = descriptors
         .first()
         .map_or(String::new(), |descriptor| descriptor.vendor.clone());
     let classes = if soft {
-        descriptors.into_iter().map(soft_output).collect()
+        selection::inspect_descriptors(descriptors, plugin_id, soft_output)?
     } else {
         let executable = env::current_exe().map_err(|error| error.to_string())?;
-        descriptors
-            .into_iter()
-            .map(|descriptor| {
-                let result = Command::new(&executable)
-                    .arg(path)
-                    .env(CHILD_ID_ENV, &descriptor.id)
-                    .stdin(Stdio::null())
-                    .stderr(Stdio::inherit())
-                    .output();
-                match result {
-                    Ok(output) if output.status.success() => {
-                        serde_json::from_slice::<ClassOutput>(&output.stdout)
-                            .unwrap_or_else(|_| failed_output(descriptor))
-                    }
-                    _ => failed_output(descriptor),
+        selection::inspect_descriptors(descriptors, plugin_id, |descriptor| {
+            let result = Command::new(&executable)
+                .arg(path)
+                .env(CHILD_ID_ENV, &descriptor.id)
+                .stdin(Stdio::null())
+                .stderr(Stdio::inherit())
+                .output();
+            match result {
+                Ok(output) if output.status.success() => {
+                    serde_json::from_slice::<ClassOutput>(&output.stdout)
+                        .unwrap_or_else(|_| failed_output(descriptor))
                 }
-            })
-            .collect()
+                _ => failed_output(descriptor),
+            }
+        })?
     };
     println!(
         "{}",
@@ -252,16 +254,15 @@ fn failed_output(descriptor: ClapDescriptor) -> ClassOutput {
 }
 
 fn run() -> Result<(), String> {
-    let path = env::args_os()
-        .nth(1)
-        .map(PathBuf::from)
-        .ok_or_else(|| "usage: heron-clap-probe <plugin.clap>".to_owned())?;
+    let arguments = arguments::ProbeArguments::parse(env::args_os().skip(1))?;
+    let path = arguments.path;
     if let Ok(plugin_id) = env::var(CHILD_ID_ENV) {
         child(&path, &plugin_id)
     } else {
         parent(
             &path,
-            env::var(SOFT_MODE_ENV).is_ok_and(|value| value == "soft"),
+            arguments.soft || env::var(SOFT_MODE_ENV).is_ok_and(|value| value == "soft"),
+            arguments.plugin_id.as_deref(),
         )
     }
 }

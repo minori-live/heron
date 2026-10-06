@@ -27,6 +27,9 @@ Heron scans on startup. To look again after installing a plug-in:
 The startup and scan views report discovered bundles, available plug-ins, and
 modules that could not be loaded.
 
+Before first loading a plug-in, Heron checks its supported channel layouts. If
+a package contains several plug-ins, this check applies to the one you selected.
+
 ## Add an instrument
 
 Add an instrument channel, then select its **Instrument** input slot. Search by

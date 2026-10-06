@@ -8,6 +8,7 @@ import {
 import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
+import type { HeronPluginAnalysisApi } from "@heron/contracts"
 import { completeWelcomeSetup, closeElectronApplication } from "./support"
 
 async function openPluginAnalysis(application: ElectronApplication, page: Page): Promise<void> {
@@ -23,6 +24,32 @@ async function openPluginAnalysis(application: ElectronApplication, page: Page):
     await page.getByRole("menuitem", { name: "Help", exact: true }).click()
     await page.getByRole("menuitem", { name: /Plugin Analysis/ }).click()
   }
+}
+
+async function openEqFit(application: ElectronApplication, analysis: Page): Promise<Page> {
+  await analysis.bringToFront()
+  await analysis.getByRole("button", { name: "EQ Fit", exact: true }).click()
+  await expect
+    .poll(
+      () =>
+        application.windows().filter((page) => page.url().includes("plugin-analysis-eq-fit.html"))
+          .length
+    )
+    .toBe(1)
+  const child = application
+    .windows()
+    .find((page) => page.url().includes("plugin-analysis-eq-fit.html"))!
+  await expect(child.getByRole("button", { name: "Fit EQ", exact: true })).toBeVisible()
+  return child
+}
+
+async function nativeReportId(page: Page): Promise<string | null> {
+  return page.evaluate(async () => {
+    const api = (window as unknown as { heronPluginAnalysis: HeronPluginAnalysisApi })
+      .heronPluginAnalysis
+    const result = await api.snapshot({ protocolVersion: 2, requestId: crypto.randomUUID() })
+    return result.ok ? result.value.reportId : null
+  })
 }
 
 test("Help opens an independent PluginAnalysis bridge and measures above full scale without a project", async () => {
@@ -123,6 +150,104 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
         { timeout: 45000 }
       )
       .toEqual({ level: 6, fft: 32768, excitation: "delta" })
+    // L+R keeps the original Analysis workspace without a fit panel or launcher.
+    const eqLauncher = pluginAnalysis.getByRole("button", { name: "EQ Fit", exact: true })
+    const signalPath = pluginAnalysis.getByRole("combobox", { name: "Input → output", exact: true })
+    await expect(eqLauncher).toHaveCount(0)
+    await expect(pluginAnalysis.getByRole("spinbutton", { name: "EQ quota" })).toHaveCount(0)
+    await signalPath.selectOption({ label: "L → L" })
+    const chart = pluginAnalysis.getByRole("img", { name: "Frequency response", exact: true })
+    const beforeOpening = await chart.boundingBox()
+    const sourceReportId = await nativeReportId(pluginAnalysis)
+    expect(sourceReportId).not.toBeNull()
+    let eqWindow = await openEqFit(application, pluginAnalysis)
+    expect(eqWindow).not.toBe(pluginAnalysis)
+    expect(
+      await eqWindow.evaluate(() => ({
+        desktop: typeof (window as unknown as Record<string, unknown>).heron,
+        analysis: typeof (window as unknown as Record<string, unknown>).heronPluginAnalysis,
+        eqFit: typeof (window as unknown as Record<string, unknown>).heronPluginAnalysisEqFit
+      }))
+    ).toEqual({ desktop: "undefined", analysis: "undefined", eqFit: "object" })
+    const afterOpening = await chart.boundingBox()
+    for (const coordinate of ["x", "y", "width", "height"] as const)
+      expect(Math.abs(afterOpening![coordinate] - beforeOpening![coordinate])).toBeLessThanOrEqual(
+        1
+      )
+    await expect(
+      pluginAnalysis.getByRole("region", { name: "Parametric EQ fit", exact: true })
+    ).toHaveCount(0)
+    await expect(pluginAnalysis.getByText(/Fitted EQ/)).toHaveCount(0)
+    // The native unity report exercises the child window's bundled module Worker
+    // and real file:// CSP, beyond the browser-only synthetic bridge fixtures.
+    const eqQuota = eqWindow.getByRole("spinbutton", { name: "EQ quota" })
+    await expect(eqQuota).toHaveValue("3")
+    await eqQuota.press("ArrowUp")
+    await expect(eqQuota).toHaveValue("4")
+    await eqWindow.getByRole("button", { name: "Fit EQ", exact: true }).click()
+    let eqResult = eqWindow.getByRole("region", { name: "EQ fit result", exact: true })
+    await expect(eqResult).toBeVisible()
+    const eqMetrics = await eqResult.evaluate((element) => {
+      const value = (label: string): number => {
+        const term = [...element.querySelectorAll("dt")].find((item) => item.textContent === label)
+        return Number.parseFloat(term!.nextElementSibling!.textContent.replaceAll("−", "-"))
+      }
+      return { overallGain: value("Overall Gain"), rmsError: value("RMS error") }
+    })
+    expect(Math.abs(eqMetrics.overallGain)).toBeLessThan(0.05)
+    expect(eqMetrics.rmsError).toBeLessThan(0.05)
+    const fittedText = await eqResult.innerText()
+    await pluginAnalysis.bringToFront()
+    await eqLauncher.click()
+    await expect
+      .poll(
+        () =>
+          application.windows().filter((page) => page.url().includes("plugin-analysis-eq-fit.html"))
+            .length
+      )
+      .toBe(1)
+    expect(
+      application.windows().find((page) => page.url().includes("plugin-analysis-eq-fit.html"))
+    ).toBe(eqWindow)
+    const nativeEqWindow = await application.browserWindow(eqWindow)
+    await expect.poll(() => nativeEqWindow.evaluate((window) => window.isFocused())).toBe(true)
+    await expect(eqQuota).toHaveValue("4")
+    await expect(eqResult).toHaveText(fittedText, { useInnerText: true })
+    await eqWindow.screenshot({
+      path: test.info().outputPath("native-eq-fit.png"),
+      fullPage: true,
+      animations: "disabled"
+    })
+    await pluginAnalysis.screenshot({
+      path: test.info().outputPath("analysis-with-eq-window.png"),
+      fullPage: true
+    })
+    await signalPath.selectOption({ label: "R → R" })
+    await expect(eqResult).toHaveCount(0)
+    await expect(eqWindow.getByText("R → R", { exact: true })).toBeVisible()
+    await expect(eqWindow.getByText("L → L", { exact: true })).toHaveCount(0)
+    await expect(eqQuota).toHaveValue("4")
+    expect(await nativeReportId(pluginAnalysis)).toBe(sourceReportId)
+    await eqWindow.getByRole("button", { name: "Fit EQ", exact: true }).click()
+    await expect(eqResult).toBeVisible()
+    await eqWindow.close()
+    await expect.poll(() => eqWindow.isClosed()).toBe(true)
+    // Closing the child must leave the native analysis service/report alive.
+    expect(await nativeReportId(pluginAnalysis)).toBe(sourceReportId)
+    await signalPath.selectOption({ label: "L → L" })
+    const previousEqWindow = eqWindow
+    eqWindow = await openEqFit(application, pluginAnalysis)
+    expect(eqWindow).not.toBe(previousEqWindow)
+    eqResult = eqWindow.getByRole("region", { name: "EQ fit result", exact: true })
+    await expect(eqResult).toHaveCount(0)
+    await eqWindow.getByRole("button", { name: "Fit EQ", exact: true }).click()
+    await expect(eqResult).toBeVisible()
+    await signalPath.selectOption({ label: "L + R" })
+    await expect(eqLauncher).toHaveCount(0)
+    await expect(eqResult).toHaveCount(0)
+    await expect(eqWindow.getByRole("button", { name: /^(Fit EQ|Fit again)$/ })).toHaveCount(0)
+    await signalPath.selectOption({ label: "L → L" })
+    await expect(eqLauncher).toBeVisible()
     const compare = pluginAnalysis.getByRole("checkbox", { name: "Compare chains" })
     await compare.focus()
     await compare.press("Space")
@@ -184,6 +309,7 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
       fullPage: true
     })
     await pluginAnalysis.close()
+    await expect.poll(() => eqWindow.isClosed()).toBe(true)
     expect(main.isClosed()).toBe(false)
   } finally {
     await closeElectronApplication(application)

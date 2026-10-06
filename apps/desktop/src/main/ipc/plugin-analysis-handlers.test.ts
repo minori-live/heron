@@ -21,6 +21,7 @@ const electron = vi.hoisted(() => {
     maximized = false
     minimized = false
     webContents = {
+      isDestroyed: () => this.destroyed,
       mainFrame: { url: "" },
       getURL: () => this.webContents.mainFrame.url,
       setWindowOpenHandler: vi.fn(),

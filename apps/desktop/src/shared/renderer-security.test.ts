@@ -39,6 +39,23 @@ describe("resolveRendererEntrypoints", () => {
 })
 
 describe("isTrustedMainRendererUrl", () => {
+  it("isolates the EQ Fit entry from main-renderer authority and rejects forged entries", () => {
+    for (const url of [
+      "heron-app://bundle/plugin-analysis-eq-fit.html",
+      "http://127.0.0.1:5173/plugin-analysis-eq-fit.html"
+    ]) {
+      expect(classifyRendererEntrypoint(url)).toBe("plugin-analysis-eq-fit")
+      expect(isTrustedMainRendererUrl(url, true, undefined)).toBe(false)
+    }
+    for (const url of [
+      "heron-app://bundle/plugin-analysis-eq-fit.html?main=1",
+      "heron-app://bundle.evil/plugin-analysis-eq-fit.html",
+      "http://127.0.0.1:5174/plugin-analysis-eq-fit.html"
+    ]) {
+      expect(classifyRendererEntrypoint(url)).toBeNull()
+    }
+  })
+
   it("classifies the pluginAnalysis entry without granting main-renderer authority", () => {
     expect(classifyRendererEntrypoint("heron-app://bundle/plugin-analysis.html")).toBe(
       "plugin-analysis"

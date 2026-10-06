@@ -1,7 +1,7 @@
 use std::{
     env,
     io::{Read, Write, stdout},
-    path::{Path, PathBuf},
+    path::Path,
     process::{Command, ExitCode, Stdio},
     rc::Rc,
     thread,
@@ -14,6 +14,11 @@ use heron_vst3_host::{
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+
+#[path = "probe/arguments.rs"]
+mod arguments;
+#[path = "probe/selection.rs"]
+mod selection;
 
 const CLASS_PROBE_ENV: &str = "HERON_VST3_PROBE_CLASS";
 const LAYOUT_PROBE_ENV: &str = "HERON_VST3_PROBE_LAYOUT";
@@ -440,44 +445,33 @@ fn soft_probe_requested() -> bool {
     env::var(PROBE_MODE_ENV)
         .map(|value| value.eq_ignore_ascii_case("soft"))
         .unwrap_or(false)
-        || env::args_os().any(|arg| arg == "--soft")
 }
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let path = env::args_os()
-        .skip(1)
-        .find(|arg| arg != "--soft")
-        .ok_or("usage: heron-vst3-probe [--soft] <module.vst3>")?;
-    let path = PathBuf::from(path);
+    let arguments = arguments::ProbeArguments::parse(env::args_os().skip(1))?;
+    let path = arguments.path;
     if let (Ok(class_id), Ok(layout)) = (env::var(CLASS_PROBE_ENV), env::var(LAYOUT_PROBE_ENV)) {
         return run_layout_probe(&path, &class_id, &layout);
     }
 
-    let soft = soft_probe_requested();
+    let soft = arguments.soft || soft_probe_requested();
     let module = Rc::new(Module::open(&path)?);
     let factory_vendor = module
         .factory_info()
         .map(|info| info.vendor)
         .unwrap_or_default();
     let discovered = module.classes()?;
-    let ara_factories = discovered
-        .iter()
-        .filter(|class| class.category == "ARA Main Factory Class")
-        .filter_map(|class| match module.ara_factory_info(class.id) {
-            Ok(info) => Some((class.name.clone(), (class.id, info))),
+    let classes = selection::inspect_classes(
+        discovered,
+        arguments.plugin_id,
+        |class| match module.ara_factory_info(class.id) {
+            Ok(info) => Some(ara_output(class.id, &info)),
             Err(error) => {
                 eprintln!("could not inspect ARA factory class {}: {error}", class.id);
                 None
             }
-        })
-        .collect::<std::collections::HashMap<_, _>>();
-    let classes = discovered
-        .into_iter()
-        .filter(|class| class.category == "Audio Module Class")
-        .map(|class| {
-            let ara = ara_factories
-                .get(class.name.as_str())
-                .map(|(class_id, info)| ara_output(*class_id, info));
+        },
+        |class, ara| {
             if soft {
                 let mut output = soft_inspect(&class);
                 output.ara = ara;
@@ -485,8 +479,8 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 inspect(&path, class, ara)
             }
-        })
-        .collect();
+        },
+    )?;
     // Emit JSON on its own line so hosts can recover it when plug-ins log to stdout.
     println!(
         "{}",

@@ -122,3 +122,75 @@ Concurrent playback and system load also affect processing time.
 The chain and report last until the window closes. Closing releases editors and
 instances. Unconfirmed resource release quarantines the session; restart Heron
 to reset it.
+
+## Fit a parametric EQ
+
+In **Linear → Magnitude**, select one input-to-output path, such as **L→L** or
+**M→S**, then choose **EQ Fit** to open its separate window. The entry is hidden
+for the default **L + R** (or **M + S**), which overlays two measured paths,
+for the **1 − 2** difference view, and outside Magnitude. When viewing both
+comparison chains, select the chain to fit in the EQ Fit window; an
+individual-chain view already identifies it.
+
+In the new window, set the EQ quota from **1 to 8**, default **3**, and choose
+**Fit EQ**. The result contains at most that many **Bell**, **LowShelf** or
+**HighShelf** sections, each with Frequency, Gain and Q. **Overall Gain** is
+separate and does not use the quota; a flat response may need no sections.
+The fitted curve approximates the **measured response**.
+It is not an inverse correction, and fitting does not insert effects into a chain.
+
+The EQ Fit window's magnitude graph overlays the measured and fitted curves.
+The residual is **measured − fitted**, in dB. RMS error and maximum absolute
+error summarize the original measured frequency bins with equal weight; display
+smoothing is not fitting input. The flat-gain baseline shows the RMS error using only the best
+constant gain within the overall-gain bounds, before adding EQ sections.
+Elapsed fitting time describes that run and depends on the response, quota and
+computer. A small sampled error does not prove accuracy between measured bins.
+
+Use **Cancel** to stop a fit. A new report, an edited experiment, or a change to
+the path, chain, comparison mode or quota clears the result and cancels an active
+fit. Choose **Fit EQ** again for the new target. Leaving **Linear → Magnitude**
+also clears the fit. If the source is unavailable, the window stays open and
+prompts you to select a current single path in Linear Magnitude. Repeated analysis
+produces new reports, so wait for a report you want to inspect before fitting it.
+
+Choosing **EQ Fit** again for the same target brings the existing window forward
+and retains its quota and result. Closing that window cancels its work and
+discards the fit; reopening starts with quota three and no result. Closing Plugin
+Analysis also closes its EQ Fit window.
+
+The search evaluates digital biquads at the report's sample rate. It tries several
+starting points and filter types within these bounds; it does not guarantee a
+global optimum. Increasing the quota can improve an approximation but cannot
+make every response representable.
+
+| Parameter    | Bounds                                                                                                                                 |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Frequency    | From the greater of 10 Hz and the first measured frequency to the least of 24 kHz, 0.475 × sample rate and the last measured frequency |
+| Section Gain | −24 to +24 dB                                                                                                                          |
+| Q            | 0.2 to 12                                                                                                                              |
+| Overall Gain | −60 to +60 dB                                                                                                                          |
+
+Q follows the [RBJ Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/)
+coefficient convention for Bell and both shelves:
+`A = 10^(Gain/40)`, `ω₀ = 2π × Frequency / sample rate`, and
+`α = sin(ω₀)/(2Q)`. Shelf Q is related to shelf slope S by
+`1/Q² = (A + 1/A) × (1/S − 1) + 2`.
+Q ≈ 0.7071 corresponds to S = 1; higher shelf Q permits resonant overshoot.
+Another EQ's Q or slope control may use a different convention.
+
+Fitting rejects malformed data, fewer than 64 bins, less than two octaves of
+coverage, no usable signal, any bin at or below −100 dB, extreme levels or severe
+roughness. This intentionally excludes finite values near the measurement's
+−240 dB floor. Truncated tails or more than 10% repeat error also block fitting.
+Increase settle/tail time or repeat the measurement after resolving its cause.
+Low levels, limited bandwidth, roughness, noise, smaller repeat differences,
+parameter bounds, high Q and large residuals can produce warnings.
+
+These checks are conservative heuristics. The report has no per-bin confidence
+or SNR mask, so warnings cannot distinguish every real feature from noise or
+crosstalk. Only 384 log-spaced frequencies are reported; narrow high-Q features
+may fall between them. The fit does not model phase, delay, nonlinear or changing
+behavior, and cannot recover the original plug-in's internal settings. A fitted
+cross-channel magnitude does not reproduce stereo routing or coupling when
+entered into an ordinary single-channel EQ.
