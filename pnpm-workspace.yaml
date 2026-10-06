@@ -52,6 +52,7 @@ overrides:
   # minimatch 3 calls the CommonJS function export removed in brace-expansion 3+.
   "minimatch@3.1.5>brace-expansion": 1.1.21
 allowBuilds:
+  "@sentry/cli": false
   electron: true
   electron-winstaller: false
   esbuild: true

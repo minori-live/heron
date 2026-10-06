@@ -1,11 +1,40 @@
-import { mkdtemp, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { DEFAULT_METER_RETURN_RATE, METER_RETURN_RATES } from "@heron/contracts"
 import { ApplicationSettingsStore } from "./application-settings"
 
 describe("ApplicationSettingsStore", () => {
+  it("publishes consent only after commit and rotates the dump authority on every consent change", async () => {
+    const userData = await mkdtemp(join(tmpdir(), "heron-consent-commit-"))
+    const committed = vi.fn()
+    const store = new ApplicationSettingsStore(userData, committed)
+    await store.update({ diagnosticsEnabled: true })
+    const first = JSON.parse(await readFile(store.path, "utf8")) as {
+      diagnosticsConsentEpoch: string
+    }
+    expect(committed).toHaveBeenLastCalledWith(true)
+    await store.update({ theme: "dark" })
+    expect(JSON.parse(await readFile(store.path, "utf8")).diagnosticsConsentEpoch).toBe(
+      first.diagnosticsConsentEpoch
+    )
+    await store.update({ diagnosticsEnabled: false })
+    const revoked = JSON.parse(await readFile(store.path, "utf8")) as {
+      diagnosticsConsentEpoch: string
+    }
+    expect(revoked.diagnosticsConsentEpoch).not.toBe(first.diagnosticsConsentEpoch)
+    expect(committed).toHaveBeenLastCalledWith(false)
+    await store.update({ diagnosticsEnabled: true })
+    expect(JSON.parse(await readFile(store.path, "utf8")).diagnosticsConsentEpoch).not.toBe(
+      revoked.diagnosticsConsentEpoch
+    )
+    committed.mockClear()
+    await mkdir(`${store.path}.tmp`)
+    await expect(store.update({ diagnosticsEnabled: false })).rejects.toThrow()
+    expect(committed).not.toHaveBeenCalled()
+    expect((await store.get()).diagnosticsEnabled).toBe(true)
+  })
   it("creates defaults and atomically persists validated recording settings", async () => {
     const userData = await mkdtemp(join(tmpdir(), "heron-settings-"))
     const first = new ApplicationSettingsStore(userData)

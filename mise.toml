@@ -371,6 +371,9 @@ run = [
 
 [tasks."ci:build:macos-universal".env]
 MACOSX_DEPLOYMENT_TARGET = "14.2"
+# Cargo's macOS default keeps debug info in intermediate objects. Archive dSYMs
+# for both addon architectures before those objects disappear from the CI host.
+CARGO_PROFILE_RELEASE_SPLIT_DEBUGINFO = "packed"
 
 [tasks."ci:package:macos-universal"]
 hide = true

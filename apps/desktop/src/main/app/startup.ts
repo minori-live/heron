@@ -3,6 +3,7 @@ import { join, resolve } from "node:path"
 import { randomUUID } from "node:crypto"
 import { IPC_CHANNELS, IPC_PROTOCOL_VERSION } from "@heron/contracts"
 import { ApplicationSettingsStore } from "../settings"
+import { applyDiagnosticsConsent } from "../diagnostics"
 import { createApplicationServices } from "./application-services"
 import { AudioHostService, ElectronPluginEditorWindows } from "../audio-host"
 import { installApplicationMenu } from "./application-menu"
@@ -41,7 +42,7 @@ export function startApplication(
     installRendererProtocol()
     denyChromiumPermissions()
     if (!app.isPackaged) app.dock?.setIcon(applicationIconPath)
-    const settings = new ApplicationSettingsStore(app.getPath("userData"))
+    const settings = new ApplicationSettingsStore(app.getPath("userData"), applyDiagnosticsConsent)
     const applicationSettings = await settings.get()
     setMainLocale(applicationSettings.locale)
 

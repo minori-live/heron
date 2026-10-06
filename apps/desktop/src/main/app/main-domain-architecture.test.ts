@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest"
 const mainRoot = join(import.meta.dirname, "..")
 const domains = [
   "app",
+  "diagnostics",
   "audio-host",
   "audio",
   "ipc",
@@ -19,6 +20,7 @@ type MainDomain = (typeof domains)[number]
 
 const allowedDependencies: Readonly<Record<MainDomain, readonly MainDomain[]>> = {
   app: domains,
+  diagnostics: [],
   ipc: domains,
   kernel: [],
   updates: [],
