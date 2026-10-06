@@ -32,6 +32,7 @@ import { useMediaBrowserStore } from "../stores/mediaBrowser"
 import { useRecordingStore } from "../stores/recording"
 import { useStudioWorkspaceStore } from "../stores/studioWorkspace"
 import { useTransportStore } from "../stores/transport"
+import { useWelcomeSetupStore } from "../stores/welcomeSetup"
 import { planAudioClipSplit, planMidiClipSplits } from "../utils/clipEditing"
 import { secondsToTick } from "../utils/tempoMap"
 import { defaultCycleRange } from "../utils/cycleRange"
@@ -73,6 +74,7 @@ export function useApplicationCommands() {
   const recordingStore = useRecordingStore()
   const workspaceStore = useStudioWorkspaceStore()
   const transportStore = useTransportStore()
+  const welcomeStore = useWelcomeSetupStore()
   const { requestStudioBasics } = useTutorialController()
   const { lifecycle, session, busy: projectBusy } = storeToRefs(projectStore)
   const { canUndo, canRedo } = storeToRefs(mixerStore)
@@ -278,7 +280,7 @@ export function useApplicationCommands() {
 
   async function execute(command: ApplicationCommandId): Promise<void> {
     if (
-      applicationSettingsStore.settings?.welcomeCompleted !== true &&
+      welcomeStore.required &&
       ![
         "application.quit",
         "window.close",

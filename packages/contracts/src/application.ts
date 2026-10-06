@@ -37,6 +37,11 @@ export const APPLICATION_COMMAND_IDS = [
 export type ApplicationCommandId = (typeof APPLICATION_COMMAND_IDS)[number]
 export type DesktopPlatform = "darwin" | "win32" | "linux"
 
+export type ApplicationRestartResult =
+  | { status: "restarting" }
+  | { status: "blocked" }
+  | { status: "failed" }
+
 export const APPLICATION_WINDOW_COMMAND_IDS = [
   "edit.undo",
   "edit.redo",

@@ -11,20 +11,22 @@ import {
   settingsSnapshot,
   stubApi,
   testBootstrap,
-  testSettings
+  testSettings,
+  TEST_DESKTOP_REF
 } from "../../test/ipc"
 
 const initial = testSettings({ welcomeCompleted: false })
 function setup() {
   const pinia = createPinia()
   const settings = useApplicationSettingsStore(pinia)
-  settings.applySnapshot(settingsSnapshot(initial))
+  settings.applySnapshot(settingsSnapshot(initial), TEST_DESKTOP_REF)
   const wrapper = mount(WelcomeSetupHost, { global: { plugins: [pinia] } })
   return { wrapper, settings, welcome: useWelcomeSetupStore(pinia) }
 }
 
 beforeEach(() => {
   stubApi({
+    restartApplication: vi.fn(async () => rpcSuccess({ status: "restarting" as const })),
     updateApplicationSettings: vi.fn(async (_meta, patch) =>
       rpcSuccess(settingsSnapshot(testSettings({ ...initial, ...patch }), 2))
     )
@@ -61,7 +63,7 @@ describe("welcome setup", () => {
     wrapper.unmount()
   })
 
-  it("keeps previews and consent local until Continue commits all choices together", async () => {
+  it("keeps previews and consent local until Save and restart commits all choices together", async () => {
     const { wrapper, welcome, settings } = setup()
     const light = wrapper.findAll("button").find((button) => button.text().includes("Light"))!
     const chinese = wrapper.findAll("button").find((button) => button.text().includes("简体中文"))!
@@ -74,7 +76,7 @@ describe("welcome setup", () => {
     expect(window.heron.updateApplicationSettings).not.toHaveBeenCalled()
     await wrapper
       .findAll("button")
-      .find((button) => button.text() === "Continue")!
+      .find((button) => button.text() === "Save and restart")!
       .trigger("click")
     await flushPromises()
     expect(window.heron.updateApplicationSettings).toHaveBeenCalledWith(expect.any(Object), {
@@ -83,7 +85,7 @@ describe("welcome setup", () => {
       diagnosticsEnabled: true,
       welcomeCompleted: true
     })
-    expect(welcome.required).toBe(false)
+    expect(welcome.required).toBe(true)
     wrapper.unmount()
   })
 
@@ -99,7 +101,7 @@ describe("welcome setup", () => {
     })
     const { wrapper, settings, welcome } = setup()
     await wrapper.get('input[type="checkbox"]').setValue(true)
-    const next = wrapper.findAll("button").find((button) => button.text() === "Continue")!
+    const next = wrapper.findAll("button").find((button) => button.text() === "Save and restart")!
     await next.trigger("click")
     await flushPromises()
     expect(next.attributes("disabled")).toBeDefined()
@@ -120,7 +122,7 @@ describe("welcome setup", () => {
     })
     await next.trigger("click")
     await flushPromises()
-    expect(welcome.required).toBe(false)
+    expect(welcome.required).toBe(true)
     expect(settings.settings?.diagnosticsEnabled).toBe(true)
     wrapper.unmount()
   })

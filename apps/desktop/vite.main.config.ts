@@ -87,8 +87,9 @@ const projectMigrations: Plugin = {
   }
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   define: {
+    __HERON_BUILD_MODE__: JSON.stringify(mode),
     __HERON_RELEASE__: JSON.stringify(
       releaseBuild(JSON.parse(appVersionDefine) as string, process.env)
     )
@@ -121,4 +122,4 @@ export default defineConfig({
     sourcemap: true,
     target: "node22"
   }
-})
+}))

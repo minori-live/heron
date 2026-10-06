@@ -2368,6 +2368,11 @@
     "description": "Make yourself at home before starting your first session.",
     "changeLater": "You can change these choices anytime in System settings.",
     "continue": "Continue",
+    "saveAndRestart": "Save and restart",
+    "restarting": "Your settings are saved. Restarting Heron…",
+    "restartDeferred": "Your settings are saved. Heron did not restart; crash reporting takes effect next launch. Retry when your current work is finished, or continue for now.",
+    "retryRestart": "Retry restart",
+    "restartLater": "Continue for now",
     "retry": "Retry",
     "saveError": "Your choices could not be saved. Please try again.",
     "loadError": "Your settings could not be loaded. Please retry."

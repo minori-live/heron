@@ -1,7 +1,7 @@
 import { app, BrowserWindow, nativeTheme } from "electron"
 import { join, resolve } from "node:path"
 import { randomUUID } from "node:crypto"
-import { IPC_CHANNELS, IPC_PROTOCOL_VERSION } from "@heron/contracts"
+import { IPC_CHANNELS, IPC_PROTOCOL_VERSION, type ApplicationRestartResult } from "@heron/contracts"
 import { ApplicationSettingsStore } from "../settings"
 import { applyDiagnosticsConsent } from "../diagnostics"
 import { createApplicationServices } from "./application-services"
@@ -36,7 +36,8 @@ export type { StartedApplicationServices } from "./started-application-services"
 export function startApplication(
   isShuttingDown: () => boolean,
   onServices: (services: StartedApplicationServices) => void,
-  prepareUpdateInstall: () => Promise<boolean> = async () => false
+  prepareUpdateInstall: () => Promise<boolean> = async () => false,
+  restartApplication?: (prepare: () => Promise<boolean>) => Promise<ApplicationRestartResult>
 ): void {
   void app.whenReady().then(async () => {
     installRendererProtocol()
@@ -204,7 +205,8 @@ export function startApplication(
         lifecycle: services.lifecycle,
         audioDeviceRecovery: services.audioDeviceRecovery,
         audioHost: audioHostService,
-        isShuttingDown
+        isShuttingDown,
+        restartApplication
       }
       const ipcRegistration = registerIpcHandlers(ipcContext)
       const updates = await registerUpdates(ipcContext, prepareUpdateInstall)

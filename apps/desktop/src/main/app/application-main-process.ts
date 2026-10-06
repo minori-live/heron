@@ -1,4 +1,5 @@
 import type { App } from "electron"
+import type { ApplicationRestartResult } from "@heron/contracts"
 import { configureApplicationIdentity, quitWhenAllWindowsAreClosed } from "./application-shell"
 import { deferProjectClose } from "./dirty-project-close"
 import { registerRendererScheme } from "./renderer-security"
@@ -37,16 +38,46 @@ export function startMainProcess(
   if (environment.HERON_TEST_USER_DATA) {
     application.disableHardwareAcceleration()
     application.commandLine.appendSwitch("disable-gpu")
-    application.setPath("userData", environment.HERON_TEST_USER_DATA)
   }
 
   let startedApplicationServices: StartedApplicationServices | null = null
   let shutdownComplete = false
   let shutdownPromise: Promise<void> | null = null
   let updateShutdown = false
+  let restartPending = false
+  let restartCommitted = false
+
+  async function restartApplication(
+    prepare: () => Promise<boolean>
+  ): Promise<ApplicationRestartResult> {
+    if (restartCommitted) return { status: "restarting" }
+    if (restartPending || shutdownPromise || !startedApplicationServices)
+      return { status: "blocked" }
+    restartPending = true
+    try {
+      // The renderer has already completed the normal document close workflow.
+      // Gate new mutations, then recheck admitted work before committing relaunch.
+      if (!(await prepare())) return { status: "blocked" }
+      application.relaunch()
+      restartCommitted = true
+      // Relaunch is the commit point. Reuse ordinary quit's settled cleanup;
+      // there are no remaining document decisions that can cancel shutdown.
+      shutdownPromise = shutdownServices().finally(() => {
+        shutdownComplete = true
+        application.quit()
+      })
+      return { status: "restarting" }
+    } catch (error) {
+      console.error("Application restart failed", error)
+      return { status: "failed" }
+    } finally {
+      if (!restartCommitted) restartPending = false
+    }
+  }
 
   async function prepareUpdateInstall(): Promise<boolean> {
     if (
+      restartPending ||
       shutdownPromise ||
       !startedApplicationServices ||
       startedApplicationServices.projectService.current ||
@@ -99,16 +130,21 @@ export function startMainProcess(
   }
 
   dependencies.startApplication(
-    () => shutdownPromise !== null,
+    () => restartPending || shutdownPromise !== null,
     (services) => {
       startedApplicationServices = services
     },
-    prepareUpdateInstall
+    prepareUpdateInstall,
+    restartApplication
   )
 
   application.on("before-quit", (event) => {
     if (shutdownComplete) {
       if (updateShutdown) startedApplicationServices?.dispose()
+      return
+    }
+    if (restartPending) {
+      event.preventDefault()
       return
     }
     if (updateShutdown) {

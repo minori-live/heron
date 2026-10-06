@@ -7,6 +7,7 @@ import type {
 import type { BounceOutputRequest, BounceStartResult } from "./bounce.ts"
 import type {
   ApplicationCommandId,
+  ApplicationRestartResult,
   ApplicationWindowCommandId,
   DesktopPlatform,
   NativeEngineInfo,
@@ -149,6 +150,7 @@ export const IPC_CHANNELS = {
   lowLatencyModeConfigure: "low-latency-mode:configure",
   applicationCommandRequested: "application-command:requested",
   applicationWindowCommand: "application-window:command",
+  applicationRestart: "application:restart",
   applicationWindowTheme: "application-window:theme",
   projectCreate: "project:create",
   projectPrepareOpen: "project:prepare-open",
@@ -302,6 +304,7 @@ export interface HeronDesktopApi {
     meta: RpcRequestMeta,
     command: ApplicationWindowCommandId
   ): Promise<RpcResult<void>>
+  restartApplication(meta: RpcRequestMeta): Promise<RpcResult<ApplicationRestartResult>>
   setApplicationWindowTheme(meta: RpcRequestMeta, theme: "light" | "dark"): Promise<RpcResult<void>>
   createProject(
     meta: RpcRequestMeta,

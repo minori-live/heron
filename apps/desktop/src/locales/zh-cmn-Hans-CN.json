@@ -2368,6 +2368,11 @@
     "description": "开始创作前，先设置适合你的工作环境。",
     "changeLater": "你可以随时在系统设置中更改这些选项。",
     "continue": "继续",
+    "saveAndRestart": "保存并重启",
+    "restarting": "设置已保存，正在重启 Heron…",
+    "restartDeferred": "设置已保存。Heron 尚未重启，崩溃报告将在下次启动时生效。完成当前工作后可重试重启，也可暂时继续。",
+    "retryRestart": "重试重启",
+    "restartLater": "暂时继续",
     "retry": "重试",
     "saveError": "未能保存你的选择，请重试。",
     "loadError": "未能加载设置，请重试。"

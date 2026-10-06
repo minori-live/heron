@@ -8,6 +8,28 @@ import { validateApplicationWindowCommand, validateGainRequest } from "./support
 
 export function registerSystemHandlers(context: IpcHandlerContext): void {
   const state = context.lifecycle.applicationState
+  registerRpcHandler(IPC_CHANNELS.applicationRestart, ({ meta, settleOtherMutations }) => {
+    const invalid = validateMutationTarget(meta, state.desktopSession)
+    if (invalid) return invalid
+    return (
+      context.restartApplication?.(async () => {
+        await settleOtherMutations()
+        if (
+          context.projects.current ||
+          context.liveDocuments?.current ||
+          context.operations.activeCount > 0
+        )
+          return false
+        const snapshot = state.lifecycleSnapshot()
+        if (snapshot.recording.status !== "idle") return false
+        if (snapshot.audio.status === "stopped") return true
+        return (
+          snapshot.audio.status === "running" &&
+          (await context.transport.snapshot()).state === "stopped"
+        )
+      }) ?? { status: "blocked" as const }
+    )
+  })
   registerRpcHandler(IPC_CHANNELS.engineInfo, ({ meta }) => {
     const invalid = validateReadTarget(meta, state.offlineWorker)
     if (invalid) return invalid

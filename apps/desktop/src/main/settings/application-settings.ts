@@ -26,6 +26,7 @@ import type {
   ThemePreference
 } from "@heron/contracts"
 import { DEFAULT_LOCALE, isAppLocale } from "../../shared/i18n"
+import { readDiagnosticsConsent } from "../../shared/diagnostics-consent"
 import {
   recoverMidiControlPreferences,
   validateMidiControlPreferences
@@ -285,7 +286,7 @@ async function syncDirectory(path: string): Promise<void> {
 export class ApplicationSettingsStore {
   readonly path: string
   private settings: ApplicationSettings | null = null
-  private diagnosticsConsentEpoch = "legacy"
+  private diagnosticsConsentEpoch: string | null = null
 
   constructor(
     private readonly userData: string,
@@ -330,11 +331,10 @@ export class ApplicationSettingsStore {
     let value = this.defaults()
     try {
       const raw = JSON.parse(await readFile(this.path, "utf8")) as Partial<ApplicationSettings> & {
-        diagnosticsConsentEpoch?: string
+        diagnosticsConsentEpoch?: unknown
       }
-      if (/^[a-f0-9-]{36}$/.test(raw.diagnosticsConsentEpoch ?? "")) {
-        this.diagnosticsConsentEpoch = raw.diagnosticsConsentEpoch!
-      }
+      const diagnosticsConsent = readDiagnosticsConsent(raw)
+      this.diagnosticsConsentEpoch = diagnosticsConsent.epoch
       value = {
         swapDirectory:
           typeof raw.swapDirectory === "string" && raw.swapDirectory
@@ -346,7 +346,7 @@ export class ApplicationSettingsStore {
         theme: isThemePreference(raw.theme) ? raw.theme : value.theme,
         locale: isAppLocale(raw.locale) ? raw.locale : value.locale,
         welcomeCompleted: raw.welcomeCompleted === true,
-        diagnosticsEnabled: raw.diagnosticsEnabled === true,
+        diagnosticsEnabled: diagnosticsConsent.enabled,
         meterPeakHold: isMeterPeakHold(raw.meterPeakHold) ? raw.meterPeakHold : value.meterPeakHold,
         meterReturnRate: isMeterReturnRate(raw.meterReturnRate)
           ? raw.meterReturnRate
@@ -539,7 +539,9 @@ export class ApplicationSettingsStore {
 
   private async write(settings: ApplicationSettings): Promise<ApplicationSettings> {
     const diagnosticsConsentEpoch =
-      this.settings?.diagnosticsEnabled === settings.diagnosticsEnabled
+      this.settings?.diagnosticsEnabled === settings.diagnosticsEnabled &&
+      this.diagnosticsConsentEpoch !== null &&
+      this.diagnosticsConsentEpoch !== "legacy"
         ? this.diagnosticsConsentEpoch
         : randomUUID()
     await mkdir(dirname(this.path), { recursive: true })

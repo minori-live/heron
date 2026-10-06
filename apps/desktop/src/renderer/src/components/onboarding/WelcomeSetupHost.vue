@@ -7,7 +7,8 @@ import WelcomeSetupPage from "./WelcomeSetupPage.vue"
 const settingsStore = useApplicationSettingsStore()
 const welcomeStore = useWelcomeSetupStore()
 const { settings, loading, error } = storeToRefs(settingsStore)
-const { theme, locale, diagnosticsEnabled, saving } = storeToRefs(welcomeStore)
+const { theme, locale, diagnosticsEnabled, saving, savedForRestart, restartStatus } =
+  storeToRefs(welcomeStore)
 </script>
 
 <template>
@@ -16,6 +17,8 @@ const { theme, locale, diagnosticsEnabled, saving } = storeToRefs(welcomeStore)
     :locale="locale"
     :diagnostics-enabled="diagnosticsEnabled"
     :saving="saving"
+    :saved-for-restart="savedForRestart"
+    :restart-status="restartStatus"
     :loading="loading"
     :available="!!settings"
     :error="error"
@@ -24,5 +27,7 @@ const { theme, locale, diagnosticsEnabled, saving } = storeToRefs(welcomeStore)
     @diagnostics="welcomeStore.selectedDiagnostics = $event"
     @continue="welcomeStore.complete"
     @retry="settingsStore.load"
+    @restart="welcomeStore.retryRestart"
+    @later="welcomeStore.continueLater"
   />
 </template>
