@@ -7,6 +7,7 @@ import { analysisReport } from "../../test/plugin-analysis"
 import type { EqFitInput, EqFitSuccess } from "./eqFitWorkerTypes"
 import PluginAnalysisEqFit from "./PluginAnalysisEqFit.vue"
 import PluginAnalysisEqFitResult from "./PluginAnalysisEqFitResult.vue"
+import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
 
 class FitWorker {
   static instances: FitWorker[] = []
@@ -50,7 +51,8 @@ function panel(props: Partial<InstanceType<typeof PluginAnalysisEqFit>["$props"]
   const wrapper = shallowMount(PluginAnalysisEqFit, {
     props: {
       report: analysisReport(),
-      path: "0",
+      input: 0,
+      output: 0,
       reportId: "report-1",
       reportRevision: 1,
       revision: 1,
@@ -78,22 +80,20 @@ afterEach(() => {
 })
 
 describe("EQ fit orchestration", () => {
-  it("requires one path and an explicit comparison chain, defaults quota to three, and maps raw samples by channel pair", async () => {
+  it("requires an explicit comparison chain, defaults quota to three, and maps raw samples by channel pair", async () => {
     const comparison = analysisReport()
     comparison.settings.sample_rate = 96000
     comparison.responses.reverse()
     comparison.responses.find(
       (response) => response.input === 0 && response.output === 0
     )!.magnitude_db = [2, 4]
-    const wrapper = panel({ path: "direct", comparison, mode: "parallel" })
+    const wrapper = panel({ comparison, mode: "parallel" })
     expect(wrapper.getComponent(UiNumberInput).props()).toMatchObject({
       modelValue: 3,
       min: 1,
       max: 8
     })
     expect(runButton(wrapper).props("disabled")).toBe(true)
-    expect(wrapper.get('[role="status"]').text()).toContain("one signal path")
-    await wrapper.setProps({ path: "0" })
     expect(wrapper.get('[role="status"]').text()).toContain("Choose the chain")
     wrapper.getComponent(UiSelect).vm.$emit("update:modelValue", "comparison")
     await nextTick()
@@ -110,7 +110,7 @@ describe("EQ fit orchestration", () => {
     await nextTick()
     expect(worker.terminated).toBe(true)
     expect(wrapper.getComponent(PluginAnalysisEqFitResult).props("result").rmsErrorDb).toBe(1)
-    expect(wrapper.emitted("overlay")?.at(-1)?.[0]).toMatchObject({
+    expect(wrapper.getComponent(PluginAnalysisPlot).props("series")[1]).toMatchObject({
       label: "Fitted EQ · Chain 2 · L → L",
       x: [100, 1000],
       y: [-11, 5]
@@ -136,7 +136,7 @@ describe("EQ fit orchestration", () => {
     expect(current.terminated).toBe(true)
     expect(wrapper.findComponent(PluginAnalysisEqFitResult).exists()).toBe(false)
     expect(runButton(wrapper).props("disabled")).toBe(true)
-    expect(wrapper.emitted("overlay")?.at(-1)).toEqual([null])
+    expect(wrapper.getComponent(PluginAnalysisPlot).props("series")).toHaveLength(1)
   })
 
   it("terminates active searches on path, quota, chain and report revision changes", async () => {
@@ -144,7 +144,7 @@ describe("EQ fit orchestration", () => {
     wrapper.getComponent(UiSelect).vm.$emit("update:modelValue", "primary")
     await nextTick()
     let worker = await start(wrapper)
-    await wrapper.setProps({ path: "1" })
+    await wrapper.setProps({ input: 1, output: 1 })
     expect(worker.terminated).toBe(true)
     worker = await start(wrapper)
     wrapper.getComponent(UiNumberInput).vm.$emit("update:modelValue", 2)
@@ -226,6 +226,8 @@ describe("EQ fit orchestration", () => {
     await nextTick()
     ;(await start(wrapper)).reply(fitted())
     await nextTick()
-    expect(wrapper.emitted("overlay")?.at(-1)?.[0]).toMatchObject({ label: "Fitted EQ · M → M" })
+    expect(wrapper.getComponent(PluginAnalysisPlot).props("series")[1]).toMatchObject({
+      label: "Fitted EQ · M → M"
+    })
   })
 })

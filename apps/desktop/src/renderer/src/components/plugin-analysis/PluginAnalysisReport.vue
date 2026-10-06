@@ -2,7 +2,7 @@
 import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { UiTabs, UiSegmentedControl } from "@heron/ui"
-import type { PluginAnalysisSnapshot } from "@heron/contracts"
+import type { PluginAnalysisEqFitSelection, PluginAnalysisSnapshot } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
 import PluginAnalysisLinear from "./PluginAnalysisLinear.vue"
 import PluginAnalysisHarmonics from "./PluginAnalysisHarmonics.vue"
@@ -12,6 +12,10 @@ import PluginAnalysisDynamics from "./PluginAnalysisDynamics.vue"
 import PluginAnalysisModel from "./PluginAnalysisModel.vue"
 import PluginAnalysisPerformance from "./PluginAnalysisPerformance.vue"
 const props = defineProps<{ snapshot: PluginAnalysisSnapshot }>()
+const emit = defineEmits<{
+  eqFitSelection: [selection: PluginAnalysisEqFitSelection | null]
+  openEqFit: []
+}>()
 const { t } = useI18n()
 const tab = ref("linear")
 const comparisonMode = ref("parallel")
@@ -63,7 +67,9 @@ const tabs = computed(() =>
           :report-revision="snapshot.reportRevision"
           :revision="snapshot.revision"
           :comparison-mode="snapshot.comparisonEnabled ? comparisonMode : 'single'"
-          :stale="snapshot.reportRevision !== snapshot.revision" />
+          :stale="snapshot.reportRevision !== snapshot.revision"
+          @eq-fit-selection="emit('eqFitSelection', $event)"
+          @open-eq-fit="emit('openEqFit')" />
         <section v-else class="empty-panel">
           <PluginAnalysisPlot
             :title="t('pluginAnalysis.frequency')"

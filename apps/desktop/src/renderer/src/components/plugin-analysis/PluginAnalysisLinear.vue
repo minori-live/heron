@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef } from "vue"
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import {
   UiButton,
@@ -8,9 +8,8 @@ import {
   UiSelect,
   type UiAnalysisSeries
 } from "@heron/ui"
-import type { PluginAnalysisReport } from "@heron/contracts"
+import type { PluginAnalysisEqFitSelection, PluginAnalysisReport } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
-import PluginAnalysisEqFit from "./PluginAnalysisEqFit.vue"
 const props = defineProps<{
   report: PluginAnalysisReport
   comparison?: PluginAnalysisReport
@@ -20,12 +19,42 @@ const props = defineProps<{
   comparisonMode?: string
   stale?: boolean
 }>()
+const emit = defineEmits<{
+  eqFitSelection: [selection: PluginAnalysisEqFitSelection | null]
+  openEqFit: []
+}>()
 const { t } = useI18n()
 const view = ref("magnitude")
 const path = ref("direct")
 const compensate = ref(false)
 const stored = shallowRef<UiAnalysisSeries[]>([])
-const fitted = shallowRef<UiAnalysisSeries | null>(null)
+const eqFitMode = computed(() => props.comparisonMode ?? (props.comparison ? "parallel" : "single"))
+const eqFitEntryVisible = computed(
+  () => view.value === "magnitude" && path.value !== "direct" && eqFitMode.value !== "difference"
+)
+const eqFitSelection = computed<PluginAnalysisEqFitSelection | null>(() => {
+  if (!eqFitEntryVisible.value || props.stale || !props.reportId || props.reportRevision == null)
+    return null
+  const response = props.report.responses[Number(path.value)]
+  const mode = eqFitMode.value
+  if (
+    !response ||
+    (mode !== "single" && mode !== "primary" && mode !== "comparison" && mode !== "parallel")
+  )
+    return null
+  return {
+    reportId: props.reportId,
+    reportRevision: props.reportRevision,
+    input: response.input,
+    output: response.output,
+    mode
+  }
+})
+watch(eqFitSelection, (selection) => emit("eqFitSelection", selection), {
+  immediate: true,
+  flush: "sync"
+})
+onBeforeUnmount(() => emit("eqFitSelection", null))
 const modes = computed(() => [
   { value: "magnitude", label: t("pluginAnalysis.magnitude") },
   { value: "phase", label: t("pluginAnalysis.phase") },
@@ -87,11 +116,7 @@ const series = computed(() => [
   ...makeSeries(props.report, props.comparison ? 0 : undefined),
   ...(props.comparison ? makeSeries(props.comparison, 1) : [])
 ])
-const displayed = computed(() => [
-  ...stored.value,
-  ...series.value,
-  ...(view.value === "magnitude" && fitted.value ? [fitted.value] : [])
-])
+const displayed = computed(() => [...stored.value, ...series.value])
 const responseDomain = computed<readonly [number, number] | undefined>(() => {
   if (view.value === "impulse") return undefined
   const values = displayed.value.flatMap((s) =>
@@ -125,7 +150,6 @@ function store(): void {
 }
 function changeView(): void {
   stored.value = []
-  fitted.value = null
 }
 </script>
 <template>
@@ -143,7 +167,7 @@ function changeView(): void {
             : t('pluginAnalysis.amplitude')
       "
       :logarithmic="view !== 'impulse'"
-      :smooth="view === 'magnitude' && !fitted"
+      :smooth="view === 'magnitude'"
       :series="displayed"
       :y-domain="responseDomain"
     />
@@ -168,19 +192,15 @@ function changeView(): void {
       ><UiButton size="sm" variant="ghost" :disabled="!stored.length" @click="stored = []">{{
         t("pluginAnalysis.clear")
       }}</UiButton>
+      <UiButton
+        v-if="eqFitEntryVisible"
+        size="sm"
+        variant="secondary"
+        :disabled="!eqFitSelection"
+        @click="emit('openEqFit')"
+        >{{ t("pluginAnalysis.eqFit.open") }}</UiButton
+      >
     </footer>
-    <PluginAnalysisEqFit
-      v-if="view === 'magnitude'"
-      :report="report"
-      :comparison="comparison"
-      :path="path"
-      :report-id="reportId"
-      :report-revision="reportRevision"
-      :revision="revision"
-      :mode="comparisonMode ?? (comparison ? 'parallel' : 'single')"
-      :stale="stale"
-      @overlay="fitted = $event"
-    />
   </section>
 </template>
 <style scoped>
@@ -189,10 +209,6 @@ function changeView(): void {
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-}
-.linear-panel > :deep(.plugin-analysis-plot) {
-  min-height: 300px;
 }
 .toolbar {
   display: flex;

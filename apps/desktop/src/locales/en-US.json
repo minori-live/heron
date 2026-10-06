@@ -2146,7 +2146,12 @@
   "pluginAnalysis": {
     "eqFit": {
       "title": "Parametric EQ fit",
-      "description": "Approximate the measured magnitude with up to the EQ quota of Bell, Low Shelf and High Shelf filters, plus independent Overall Gain. This does not apply EQ or recover the plug-in’s original settings.",
+      "open": "EQ Fit",
+      "openFailed": "The EQ Fit window could not be updated. Select the path again or retry opening it.",
+      "contextUnavailable": "Choose a single path in the Linear magnitude view, then open EQ Fit. Run analysis again if the report is out of date.",
+      "windowUnavailable": "The analysis source is unavailable. Fitting has stopped. Retry to reconnect.",
+      "windowActionFailed": "The window action could not be completed. Please try again.",
+      "retry": "Retry",
       "chain": "EQ fit chain",
       "chooseChain": "Choose a chain",
       "quota": "EQ quota",

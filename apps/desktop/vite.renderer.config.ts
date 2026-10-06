@@ -42,7 +42,11 @@ export default defineConfig(({ command }) => ({
       input: {
         main: resolve(import.meta.dirname, "src/renderer/index.html"),
         splash: resolve(import.meta.dirname, "src/renderer/splash.html"),
-        pluginAnalysis: resolve(import.meta.dirname, "src/renderer/plugin-analysis.html")
+        pluginAnalysis: resolve(import.meta.dirname, "src/renderer/plugin-analysis.html"),
+        pluginAnalysisEqFit: resolve(
+          import.meta.dirname,
+          "src/renderer/plugin-analysis-eq-fit.html"
+        )
       }
     }
   },

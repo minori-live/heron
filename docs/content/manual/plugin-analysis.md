@@ -126,29 +126,38 @@ to reset it.
 ## Fit a parametric EQ
 
 In **Linear → Magnitude**, select one input-to-output path, such as **L→L** or
-**M→S**, then choose **Fit EQ**. The default **L + R** (or **M + S**) overlays
-two measured paths and cannot be fitted as one curve. When viewing both comparison
-chains, first select the chain to fit; an individual-chain view already identifies
-it. Fitting is unavailable for the **1 − 2** difference view.
+**M→S**, then choose **EQ Fit** to open its separate window. The entry is hidden
+for the default **L + R** (or **M + S**), which overlays two measured paths,
+for the **1 − 2** difference view, and outside Magnitude. When viewing both
+comparison chains, select the chain to fit in the EQ Fit window; an
+individual-chain view already identifies it.
 
-Set the EQ quota from **1 to 8**, default **3**. The result contains at most that
-many **Bell**, **LowShelf** or **HighShelf** sections, each with Frequency, Gain
-and Q. **Overall Gain** is separate and does not use the quota; a flat response
-may need no sections. The fitted curve approximates the **measured response**.
+In the new window, set the EQ quota from **1 to 8**, default **3**, and choose
+**Fit EQ**. The result contains at most that many **Bell**, **LowShelf** or
+**HighShelf** sections, each with Frequency, Gain and Q. **Overall Gain** is
+separate and does not use the quota; a flat response may need no sections.
+The fitted curve approximates the **measured response**.
 It is not an inverse correction, and fitting does not insert effects into a chain.
 
-The magnitude graph overlays the measured and fitted curves. The residual is
-**measured − fitted**, in dB. RMS error and maximum absolute error summarize the
-original measured frequency bins with equal weight; display smoothing is not
-fitting input. The flat-gain baseline shows the RMS error using only the best
+The EQ Fit window's magnitude graph overlays the measured and fitted curves.
+The residual is **measured − fitted**, in dB. RMS error and maximum absolute
+error summarize the original measured frequency bins with equal weight; display
+smoothing is not fitting input. The flat-gain baseline shows the RMS error using only the best
 constant gain within the overall-gain bounds, before adding EQ sections.
 Elapsed fitting time describes that run and depends on the response, quota and
 computer. A small sampled error does not prove accuracy between measured bins.
 
 Use **Cancel** to stop a fit. A new report, an edited experiment, or a change to
 the path, chain, comparison mode or quota clears the result and cancels an active
-fit. Choose **Fit EQ** again for the new target. Repeated analysis produces new
-reports, so wait for a report you want to inspect before fitting it.
+fit. Choose **Fit EQ** again for the new target. Leaving **Linear → Magnitude**
+also clears the fit. If the source is unavailable, the window stays open and
+prompts you to select a current single path in Linear Magnitude. Repeated analysis
+produces new reports, so wait for a report you want to inspect before fitting it.
+
+Choosing **EQ Fit** again for the same target brings the existing window forward
+and retains its quota and result. Closing that window cancels its work and
+discards the fit; reopening starts with quota three and no result. Closing Plugin
+Analysis also closes its EQ Fit window.
 
 The search evaluates digital biquads at the report's sample rate. It tries several
 starting points and filter types within these bounds; it does not guarantee a

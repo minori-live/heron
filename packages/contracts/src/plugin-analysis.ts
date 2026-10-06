@@ -106,6 +106,8 @@ export type PluginAnalysisCommand =
   | { type: "window"; action: "minimize" | "maximize" | "close" }
 
 export interface PluginAnalysisSnapshot {
+  /** Window-owner sequence used to resume selection requests after renderer reload. */
+  eqFitSequence?: number
   ref: ResourceRef<"plugin-analysis">
   revision: number
   plugins: PluginInstanceState[]
@@ -156,4 +158,64 @@ export interface HeronPluginAnalysisApi {
     meta: RpcRequestMeta,
     command: PluginAnalysisCommand
   ): Promise<RpcResult<PluginAnalysisSnapshot>>
+  setEqFitSelection(
+    meta: RpcRequestMeta,
+    request: PluginAnalysisEqFitSelectionRequest
+  ): Promise<RpcResult<PluginAnalysisEqFitSelectionResult>>
+}
+
+export interface PluginAnalysisEqFitSelection {
+  reportId: string
+  reportRevision: number
+  input: number
+  output: number
+  mode: "single" | "primary" | "comparison" | "parallel"
+}
+
+export interface PluginAnalysisEqFitSelectionRequest {
+  /** Positive, monotonically increasing for this Analysis window's lifetime. */
+  sequence: number
+  selection: PluginAnalysisEqFitSelection | null
+  /** Only an explicit user open may create or focus the independent window. */
+  open: boolean
+}
+
+export interface PluginAnalysisEqFitSelectionResult {
+  sequence: number
+  selectionRevision: number
+  opened: boolean
+}
+
+export interface PluginAnalysisEqFitSnapshot {
+  ref: ResourceRef<"plugin-analysis">
+  revision: number
+  selectionRevision: number
+  selection: PluginAnalysisEqFitSelection | null
+  reportId: string | null
+  reportRevision: number | null
+  /** Canonical primary and comparison measurements; never the difference report. */
+  report: PluginAnalysisReport | null
+  comparisonReport: PluginAnalysisReport | null
+  locale: AppLocale
+  theme: "light" | "dark"
+  maximized: boolean
+}
+
+export type PluginAnalysisEqFitWindowCommand =
+  | { type: "close" }
+  | { type: "minimize" }
+  | { type: "set-maximized"; maximized: boolean }
+
+export interface HeronPluginAnalysisEqFitApi {
+  readonly platform: "darwin" | "win32" | "linux"
+  /** Stable report IDs omit both heavy bodies; null selection clears retained data. */
+  snapshot(
+    meta: RpcRequestMeta,
+    knownReportId?: string,
+    acknowledge?: string
+  ): Promise<RpcResult<PluginAnalysisEqFitSnapshot>>
+  window(
+    meta: RpcRequestMeta,
+    command: PluginAnalysisEqFitWindowCommand
+  ): Promise<RpcResult<{ maximized: boolean }>>
 }

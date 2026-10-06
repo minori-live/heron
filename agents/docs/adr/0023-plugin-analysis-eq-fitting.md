@@ -3,8 +3,9 @@
 - Status: Accepted
 - Date: 2026-10-05
 - Owners: project maintainers
-- Scope: first-version magnitude approximation and renderer worker ownership
+- Scope: first-version magnitude approximation, independent window and renderer worker ownership
 - Related: [ADR-0016](0016-plugin-analysis.md), [ADR-0017](0017-plugin-analysis-comparison.md),
+  [EQ fitting pull request](https://github.com/minori-live/heron/pull/211),
   [Plugin Analysis manual](../../../docs/content/manual/plugin-analysis.md#fit-a-parametric-eq)
 
 ## Context
@@ -13,7 +14,9 @@ Users need a small set of EQ parameters that approximates one measured Linear
 Frequency Response. The accepted feature is a quota of Bell, LowShelf or
 HighShelf sections, defaulting to three, with an independent overall gain and
 visible fit error. Numerical search can take substantially longer than a UI
-frame and must not run on the renderer UI or audio callback thread.
+frame and must not run on the renderer UI or audio callback thread. Fitting has
+its own window so controls and results can be inspected independently of the
+Analysis plots.
 
 The existing report contains 384 logarithmically spaced magnitude samples per
 input-to-output path, a sample rate and measurement-quality diagnostics. It has
@@ -22,19 +25,49 @@ and the default L + R display represents two paths rather than their average.
 
 ## Decision
 
-The renderer owns a volatile, read-only fit of an existing report. It requires
-one explicit measured path and, for an overlaid comparison, one explicit chain.
-The sample-domain difference display is not a fitting target. The quota accepts
-one through eight sections and is an upper bound; overall gain is outside it.
-The target is the measured magnitude, not an inverse correction. A fit neither
-inserts an effect nor recovers the original plug-in's internal parameters.
+Electron main owns one independent top-level EQ Fit `BrowserWindow` for the
+Analysis session. The Analysis magnitude view exposes the entry action only
+for a single measured path; it is hidden for L + R, M + S, difference and other
+response views. The fit window owns the quota, computation, measured/fitted
+overlay and residual results. It requires one explicit chain choice within the
+window for an overlaid comparison; an individual-chain view identifies the
+chain already. Choosing the entry again for the same target focuses the existing
+window and retains its controls and result. Closing it discards the fit; a later
+open starts fresh with quota three and no result.
+
+The secure fit renderer has its own narrow typed preload API. Main authenticates
+the requesting owner, main frame and entrypoint. The Analysis renderer supplies
+an explicit report ID, revision and semantic input/output path coordinates;
+main resolves the data from the session's authoritative report. Renderer-supplied
+sample arrays cannot become the target. The fit window receives only its owned
+context and window controls, with no authority to mutate the project, experiment
+chain or native instances. Context delivery and failures use serializable typed
+outcomes. The window does not depend on an ambient current report or receive the
+general application preload API.
+
+Selection requests carry the Analysis resource handle, expected revision,
+mutation identity, a monotonic sequence, a nullable selection and an explicit
+open intent. Main validates the target before accepting a selection and retains
+the latest request outcome so duplicate delivery cannot reopen or refocus the
+window. Older sequences are rejected; owner snapshots expose the last sequence
+for renderer reload reconciliation. Manual child close retains that sequence and
+receipt, while a new Analysis owner resets them. Child snapshots carry source
+and selection revisions and omit unchanged report bodies by known report ID.
+Window commands use explicit maximize state and bounded, acknowledged receipts.
+
+The fit is volatile and read-only. The quota accepts one through eight sections
+and is an upper bound; overall gain is outside it. The target is the measured
+magnitude, not an inverse correction. A fit neither inserts an effect nor
+recovers the original plug-in's internal parameters.
 
 A dedicated renderer Web Worker owns numerical optimization. Its request is a
 serializable snapshot of the raw measured frequencies, magnitudes, sample rate
 and fitting settings. The worker does not request new measurements, access native
-instances, change project state or consume display interpolation. The renderer
-owns at most one fitting worker; cancellation, replacement and disposal terminate
-it. No Electron/native protocol, audio-thread work or durable data is introduced.
+instances, change project state or consume display interpolation. The fit
+renderer owns at most one fitting worker; cancellation, replacement and disposal
+terminate it. The window/context API crosses the Electron process boundary;
+the numerical model introduces no native protocol, audio-thread work or durable
+data.
 
 The controller associates each request with its report ID, report revision,
 current experiment revision, comparison mode, path, selected chain, quota and a
@@ -42,8 +75,19 @@ monotonically increasing request generation. Any relevant change terminates the
 job and clears its result. A late callback may publish only when its generation
 and target still match. Repeated measurement runs invalidate fits even when the
 experiment revision is unchanged; an unchanged snapshot identity does not.
-Worker failure is a recoverable fit error and permits retry without discarding
-the measurement report. The only fit commit is publication of a current result.
+Invalid or unavailable context clears the fit while leaving the window open
+with a prompt to choose a current single path in Linear Magnitude. Leaving that
+view also invalidates the context. Worker failure is a recoverable fit error and
+permits retry without discarding the measurement report. The only fit commit is
+publication of a current result.
+
+The Analysis owner explicitly closes its fit window before session cleanup,
+including owner disposal and application shutdown. Window loading failure
+destroys the candidate and permits retry; a late load or context read cannot
+resurrect a closed or replaced owner. Closing the fit window terminates its
+worker and clears its renderer state without closing Analysis or retiring its report.
+Native instance cleanup retains the existing session failure and quarantine
+policy.
 
 The implementation uses bounded multi-start nonlinear least-squares search with
 discrete filter-type selection. It evaluates the digital biquad transfer function
@@ -73,6 +117,12 @@ time. The baseline gain is the mean measured dB clamped to the overall-gain boun
   solver yielding. A worker provides an independently terminable computation.
 - Native-worker fitting would reuse a numerical host but add a native protocol
   and ownership coupling for a calculation that only needs an immutable report.
+- An inline panel ties fitting controls and results to the Analysis layout. A
+  separate window supports the requested independent inspection while keeping
+  its lifetime and data authority bound to the Analysis owner.
+- Passing measured arrays from the opening renderer would bypass authoritative
+  report identity. Main resolves explicit identities and path coordinates before
+  delivering a fitting context.
 - Averaging displayed paths or fitting smoothed pixels would silently change the
   target. Explicit selection and raw samples preserve the measurement contract.
 - Unbounded search, a fixed filter type, or exactly quota-many active sections
@@ -98,10 +148,14 @@ Numerical tests cover flat gain, known Bell and shelf responses, mixed sections,
 insufficient quota, unrepresentable targets, sample rates, invalid and no-signal
 data, finite bounds and stability. Controller/component tests cover explicit path
 and chain selection, quota defaults and limits, cancellation, report and setting
-invalidation, late callbacks, failures and repeated interactions. Desktop evidence
-must exercise the actual worker and result display. Representative fixture runs
-record baseline/final error and elapsed time without promising device-independent
-performance. Existing lint, type, aggregate and CI checks remain required.
+invalidation, late callbacks, failures and repeated interactions. Main/preload
+tests cover sender authority, authoritative report resolution, stale targets,
+window reuse, load/close races and owner cleanup. Desktop evidence must exercise
+the actual independent window, worker and result display, including hidden
+entry states, focus reuse, context invalidation and fresh close/reopen behavior.
+Representative fixture runs record baseline/final error and elapsed time without
+promising device-independent performance. Existing lint, type, aggregate and CI
+checks remain required.
 
 ## Reconsider when
 

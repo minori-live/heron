@@ -2146,7 +2146,12 @@
   "pluginAnalysis": {
     "eqFit": {
       "title": "参数均衡器拟合",
-      "description": "使用不超过 EQ 配额的 Bell、低搁架和高搁架滤波器，加上独立整体增益，近似测得的幅度响应。此功能不会应用 EQ，也不会还原插件原始参数。",
+      "open": "EQ 拟合",
+      "openFailed": "无法更新 EQ 拟合窗口。请重新选择路径或重试打开。",
+      "contextUnavailable": "请在 Linear 幅度视图中选择单一路径，再打开 EQ 拟合。若报告已过期，请重新分析。",
+      "windowUnavailable": "分析数据源不可用，拟合已停止。请重试连接。",
+      "windowActionFailed": "未能完成窗口操作，请重试。",
+      "retry": "重试",
       "chain": "EQ 拟合链路",
       "chooseChain": "选择一条链路",
       "quota": "EQ 配额",

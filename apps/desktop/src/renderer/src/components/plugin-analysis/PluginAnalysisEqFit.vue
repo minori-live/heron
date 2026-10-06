@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef, watch } from "vue"
+import { computed, shallowRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { UiButton, UiNumberInput, UiSelect, type UiAnalysisSeries } from "@heron/ui"
 import type { PluginAnalysisReport } from "@heron/contracts"
@@ -7,15 +7,18 @@ import { EQ_FIT_DEFAULT_QUOTA, EQ_FIT_MAX_QUOTA } from "../../lib/eq-fit"
 import { eqFitMeasurement } from "./eqFitMeasurement"
 import { useEqFit } from "./useEqFit"
 import PluginAnalysisEqFitResult from "./PluginAnalysisEqFitResult.vue"
+import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
 
 const props = withDefaults(
   defineProps<{
     report: PluginAnalysisReport
     comparison?: PluginAnalysisReport
-    path: string
+    input: number
+    output: number
     reportId?: string | null
     reportRevision?: number | null
     revision?: number
+    selectionRevision?: number
     mode?: string
     stale?: boolean
   }>(),
@@ -24,11 +27,11 @@ const props = withDefaults(
     reportId: undefined,
     reportRevision: undefined,
     revision: undefined,
+    selectionRevision: undefined,
     mode: "single",
     stale: false
   }
 )
-const emit = defineEmits<{ overlay: [series: UiAnalysisSeries | null] }>()
 const { t } = useI18n()
 const quota = shallowRef<number | null>(EQ_FIT_DEFAULT_QUOTA)
 const chain = shallowRef("")
@@ -36,19 +39,17 @@ const chainOptions = computed(() => [
   { value: "primary", label: t("pluginAnalysis.chain1") },
   { value: "comparison", label: t("pluginAnalysis.chain2") }
 ])
-const targetReport = computed(() =>
-  props.mode === "parallel" && chain.value === "comparison" ? props.comparison : props.report
-)
-const response = computed(() => {
-  if (props.path === "direct") return undefined
-  const primary = props.report.responses[Number(props.path)]
-  return (
-    primary &&
-    targetReport.value?.responses.find(
-      (item) => item.input === primary.input && item.output === primary.output
-    )
-  )
+const targetReport = computed(() => {
+  if (props.mode === "parallel" && !chain.value) return undefined
+  return props.mode === "comparison" || (props.mode === "parallel" && chain.value === "comparison")
+    ? props.comparison
+    : props.report
 })
+const response = computed(() =>
+  targetReport.value?.responses.find(
+    (item) => item.input === props.input && item.output === props.output
+  )
+)
 const measurement = computed(() =>
   targetReport.value && response.value ? eqFitMeasurement(targetReport.value, response.value) : null
 )
@@ -62,7 +63,6 @@ const validQuota = computed(
 const unavailable = computed(() => {
   if (props.mode === "difference") return "difference"
   if (props.stale) return "stale"
-  if (props.path === "direct") return "choose-path"
   if (props.mode === "parallel" && !chain.value) return "choose-chain"
   if (!response.value || !targetReport.value) return "missing-path"
   if (!validQuota.value) return "invalid-quota"
@@ -75,7 +75,9 @@ const { status, result, error, start, cancel } = useEqFit(() => [
   props.reportRevision,
   props.revision,
   props.reportId ? undefined : props.comparison,
-  props.path,
+  props.input,
+  props.output,
+  props.selectionRevision,
   props.mode,
   props.stale,
   chain.value,
@@ -96,24 +98,37 @@ const targetLabel = computed(() => {
       : `${t(`pluginAnalysis.chain${props.mode === "comparison" || (props.mode === "parallel" && chain.value === "comparison") ? 2 : 1}`)} · `
   return `${chainLabel}${name(selected.input)} → ${name(selected.output)}`
 })
-watch(
-  [result, targetLabel],
-  () => {
-    emit(
-      "overlay",
-      result.value && response.value
-        ? {
+const plotSeries = computed<UiAnalysisSeries[]>(() => {
+  if (!response.value) return []
+  return [
+    {
+      label: targetLabel.value,
+      x: response.value.frequency_hz,
+      y: response.value.magnitude_db,
+      color: "var(--ui-signal-mixer-input)"
+    },
+    ...(result.value
+      ? [
+          {
             label: `${t("pluginAnalysis.eqFit.fitted")} · ${targetLabel.value}`,
             x: response.value.frequency_hz,
             y: result.value.fittedDb,
             color: "var(--ui-color-warning)",
             dashed: true
           }
-        : null
-    )
-  },
-  { flush: "sync" }
-)
+        ]
+      : [])
+  ]
+})
+const responseDomain = computed<readonly [number, number]>(() => {
+  const values = plotSeries.value.flatMap((series) =>
+    series.y.filter((value): value is number => value !== null && Number.isFinite(value))
+  )
+  return [
+    Math.min(-6, Math.floor(Math.min(...values, 0) / 6) * 6),
+    Math.max(6, Math.ceil(Math.max(...values, 0) / 6) * 6)
+  ]
+})
 function fit(): void {
   if (unavailable.value || !response.value || !targetReport.value || quota.value === null) return
   // Copy only the selected raw report samples. Display interpolation and phase
@@ -170,7 +185,6 @@ function fit(): void {
         t("pluginAnalysis.eqFit.cancel")
       }}</UiButton>
     </div>
-    <p class="fit-note">{{ t("pluginAnalysis.eqFit.description") }}</p>
     <p v-if="unavailable" class="fit-note" role="status">
       {{ t(`pluginAnalysis.eqFit.unavailable.${unavailable}`) }}
     </p>
@@ -185,6 +199,17 @@ function fit(): void {
         {{ t(`pluginAnalysis.eqFit.warnings.${warning}`) }}
       </li>
     </ul>
+    <PluginAnalysisPlot
+      :title="t('pluginAnalysis.frequency')"
+      x-label="Hz"
+      x-unit="Hz"
+      :y-label="t('pluginAnalysis.units.db')"
+      y-unit="dB"
+      :series="plotSeries"
+      :y-domain="responseDomain"
+      :smooth="false"
+      logarithmic
+    />
     <PluginAnalysisEqFitResult
       v-if="result && response"
       :result="result"
@@ -198,8 +223,14 @@ function fit(): void {
 .eq-fit {
   flex: none;
   padding: 12px 16px;
-  border-top: 1px solid var(--ui-color-border);
   background: var(--ui-color-surface-sunken);
+}
+.eq-fit > :deep(.plugin-analysis-plot) {
+  min-height: 300px;
+  margin-top: 12px;
+}
+.eq-fit :deep(figcaption) {
+  flex-wrap: wrap;
 }
 .fit-controls {
   display: flex;

@@ -28,6 +28,47 @@ async function select(wrapper: VueWrapper, label: string, value: string) {
 }
 
 describe("linear analysis presentation", () => {
+  it("exposes only a single-path EQ window launcher and invalidates hidden or stale source contexts", async () => {
+    const wrapper = shallowMount(PluginAnalysisLinear, {
+      props: { report: analysisReport(), reportId: "report-1", reportRevision: 2, revision: 2 },
+      global: { renderStubDefaultSlot: true }
+    })
+    const launcher = () =>
+      wrapper.findAllComponents(UiButton).find((button) => button.text() === "EQ Fit")
+    expect(launcher()).toBeUndefined()
+    wrapper.getComponent(UiSelect).vm.$emit("update:modelValue", "2")
+    await nextTick()
+    expect(launcher()!.props("disabled")).toBe(false)
+    expect(wrapper.emitted("eqFitSelection")?.at(-1)).toEqual([
+      {
+        reportId: "report-1",
+        reportRevision: 2,
+        input: 0,
+        output: 1,
+        mode: "single"
+      }
+    ])
+    launcher()!.vm.$emit("click")
+    expect(wrapper.emitted("openEqFit")).toHaveLength(1)
+    expect(wrapper.findAllComponents(PluginAnalysisPlot)).toHaveLength(1)
+    await select(wrapper, "Response view", "phase")
+    expect(launcher()).toBeUndefined()
+    expect(wrapper.emitted("eqFitSelection")?.at(-1)).toEqual([null])
+    await select(wrapper, "Response view", "magnitude")
+    await wrapper.setProps({ comparisonMode: "difference" })
+    expect(launcher()).toBeUndefined()
+    await wrapper.setProps({ comparisonMode: "parallel", stale: true })
+    expect(launcher()!.props("disabled")).toBe(true)
+    expect(wrapper.emitted("eqFitSelection")?.at(-1)).toEqual([null])
+    await wrapper.setProps({ stale: false })
+    expect(wrapper.emitted("eqFitSelection")?.at(-1)?.[0]).toMatchObject({ mode: "parallel" })
+    wrapper.getComponent(UiSelect).vm.$emit("update:modelValue", "direct")
+    await nextTick()
+    expect(launcher()).toBeUndefined()
+    expect(wrapper.emitted("eqFitSelection")?.at(-1)).toEqual([null])
+    wrapper.unmount()
+    expect(wrapper.emitted("eqFitSelection")?.at(-1)).toEqual([null])
+  })
   it("selects direct and cross-channel paths with a magnitude domain containing the measurements", async () => {
     const wrapper = shallowMount(PluginAnalysisLinear, { props: { report: analysisReport() } })
     const plot = wrapper.getComponent(PluginAnalysisPlot)

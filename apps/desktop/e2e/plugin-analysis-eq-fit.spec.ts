@@ -2,7 +2,7 @@ import { expect, test as base, type Locator, type Page } from "@playwright/test"
 import { readFile, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
 import { extname, resolve, sep } from "node:path"
-import type { PluginAnalysisReport, PluginAnalysisSnapshot } from "@heron/contracts"
+import type { PluginAnalysisEqFitSnapshot, PluginAnalysisReport } from "@heron/contracts"
 import { analysisReport, analysisSnapshot } from "../src/renderer/src/test/plugin-analysis"
 
 // TEST ONLY: deterministic synthetic raw bins. No fitter code generates these
@@ -119,10 +119,36 @@ const test = base.extend<{ rendererServer: RendererServer }>({
   }
 })
 
-async function openAnalysis(
+function eqFitSnapshot(
+  overrides: Partial<PluginAnalysisEqFitSnapshot> = {}
+): PluginAnalysisEqFitSnapshot {
+  const analysis = analysisSnapshot()
+  return {
+    ref: analysis.ref,
+    revision: analysis.revision,
+    selectionRevision: 1,
+    selection: {
+      reportId: analysis.reportId!,
+      reportRevision: analysis.reportRevision!,
+      input: 0,
+      output: 0,
+      mode: "single"
+    },
+    reportId: analysis.reportId,
+    reportRevision: analysis.reportRevision,
+    report: syntheticReport(),
+    comparisonReport: null,
+    locale: analysis.locale,
+    theme: analysis.theme,
+    maximized: false,
+    ...overrides
+  }
+}
+
+async function openEqFit(
   page: Page,
   server: RendererServer,
-  initial = analysisSnapshot({ report: syntheticReport() })
+  initial = eqFitSnapshot()
 ): Promise<void> {
   await page.addInitScript((initial) => {
     let snapshot = initial
@@ -131,24 +157,32 @@ async function openAnalysis(
         snapshot = next
       }
     })
-    Object.defineProperty(window, "heronPluginAnalysis", {
+    Object.defineProperty(window, "heronPluginAnalysisEqFit", {
       value: {
         platform: "win32",
-        snapshot: async () => ({ ok: true, value: snapshot }),
-        command: async (_meta: unknown, command: { type: string; enabled: boolean }) => {
-          if (command.type === "comparison")
-            snapshot = { ...snapshot, comparisonEnabled: command.enabled }
-          if (command.type === "repeat") snapshot = { ...snapshot, repeating: command.enabled }
-          return { ok: true, value: snapshot }
+        snapshot: async (_meta: unknown, knownReportId?: string) => ({
+          ok: true,
+          // Exercise the actual bridge's polling contract: selection changes can
+          // reuse report bodies, while a new run always delivers new raw bins.
+          value: structuredClone({
+            ...snapshot,
+            report: knownReportId === snapshot.reportId ? null : snapshot.report,
+            comparisonReport: knownReportId === snapshot.reportId ? null : snapshot.comparisonReport
+          })
+        }),
+        window: async (_meta: unknown, command: { type: string; maximized?: boolean }) => {
+          if (command.type === "set-maximized")
+            snapshot = { ...snapshot, maximized: command.maximized ?? false }
+          return { ok: true, value: { maximized: snapshot.maximized } }
         }
       }
     })
   }, initial)
-  await page.goto(`${server.url}/plugin-analysis.html`)
+  await page.goto(`${server.url}/plugin-analysis-eq-fit.html`)
   await expect(page.getByRole("button", { name: "Fit EQ", exact: true })).toBeVisible()
 }
 
-async function replaceSnapshot(page: Page, snapshot: PluginAnalysisSnapshot): Promise<void> {
+async function replaceSnapshot(page: Page, snapshot: PluginAnalysisEqFitSnapshot): Promise<void> {
   await page.evaluate((snapshot) => {
     const api = window as unknown as { setEqTestSnapshot(value: typeof snapshot): void }
     api.setEqTestSnapshot(snapshot)
@@ -176,14 +210,11 @@ test("built worker fits raw bins and keeps its controls and result readable at n
   const errors: string[] = []
   page.on("pageerror", (error) => errors.push(error.message))
   await page.setViewportSize({ width: 1280, height: 1000 })
-  await openAnalysis(page, rendererServer)
+  await openEqFit(page, rendererServer)
   const quota = page.getByRole("spinbutton", { name: "EQ quota" })
   await expect(quota).toHaveValue("3")
   const fitButton = page.getByRole("button", { name: "Fit EQ", exact: true })
-  await expect(fitButton).toBeDisabled()
-  await page
-    .getByRole("combobox", { name: "Input → output", exact: true })
-    .selectOption({ label: "L → L" })
+  await expect(fitButton).toBeEnabled()
   await fitButton.focus()
   await fitButton.press("Enter")
   const result = page.getByRole("region", { name: "EQ fit result", exact: true })
@@ -218,12 +249,8 @@ test("built worker fits raw bins and keeps its controls and result readable at n
       animations: "disabled"
     })
   }
-  // Desktop keeps its rack width. Constrain the new panel independently to prove
-  // its controls/results remain usable at a 320px content width.
-  await page.locator(".linear-panel").evaluate((element) => {
-    ;(element as HTMLElement).style.width = "320px"
-    ;(element as HTMLElement).style.maxWidth = "320px"
-  })
+  // The standalone window has no Analysis rack: test its actual viewport reflow.
+  await page.setViewportSize({ width: 320, height: 900 })
   await result.scrollIntoViewIfNeeded()
   expect(
     await result.evaluate((element) => element.scrollWidth - element.clientWidth)
@@ -253,6 +280,11 @@ test("built worker fits raw bins and keeps its controls and result readable at n
   ).toBeCloseTo(normalTextSize * 2, 1)
   expect(
     await panel.evaluate((element) => element.scrollWidth - element.clientWidth)
+  ).toBeLessThanOrEqual(1)
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+    )
   ).toBeLessThanOrEqual(1)
   expect(
     await result.evaluate((element) => element.scrollWidth - element.clientWidth)
@@ -285,19 +317,12 @@ test("comparison requires an explicit chain and maps paths by channel rather tha
 }) => {
   const comparison = syntheticReport(7, false)
   comparison.responses.reverse()
-  await openAnalysis(
-    page,
-    rendererServer,
-    analysisSnapshot({
-      report: syntheticReport(),
-      comparisonEnabled: true,
-      comparisonReport: comparison,
-      differenceReport: syntheticReport(0, false)
-    })
-  )
-  await page
-    .getByRole("combobox", { name: "Input → output", exact: true })
-    .selectOption({ label: "L → L" })
+  const initial = eqFitSnapshot()
+  let snapshot = eqFitSnapshot({
+    selection: { ...initial.selection!, mode: "parallel" },
+    comparisonReport: comparison
+  })
+  await openEqFit(page, rendererServer, snapshot)
   await expect(page.getByRole("button", { name: "Fit EQ", exact: true })).toBeDisabled()
   const chain = page.getByRole("combobox", { name: "EQ fit chain", exact: true })
   await chain.selectOption({ label: "Chain 2" })
@@ -305,46 +330,70 @@ test("comparison requires an explicit chain and maps paths by channel rather tha
   expect(await metric(result, "Overall Gain")).toBeCloseTo(7, 2)
   expect(await metric(result, "RMS error")).toBeLessThan(0.01)
   await expect(page.getByText("Chain 2 · L → L", { exact: true })).toBeVisible()
-  await page
-    .getByRole("combobox", { name: "Input → output", exact: true })
-    .selectOption({ label: "R → R" })
+  snapshot = {
+    ...snapshot,
+    selectionRevision: 2,
+    selection: { ...snapshot.selection!, input: 1, output: 1 }
+  }
+  await replaceSnapshot(page, snapshot)
   await expect(result).toHaveCount(0)
   result = await fit(page)
   expect(await metric(result, "Overall Gain")).toBeCloseTo(-3, 2)
   await chain.selectOption({ label: "Chain 1" })
   await expect(result).toHaveCount(0)
-  await page.getByRole("button", { name: "1 − 2", exact: true }).click()
-  await expect(page.getByRole("button", { name: /^(Fit EQ|Fit again)$/ })).toBeDisabled()
+  // Returning the parent to L+R removes selection and any cached report body.
+  await replaceSnapshot(page, {
+    ...snapshot,
+    selectionRevision: 3,
+    selection: null,
+    reportId: null,
+    reportRevision: null,
+    report: null,
+    comparisonReport: null
+  })
+  await expect(page.getByRole("button", { name: /^(Fit EQ|Fit again)$/ })).toHaveCount(0)
+  await expect(result).toHaveCount(0)
 })
 
 test("cancellation and changed measurement identities cannot publish a stale worker result", async ({
   page,
   rendererServer
 }) => {
-  await openAnalysis(page, rendererServer)
-  const path = page.getByRole("combobox", { name: "Input → output", exact: true })
-  await path.selectOption({ label: "L → L" })
+  let snapshot = eqFitSnapshot()
+  await openEqFit(page, rendererServer, snapshot)
   const result = page.getByRole("region", { name: "EQ fit result", exact: true })
   const changes: Array<() => Promise<void>> = [
     async () => {
       await page.getByRole("button", { name: "Cancel fit", exact: true }).click()
     },
     async () => {
-      await path.selectOption({ label: "R → R" })
+      snapshot = {
+        ...snapshot,
+        selectionRevision: 2,
+        selection: { ...snapshot.selection!, input: 1, output: 1 }
+      }
+      await replaceSnapshot(page, snapshot)
     },
     async () => {
       await page.getByRole("spinbutton", { name: "EQ quota" }).press("ArrowUp")
     },
     async () => {
-      await replaceSnapshot(
-        page,
-        analysisSnapshot({
-          report: syntheticReport(4, false),
+      snapshot = {
+        ...snapshot,
+        report: syntheticReport(4, false),
+        reportId: "test-new-report",
+        reportRevision: 4,
+        revision: 4,
+        selectionRevision: 3,
+        selection: {
+          ...snapshot.selection!,
           reportId: "test-new-report",
           reportRevision: 4,
-          revision: 4
-        })
-      )
+          input: 0,
+          output: 0
+        }
+      }
+      await replaceSnapshot(page, snapshot)
     }
   ]
   for (const change of changes) {
@@ -358,22 +407,16 @@ test("cancellation and changed measurement identities cannot publish a stale wor
     rendererServer.releaseWorkers()
     await expect(result).toHaveCount(0)
   }
-  await path.selectOption({ label: "L → L" })
   expect(await metric(await fit(page), "Overall Gain")).toBeCloseTo(4, 2)
-  const repeat = page.getByRole("checkbox", { name: "Repeat analysis", exact: true })
-  await repeat.focus()
-  await repeat.press("Space")
-  await expect(repeat).toBeChecked()
-  await replaceSnapshot(
-    page,
-    analysisSnapshot({
-      report: syntheticReport(2, false),
-      reportId: "test-repeat-report",
-      reportRevision: 4,
-      revision: 4,
-      repeating: true
-    })
-  )
+  // Repeating analysis can publish a new report without changing configuration.
+  snapshot = {
+    ...snapshot,
+    report: syntheticReport(2, false),
+    reportId: "test-repeat-report",
+    selectionRevision: 4,
+    selection: { ...snapshot.selection!, reportId: "test-repeat-report" }
+  }
+  await replaceSnapshot(page, snapshot)
   await expect(result).toHaveCount(0)
   expect(await metric(await fit(page), "Overall Gain")).toBeCloseTo(2, 2)
 })
