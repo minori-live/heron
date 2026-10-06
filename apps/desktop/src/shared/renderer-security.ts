@@ -11,7 +11,12 @@ export interface RendererEntrypoints {
   mode: "bundle" | "development"
 }
 
-export type RendererEntrypointKind = "main" | "splash" | "plugin-analysis" | null
+export type RendererEntrypointKind =
+  | "main"
+  | "splash"
+  | "plugin-analysis"
+  | "plugin-analysis-eq-fit"
+  | null
 
 export function classifyRendererEntrypoint(url: string): RendererEntrypointKind {
   try {
@@ -20,6 +25,13 @@ export function classifyRendererEntrypoint(url: string): RendererEntrypointKind 
       return null
     }
     const identity = `${candidate.protocol}//${candidate.host}${candidate.pathname}`
+    if (
+      identity ===
+        `${HERON_RENDERER_SCHEME}://${HERON_RENDERER_HOST}/plugin-analysis-eq-fit.html` ||
+      identity === new URL("plugin-analysis-eq-fit.html", HERON_DEVELOPMENT_RENDERER_URL).toString()
+    ) {
+      return "plugin-analysis-eq-fit"
+    }
     if (
       identity === `${HERON_RENDERER_SCHEME}://${HERON_RENDERER_HOST}/plugin-analysis.html` ||
       identity === new URL("plugin-analysis.html", HERON_DEVELOPMENT_RENDERER_URL).toString()

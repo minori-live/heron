@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef } from "vue"
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import {
   UiButton,
@@ -8,14 +8,53 @@ import {
   UiSelect,
   type UiAnalysisSeries
 } from "@heron/ui"
-import type { PluginAnalysisReport } from "@heron/contracts"
+import type { PluginAnalysisEqFitSelection, PluginAnalysisReport } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
-const props = defineProps<{ report: PluginAnalysisReport; comparison?: PluginAnalysisReport }>()
+const props = defineProps<{
+  report: PluginAnalysisReport
+  comparison?: PluginAnalysisReport
+  reportId?: string | null
+  reportRevision?: number | null
+  revision?: number
+  comparisonMode?: string
+  stale?: boolean
+}>()
+const emit = defineEmits<{
+  eqFitSelection: [selection: PluginAnalysisEqFitSelection | null]
+  openEqFit: []
+}>()
 const { t } = useI18n()
 const view = ref("magnitude")
 const path = ref("direct")
 const compensate = ref(false)
 const stored = shallowRef<UiAnalysisSeries[]>([])
+const eqFitMode = computed(() => props.comparisonMode ?? (props.comparison ? "parallel" : "single"))
+const eqFitEntryVisible = computed(
+  () => view.value === "magnitude" && path.value !== "direct" && eqFitMode.value !== "difference"
+)
+const eqFitSelection = computed<PluginAnalysisEqFitSelection | null>(() => {
+  if (!eqFitEntryVisible.value || props.stale || !props.reportId || props.reportRevision == null)
+    return null
+  const response = props.report.responses[Number(path.value)]
+  const mode = eqFitMode.value
+  if (
+    !response ||
+    (mode !== "single" && mode !== "primary" && mode !== "comparison" && mode !== "parallel")
+  )
+    return null
+  return {
+    reportId: props.reportId,
+    reportRevision: props.reportRevision,
+    input: response.input,
+    output: response.output,
+    mode
+  }
+})
+watch(eqFitSelection, (selection) => emit("eqFitSelection", selection), {
+  immediate: true,
+  flush: "sync"
+})
+onBeforeUnmount(() => emit("eqFitSelection", null))
 const modes = computed(() => [
   { value: "magnitude", label: t("pluginAnalysis.magnitude") },
   { value: "phase", label: t("pluginAnalysis.phase") },
@@ -28,15 +67,19 @@ const paths = computed(() => [
     label: `${channelName(p.input)} → ${channelName(p.output)}`
   }))
 ])
-function channelName(index: number): string {
-  if (props.report.settings.mid_side) return index ? "S" : "M"
+function channelName(index: number, report = props.report): string {
+  if (report.settings.mid_side) return index ? "S" : "M"
   return index ? "R" : "L"
 }
 const makeSeries = (report: PluginAnalysisReport, chain?: number): UiAnalysisSeries[] =>
   report.responses
-    .filter((p, i) => (path.value === "direct" ? p.input === p.output : i === Number(path.value)))
+    .filter((p) => {
+      if (path.value === "direct") return p.input === p.output
+      const selected = props.report.responses[Number(path.value)]
+      return selected && p.input === selected.input && p.output === selected.output
+    })
     .map((p, index) => ({
-      label: `${chain === undefined ? "" : t(`pluginAnalysis.chain${chain + 1}`) + " · "}${channelName(p.input)} → ${channelName(p.output)}`,
+      label: `${chain === undefined ? "" : t(`pluginAnalysis.chain${chain + 1}`) + " · "}${channelName(p.input, report)} → ${channelName(p.output, report)}`,
       color:
         chain === 1
           ? "var(--ui-color-action)"
@@ -149,6 +192,14 @@ function changeView(): void {
       ><UiButton size="sm" variant="ghost" :disabled="!stored.length" @click="stored = []">{{
         t("pluginAnalysis.clear")
       }}</UiButton>
+      <UiButton
+        v-if="eqFitEntryVisible"
+        size="sm"
+        variant="secondary"
+        :disabled="!eqFitSelection"
+        @click="emit('openEqFit')"
+        >{{ t("pluginAnalysis.eqFit.open") }}</UiButton
+      >
     </footer>
   </section>
 </template>

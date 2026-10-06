@@ -80,6 +80,10 @@ async function openAnalysis(page: Page, initial: PluginAnalysisSnapshot): Promis
       value: {
         platform: "win32",
         snapshot: async () => ({ ok: true, value: snapshot }),
+        setEqFitSelection: async (_meta: unknown, request: { sequence: number }) => ({
+          ok: true,
+          value: { sequence: request.sequence, selectionRevision: request.sequence, opened: false }
+        }),
         command: async (_meta: unknown, command: { type: string; enabled: boolean }) => {
           if (command.type === "comparison")
             snapshot = { ...snapshot, comparisonEnabled: command.enabled }

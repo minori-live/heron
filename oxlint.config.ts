@@ -273,7 +273,8 @@ export default defineConfig({
     {
       files: [
         "apps/desktop/src/renderer/src/main.ts",
-        "apps/desktop/src/renderer/src/plugin-analysis.ts"
+        "apps/desktop/src/renderer/src/plugin-analysis.ts",
+        "apps/desktop/src/renderer/src/plugin-analysis-eq-fit.ts"
       ],
       rules: {
         "typescript/no-unsafe-argument": "off"

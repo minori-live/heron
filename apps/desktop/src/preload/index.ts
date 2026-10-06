@@ -230,7 +230,17 @@ if (entrypoint === "splash") {
     platform: process.platform as HeronDesktopApi["platform"],
     snapshot: (meta, acknowledge, knownReportId) =>
       invokeRpc(IPC_CHANNELS.pluginAnalysisSnapshot, meta, acknowledge, knownReportId),
-    command: (meta, command) => invokeRpc(IPC_CHANNELS.pluginAnalysisCommand, meta, command)
+    command: (meta, command) => invokeRpc(IPC_CHANNELS.pluginAnalysisCommand, meta, command),
+    setEqFitSelection: (meta, request) =>
+      invokeRpc(IPC_CHANNELS.pluginAnalysisEqFitSelection, meta, request)
   }
   contextBridge.exposeInMainWorld("heronPluginAnalysis", pluginAnalysisApi)
+} else if (entrypoint === "plugin-analysis-eq-fit") {
+  const eqFitApi: import("@heron/contracts").HeronPluginAnalysisEqFitApi = {
+    platform: process.platform as HeronDesktopApi["platform"],
+    snapshot: (meta, knownReportId, acknowledge) =>
+      invokeRpc(IPC_CHANNELS.pluginAnalysisEqFitSnapshot, meta, knownReportId, acknowledge),
+    window: (meta, command) => invokeRpc(IPC_CHANNELS.pluginAnalysisEqFitWindow, meta, command)
+  }
+  contextBridge.exposeInMainWorld("heronPluginAnalysisEqFit", eqFitApi)
 }

@@ -20,8 +20,10 @@ import AppTitleBar from "../application/AppTitleBar.vue"
 import PluginAnalysisChain from "./PluginAnalysisChain.vue"
 import PluginAnalysisSettings from "./PluginAnalysisSettings.vue"
 import PluginAnalysisReport from "./PluginAnalysisReport.vue"
+import { useEqFitWindowSelection } from "./useEqFitWindowSelection"
 const { t } = useI18n()
 const { snapshot, error, catalogBusy, command, configure, platform } = usePluginAnalysis()
+const eqFitWindow = useEqFitWindowSelection()
 const locale = computed(() => snapshot.value?.locale ?? "en-US")
 useLocaleFonts(locale)
 useTheme(computed(() => snapshot.value?.theme ?? "dark"))
@@ -122,13 +124,22 @@ const channelModes = computed(() => [
               ><PluginAnalysisSettings :settings="snapshot.settings" @configure="configure"
             /></UiPopover>
           </div>
-          <p v-if="error || snapshot.failure" class="error" role="alert">
-            {{ error || t(`pluginAnalysis.failures.${snapshot.failure}`) }}
+          <p v-if="error || snapshot.failure || eqFitWindow.error.value" class="error" role="alert">
+            {{
+              error ||
+              (snapshot.failure
+                ? t(`pluginAnalysis.failures.${snapshot.failure}`)
+                : t("pluginAnalysis.eqFit.openFailed"))
+            }}
           </p>
           <p v-if="snapshot.report && snapshot.reportRevision !== snapshot.revision" class="stale">
             {{ t("pluginAnalysis.stale") }}
           </p>
-          <PluginAnalysisReport :snapshot="snapshot" />
+          <PluginAnalysisReport
+            :snapshot="snapshot"
+            @eq-fit-selection="eqFitWindow.select"
+            @open-eq-fit="eqFitWindow.open"
+          />
           <footer class="measurement-controls" :inert="quarantined || undefined">
             <div class="input-level">
               <span>{{ t("pluginAnalysis.level") }}</span

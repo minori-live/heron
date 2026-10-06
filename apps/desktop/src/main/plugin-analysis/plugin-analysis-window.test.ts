@@ -8,7 +8,9 @@ const fake = vi.hoisted(() => {
   class Window {
     static instances: Window[] = []
     destroyed = false
+    webContentsDestroyed = false
     readonly webContents = {
+      isDestroyed: () => this.webContentsDestroyed || this.destroyed,
       mainFrame: { url: "" },
       getURL: () => this.webContents.mainFrame.url,
       setWindowOpenHandler: vi.fn(),
@@ -111,6 +113,8 @@ describe("Plugin Analysis window ownership", () => {
     await manager.open()
     const window = fake.Window.instances[0]!
     let settle!: () => void
+    const child = new fake.Window()
+    manager.eqFit.window = child as never
     fake.close.mockImplementationOnce(
       () =>
         new Promise<void>((resolve) => {
@@ -118,6 +122,13 @@ describe("Plugin Analysis window ownership", () => {
         })
     )
     const closing = manager.close()
+    expect(child.destroyed).toBe(true)
+    expect(
+      await manager.eqFit.apply(
+        { protocolVersion: 2, requestId: "during-close" },
+        { sequence: 1, selection: null, open: false }
+      )
+    ).toMatchObject({ ok: false, error: { details: { field: "closed-session" } } })
     expect(manager.close()).toBe(closing)
     expect(window.destroyed).toBe(false)
     settle()
@@ -136,6 +147,60 @@ describe("Plugin Analysis window ownership", () => {
     fake.snapshot.mockReturnValue({ status: "complete" })
     await shutdown()!()
     expect(await manager.open()).toBe(true)
+  })
+
+  it("retires a force-destroyed parent before native cleanup and ignores late old-window events", async () => {
+    const { manager } = arrange()
+    await manager.open()
+    const parent = fake.Window.instances[0]!
+    const child = new fake.Window()
+    manager.eqFit.window = child as never
+    let settle!: () => void
+    fake.close.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          settle = resolve
+        })
+    )
+    const rendererDestroyed = parent.webContents.on.mock.calls.find(
+      ([name]) => name === "destroyed"
+    )?.[1]
+    const windowClosed = parent.once.mock.calls.find(([name]) => name === "closed")?.[1]
+    // DevTools target closure and forced destruction can bypass cancellable "close".
+    parent.webContentsDestroyed = true
+    expect(
+      await manager.eqFit.apply(
+        { protocolVersion: 2, requestId: "destroyed-renderer" },
+        { sequence: 1, selection: null, open: false }
+      )
+    ).toMatchObject({ ok: false, error: { details: { field: "closed-session" } } })
+    parent.destroyed = true
+    rendererDestroyed?.()
+    windowClosed?.()
+    expect(child.destroyed).toBe(true)
+    expect(fake.close).toHaveBeenCalledOnce()
+    expect(
+      await manager.eqFit.apply(
+        { protocolVersion: 2, requestId: "retired-parent" },
+        { sequence: 1, selection: null, open: false }
+      )
+    ).toMatchObject({ ok: false, error: { details: { field: "closed-session" } } })
+    const closing = manager.close()
+    const reopening = manager.open()
+    rendererDestroyed?.()
+    windowClosed?.()
+    settle()
+    await closing
+    expect(await reopening).toBe(true)
+    const replacement = manager.window
+    const newChild = new fake.Window()
+    manager.eqFit.window = newChild as never
+    rendererDestroyed?.()
+    windowClosed?.()
+    expect(manager.window).toBe(replacement)
+    expect(newChild.destroyed).toBe(false)
+    expect(fake.close).toHaveBeenCalledOnce()
+    await manager.close()
   })
 
   it("abandons a pending open when runtime shutdown wins the settings load", async () => {

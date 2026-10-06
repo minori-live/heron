@@ -9,6 +9,7 @@ import {
   validationFailure
 } from "./resource-validation"
 import { PluginAnalysisWindow } from "../plugin-analysis/plugin-analysis-window"
+import { registerPluginAnalysisEqFitHandlers } from "./plugin-analysis-eq-fit-handlers"
 
 function isCommand(value: unknown): value is PluginAnalysisCommand {
   if (!value || typeof value !== "object") return false
@@ -54,6 +55,7 @@ function isCommand(value: unknown): value is PluginAnalysisCommand {
 
 export function registerPluginAnalysisHandlers(context: IpcHandlerContext): () => void {
   const pluginAnalysis = new PluginAnalysisWindow(context)
+  registerPluginAnalysisEqFitHandlers(pluginAnalysis)
   let opening: Promise<boolean> | null = null
   let commands: Promise<void> = Promise.resolve()
   registerRpcHandler(IPC_CHANNELS.pluginAnalysisOpen, async ({ meta }) => {
@@ -91,7 +93,7 @@ export function registerPluginAnalysisHandlers(context: IpcHandlerContext): () =
       if (knownReportId !== undefined && typeof knownReportId !== "string")
         return validationFailure(meta, "knownReportId")
       if (acknowledge !== undefined) service.acknowledge(acknowledge)
-      return service.snapshot(knownReportId)
+      return { ...service.snapshot(knownReportId), eqFitSequence: pluginAnalysis.eqFit.sequence }
     },
     { authenticate }
   )
