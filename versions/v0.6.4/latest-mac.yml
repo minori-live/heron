@@ -1,11 +1,11 @@
 version: 0.6.4
 files:
   - url: https://github.com/minori-live/heron/releases/download/v0.6.4/Heron-0.6.4-mac-universal.zip
-    sha512: B8WCtjsmcD4ff+OIizK7ulpjRHWf9KjWoJeLKYbnBLzcrTtmm/w/DFqDNMxtQTOmCpFPtocFdoeyURyZOo53Fw==
-    size: 315481171
+    sha512: CgsWeZVTcW/RhQItjbYxcGfiiqFhqeubNP/r+KdKP5Fqzs5mGSScKeJWwnJR6SNc+g9PRaQF4QC/mkN9G8iejg==
+    size: 315480466
   - url: https://github.com/minori-live/heron/releases/download/v0.6.4/Heron-0.6.4-mac-universal.dmg
-    sha512: PbzVauxLbfbvR25qNXObTszFyo6O65gQAah6wxIRmif5rabwb/YpGFmDXzKQRkmgyezY1zdVxDUIDSRwxJfKOQ==
-    size: 327235766
+    sha512: 2QLVYfBCirYhLVrqowYIQWYmVOktsVPShUOgDqhHrlQduY+Vnxkus11rOzQuPVKZDJR3dfQ7M+slGO2kUnLRfA==
+    size: 327234199
 path: https://github.com/minori-live/heron/releases/download/v0.6.4/Heron-0.6.4-mac-universal.zip
-sha512: B8WCtjsmcD4ff+OIizK7ulpjRHWf9KjWoJeLKYbnBLzcrTtmm/w/DFqDNMxtQTOmCpFPtocFdoeyURyZOo53Fw==
-releaseDate: 2026-10-06T18:21:38.225Z
+sha512: CgsWeZVTcW/RhQItjbYxcGfiiqFhqeubNP/r+KdKP5Fqzs5mGSScKeJWwnJR6SNc+g9PRaQF4QC/mkN9G8iejg==
+releaseDate: 2026-10-06T19:49:10.732Z
