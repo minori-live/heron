@@ -27,7 +27,7 @@
     "@fontsource-variable/inter": "catalog:",
     "@fontsource-variable/noto-sans-sc": "catalog:",
     "@fontsource/barlow-condensed": "catalog:",
-    "driver.js": "1.8.0",
+    "driver.js": "1.9.0",
     "echarts": "^6.1.0",
     "reka-ui": "2.10.5"
   },

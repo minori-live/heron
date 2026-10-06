@@ -41,7 +41,7 @@
     "unplugin-fonts": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:storybook",
-    "vue-component-meta": "3.3.11",
+    "vue-component-meta": "3.3.12",
     "vue-tsc": "catalog:"
   }
 }
