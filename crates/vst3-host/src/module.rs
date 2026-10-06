@@ -200,6 +200,26 @@ pub struct Module {
 }
 
 impl Module {
+    #[cfg(test)]
+    pub(crate) fn from_test_factory(factory: ComPtr<IPluginFactory>) -> Self {
+        let binary_path = std::env::current_exe().expect("test executable path");
+        Self {
+            factory: Some(factory),
+            #[cfg(target_os = "macos")]
+            mac_bundle: None,
+            #[cfg(target_os = "linux")]
+            library: libloading::os::unix::Library::this().into(),
+            #[cfg(target_os = "windows")]
+            library: libloading::os::windows::Library::this()
+                .expect("test executable library")
+                .into(),
+            #[cfg(not(target_os = "macos"))]
+            exit: None,
+            host_context: Some(HostContext::for_module(&binary_path)),
+            binary_path,
+        }
+    }
+
     /// Loads a VST3 bundle or direct module binary.
     pub fn open(path: impl AsRef<Path>) -> HostResult<Self> {
         let path = path.as_ref();
