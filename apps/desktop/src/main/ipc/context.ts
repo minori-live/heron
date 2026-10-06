@@ -1,4 +1,4 @@
-import type { SystemPerformanceSnapshot } from "@heron/contracts"
+import type { ApplicationRestartResult, SystemPerformanceSnapshot } from "@heron/contracts"
 import type { ApplicationSettingsStore } from "../settings"
 import type { AudioHostService } from "../audio-host"
 import type { AudioImportService } from "../project"
@@ -36,6 +36,7 @@ export interface ApplicationServices {
   lifecycle: LifecycleCoordinator
   audioHost: AudioHostService
   isShuttingDown: () => boolean
+  restartApplication?: (prepare: () => Promise<boolean>) => Promise<ApplicationRestartResult>
   audioDeviceRecovery: AudioDeviceRecoveryCoordinator
 }
 

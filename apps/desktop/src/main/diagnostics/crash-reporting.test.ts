@@ -8,12 +8,16 @@ import { CrashReporting, SENTRY_DSN } from "./crash-reporting"
 
 const directories: string[] = []
 afterEach(async () => {
+  vi.unstubAllGlobals()
   await Promise.all(
     directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))
   )
 })
 
 async function harness(settings?: unknown) {
+  // Simulate a release only with this in-memory SDK; no real transport is loaded.
+  vi.stubGlobal("__HERON_BUILD_MODE__", "production")
+  vi.stubGlobal("__HERON_RELEASE__", { version: "0.6.3", channel: "latest" })
   const userData = await mkdtemp(join(tmpdir(), "heron-crash-reporting-"))
   directories.push(userData)
   if (settings !== undefined)

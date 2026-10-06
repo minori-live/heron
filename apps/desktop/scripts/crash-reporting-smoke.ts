@@ -39,7 +39,9 @@ async function run(mode: "native" | "relaunch" | "javascript" | "revoke"): Promi
       mode
     ]
     const child = spawn(electron as string, electronArguments, {
-      cwd: fixture,
+      // Crashpad can outlive the crashed process on Windows. Keep its inherited
+      // working directory outside the fixture so cleanup does not retain a lock.
+      cwd: tmpdir(),
       env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
       stdio: ["ignore", "pipe", "pipe"]
     })
@@ -70,14 +72,24 @@ async function run(mode: "native" | "relaunch" | "javascript" | "revoke"): Promi
 }
 
 try {
-  const source = await readFile(
-    new URL("../src/main/diagnostics/crash-reporting.ts", import.meta.url),
-    "utf8"
-  )
-  const compiled = transpileModule(source, {
-    compilerOptions: { module: ModuleKind.ESNext, target: ScriptTarget.ES2023 }
-  }).outputText
-  await writeFile(join(fixture, "crash-reporting.mjs"), compiled)
+  for (const name of ["crash-reporting", "diagnostics-consent", "reporting-environment"]) {
+    const source = await readFile(
+      new URL(
+        name === "diagnostics-consent"
+          ? "../src/shared/diagnostics-consent.ts"
+          : `../src/main/diagnostics/${name}.ts`,
+        import.meta.url
+      ),
+      "utf8"
+    )
+    const compiled = transpileModule(source, {
+      compilerOptions: { module: ModuleKind.ESNext, target: ScriptTarget.ES2023 }
+    }).outputText.replace(
+      /from "(?:\.\/|\.\.\/\.\.\/shared\/)(diagnostics-consent|reporting-environment)"/g,
+      'from "./$1.mjs"'
+    )
+    await writeFile(join(fixture, `${name}.mjs`), compiled)
+  }
   await writeFile(
     join(fixture, "package.json"),
     JSON.stringify({ name: "heron-crash-smoke", version: "0.6.3", main: "main.mjs" })
@@ -89,12 +101,36 @@ try {
 import { app } from "electron";
 import * as Sentry from ${JSON.stringify(pathToFileURL(require.resolve("@sentry/electron/main")).href)};
 import { createRequire } from "node:module";
+import { Agent, request } from "node:http";
 import { CrashReporting } from "./crash-reporting.mjs";
 app.setName("Heron Crash Smoke");
 app.setPath("userData", ${JSON.stringify(fixture)});
-const reporting = new CrashReporting({ ...Sentry, init(options) {
-  Sentry.init({ ...options, dsn: ${JSON.stringify(dsn)}, onFatalError: () => app.exit(1) });
-}});
+// This fixture simulates release provenance only with an explicit localhost SDK
+// adapter. It cannot use the production transport, DNS, proxies or redirects.
+globalThis.__HERON_BUILD_MODE__ = "production";
+globalThis.__HERON_RELEASE__ = { version: app.getVersion(), channel: "latest" };
+const localAgent = new Agent({ proxyEnv: {} });
+const reporting = new CrashReporting({ ...Sentry,
+  init(options) {
+    Sentry.init({ ...options, dsn: ${JSON.stringify(dsn)}, onFatalError: () => app.exit(1) });
+  },
+  makeElectronTransport(options) {
+    const endpoint = new URL(options.url);
+    if (endpoint.origin !== ${JSON.stringify(`http://127.0.0.1:${address.port}`)})
+      throw new Error("Crash smoke transport must remain on its isolated loopback sink");
+    return Sentry.createTransport(options, ({ body }) => new Promise((resolve, reject) => {
+      const req = request({ hostname: "127.0.0.1", port: ${address.port}, method: "POST",
+        agent: localAgent,
+        path: endpoint.pathname + endpoint.search,
+        headers: { "content-type": "application/x-sentry-envelope" } }, (response) => {
+          response.resume();
+          resolve({ statusCode: response.statusCode, headers: {} });
+        });
+      req.on("error", reject);
+      req.end(body);
+    }));
+  }
+});
 reporting.initialize({ isPackaged: true, getPath: name => app.getPath(name),
   setPath: (name, value) => app.setPath(name, value), getVersion: () => app.getVersion(),
   whenReady: () => app.whenReady() }, {});

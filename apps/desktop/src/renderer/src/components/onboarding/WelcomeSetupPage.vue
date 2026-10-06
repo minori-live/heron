@@ -10,6 +10,8 @@ const props = defineProps<{
   locale: AppLocale
   diagnosticsEnabled: boolean
   saving: boolean
+  savedForRestart: boolean
+  restartStatus: "idle" | "restarting" | "cancelled" | "blocked" | "failed"
   loading: boolean
   available: boolean
   error: string
@@ -20,6 +22,8 @@ const emit = defineEmits<{
   diagnostics: [value: boolean]
   continue: []
   retry: []
+  restart: []
+  later: []
 }>()
 const { t } = useI18n()
 </script>
@@ -37,20 +41,29 @@ const { t } = useI18n()
       <AppearanceOptions
         :theme="props.theme"
         :locale="props.locale"
-        :disabled="props.saving || props.loading || !props.available"
+        :disabled="props.saving || props.savedForRestart || props.loading || !props.available"
         stacked
         @theme="emit('theme', $event)"
         @locale="emit('locale', $event)"
       />
       <DiagnosticsConsent
         :model-value="props.diagnosticsEnabled"
-        :disabled="props.saving || props.loading || !props.available"
+        :disabled="props.saving || props.savedForRestart || props.loading || !props.available"
         stacked
         @update:model-value="emit('diagnostics', $event)"
       />
       <footer class="welcome-setup__footer">
         <div class="welcome-setup__status" aria-live="polite">
-          <p v-if="props.error" role="alert">
+          <p v-if="props.savedForRestart">
+            {{
+              t(
+                props.restartStatus === "restarting" || props.saving
+                  ? "onboarding.restarting"
+                  : "onboarding.restartDeferred"
+              )
+            }}
+          </p>
+          <p v-else-if="props.error" role="alert">
             {{ t(props.available ? "onboarding.saveError" : "onboarding.loadError") }}
           </p>
           <p v-else>{{ t("onboarding.changeLater") }}</p>
@@ -58,13 +71,29 @@ const { t } = useI18n()
         <UiButton v-if="!props.available" :disabled="props.loading" @click="emit('retry')">{{
           t("onboarding.retry")
         }}</UiButton>
+        <template v-else-if="props.savedForRestart">
+          <UiButton
+            :disabled="props.saving || props.restartStatus === 'restarting'"
+            @click="emit('later')"
+            >{{ t("onboarding.restartLater") }}</UiButton
+          >
+          <UiButton
+            variant="primary"
+            :disabled="props.saving || props.restartStatus === 'restarting'"
+            :aria-busy="props.saving || props.restartStatus === 'restarting'"
+            @click="emit('restart')"
+            >{{ t("onboarding.retryRestart") }}</UiButton
+          >
+        </template>
         <UiButton
           v-else
           variant="primary"
           :disabled="props.saving || props.loading"
           :aria-busy="props.saving"
           @click="emit('continue')"
-          >{{ t("onboarding.continue") }}</UiButton
+          >{{
+            t(props.diagnosticsEnabled ? "onboarding.saveAndRestart" : "onboarding.continue")
+          }}</UiButton
         >
       </footer>
     </div>

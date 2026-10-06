@@ -2,6 +2,8 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:f
 import { join } from "node:path"
 import type { App } from "electron"
 import type * as Sentry from "@sentry/electron/main"
+import { readDiagnosticsConsent } from "../../shared/diagnostics-consent"
+import { reportingEnvironment } from "./reporting-environment"
 
 export const SENTRY_DSN =
   "https://a4d67c4fbb1ebf80e86024c24cd06a40@o4512208564453376.ingest.us.sentry.io/4512208570679296"
@@ -24,11 +26,16 @@ export class CrashReporting {
   constructor(private readonly sdk: CrashSdk) {}
 
   initialize(application: CrashApplication, environment: NodeJS.ProcessEnv): void {
-    // Tests and local development never send reports, even with copied preferences.
-    if (!application.isPackaged || environment.HERON_TEST_USER_DATA) return
     try {
       const userData = application.getPath("userData")
       const root = join(userData, "crash-reports")
+      // This gate precedes every SDK integration, including Crashpad and its queued
+      // dump loader. A production DSN or copied consent cannot authorize a test run.
+      if (reportingEnvironment(application, environment) !== "production") {
+        rmSync(root, { recursive: true, force: true })
+        rmSync(join(userData, "sentry"), { recursive: true, force: true })
+        return
+      }
       let consent = false
       let epoch = "legacy"
       try {
@@ -36,17 +43,9 @@ export class CrashReporting {
           diagnosticsEnabled?: unknown
           diagnosticsConsentEpoch?: unknown
         }
-        consent = settings.diagnosticsEnabled === true
-        if (settings.diagnosticsConsentEpoch !== undefined) {
-          if (
-            typeof settings.diagnosticsConsentEpoch !== "string" ||
-            !/^[a-f0-9-]{36}$/.test(settings.diagnosticsConsentEpoch)
-          ) {
-            consent = false
-          } else {
-            epoch = settings.diagnosticsConsentEpoch
-          }
-        }
+        const storedConsent = readDiagnosticsConsent(settings)
+        consent = storedConsent.enabled
+        epoch = storedConsent.epoch ?? "legacy"
       } catch {
         // Missing, unreadable or malformed preferences are never consent.
       }
@@ -102,13 +101,16 @@ export class CrashReporting {
           return {
             send: async (envelope) => {
               await application.whenReady()
-              return this.allowed ? transport.send(envelope) : {}
+              return this.allowed && reportingEnvironment(application, environment) === "production"
+                ? transport.send(envelope)
+                : {}
             },
             flush: (timeout) => transport.flush(timeout)
           }
         },
         beforeSend: (event) => {
-          if (!this.allowed) return null
+          if (!this.allowed || reportingEnvironment(application, environment) !== "production")
+            return null
           delete event.user
           delete event.request
           delete event.extra

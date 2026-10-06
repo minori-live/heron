@@ -130,7 +130,7 @@ describe("main process", () => {
     expect(services.audioHostService.stopAudioEngine).not.toHaveBeenCalled()
     expect(services.projectService.shutdown).not.toHaveBeenCalled()
   })
-  it("configures the shell and isolated user data for test launches", () => {
+  it("configures the shell and disables GPU for test launches", () => {
     const { application, dependencies } = harness({ testUserData: "/tmp/heron-test" })
 
     expect(dependencies.configureApplicationIdentity).toHaveBeenCalledWith(application, "linux")
@@ -138,7 +138,6 @@ describe("main process", () => {
     expect(dependencies.quitWhenAllWindowsAreClosed).toHaveBeenCalledWith(application)
     expect(application.disableHardwareAcceleration).toHaveBeenCalledOnce()
     expect(application.commandLine.appendSwitch).toHaveBeenCalledWith("disable-gpu")
-    expect(application.setPath).toHaveBeenCalledWith("userData", "/tmp/heron-test")
   })
 
   it("defers shutdown while the current project owns the close decision", () => {

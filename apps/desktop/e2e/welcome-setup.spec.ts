@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { closeElectronApplication } from "./support"
 
-test("first-run choices preview, persist across reload, and allow diagnostics revocation", async () => {
+test("first-run choices preview, persist after deferred restart, and allow diagnostics revocation", async () => {
   test.setTimeout(120_000)
   const testRoot = await mkdtemp(join(tmpdir(), "heron-welcome-e2e-"))
   const userData = join(testRoot, "user-data")
@@ -20,6 +20,13 @@ test("first-run choices preview, persist across reload, and allow diagnostics re
     env: { ...process.env, HERON_TEST_USER_DATA: userData, HERON_TEST_MOCK_AUDIO: "1" }
   })
   try {
+    // Keep this existing persistence/revocation scenario attached to one process.
+    // A failed OS relaunch must retain the durable choices and offer continuing.
+    await application.evaluate(({ app }) => {
+      app.relaunch = () => {
+        throw new Error("Relaunch unavailable in this persistence scenario")
+      }
+    })
     await expect
       .poll(() => application.windows().some((page) => page.url().includes("index.html")))
       .toBe(true)
@@ -50,7 +57,7 @@ test("first-run choices preview, persist across reload, and allow diagnostics re
     await welcomeConsent.focus()
     await welcomeConsent.press("Space")
     await expect(welcomeConsent).toBeChecked()
-    // Appearance preview must not authorize reporting before Continue.
+    // Appearance preview must not authorize reporting before saving.
     const before = await page.evaluate(async () => {
       const result = await window.heron.bootstrap({
         protocolVersion: 2,
@@ -66,7 +73,8 @@ test("first-run choices preview, persist across reload, and allow diagnostics re
       )
       await page.screenshot({ path: test.info().outputPath(`welcome-light-zh-${width}.png`) })
     }
-    await page.getByRole("button", { name: "继续", exact: true }).click()
+    await page.getByRole("button", { name: "保存并重启", exact: true }).click()
+    await page.getByRole("button", { name: "暂时继续", exact: true }).click()
     await expect(page.getByRole("heading", { name: "欢迎使用 Heron" })).toBeHidden()
     const persisted = JSON.parse(await readFile(join(userData, "settings.json"), "utf8"))
     expect(persisted).toMatchObject({

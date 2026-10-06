@@ -19,15 +19,17 @@ export function setRpcMutationGuard(guard: () => boolean): void {
   mutationsBlocked = guard
 }
 
-export async function settleRpcMutations(): Promise<void> {
-  while (pendingMutations.size > 0) {
-    await Promise.all([...pendingMutations])
+export async function settleRpcMutations(except?: Promise<void> | null): Promise<void> {
+  while ([...pendingMutations].some((pending) => pending !== except)) {
+    await Promise.all([...pendingMutations].filter((pending) => pending !== except))
   }
 }
 
 export interface RpcHandlerContext {
   event: IpcMainInvokeEvent
   meta: RpcRequestMeta
+  /** Shutdown orchestration must drain peers without waiting on its own response. */
+  settleOtherMutations: () => Promise<void>
 }
 
 export type RpcHandler<Args extends readonly unknown[], Value> = (
@@ -166,7 +168,8 @@ export function registerRpcHandler<Args extends readonly unknown[], Value>(
       if (
         meta.mutation &&
         mutationsBlocked() &&
-        channel !== IPC_CHANNELS.applicationWindowCommand
+        channel !== IPC_CHANNELS.applicationWindowCommand &&
+        channel !== IPC_CHANNELS.applicationRestart
       ) {
         return validationFailure(meta, "application-shutdown")
       }
@@ -179,7 +182,10 @@ export function registerRpcHandler<Args extends readonly unknown[], Value>(
         : null
       if (pending) pendingMutations.add(pending)
       try {
-        const result = await handler({ event, meta }, ...args)
+        const result = await handler(
+          { event, meta, settleOtherMutations: () => settleRpcMutations(pending) },
+          ...args
+        )
         return isRpcResult(result) ? result : rpcSuccess(meta, result)
       } catch (error) {
         const correlationId = randomUUID()

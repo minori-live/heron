@@ -34,6 +34,7 @@ evidence belong in their owning documents rather than being copied into each ADR
 | [0025 — Plugin Analysis parametric EQ fitting](0025-plugin-analysis-eq-fitting.md)                     | Accepted                           | Independent secure fit window, authoritative measured paths and cancellable digital EQ fitting              |
 | [0026 — Welcome setup and diagnostics consent](0026-welcome-setup-and-diagnostics-consent.md)          | Accepted                           | First-run appearance/language draft and explicit persisted reporting consent                                |
 | [0027 — Sentry crash reporting](0027-sentry-crash-reporting.md)                                        | Proposed                           | Consent-gated Electron and embedded native crashes, cache epochs and release symbols                        |
+| [0028 — Diagnostics consent restart and isolation](0028-diagnostics-consent-restart-and-isolation.md)  | Proposed                           | Legacy consent migration, safe first-run restart, production-only reporting and profile isolation           |
 
 Accepted means the architecture is chosen, not that every feature or release
 acceptance test is complete. Each record states its implementation scope; the
@@ -43,7 +44,7 @@ used as permission to implement or claim an accepted compatibility commitment.
 ## 2026-09-06 baseline reset
 
 The numbers in this section's mapping table belong to a **superseded series**.
-Current records are 0001–0023 and 0025–0027; 0009 in the table below refers to the retired
+Current records are 0001–0023 and 0025–0028; 0009 in the table below refers to the retired
 record, not to any record in this series.
 
 At the maintainer's request, the previous 16 records were consolidated into this
@@ -111,7 +112,7 @@ Prefer one cohesive decision over a record for each implementation step.
 
 ## Lifecycle and review
 
-Use four digits and a short kebab-case title, starting the next record at **0027**.
+Use four digits and a short kebab-case title, starting the next record at **0029**.
 Copy [the template](template.md). Status is Proposed, Accepted, Superseded by
 ADR-NNNN, or Rejected. Accepted records change only for editorial corrections,
 links and explicit implementation-scope clarification; changing a decision

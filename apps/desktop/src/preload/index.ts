@@ -91,6 +91,7 @@ const api: HeronDesktopApi = {
   },
   executeApplicationWindowCommand: (meta, command: ApplicationWindowCommandId) =>
     invokeRpc(IPC_CHANNELS.applicationWindowCommand, meta, command),
+  restartApplication: (meta) => invokeRpc(IPC_CHANNELS.applicationRestart, meta),
   setApplicationWindowTheme: (meta, theme) =>
     invokeRpc(IPC_CHANNELS.applicationWindowTheme, meta, theme),
   createProject: (meta, request: CreateProjectRequest) =>
