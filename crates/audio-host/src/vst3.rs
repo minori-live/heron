@@ -36,6 +36,7 @@ const HOST_REQUEST_CAPACITY: usize = 1_024;
 pub struct Vst3Runtime {
     instances: HashMap<String, Instance>,
     retired_instances: Vec<GuardedInstance>,
+    #[cfg(not(target_os = "macos"))]
     process_lifetime_guards: HashMap<String, Instance>,
     benchmark_lifetime_guards: Vec<GuardedInstance>,
     ara_factories: HashMap<(String, String), Rc<AraFactoryHost>>,
@@ -112,6 +113,7 @@ impl Vst3Runtime {
         Self {
             instances: HashMap::new(),
             retired_instances: Vec::new(),
+            #[cfg(not(target_os = "macos"))]
             process_lifetime_guards: HashMap::new(),
             benchmark_lifetime_guards: Vec::new(),
             ara_factories: HashMap::new(),
@@ -276,6 +278,17 @@ impl Vst3Runtime {
         !self.retired_instances.is_empty()
     }
 
+    #[cfg(target_os = "macos")]
+    fn finish_unload(&mut self, _instance_id: &str, instance: Instance) {
+        // Called on Electron main only after the final processor lease retires.
+        // Retaining an initialized instance until process exit leaves Guitar
+        // Rig's Qt objects alive during static QApplication teardown (#209).
+        // Release controllers/components and pair bundleEntry with bundleExit
+        // while the main loop and module-owned callback context are still live.
+        drop(instance);
+    }
+
+    #[cfg(not(target_os = "macos"))]
     fn finish_unload(&mut self, instance_id: &str, instance: Instance) {
         let last_benchmark_instance = is_audio_benchmark_instance(instance_id)
             && !self

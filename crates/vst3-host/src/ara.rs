@@ -1,33 +1,38 @@
-use std::{ffi::c_void, ptr::NonNull};
+use std::{ffi::c_void, ptr::NonNull, rc::Rc};
 
 use heron_vst3_host_sys::{
-    HeronAraMainFactory, HeronAraPluginEntry,
-    Steinberg::{FUnknown, IPluginFactory},
-    heron_ara_main_factory_create, heron_ara_main_factory_destroy, heron_ara_main_factory_get,
-    heron_ara_plugin_entry_bind, heron_ara_plugin_entry_create, heron_ara_plugin_entry_destroy,
+    HeronAraMainFactory, HeronAraPluginEntry, Steinberg::FUnknown, heron_ara_main_factory_create,
+    heron_ara_main_factory_destroy, heron_ara_main_factory_get, heron_ara_plugin_entry_bind,
+    heron_ara_plugin_entry_create, heron_ara_plugin_entry_destroy,
     heron_ara_plugin_entry_get_factory,
 };
 
-use crate::{ClassId, HostError, HostResult};
+use crate::{ClassId, HostError, HostResult, Module};
 
+/// An ARA provider that keeps its VST3 module initialized until native release.
 pub struct AraMainFactory {
     raw: NonNull<HeronAraMainFactory>,
+    // Drop releases the native provider before this owner can run bundleExit.
+    _module: Rc<Module>,
 }
 
 impl AraMainFactory {
-    pub(crate) fn create(factory: *mut IPluginFactory, class_id: ClassId) -> HostResult<Self> {
+    pub(crate) fn create(module: Rc<Module>, class_id: ClassId) -> HostResult<Self> {
         let class_id = class_id.to_tuid();
         let mut result = 0;
         let raw = unsafe {
-            // SAFETY: factory remains live through the returned wrapper and class_id is a VST3
-            // ABI TUID. The bridge owns the queried IMainFactory reference.
-            heron_ara_main_factory_create(factory, class_id.as_ptr(), &mut result)
+            // SAFETY: module keeps the factory and its executable initialized through the
+            // returned wrapper. The bridge owns the queried IMainFactory reference.
+            heron_ara_main_factory_create(module.factory().as_ptr(), class_id.as_ptr(), &mut result)
         };
         let raw = NonNull::new(raw).ok_or(HostError::Operation {
             operation: "create ARA main factory",
             result,
         })?;
-        Ok(Self { raw })
+        Ok(Self {
+            raw,
+            _module: module,
+        })
     }
 
     #[must_use]
@@ -119,3 +124,7 @@ impl Drop for AraPluginEntry {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "ara/lifetime_tests.rs"]
+mod lifetime_tests;

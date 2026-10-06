@@ -288,8 +288,12 @@ impl Module {
             .expect("factory is present until module drop")
     }
 
-    pub fn create_ara_main_factory(&self, class_id: ClassId) -> HostResult<crate::AraMainFactory> {
-        crate::AraMainFactory::create(self.factory().as_ptr(), class_id)
+    /// Creates an ARA provider that shares ownership of this initialized module.
+    pub fn create_ara_main_factory(
+        self: &Rc<Self>,
+        class_id: ClassId,
+    ) -> HostResult<crate::AraMainFactory> {
+        crate::AraMainFactory::create(Rc::clone(self), class_id)
     }
 
     /// Creates one SDK interface for a class exposed by this module.
