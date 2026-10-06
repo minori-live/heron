@@ -50,7 +50,9 @@ const { t } = useI18n()
       />
       <footer class="welcome-setup__footer">
         <div class="welcome-setup__status" aria-live="polite">
-          <p v-if="props.error" role="alert">{{ t("onboarding.saveError") }}</p>
+          <p v-if="props.error" role="alert">
+            {{ t(props.available ? "onboarding.saveError" : "onboarding.loadError") }}
+          </p>
           <p v-else>{{ t("onboarding.changeLater") }}</p>
         </div>
         <UiButton v-if="!props.available" :disabled="props.loading" @click="emit('retry')">{{

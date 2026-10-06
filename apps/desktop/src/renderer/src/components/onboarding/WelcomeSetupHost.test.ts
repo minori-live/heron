@@ -5,7 +5,14 @@ import type { ApplicationSettingsResourceSnapshot, RpcResult } from "@heron/cont
 import WelcomeSetupHost from "./WelcomeSetupHost.vue"
 import { useApplicationSettingsStore } from "../../stores/applicationSettings"
 import { useWelcomeSetupStore } from "../../stores/welcomeSetup"
-import { rpcFailure, rpcSuccess, settingsSnapshot, stubApi, testSettings } from "../../test/ipc"
+import {
+  rpcFailure,
+  rpcSuccess,
+  settingsSnapshot,
+  stubApi,
+  testBootstrap,
+  testSettings
+} from "../../test/ipc"
 
 const initial = testSettings({ welcomeCompleted: false })
 function setup() {
@@ -25,6 +32,35 @@ beforeEach(() => {
 })
 
 describe("welcome setup", () => {
+  it("explains a settings load failure and lets Retry recover before choices can be saved", async () => {
+    stubApi({
+      bootstrap: vi
+        .fn()
+        .mockResolvedValueOnce(rpcFailure("errors.unableToLoadApplicationSettings"))
+        .mockResolvedValueOnce(rpcSuccess(testBootstrap({ settings: settingsSnapshot(initial) })))
+    })
+    const pinia = createPinia()
+    const settings = useApplicationSettingsStore(pinia)
+    const wrapper = mount(WelcomeSetupHost, { global: { plugins: [pinia] } })
+    await settings.load()
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toBe(
+      "Your settings could not be loaded. Please retry."
+    )
+    expect(window.heron.updateApplicationSettings).not.toHaveBeenCalled()
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Retry")!
+      .trigger("click")
+    await flushPromises()
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(wrapper.findAll("button").some((button) => button.text() === "Continue")).toBe(true)
+    expect(window.heron.updateApplicationSettings).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
   it("keeps previews and consent local until Continue commits all choices together", async () => {
     const { wrapper, welcome, settings } = setup()
     const light = wrapper.findAll("button").find((button) => button.text().includes("Light"))!
@@ -74,7 +110,9 @@ describe("welcome setup", () => {
     expect(welcome.required).toBe(true)
     expect(settings.settings?.diagnosticsEnabled).toBe(false)
     expect(wrapper.get('input[type="checkbox"]').element).toHaveProperty("checked", true)
-    expect(wrapper.get('[role="alert"]').text()).toContain("try again")
+    expect(wrapper.get('[role="alert"]').text()).toBe(
+      "Your choices could not be saved. Please try again."
+    )
     stubApi({
       updateApplicationSettings: vi.fn(async (_meta, patch) =>
         rpcSuccess(settingsSnapshot(testSettings({ ...initial, ...patch }), 2))
