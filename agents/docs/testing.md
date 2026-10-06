@@ -105,6 +105,49 @@ type, schema and build checks when they express the invariant directly. Do not
 freeze file inventories, historical symbol absence, prose, line wrapping or
 particular registration syntax instead of testing the live contract.
 
+## Test concurrency
+
+Resource-sensitive suites default to one active test at a time on every OS,
+including local runs and coverage. This reduces overlapping file/device
+lifecycles and nested analysis load; it does not establish or fix the root cause
+of any historical timeout.
+
+- `.cargo/config.toml` sets `RUST_TEST_THREADS=1` for libtest. This covers direct
+  `cargo test` from the workspace, `cargo xtask test` (including `--fast`), and
+  `cargo xtask coverage prepare` used by local and CI coverage tasks. Native
+  crates mix pure tests with file, audio runtime and full-analysis tests, so the
+  existing harnesses are serial without splitting or filtering the suites.
+- Desktop Vitest and project-db Vitest disable file parallelism (one worker)
+  and set `maxConcurrency=1`, including explicitly concurrent cases. Desktop's
+  existing mixed renderer/main suite stays intact. Unit and coverage scripts
+  load the same package configuration. Existing timeouts remain unchanged.
+- `pnpm test:scripts` runs one Node test file at a time. Native binding tests
+  already await their cases sequentially. Electron Playwright already uses
+  `workers: 1`; plug-in smoke commands already run sequentially.
+- `mise run test` orders Rust before JavaScript/native binding tests.
+  `mise run check` orders Rust, JavaScript/native bindings, then Storybook.
+  The `wait_for` edges only order tasks already selected, so a leaf command
+  does not acquire extra test suites. The local `coverage` and CI
+  `ci:check:coverage` / `ci:check:native-coverage` scripts already execute
+  resource-sensitive suites sequentially and inherit the same runner limits.
+
+Contracts, project-model and shared UI Vitest keep their parallel defaults.
+Storybook/browser-only design tests keep their own parallelism after the
+resource-sensitive suites. Static checks and benchmark compilation may still
+overlap tests; Cargo compilation jobs and independent CI platform jobs are
+unchanged. Tests can still create internal audio/analysis/background threads;
+these limits control test scheduling rather than product threading.
+
+Expect longer mixed-suite wall time in exchange for less simultaneous resource
+use. Test selection, assertions, retries and coverage gates are unchanged.
+These are defaults within one canonical invocation, not a machine-wide lock:
+do not launch separate resource-sensitive commands simultaneously against the
+same checkout/devices. Explicit runner flags or an inherited
+`RUST_TEST_THREADS` can override the defaults; only opt into parallelism for
+known-independent filtered tests. Cargo configuration is discovered from the
+working directory, so run Cargo inside the workspace, not with only an external
+`--manifest-path`.
+
 ## Fixtures, mocks and coverage
 
 Mocks and fixtures are arrangements, not evidence. Call assertions must identify

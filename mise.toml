@@ -151,6 +151,8 @@ run = [
 [tasks."check:js-tests"]
 hide = true
 depends = ["check:prepare"]
+# Per-runner limits must also hold across the full check task graph.
+wait_for = ["check:rust-tests"]
 run = "pnpm test:js"
 
 [tasks."check:js-tests:coverage"]
@@ -179,6 +181,7 @@ run = "cargo xtask coverage prepare"
 [tasks."check:design"]
 hide = true
 depends = ["install"]
+wait_for = ["check:rust-tests", "check:js-tests"]
 run = [
   "pnpm design:test",
   "pnpm design:build",
@@ -227,6 +230,7 @@ depends = ["native:bindings:debug"]
 [tasks."test:js"]
 hide = true
 depends = ["test:prepare"]
+wait_for = ["test:rust"]
 run = "pnpm test:js"
 
 [tasks."test:rust"]
