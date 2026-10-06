@@ -1,4 +1,4 @@
-# ADR-0023: Plugin Analysis parametric EQ fitting
+# ADR-0025: Plugin Analysis parametric EQ fitting
 
 - Status: Accepted
 - Date: 2026-10-05
