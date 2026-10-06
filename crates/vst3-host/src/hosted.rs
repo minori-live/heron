@@ -183,8 +183,7 @@ pub struct HostedPlugin {
     controller_initialized: bool,
     class_id: ClassId,
     // Keep the module and its HostContext alive until every plug-in interface above is released.
-    #[cfg(target_os = "linux")]
-    module: Rc<Module>,
+    _module: Rc<Module>,
 }
 
 struct ComponentConnections {
@@ -195,23 +194,17 @@ struct ComponentConnections {
 }
 
 /// Owns an initialized edit controller while `HostedPlugin` construction can
-/// still fail. Its drop order mirrors the successful host teardown: detach the
-/// component handler, terminate a separately initialized controller and release
-/// its interface while the handler still lives.
+/// still fail before the host owns and installs a component handler.
 struct InitializedController {
     controller: Option<ComPtr<IEditController>>,
-    handler: Option<Box<ComponentHandler>>,
     initialized_separately: bool,
-    handler_attached: bool,
 }
 
 impl InitializedController {
     fn new(controller: Option<ComPtr<IEditController>>, initialized_separately: bool) -> Self {
         Self {
             controller,
-            handler: None,
             initialized_separately,
-            handler_attached: false,
         }
     }
 
@@ -219,61 +212,15 @@ impl InitializedController {
         self.controller.as_ref()
     }
 
-    fn attach_handler(&mut self, handler: Box<ComponentHandler>) -> HostResult<()> {
-        let Some(controller) = &self.controller else {
-            return Ok(());
-        };
-        self.handler = Some(handler);
-        // Even a rejected setter may have retained the callback. Keep it alive
-        // and attempt detachment during construction cleanup.
-        self.handler_attached = true;
-        check("IEditController::setComponentHandler", unsafe {
-            // SAFETY: controller is initialized and handler has a stable Box
-            // address that this guard retains until it detaches the handler.
-            ((*controller_table(controller)).set_component_handler)(
-                controller.as_ptr(),
-                self.handler
-                    .as_mut()
-                    .expect("handler was retained")
-                    .as_interface(),
-            )
-        })?;
-        Ok(())
-    }
-
-    fn take(
-        mut self,
-    ) -> (
-        Option<ComPtr<IEditController>>,
-        Option<Box<ComponentHandler>>,
-        bool,
-    ) {
-        self.handler_attached = false;
+    fn take(mut self) -> (Option<ComPtr<IEditController>>, bool) {
         let initialized_separately = self.initialized_separately;
         self.initialized_separately = false;
-        (
-            self.controller.take(),
-            self.handler.take(),
-            initialized_separately,
-        )
+        (self.controller.take(), initialized_separately)
     }
 }
 
 impl Drop for InitializedController {
     fn drop(&mut self) {
-        if self.handler_attached {
-            if let Some(controller) = &self.controller {
-                unsafe {
-                    // SAFETY: controller and retained handler are both live;
-                    // clearing the callback precedes handler destruction.
-                    ((*controller_table(controller)).set_component_handler)(
-                        controller.as_ptr(),
-                        std::ptr::null_mut(),
-                    );
-                }
-            }
-            self.handler_attached = false;
-        }
         if self.initialized_separately {
             if let Some(controller) = &self.controller {
                 unsafe {
@@ -287,7 +234,6 @@ impl Drop for InitializedController {
             self.initialized_separately = false;
         }
         self.controller.take();
-        self.handler.take();
     }
 }
 
@@ -425,6 +371,26 @@ impl HostedPlugin {
         hook: impl FnOnce(&Module, *mut c_void) -> HostResult<T>,
     ) -> HostResult<(Self, T)> {
         let module = Rc::new(Module::open(module_path)?);
+        Self::create_from_module(
+            module,
+            class_id,
+            sample_rate,
+            kind,
+            layout,
+            active_aux_input_buses,
+            hook,
+        )
+    }
+
+    fn create_from_module<T>(
+        module: Rc<Module>,
+        class_id: ClassId,
+        sample_rate: f64,
+        kind: PluginKind,
+        layout: AudioLayout,
+        active_aux_input_buses: &[u32],
+        hook: impl FnOnce(&Module, *mut c_void) -> HostResult<T>,
+    ) -> HostResult<(Self, T)> {
         let hook_module = Rc::clone(&module);
         let (mut processor, parameter_producer, hook_result) =
             StereoProcessor::create_with_parameter_queue_and_hook(
@@ -437,7 +403,7 @@ impl HostedPlugin {
             )?;
         let shared = HandlerShared::new(parameter_producer);
         let (controller, separate_controller) = create_controller(&module, &processor)?;
-        let mut controller_lifecycle = InitializedController::new(controller, separate_controller);
+        let controller_lifecycle = InitializedController::new(controller, separate_controller);
         let parameter_ids = controller_lifecycle
             .controller()
             .map(controller_parameter_ids)
@@ -446,14 +412,53 @@ impl HostedPlugin {
         let (output_parameter_writer, output_parameter_reader) =
             output_parameter_bridge(parameter_ids);
         processor.set_output_parameter_writer(output_parameter_writer);
-        if controller_lifecycle.controller().is_some() {
-            controller_lifecycle.attach_handler(ComponentHandler::new(shared.clone()))?;
+        let midi_mapping = Arc::new(MidiMappingTable::query(None)?);
+        let (controller, controller_initialized) = controller_lifecycle.take();
+        // Install every native interface and callback in their final owner
+        // before any setter can retain a handler and then reject preparation.
+        let mut plugin = Self {
+            processor: ProcessorCell::new(processor),
+            processor_lifetime: Arc::new(()),
+            midi_mapping,
+            controller,
+            connections: None,
+            _handler: None,
+            shared,
+            output_parameter_reader,
+            controller_initialized,
+            class_id,
+            _module: module,
+        };
+        if let Err(error) = plugin.finish_initialization(active_aux_input_buses) {
+            // A hook may own an ARA document bound to the component. It must
+            // retire while the failed candidate still owns that component.
+            drop(hook_result);
+            return Err(error);
         }
-        let connections = if separate_controller {
+        Ok((plugin, hook_result))
+    }
+
+    fn finish_initialization(&mut self, active_aux_input_buses: &[u32]) -> HostResult<()> {
+        if let Some(controller) = &self.controller {
+            let mut handler = ComponentHandler::new(self.shared.clone());
+            let callback = handler.as_interface();
+            self._handler = Some(handler);
+            check("IEditController::setComponentHandler", unsafe {
+                // SAFETY: the initialized controller and stable callback are owned by self.
+                // Even a rejected setter retains callback storage until complete native teardown.
+                ((*controller_table(controller)).set_component_handler)(
+                    controller.as_ptr(),
+                    callback,
+                )
+            })?;
+        }
+        self.connections = if self.controller_initialized {
             match (
-                processor.component().query_optional::<IConnectionPoint>(),
-                controller_lifecycle
-                    .controller()
+                self.processor.with_paused(|processor| {
+                    processor.component().query_optional::<IConnectionPoint>()
+                }),
+                self.controller
+                    .as_ref()
                     .ok_or(HostError::NullInterface("IEditController"))?
                     .query_optional::<IConnectionPoint>(),
             ) {
@@ -469,27 +474,11 @@ impl HostedPlugin {
         // Separate controllers can resolve MIDI assignments through their
         // component connection (including JUCE wrappers). Query only after
         // both connection points have been connected.
-        let midi_mapping = Arc::new(MidiMappingTable::query(controller_lifecycle.controller())?);
-        processor.configure_aux_input_buses(active_aux_input_buses)?;
-        processor.activate()?;
-        let (controller, handler, controller_initialized) = controller_lifecycle.take();
-        Ok((
-            Self {
-                processor: ProcessorCell::new(processor),
-                processor_lifetime: Arc::new(()),
-                midi_mapping,
-                controller,
-                connections,
-                _handler: handler,
-                shared,
-                output_parameter_reader,
-                controller_initialized,
-                class_id,
-                #[cfg(target_os = "linux")]
-                module,
-            },
-            hook_result,
-        ))
+        self.midi_mapping.refresh(self.controller.as_ref())?;
+        self.processor.with_paused(|processor| {
+            processor.configure_aux_input_buses(active_aux_input_buses)?;
+            processor.activate()
+        })
     }
 
     pub fn mirror_parameters_to(&self, target: &Self) {
@@ -508,7 +497,7 @@ impl HostedPlugin {
 
     #[cfg(target_os = "linux")]
     pub fn dispatch_run_loop(&self, now: std::time::Instant) -> Option<std::time::Instant> {
-        self.module.dispatch_run_loop(now)
+        self._module.dispatch_run_loop(now)
     }
 
     #[must_use]
@@ -989,3 +978,7 @@ impl Drop for HostedPlugin {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "hosted/construction_tests.rs"]
+mod construction_tests;

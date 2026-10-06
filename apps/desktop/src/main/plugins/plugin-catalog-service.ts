@@ -62,7 +62,7 @@ export class PluginCatalogService {
   private readonly listeners = new Set<ScanListener>()
   private readonly scanner = new PluginScanner<PluginScanRequest, PluginCatalogSnapshot>()
   private readonly runtime = new PluginRuntimeService()
-  private readonly runtimeBundleProbes = new Map<string, Promise<PluginDescriptor[]>>()
+  private readonly runtimePluginProbes = new Map<string, Promise<PluginDescriptor[]>>()
   private readonly probeClient: PluginProbeClient
   private readonly discovery: PluginDiscoveryService
 
@@ -172,35 +172,44 @@ export class PluginCatalogService {
     const resolved = this.resolveDescriptor(snapshot)
     if (resolved.source.kind === "builtin") return resolved
     const locator = pluginLocator(resolved)
-    let pending = this.runtimeBundleProbes.get(locator.artifactPath)
+    const probeKey = JSON.stringify([locator.format, locator.artifactPath, locator.nativeId])
+    let pending = this.runtimePluginProbes.get(probeKey)
     if (!pending) {
-      pending = this.probeClient.probe(locator.artifactPath, "deep")
-      this.runtimeBundleProbes.set(locator.artifactPath, pending)
+      pending = this.probeClient.probe(locator.artifactPath, "deep", locator.nativeId)
+      this.runtimePluginProbes.set(probeKey, pending)
     }
     try {
       const descriptors = await pending
-      const byNativeId = new Map(
-        descriptors.map((descriptor) => [pluginLocator(descriptor).nativeId, descriptor])
-      )
-      this.catalog = {
-        ...this.catalog,
-        plugins: this.catalog.plugins.map((descriptor) =>
-          descriptor.source.kind === "external" &&
-          pluginLocator(descriptor).artifactPath === locator.artifactPath
-            ? (byNativeId.get(pluginLocator(descriptor).nativeId) ?? descriptor)
-            : descriptor
+      const descriptor = descriptors.find((candidate) => {
+        const candidateLocator = pluginLocator(candidate)
+        return (
+          candidateLocator.format === locator.format &&
+          candidateLocator.artifactPath === locator.artifactPath &&
+          candidateLocator.nativeId === locator.nativeId
+        )
+      })
+      if (!descriptor) {
+        this.runtimePluginProbes.delete(probeKey)
+        return this.markRuntimeProbeUnavailable(
+          resolved,
+          "Deep probe did not return the requested plug-in class"
         )
       }
-      const descriptor = descriptors.find(
-        (descriptor) => pluginLocator(descriptor).nativeId === locator.nativeId
-      )
-      if (descriptor) return structuredClone(descriptor)
-      return this.markRuntimeProbeUnavailable(
-        resolved,
-        "Deep probe did not return the requested plug-in class"
-      )
+      this.catalog = {
+        ...this.catalog,
+        plugins: this.catalog.plugins.map((candidate) => {
+          const candidateLocator = pluginLocator(candidate)
+          return candidate.source.kind === "external" &&
+            candidateLocator.format === locator.format &&
+            candidateLocator.artifactPath === locator.artifactPath &&
+            candidateLocator.nativeId === locator.nativeId
+            ? descriptor
+            : candidate
+        })
+      }
+      return structuredClone(descriptor)
     } catch (error) {
-      this.runtimeBundleProbes.delete(locator.artifactPath)
+      this.runtimePluginProbes.delete(probeKey)
       return this.markRuntimeProbeUnavailable(
         resolved,
         error instanceof Error ? error.message : "Deep plug-in capability probe failed"
@@ -253,7 +262,7 @@ export class PluginCatalogService {
       try {
         // Re-probe bundled artifacts too: a dev build may finish after startup.
         await this.refreshBuiltins()
-        if (value.force || value.retryQuarantined) this.runtimeBundleProbes.clear()
+        if (value.force || value.retryQuarantined) this.runtimePluginProbes.clear()
         this.catalog = await this.discovery.scan(this.catalog, value, (event) =>
           this.publish(event)
         )

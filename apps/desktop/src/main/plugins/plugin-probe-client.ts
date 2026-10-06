@@ -26,11 +26,19 @@ export class PluginProbeClient {
     private readonly clapExecutable = vst3Executable.replace("vst3-probe", "clap-probe")
   ) {}
 
-  async probe(bundlePath: string, mode: PluginProbeMode = "deep"): Promise<PluginDescriptor[]> {
+  async probe(
+    bundlePath: string,
+    mode: PluginProbeMode = "deep",
+    nativeId?: string
+  ): Promise<PluginDescriptor[]> {
     const clap = bundlePath.toLocaleLowerCase().endsWith(".clap")
     const { stdout } = await this.runner(
       clap ? this.clapExecutable : this.vst3Executable,
-      mode === "soft" ? ["--soft", bundlePath] : [bundlePath],
+      [
+        ...(mode === "soft" ? ["--soft"] : []),
+        ...(nativeId === undefined ? [] : ["--plugin-id", nativeId]),
+        bundlePath
+      ],
       {
         timeout: 600_000,
         windowsHide: true,

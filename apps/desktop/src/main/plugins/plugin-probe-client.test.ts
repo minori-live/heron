@@ -47,4 +47,39 @@ describe("PluginProbeClient", () => {
       "Artifact has no supported audio plug-ins"
     )
   })
+
+  it.each([
+    ["effect.vst3", "vst3-probe", "effect-id"],
+    ["effect.clap", "clap-probe", "org.acme.effect"]
+  ])(
+    "targets the requested plug-in in %s without probing sibling classes",
+    async (path, executable, nativeId) => {
+      const runner = vi.fn().mockResolvedValue({
+        stdout: JSON.stringify({
+          module: {
+            vendor: "Acme",
+            classes: [
+              {
+                classId: nativeId,
+                pluginId: nativeId,
+                name: "Effect",
+                categories: ["Fx"],
+                initialized: true,
+                sample32: true,
+                supportedAudioModes: ["mono"]
+              }
+            ]
+          }
+        })
+      })
+      const client = new PluginProbeClient("vst3-probe", runner)
+
+      await client.probe(path, "deep", nativeId)
+
+      expect(runner.mock.calls[0]?.slice(0, 2)).toEqual([
+        executable,
+        ["--plugin-id", nativeId, path]
+      ])
+    }
+  )
 })

@@ -91,6 +91,13 @@ block and permits later processing; it does not mark the instance permanently
 failed. These rules retain the ownership and failure containment states in
 [ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
 
+Rejected plug-in construction retains the component handler until both the
+processor and controller have finished termination and interface release. A
+rejected handler detach can leave the callback installed, including when a
+mono-only plug-in refuses the requested layout. Successful loads and failed
+candidates share this teardown ownership, and the module remains loaded until
+all plug-in interfaces have been released on every platform.
+
 Concurrent loads of the same VST3 binary share one host context on the owning
 UI thread. A factory can retain module-wide callbacks, including the Linux run
 loop, so unloading an Analysis measurement clone must not invalidate callbacks
