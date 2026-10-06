@@ -997,10 +997,10 @@
       }
     },
     "diagnostics": {
-      "title": "Crash and performance data",
+      "title": "Crash reports",
       "description": "Choose whether to help improve Heron by sharing diagnostics.",
-      "label": "Allow sending crash and performance data",
-      "choiceDescription": "Optional and off by default. Your choice is saved; data reporting will become available in a future update."
+      "label": "Allow sending crash reports to Sentry",
+      "choiceDescription": "Optional and off by default. Enabling takes effect after restarting Heron; disabling stops new uploads immediately. Reports may contain file paths and crash memory. Performance data is not sent."
     }
   },
   "effectGraph": {

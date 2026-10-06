@@ -27,7 +27,7 @@ test("first-run choices preview, persist across reload, and allow diagnostics re
     const welcome = page.getByRole("main")
     await expect(page.getByRole("heading", { name: "Welcome to Heron", exact: true })).toBeVisible()
     await expect(
-      page.getByRole("checkbox", { name: "Allow sending crash and performance data" })
+      page.getByRole("checkbox", { name: "Allow sending crash reports to Sentry" })
     ).not.toBeChecked()
     // A requested workspace cannot replace setup before it is committed.
     await page.evaluate(() => {
@@ -46,7 +46,7 @@ test("first-run choices preview, persist across reload, and allow diagnostics re
     await welcome.getByRole("button", { name: /^Light / }).click()
     await welcome.getByRole("button", { name: /简体中文/ }).click()
     await expect(page.getByRole("heading", { name: "欢迎使用 Heron" })).toBeVisible()
-    const welcomeConsent = page.getByRole("checkbox", { name: "允许发送崩溃和性能数据" })
+    const welcomeConsent = page.getByRole("checkbox", { name: "允许向 Sentry 发送崩溃报告" })
     await welcomeConsent.focus()
     await welcomeConsent.press("Space")
     await expect(welcomeConsent).toBeChecked()
@@ -80,7 +80,7 @@ test("first-run choices preview, persist across reload, and allow diagnostics re
     await expect(page.getByRole("heading", { name: "欢迎使用 Heron" })).toHaveCount(0)
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light")
     await page.getByRole("button", { name: "显示", exact: true }).click()
-    const consent = page.getByRole("checkbox", { name: "允许发送崩溃和性能数据" })
+    const consent = page.getByRole("checkbox", { name: "允许向 Sentry 发送崩溃报告" })
     await expect(consent).toBeChecked()
     await consent.focus()
     await consent.press("Space")
@@ -94,7 +94,9 @@ test("first-run choices preview, persist across reload, and allow diagnostics re
     await page.reload()
     await expect(page.getByRole("heading", { name: "系统设置", exact: true })).toBeVisible()
     await page.getByRole("button", { name: "显示", exact: true }).click()
-    await expect(page.getByRole("checkbox", { name: "允许发送崩溃和性能数据" })).not.toBeChecked()
+    await expect(
+      page.getByRole("checkbox", { name: "允许向 Sentry 发送崩溃报告" })
+    ).not.toBeChecked()
   } finally {
     await closeElectronApplication(application)
   }

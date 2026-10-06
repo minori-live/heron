@@ -1,5 +1,6 @@
 import { mkdir, open, readFile, rename } from "node:fs/promises"
 import { dirname, join } from "node:path"
+import { randomUUID } from "node:crypto"
 import {
   APPLICATION_COMMAND_IDS,
   DEFAULT_METER_RETURN_RATE,
@@ -284,8 +285,12 @@ async function syncDirectory(path: string): Promise<void> {
 export class ApplicationSettingsStore {
   readonly path: string
   private settings: ApplicationSettings | null = null
+  private diagnosticsConsentEpoch = "legacy"
 
-  constructor(private readonly userData: string) {
+  constructor(
+    private readonly userData: string,
+    private readonly onDiagnosticsCommitted: (enabled: boolean) => void = () => {}
+  ) {
     this.path = join(userData, "settings.json")
   }
 
@@ -324,7 +329,12 @@ export class ApplicationSettingsStore {
     if (this.settings) return structuredClone(this.settings)
     let value = this.defaults()
     try {
-      const raw = JSON.parse(await readFile(this.path, "utf8")) as Partial<ApplicationSettings>
+      const raw = JSON.parse(await readFile(this.path, "utf8")) as Partial<ApplicationSettings> & {
+        diagnosticsConsentEpoch?: string
+      }
+      if (/^[a-f0-9-]{36}$/.test(raw.diagnosticsConsentEpoch ?? "")) {
+        this.diagnosticsConsentEpoch = raw.diagnosticsConsentEpoch!
+      }
       value = {
         swapDirectory:
           typeof raw.swapDirectory === "string" && raw.swapDirectory
@@ -528,18 +538,27 @@ export class ApplicationSettingsStore {
   }
 
   private async write(settings: ApplicationSettings): Promise<ApplicationSettings> {
+    const diagnosticsConsentEpoch =
+      this.settings?.diagnosticsEnabled === settings.diagnosticsEnabled
+        ? this.diagnosticsConsentEpoch
+        : randomUUID()
     await mkdir(dirname(this.path), { recursive: true })
     const temporary = `${this.path}.tmp`
     const handle = await open(temporary, "w")
     try {
-      await handle.writeFile(`${JSON.stringify(settings, null, 2)}\n`, "utf8")
+      await handle.writeFile(
+        `${JSON.stringify({ ...settings, diagnosticsConsentEpoch }, null, 2)}\n`,
+        "utf8"
+      )
       await handle.sync()
     } finally {
       await handle.close()
     }
     await rename(temporary, this.path)
-    await syncDirectory(dirname(this.path))
     this.settings = structuredClone(settings)
+    this.diagnosticsConsentEpoch = diagnosticsConsentEpoch
+    this.onDiagnosticsCommitted(settings.diagnosticsEnabled)
+    await syncDirectory(dirname(this.path))
     return structuredClone(settings)
   }
 }

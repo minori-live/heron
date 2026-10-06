@@ -20,6 +20,7 @@ installed copies under `.agents/skills/`.
 - [Product interaction design](interaction-design.md)
 - [Rust performance benchmarks](benchmarks.md)
 - [Continuous integration and releases](ci.md)
+- [Crash reporting operations](crash-reporting.md)
 - [Design system](design-system.md)
 - [Desktop localization](localization.md)
 - [Development environment](environment.md)

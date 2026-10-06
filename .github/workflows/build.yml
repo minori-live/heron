@@ -29,6 +29,9 @@ on:
         required: false
         default: false
     secrets:
+      SENTRY_AUTH_TOKEN:
+        description: Sentry token for native symbols and JavaScript source maps.
+        required: false
       MAC_CSC_LINK:
         description: Base64-encoded Developer ID Application PKCS#12 archive.
         required: false
@@ -254,6 +257,23 @@ jobs:
       - name: Verify update assets
         if: env.HERON_RELEASE_BUILD == 'true'
         run: pnpm --filter @heron/desktop verify:update-assets ${{ matrix.artifact }}
+
+      - name: Retain and upload Sentry symbols
+        if: env.HERON_RELEASE_BUILD == 'true'
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        run: pnpm --filter @heron/desktop upload:sentry-symbols
+
+      - name: Upload crash debugging artifacts
+        if: env.HERON_RELEASE_BUILD == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: heron-sentry-symbols-${{ matrix.artifact }}
+          path: release/sentry-symbols
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Upload installer
         uses: actions/upload-artifact@v7

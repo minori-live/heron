@@ -112,6 +112,7 @@ export default defineConfig({
       external: [
         "electron",
         "electron-updater",
+        "@sentry/electron/main",
         "@electric-sql/pglite",
         "@heron/dsp-node",
         ...nodeBuiltins

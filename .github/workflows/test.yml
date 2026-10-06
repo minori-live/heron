@@ -141,6 +141,13 @@ jobs:
         if: runner.os == 'Linux'
         run: mise run test:e2e
 
+      - name: Verify consent-gated Electron crash delivery
+        if: runner.os == 'Linux'
+        run: xvfb-run -a pnpm --filter @heron/desktop test:crash-reporting
+
+      - name: Verify Sentry symbol artifacts
+        run: pnpm --filter @heron/desktop test:sentry-symbols
+
       # Linux produces JavaScript LCOV in addition to the per-platform Rust report.
       # The Rust coverage orchestrators merge profiles from Cargo tests and
       # instrumented napi calls, keeping output in target-coverage/ so it stays out

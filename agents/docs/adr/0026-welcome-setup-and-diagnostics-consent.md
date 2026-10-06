@@ -5,6 +5,7 @@
 - Owners: project maintainers
 - Scope: first-run preferences and persisted consent; reporting integration is deferred
 - Related: [ADR-0005](0005-ui-boundary-and-application-preferences.md)
+- Reporting follow-up: [ADR-0027](0027-sentry-crash-reporting.md) (Proposed); the deferred-reporting statements below describe this record's original implementation.
 
 ## Context
 

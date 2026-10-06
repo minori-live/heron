@@ -13,13 +13,18 @@ current session. For the platform compatibility matrix, see
 
 On first launch, choose a light, dark, or system-following theme and an English
 or Simplified Chinese interface. Theme and language preview immediately. Choose
-whether to allow sending crash and performance data, then select **Continue**.
+whether to allow sending crash reports to Sentry, then select **Continue**.
 The welcome setup appears once; if saving fails, retry without losing your choices.
 Existing installations also see setup once when upgrading to this version.
 
-Reporting is optional and off by default. This version saves your preference;
-data reporting will become available in a future update. Change the preference
-anytime under **System settings → Display → General**.
+Reporting is optional and off by default. Enabling it takes effect after restarting
+Heron; disabling it stops new uploads immediately. Reports already in flight may
+finish. Change the preference anytime under **System settings → Display → General**.
+Reports cover Electron main-process errors and process crashes, including crashes
+in the embedded native audio addon. Native reports can be sent on the next launch
+and may contain file paths and crash memory. Reports from a revoked consent period
+are discarded. Heron does not send performance data, project files, or recordings
+as attachments. Development and test runs do not upload reports.
 
 ## Audio engine
 

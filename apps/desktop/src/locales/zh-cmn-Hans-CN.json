@@ -997,10 +997,10 @@
       }
     },
     "diagnostics": {
-      "title": "崩溃和性能数据",
+      "title": "崩溃报告",
       "description": "选择是否通过发送诊断数据帮助改进 Heron。",
-      "label": "允许发送崩溃和性能数据",
-      "choiceDescription": "此选项可选，默认关闭。你的选择会被保存，数据发送功能将在后续版本中启用。"
+      "label": "允许向 Sentry 发送崩溃报告",
+      "choiceDescription": "此选项可选，默认关闭。开启后重启 Heron 生效；关闭后立即停止新上传。报告可能包含文件路径和崩溃内存，不发送性能数据。"
     }
   },
   "effectGraph": {
