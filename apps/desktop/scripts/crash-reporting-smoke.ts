@@ -31,7 +31,14 @@ const dsn = `http://public@127.0.0.1:${address.port}/1`
 
 async function run(mode: "native" | "relaunch" | "javascript" | "revoke"): Promise<number | null> {
   return new Promise((resolve, reject) => {
-    const child = spawn(electron as string, ["--ozone-platform=x11", fixture, mode], {
+    // CI's Electron archive has no root-owned setuid sandbox helper. Match the
+    // other Linux Electron fixtures; this flag applies only to this test app.
+    const electronArguments = [
+      ...(process.platform === "linux" ? ["--ozone-platform=x11", "--no-sandbox"] : []),
+      fixture,
+      mode
+    ]
+    const child = spawn(electron as string, electronArguments, {
       cwd: fixture,
       env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
       stdio: ["ignore", "pipe", "pipe"]
