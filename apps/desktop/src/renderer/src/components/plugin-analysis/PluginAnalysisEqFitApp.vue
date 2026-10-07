@@ -68,7 +68,7 @@ const available = computed(() => {
           :revision="snapshot.revision"
           :selection-revision="snapshot.selectionRevision"
         />
-        <p v-else-if="!error" class="fit-message" role="status">
+        <p v-else-if="!error" class="fit-message empty" role="status">
           {{ t(snapshot ? "pluginAnalysis.eqFit.contextUnavailable" : "pluginAnalysis.loading") }}
         </p>
       </div>
@@ -91,14 +91,39 @@ const available = computed(() => {
   flex-shrink: 0;
 }
 .fit-workspace {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow: auto;
 }
 .fit-message {
   margin: 0;
-  padding: 20px;
-  font-size: var(--ui-type-size-control);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--ui-color-border);
   color: var(--ui-color-text-muted);
+  background: var(--ui-color-surface);
+  font-size: var(--ui-type-size-control);
+}
+.fit-message[role="alert"] {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  border-left: 3px solid var(--ui-color-danger);
+  color: var(--ui-color-text);
+  background: color-mix(in srgb, var(--ui-color-danger) 10%, var(--ui-color-surface));
+}
+.fit-message[role="alert"] > p {
+  margin: 0;
+}
+/* Without a fit context the message is the whole window, so centre it as an empty state. */
+.fit-message.empty {
+  margin: auto;
+  max-width: 420px;
+  padding: 14px 20px;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  text-align: center;
 }
 </style>

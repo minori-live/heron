@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n"
 import { UiNumberInput, UiSegmentedControl, type UiAnalysisSeries } from "@heron/ui"
 import type { PluginAnalysisReport } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
+import PluginAnalysisViewControls from "./PluginAnalysisViewControls.vue"
 const props = defineProps<{ report: PluginAnalysisReport; comparison?: PluginAnalysisReport }>()
 const { t } = useI18n()
 const channel = ref("0")
@@ -72,7 +73,12 @@ const series = computed(() => [
   ...(props.comparison
     ? makeSeries(props.comparison)
         .filter((s) => s.label === t("pluginAnalysis.output"))
-        .map((s) => ({ ...s, label: t("pluginAnalysis.chain2"), color: "var(--ui-color-action)" }))
+        .map((s) => ({
+          ...s,
+          label: t("pluginAnalysis.chain2"),
+          color: "var(--ui-color-action)",
+          dashed: true
+        }))
     : [])
 ])
 </script>
@@ -87,7 +93,7 @@ const series = computed(() => [
       :series="series"
       :smooth="false"
     />
-    <footer class="toolbar">
+    <PluginAnalysisViewControls>
       <UiSegmentedControl
         v-model="domain"
         :options="domains"
@@ -117,7 +123,7 @@ const series = computed(() => [
           :aria-label="t('pluginAnalysis.delaySamples')"
           @update:model-value="delay = $event"
       /></label>
-    </footer>
+    </PluginAnalysisViewControls>
   </section>
 </template>
 <style scoped>
@@ -126,16 +132,6 @@ const series = computed(() => [
   flex-direction: column;
   flex: 1;
   min-height: 0;
-}
-.toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 10px 16px;
-  border-top: 1px solid var(--ui-color-border);
-  background: var(--ui-color-surface-sunken);
-  font-size: var(--ui-type-size-caption);
 }
 .delay {
   display: flex;

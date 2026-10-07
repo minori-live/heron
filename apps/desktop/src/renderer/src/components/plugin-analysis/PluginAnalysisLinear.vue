@@ -10,6 +10,7 @@ import {
 } from "@heron/ui"
 import type { PluginAnalysisEqFitSelection, PluginAnalysisReport } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
+import PluginAnalysisViewControls from "./PluginAnalysisViewControls.vue"
 const props = defineProps<{
   report: PluginAnalysisReport
   comparison?: PluginAnalysisReport
@@ -80,12 +81,9 @@ const makeSeries = (report: PluginAnalysisReport, chain?: number): UiAnalysisSer
     })
     .map((p, index) => ({
       label: `${chain === undefined ? "" : t(`pluginAnalysis.chain${chain + 1}`) + " · "}${channelName(p.input, report)} → ${channelName(p.output, report)}`,
-      color:
-        chain === 1
-          ? "var(--ui-color-action)"
-          : index
-            ? "var(--ui-color-action)"
-            : "var(--ui-signal-mixer-input)",
+      // Colour identifies the channel path; the comparison chain is dashed.
+      color: index ? "var(--ui-color-action)" : "var(--ui-signal-mixer-input)",
+      dashed: chain === 1,
       x:
         view.value === "impulse"
           ? p.impulse.map(
@@ -171,7 +169,7 @@ function changeView(): void {
       :series="displayed"
       :y-domain="responseDomain"
     />
-    <footer class="toolbar">
+    <PluginAnalysisViewControls>
       <UiSegmentedControl
         v-model="view"
         :options="modes"
@@ -185,22 +183,23 @@ function changeView(): void {
         size="sm"
         :aria-label="t('pluginAnalysis.signalPath')"
       /><UiCheckbox v-model="compensate" :label="t('pluginAnalysis.compensate')" /><span
-        class="spacer"
-      /><UiButton size="sm" variant="secondary" @click="store">{{
-        t("pluginAnalysis.store")
-      }}</UiButton
-      ><UiButton size="sm" variant="ghost" :disabled="!stored.length" @click="stored = []">{{
-        t("pluginAnalysis.clear")
-      }}</UiButton>
-      <UiButton
-        v-if="eqFitEntryVisible"
-        size="sm"
-        variant="secondary"
-        :disabled="!eqFitSelection"
-        @click="emit('openEqFit')"
-        >{{ t("pluginAnalysis.eqFit.open") }}</UiButton
+        class="stored-actions"
+        ><UiButton size="sm" variant="secondary" @click="store">{{
+          t("pluginAnalysis.store")
+        }}</UiButton
+        ><UiButton size="sm" variant="ghost" :disabled="!stored.length" @click="stored = []">{{
+          t("pluginAnalysis.clear")
+        }}</UiButton
+        ><UiButton
+          v-if="eqFitEntryVisible"
+          size="sm"
+          variant="secondary"
+          :disabled="!eqFitSelection"
+          @click="emit('openEqFit')"
+          >{{ t("pluginAnalysis.eqFit.open") }}</UiButton
+        ></span
       >
-    </footer>
+    </PluginAnalysisViewControls>
   </section>
 </template>
 <style scoped>
@@ -210,19 +209,12 @@ function changeView(): void {
   flex: 1;
   min-height: 0;
 }
-.toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 10px 16px;
-  border-top: 1px solid var(--ui-color-border);
-  background: var(--ui-color-surface-sunken);
-}
-.toolbar > :deep(.ui-select-shell) {
+.linear-panel :deep(.ui-select-shell) {
   width: 140px;
 }
-.spacer {
-  flex: 1;
+.stored-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
 }
 </style>

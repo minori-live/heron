@@ -2361,7 +2361,36 @@
     "rampDuration": "每档时长",
     "segmentLevel": "第 {segment} 段电平",
     "segmentDuration": "第 {segment} 段时长",
-    "blockPerformance": "不同处理块大小的耗时"
+    "blockPerformance": "不同处理块大小的耗时",
+    "levelShort": "电平",
+    "status": {
+      "idle": "暂无结果",
+      "debouncing": "排队中",
+      "running": "正在测量",
+      "complete": "已是最新",
+      "cancelled": "已取消",
+      "failed": "失败",
+      "quarantined": "已停止"
+    },
+    "phases": {
+      "preparing": "准备插件",
+      "linear": "线性响应",
+      "harmonics": "泛音",
+      "model": "Hammerstein 模型",
+      "performance": "性能"
+    },
+    "progress": "分析进度",
+    "emptyTitle": "尚无测量结果",
+    "emptyDescription": "分析实验链后，结果将显示在这里。",
+    "measuringTitle": "正在测量…",
+    "show": "显示",
+    "settingsSections": {
+      "engine": "引擎",
+      "sweep": "线性扫频",
+      "tone": "失真",
+      "model": "Hammerstein"
+    },
+    "closeSettings": "关闭测量设置"
   },
   "onboarding": {
     "title": "欢迎使用 Heron",

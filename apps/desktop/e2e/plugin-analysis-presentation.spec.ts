@@ -21,20 +21,30 @@ async function expectAnalysisLayout(page: Page): Promise<void> {
     const workspace = chain.closest(".workspace")!.getBoundingClientRect()
     const panel = chain.getBoundingClientRect()
     const inserts = chain.querySelector('[data-section="plugins"]')!.getBoundingClientRect()
+    const report = (
+      document.querySelector(".settings-panel") ?? document.querySelector(".analysis")!
+    ).getBoundingClientRect()
     return {
       panelBottomGap: workspace.bottom - panel.bottom,
-      rackBottomGap: panel.bottom - rack.bottom,
-      insertsBottomGap: rack.bottom - inserts.bottom
+      reportRightGap: workspace.right - report.right,
+      rackInsideGap: Math.min(rack.left - panel.left, panel.right - rack.right),
+      insertsBottomGap: rack.bottom - inserts.bottom,
+      pageOverflow: document.documentElement.scrollWidth - window.innerWidth
     }
   })
+  // The sidebar spans the workspace, the rack hugs its slots, and the report never clips.
   expect(Math.abs(layout.panelBottomGap)).toBeLessThanOrEqual(1)
-  expect(layout.rackBottomGap).toBeLessThanOrEqual(16)
+  expect(Math.abs(layout.reportRightGap)).toBeLessThanOrEqual(1)
+  expect(layout.rackInsideGap).toBeGreaterThanOrEqual(8)
   expect(layout.insertsBottomGap).toBeLessThanOrEqual(2)
+  expect(layout.pageOverflow).toBeLessThanOrEqual(0)
 }
 
 async function expectReadableAnalysisText(page: Page): Promise<void> {
   const contrasts = await page
-    .locator(".rack-heading > span, .rack-heading button, .conditions, .plot-title, .legend > span")
+    .locator(
+      ".rack-heading > span, .rack-heading button, .status-label, .conditions, .plot-title, .legend > span"
+    )
     .evaluateAll((elements) => {
       const luminance = (color: string): number => {
         const channels = color
@@ -96,12 +106,16 @@ async function openAnalysis(page: Page, initial: PluginAnalysisSnapshot): Promis
   await expect(page.getByRole("button", { name: "Analyze", exact: true })).toBeVisible()
 }
 
-test("analysis rack fills the sidebar and its text stays readable after theme changes", async ({
+test("analysis layout reflows without clipping and its text stays readable after theme changes", async ({
   page
 }) => {
   await openAnalysis(page, analysisSnapshot())
-  for (const height of [700, 1000]) {
-    await page.setViewportSize({ width: 1200, height })
+  for (const [width, height] of [
+    [1200, 700],
+    [1200, 1000],
+    [900, 600]
+  ]) {
+    await page.setViewportSize({ width, height })
     await expectAnalysisLayout(page)
   }
   for (const theme of ["light", "dark", "light"]) {
@@ -116,6 +130,15 @@ test("analysis rack fills the sidebar and its text stays readable after theme ch
   await compare.press("Space")
   await expect(compare).toBeChecked()
   await expectAnalysisLayout(page)
+  const settings = page.getByRole("button", { name: "Measurement settings" })
+  await settings.click()
+  await expect(page.getByRole("complementary", { name: "Measurement settings" })).toBeVisible()
+  await expect(page.getByRole("tab", { name: "Linear", exact: true })).toBeVisible()
+  await expectAnalysisLayout(page)
+  // Closing from inside the panel returns keyboard focus to the control that opened it.
+  await page.getByRole("button", { name: "Close measurement settings" }).press("Enter")
+  await expect(page.getByRole("complementary", { name: "Measurement settings" })).toHaveCount(0)
+  await expect(settings).toBeFocused()
 })
 
 test("a full analysis chain scrolls within the sidebar in a short window", async ({ page }) => {

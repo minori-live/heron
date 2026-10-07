@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n"
 import { UiSegmentedControl, type UiAnalysisSeries } from "@heron/ui"
 import type { PluginAnalysisReport } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
+import PluginAnalysisViewControls from "./PluginAnalysisViewControls.vue"
 const props = defineProps<{ report: PluginAnalysisReport; comparison?: PluginAnalysisReport }>()
 const { t } = useI18n()
 const channel = ref("0")
@@ -72,7 +73,7 @@ const series = computed(() => [
       :series="series"
       :smooth="view === 'ramp'"
     />
-    <footer class="toolbar">
+    <PluginAnalysisViewControls>
       <UiSegmentedControl
         v-model="view"
         :options="views"
@@ -86,7 +87,7 @@ const series = computed(() => [
         size="compact"
         required
       />
-    </footer>
+    </PluginAnalysisViewControls>
   </section>
 </template>
 <style scoped>
@@ -95,14 +96,5 @@ const series = computed(() => [
   flex-direction: column;
   flex: 1;
   min-height: 0;
-}
-.toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 10px 16px;
-  border-top: 1px solid var(--ui-color-border);
-  background: var(--ui-color-surface-sunken);
 }
 </style>

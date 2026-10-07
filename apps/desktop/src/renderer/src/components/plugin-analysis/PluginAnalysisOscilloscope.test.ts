@@ -1,10 +1,17 @@
-import { shallowMount, type VueWrapper } from "@vue/test-utils"
+import { config, shallowMount, type VueWrapper } from "@vue/test-utils"
 import { nextTick } from "vue"
 import { describe, expect, it } from "vitest"
 import { UiNumberInput, UiSegmentedControl } from "@heron/ui"
 import { analysisReport } from "../../test/plugin-analysis"
 import PluginAnalysisOscilloscope from "./PluginAnalysisOscilloscope.vue"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
+
+// View-control bars and readout strips are layout wrappers; render their slotted content.
+config.global.stubs = {
+  ...config.global.stubs,
+  PluginAnalysisViewControls: false,
+  PluginAnalysisReadouts: false
+}
 
 function report() {
   const value = analysisReport()

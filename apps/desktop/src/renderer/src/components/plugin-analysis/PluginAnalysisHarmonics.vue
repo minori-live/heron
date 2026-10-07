@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n"
 import { UiNumberInput, UiSegmentedControl, UiSelect, type UiAnalysisHeatmap } from "@heron/ui"
 import type { PluginAnalysisReport } from "@heron/contracts"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
+import PluginAnalysisViewControls from "./PluginAnalysisViewControls.vue"
 const props = defineProps<{ report: PluginAnalysisReport; comparison?: PluginAnalysisReport }>()
 const { t } = useI18n()
 const channel = ref("0")
@@ -149,7 +150,7 @@ const title = computed(() =>
       "
       :color-domain="[colorMin, colorMax]"
     />
-    <footer class="toolbar">
+    <PluginAnalysisViewControls>
       <UiSegmentedControl
         v-model="view"
         :options="views"
@@ -208,7 +209,7 @@ const title = computed(() =>
           size="sm"
           :aria-label="t('pluginAnalysis.magnitudeScale')"
       /></template>
-    </footer>
+    </PluginAnalysisViewControls>
   </section>
 </template>
 <style scoped>
@@ -218,20 +219,10 @@ const title = computed(() =>
   flex: 1;
   min-height: 0;
 }
-.toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 10px 16px;
-  border-top: 1px solid var(--ui-color-border);
-  background: var(--ui-color-surface-sunken);
-  font-size: var(--ui-type-size-caption);
-}
 .energy-controls > :deep(.ui-number-input) {
   width: 104px;
 }
-.toolbar > :deep(.ui-select-shell) {
+.harmonics-panel :deep(.ui-select-shell) {
   width: 210px;
 }
 .sweep-controls,

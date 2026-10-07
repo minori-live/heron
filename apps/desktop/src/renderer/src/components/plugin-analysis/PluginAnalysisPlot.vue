@@ -38,6 +38,7 @@ withDefaults(
         ><span
           v-for="(item, index) in series"
           :key="index"
+          :class="{ dashed: item.dashed }"
           :style="{
             '--analysis-series-color':
               item.color ?? (index ? 'var(--ui-color-action)' : 'var(--ui-signal-mixer-input)')
@@ -63,6 +64,7 @@ withDefaults(
         :heatmap="heatmap"
         :color-domain="colorDomain"
       />
+      <div v-if="$slots.overlay" class="plot-overlay"><slot name="overlay" /></div>
     </div>
   </figure>
 </template>
@@ -71,6 +73,7 @@ withDefaults(
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
   min-height: 0;
   margin: 0;
   background: var(--ui-color-canvas-subtle);
@@ -79,32 +82,48 @@ figcaption {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 4px 16px;
   min-height: 40px;
-  padding: 0 24px 0 64px;
+  padding: 8px 24px 0 64px;
 }
 .plot-title {
-  font-size: var(--ui-type-size-control);
-  color: var(--ui-color-text-muted);
+  color: var(--ui-color-text);
+  font-size: var(--ui-type-size-panel-title);
+  font-weight: var(--ui-type-weight-medium);
 }
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 4px 16px;
   color: var(--ui-color-text-muted);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
 }
+.legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 .legend > span::before {
   content: "";
-  display: inline-block;
-  width: 12px;
-  height: 2px;
-  margin-right: 6px;
-  background: var(--analysis-series-color);
-  vertical-align: middle;
+  width: 14px;
+  border-top: 2px solid var(--analysis-series-color);
+}
+.legend > span.dashed::before {
+  border-top-style: dashed;
 }
 .plot-stage {
+  position: relative;
   flex: 1;
+  min-width: 0;
   min-height: 200px;
+  overflow: hidden;
+}
+.plot-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
 }
 </style>

@@ -3,6 +3,8 @@ import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { UiSegmentedControl } from "@heron/ui"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
+import PluginAnalysisReadouts from "./PluginAnalysisReadouts.vue"
+import PluginAnalysisViewControls from "./PluginAnalysisViewControls.vue"
 import type { PluginAnalysisReport } from "@heron/contracts"
 const props = defineProps<{ report: PluginAnalysisReport; comparison?: PluginAnalysisReport }>()
 const { t } = useI18n()
@@ -25,17 +27,38 @@ const series = computed(() =>
           : t("pluginAnalysis.output"),
         x: spectrum.frequency_hz,
         y: spectrum.magnitude_dbfs,
-        color: index ? "var(--ui-color-action)" : "var(--ui-signal-mixer-input)"
+        color: index ? "var(--ui-color-action)" : "var(--ui-signal-mixer-input)",
+        dashed: index === 1
       }
     ]
   })
 )
 function percent(value: number | null | undefined): string {
-  return value === null || value === undefined ? "—" : `${value.toFixed(3)}%`
+  return value === null || value === undefined ? "—" : value.toFixed(3)
 }
+const readouts = computed(() => [
+  {
+    label: t("pluginAnalysis.thdValue"),
+    value: percent(distortion.value?.thd_percent),
+    unit: "%",
+    detail: distortion.value ? `${distortion.value.tone_hz.toFixed(1)} Hz` : undefined
+  },
+  {
+    label: t("pluginAnalysis.thdPlusNoise"),
+    value: percent(distortion.value?.thd_plus_n_percent),
+    unit: "%"
+  },
+  {
+    label: t("pluginAnalysis.imd"),
+    value: percent(distortion.value?.imd_percent),
+    unit: "%",
+    detail: t("pluginAnalysis.imdTones")
+  }
+])
 </script>
 <template>
   <section class="distortion-panel">
+    <PluginAnalysisReadouts :items="readouts" />
     <PluginAnalysisPlot
       :title="mode === 'tone' ? t('pluginAnalysis.thdValue') : t('pluginAnalysis.imd')"
       x-label="Hz"
@@ -45,23 +68,7 @@ function percent(value: number | null | undefined): string {
       :series="series"
       :y-domain="[-160, 12]"
     />
-    <div class="metrics">
-      <article>
-        <h3>{{ t("pluginAnalysis.thdValue") }}</h3>
-        <strong>{{ percent(distortion?.thd_percent) }}</strong>
-        <p>{{ distortion ? `${distortion.tone_hz.toFixed(1)} Hz` : "" }}</p>
-      </article>
-      <article>
-        <h3>{{ t("pluginAnalysis.thdPlusNoise") }}</h3>
-        <strong>{{ percent(distortion?.thd_plus_n_percent) }}</strong>
-      </article>
-      <article>
-        <h3>{{ t("pluginAnalysis.imd") }}</h3>
-        <strong>{{ percent(distortion?.imd_percent) }}</strong>
-        <p>{{ t("pluginAnalysis.imdTones") }}</p>
-      </article>
-    </div>
-    <footer class="toolbar">
+    <PluginAnalysisViewControls>
       <UiSegmentedControl
         v-model="mode"
         :options="[
@@ -69,6 +76,7 @@ function percent(value: number | null | undefined): string {
           { value: 'imd', label: t('pluginAnalysis.imd') }
         ]"
         :label="t('pluginAnalysis.displayMode')"
+        size="compact"
         required
       />
       <UiSegmentedControl
@@ -78,7 +86,7 @@ function percent(value: number | null | undefined): string {
         size="compact"
         required
       />
-    </footer>
+    </PluginAnalysisViewControls>
   </section>
 </template>
 <style scoped>
@@ -87,43 +95,5 @@ function percent(value: number | null | undefined): string {
   flex: 1;
   min-height: 0;
   flex-direction: column;
-}
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  align-content: center;
-  gap: 24px;
-  padding: 8px 16px;
-  background: var(--ui-color-canvas-subtle);
-}
-article {
-  min-width: 0;
-  padding: 8px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 6px;
-  background: var(--ui-color-surface);
-}
-h3 {
-  margin: 0 0 4px;
-  color: var(--ui-color-text-muted);
-  font-size: var(--ui-type-size-caption);
-  font-weight: var(--ui-type-weight-regular);
-}
-strong {
-  font: var(--ui-type-size-page-title) var(--ui-type-family-data);
-  color: var(--ui-signal-mixer-input);
-}
-article p {
-  margin: 10px 0 0;
-  color: var(--ui-color-text-subtle);
-  font-size: var(--ui-type-size-caption);
-}
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  border-top: 1px solid var(--ui-color-border);
-  background: var(--ui-color-surface-sunken);
 }
 </style>

@@ -36,13 +36,19 @@ Input accepts −60 through +12 dBFS peak, referenced to amplitude 1.0. Floating
 point values above ±1 are preserved without clipping, normalization, integer PCM
 conversion or hardware output, allowing intentional limiter overload testing.
 
-The analysis window uses one dominant scientific plot with mode controls below
-it, following the supplied Plugindoctor v2.6 manual. The experiment chain uses
-MixerPluginSection directly, including the same picker, insert faces and gestures.
-The window reuses AppTitleBar, including its HeronLogo, platform safe area and
-window controls. Visible surfaces contain controls and measurement results;
-chain instructions, catalog counts, footer explanations, implementation notes
-and debounce/job diagnostics are omitted. Plugin Analysis naming is shared by window ownership, preload authority, IPC
+The analysis window uses one dominant scientific plot with per-view mode
+controls below it, following the supplied Plugindoctor v2.6 manual. Measurement
+commands (Analyze, Cancel, automatic and repeat analysis, input level and
+channel mode) share one command bar above the report, beside a single run state
+that names the current phase and determinate progress. Headline values sit in a
+neutral readout strip above their plot. Measurement settings open in a docked,
+non-modal inspector so results remain visible while settings change. The
+experiment chain uses MixerPluginSection directly, including the same picker,
+insert faces and gestures, in a sidebar that also owns chain comparison. The
+window reuses AppTitleBar, including its HeronLogo, platform safe area and
+window controls. Visible surfaces contain controls, run state and measurement
+results; chain instructions, catalog counts, footer explanations,
+implementation notes and debounce timing or job identifiers are omitted. Plugin Analysis naming is shared by window ownership, preload authority, IPC
 resources, native jobs, generated report types and renderer entrypoints.
 Unavailable effects remain discoverable with their compatibility reason. An
 explicit Rescan command refreshes bundled probes and external discovery inside
