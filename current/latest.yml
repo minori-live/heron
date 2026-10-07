@@ -1,8 +1,8 @@
-version: 0.6.3
+version: 0.6.4
 files:
-  - url: https://github.com/minori-live/heron/releases/download/v0.6.3/Heron-0.6.3-win-x64.exe
-    sha512: xT8sNA2DcSvBYhLIT5DSXXKi3StS+n/lv+NZtuQraXJUbMmeY9rQEHz1mP2RTucv4P9Zz7PDGiUOvUvFQk/z5g==
-    size: 175432514
-path: https://github.com/minori-live/heron/releases/download/v0.6.3/Heron-0.6.3-win-x64.exe
-sha512: xT8sNA2DcSvBYhLIT5DSXXKi3StS+n/lv+NZtuQraXJUbMmeY9rQEHz1mP2RTucv4P9Zz7PDGiUOvUvFQk/z5g==
-releaseDate: 2026-10-05T13:31:36.533Z
+  - url: https://github.com/minori-live/heron/releases/download/v0.6.4/Heron-0.6.4-win-x64.exe
+    sha512: cWZvGKB5gxA3QPGmtHua1Tj65FmiZfLf4zayStDGBm9lVvbetBJ+xBGg3Ta8XhGIt47iq2YHJYOxIiF88bWzAQ==
+    size: 184572192
+path: https://github.com/minori-live/heron/releases/download/v0.6.4/Heron-0.6.4-win-x64.exe
+sha512: cWZvGKB5gxA3QPGmtHua1Tj65FmiZfLf4zayStDGBm9lVvbetBJ+xBGg3Ta8XhGIt47iq2YHJYOxIiF88bWzAQ==
+releaseDate: 2026-10-06T19:28:47.821Z
