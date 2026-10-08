@@ -15,8 +15,8 @@ use heron_audio_host::editor_platform::{
     NativeUiContext,
 };
 use heron_vst3_host::{
-    AudioLayout, ClassId, EditorParameterGesture, HostedPlugin, PlugFrame, PlugView, PluginKind,
-    ViewRect,
+    AudioLayout, ClassId, EditorParameterGesture, HostedPlugin, Module, PlugFrame, PlugView,
+    PluginKind, ViewRect,
 };
 use windows::{
     Win32::{
@@ -54,6 +54,10 @@ fn hosted_eq_controls_follow_visible_positions_after_repeated_native_resizes() {
     let _dpi = DpiContext::new();
     let _ui = NativeUiContext::initialize().expect("initialize native editor UI thread");
     let parent = HiddenParent::new();
+    // Match the Windows runtime's module retention while keeping each case a
+    // fresh plug-in. Native background work may outlive a closed HWND, so no
+    // case may unload the DLL before the suite's final editor has detached.
+    let mut module_leases = Vec::new();
     let display_scale = unsafe {
         // SAFETY: the hidden parent is a live HWND owned by this test thread.
         f64::from(GetDpiForWindow(parent.0)) / 96.0
@@ -65,7 +69,7 @@ fn hosted_eq_controls_follow_visible_positions_after_repeated_native_resizes() {
         eprintln!(
             "native EQ display={display_scale}, host zoom={host_zoom}, content scale={content_scale}"
         );
-        let mut editor = AttachedEditor::new(parent.0, content_scale);
+        let mut editor = AttachedEditor::new(parent.0, content_scale, &mut module_leases);
         for (width, height) in [(1120, 760), (1500, 950), (1040, 700), (1120, 760)] {
             editor.resize(parent.0, width, height, content_scale);
             verify_controls(&editor, parent.0, width, height, content_scale);
@@ -73,7 +77,7 @@ fn hosted_eq_controls_follow_visible_positions_after_repeated_native_resizes() {
     }
 
     // Retain this same attachment so changing zoom cannot hide behind reopening.
-    let mut editor = AttachedEditor::new(parent.0, display_scale);
+    let mut editor = AttachedEditor::new(parent.0, display_scale, &mut module_leases);
     for host_zoom in [1.0, 1.25, 1.0] {
         let content_scale = display_scale * host_zoom;
         // Match Heron's set_zoom path: scale, read view size and resize only
@@ -205,6 +209,14 @@ fn verify_close_and_reopen(editor: &mut AttachedEditor, parent: HWND, scale: f64
     start_drag(child, start, end);
     editor.wait_value(104, previous + 3.0, 0.25);
     let retained = editor.value(104);
+    let retained_frequency = editor.value(103);
+    let retained_q = editor.value(105);
+    let present: Vec<_> = (0..24_u32)
+        .map(|slot| {
+            let id = 100 + slot * 32;
+            (id, editor.value(id))
+        })
+        .collect();
     editor.close();
     assert_balanced_gesture(editor.plugin.take_editor_parameter_gestures(), 104);
     assert_eq!(
@@ -223,6 +235,26 @@ fn verify_close_and_reopen(editor: &mut AttachedEditor, parent: HWND, scale: f64
     editor.resize(parent, 1120, 760, scale);
     assert_eq!(editor.value(104), retained);
     assert!(editor.plugin.take_editor_parameter_gestures().is_empty());
+    // HWND geometry and focus do not establish that the asynchronously
+    // initialized GPU/UI has consumed input. Observe a reversible public
+    // control before issuing the otherwise unobservable selection click;
+    // queued clicks must not share the later Gain gesture's cursor position.
+    let bypass = editor.value(1);
+    for value in [1.0 - bypass, bypass] {
+        click(editor.child(), physical(24.0, 740.0, scale));
+        editor.wait_value(1, value, 1.0e-9);
+        assert_balanced_gesture(editor.plugin.take_editor_parameter_gestures(), 1);
+    }
+    assert_eq!(editor.value(104), retained);
+    assert_eq!(editor.value(103), retained_frequency);
+    assert_eq!(editor.value(105), retained_q);
+    for (id, value) in present {
+        assert_eq!(
+            editor.value(id),
+            value,
+            "readiness input changed band presence {id}"
+        );
+    }
     let node_x = 42.0 + (1000.0_f64 / 10.0).ln() / 3000.0_f64.ln() * 1050.0;
     click(
         editor.child(),
@@ -377,20 +409,22 @@ struct AttachedEditor {
 }
 
 impl AttachedEditor {
-    fn new(parent: HWND, scale: f64) -> Self {
+    fn new(parent: HWND, scale: f64, module_leases: &mut Vec<Rc<Module>>) -> Self {
         let bundle =
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/bundles/Heron EQ.vst3");
         let class = "8A8341D5CA36B6C9A9572788F40EBB9F"
             .parse::<ClassId>()
             .unwrap();
-        let plugin = HostedPlugin::create_with_layout(
+        let (plugin, module_lease) = HostedPlugin::create_with_layout_and_hook(
             bundle,
             class,
             48_000.0,
             PluginKind::Effect,
             AudioLayout::Stereo,
+            |module, _| Ok(Rc::clone(module)),
         )
         .expect("load packaged native Heron EQ");
+        module_leases.push(module_lease);
         assert!(
             !plugin
                 .parameters()
