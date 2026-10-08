@@ -108,14 +108,14 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
     await level.press("End")
     for (let step = 0; step < 12; step++) await level.press("ArrowLeft")
     await expect(level).toHaveValue("6")
-    await pluginAnalysis.getByRole("button", { name: "Measurement settings" }).click()
+    await pluginAnalysis.getByRole("button", { name: "Measurement settings", exact: true }).click()
     await pluginAnalysis.getByRole("combobox", { name: "Linear excitation" }).selectOption("delta")
     await pluginAnalysis.getByRole("combobox", { name: "FFT size" }).selectOption("32768")
     await pluginAnalysis.screenshot({
       path: test.info().outputPath("settings.png"),
       fullPage: true
     })
-    await pluginAnalysis.getByRole("button", { name: "Measurement settings" }).click()
+    await pluginAnalysis.getByRole("button", { name: "Measurement settings", exact: true }).click()
     await pluginAnalysis.getByRole("button", { name: "Analyze", exact: true }).click()
     await expect(pluginAnalysis.getByText(/\+6\.0 dBFS/).first()).toBeVisible()
     // The slider text is only a preview; wait for the native report and assert its

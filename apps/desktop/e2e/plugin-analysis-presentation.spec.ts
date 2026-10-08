@@ -130,7 +130,7 @@ test("analysis layout reflows without clipping and its text stays readable after
   await compare.press("Space")
   await expect(compare).toBeChecked()
   await expectAnalysisLayout(page)
-  const settings = page.getByRole("button", { name: "Measurement settings" })
+  const settings = page.getByRole("button", { name: "Measurement settings", exact: true })
   await settings.click()
   await expect(page.getByRole("complementary", { name: "Measurement settings" })).toBeVisible()
   await expect(page.getByRole("tab", { name: "Linear", exact: true })).toBeVisible()
