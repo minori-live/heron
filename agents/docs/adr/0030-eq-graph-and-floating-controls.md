@@ -81,6 +81,17 @@ Forced-size mouse remapping belongs only to the Windows platform-scaling
 fallback. An unchanged extent or replacement child window must not retain a
 stale transform in the native-scaled path.
 
+For the Windows embedded editor, an announced host content scale includes
+both display DPI and additional host zoom. That scale governs native window
+size, rendering and mouse conversion together; later display DPI notifications
+must not overwrite it or resize the child to an OS-suggested rectangle. The
+host owns the accepted physical extent, while the editor applies queued
+logical resizes at the current content scale. Standalone windows and embedded
+windows without an announced content scale retain their system DPI policy.
+The pinned Truce/baseview dependency patches implement this existing ownership
+rule; their versions and original source provenance remain recorded alongside
+the vendored copies.
+
 EQ bands use static filters. Dynamic EQ, spectral dynamics, their controls and
 local drawing/history workflows are removed from the processor/editor contract.
 

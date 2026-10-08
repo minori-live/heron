@@ -371,8 +371,6 @@ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 [[package]]
 name = "baseview-truce"
 version = "0.1.1-truce.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5dc830ece0415c778e700c97d38bb28f4d8af0280f9d140f50ea094d0fed3e27"
 dependencies = [
  "keyboard-types",
  "nix",
@@ -4252,8 +4250,6 @@ dependencies = [
 [[package]]
 name = "truce-gui"
 version = "6.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1c02b25b56744d33cda126dba764bff6dd00839dbf94d322fd5c646a926d39d"
 dependencies = [
  "baseview-truce",
  "log",
@@ -4297,8 +4293,6 @@ dependencies = [
 [[package]]
 name = "truce-iced"
 version = "6.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebce0f17416819460410786fba2f3f6c18f5514f7013da2fe6bcc20a3b4d5295"
 dependencies = [
  "baseview-truce",
  "iced_core",

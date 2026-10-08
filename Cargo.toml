@@ -97,6 +97,12 @@ heron-iced-ui = { path = "crates/iced-ui" }
 heron-plugin-ui = { path = "plugins/heron-plugin-ui" }
 
 [patch.crates-io]
+# Preserve one Windows host content scale across the bundled native editor's
+# window, rendering and input. See each vendored crate's PATCHES.md.
+baseview-truce = { path = "third_party/baseview-truce" }
+truce-gui = { path = "third_party/truce-gui" }
+# Forward native focus loss to the bundled editor's existing gesture cleanup.
+truce-iced = { path = "third_party/truce-iced" }
 # The published testkit depends on the published host crate. Redirect that edge
 # to the audited in-tree host implementation so integration tests exercise the
 # same code that ships and Cargo never links two ABI-identical host runtimes.
