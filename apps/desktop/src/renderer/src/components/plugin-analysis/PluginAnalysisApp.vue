@@ -1,23 +1,15 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue"
+import { computed, nextTick, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
-import { Settings2 } from "@lucide/vue"
-import {
-  UiButton,
-  UiCheckbox,
-  UiIconButton,
-  UiPopover,
-  UiProvider,
-  UiSegmentedControl,
-  UiSlider,
-  useLocaleFonts
-} from "@heron/ui"
+import { X } from "@lucide/vue"
+import { UiIconButton, UiProvider, useLocaleFonts } from "@heron/ui"
 import { usePluginAnalysis } from "../../composables/usePluginAnalysis"
 import { useTheme } from "../../composables/useTheme"
 import { setAppLocale } from "../../i18n"
 import { rekaLocale } from "../../../../shared/i18n"
 import AppTitleBar from "../application/AppTitleBar.vue"
 import PluginAnalysisChain from "./PluginAnalysisChain.vue"
+import PluginAnalysisCommandBar from "./PluginAnalysisCommandBar.vue"
 import PluginAnalysisSettings from "./PluginAnalysisSettings.vue"
 import PluginAnalysisReport from "./PluginAnalysisReport.vue"
 import { useEqFitWindowSelection } from "./useEqFitWindowSelection"
@@ -29,32 +21,22 @@ useLocaleFonts(locale)
 useTheme(computed(() => snapshot.value?.theme ?? "dark"))
 watch(locale, setAppLocale, { immediate: true })
 const quarantined = computed(() => snapshot.value?.status === "quarantined")
-const running = computed(
-  () => snapshot.value?.status === "running" || snapshot.value?.status === "debouncing"
-)
-const activeChain = ref("0")
-const inputLevel = ref(-18)
-watch(
-  () => snapshot.value?.settings.level_dbfs,
-  (value) => {
-    if (value !== undefined) inputLevel.value = value
-  },
-  { immediate: true }
-)
-const inputLevelText = computed(
-  () => `${inputLevel.value > 0 ? "+" : ""}${inputLevel.value.toFixed(1)} dBFS`
-)
-const conditions = computed(() =>
-  t("pluginAnalysis.conditions", {
-    rate: (snapshot.value?.settings.sample_rate ?? 0) / 1000,
-    block: snapshot.value?.settings.block_size ?? 0,
-    samples: t("pluginAnalysis.samples")
-  })
-)
-const channelModes = computed(() => [
-  { value: "left-right", label: t("pluginAnalysis.leftRight") },
-  { value: "mid-side", label: t("pluginAnalysis.midSide") }
-])
+const settingsOpen = ref(false)
+watch(quarantined, (value) => {
+  if (value) settingsOpen.value = false
+})
+// Closing the docked panel removes its focused close button; return focus to the
+// control that opened it unless the user has already moved focus elsewhere.
+let settingsTrigger: HTMLElement | null = null
+watch(settingsOpen, async (open) => {
+  if (open) {
+    settingsTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    return
+  }
+  await nextTick()
+  const active = document.activeElement
+  if ((!active || active === document.body) && settingsTrigger?.isConnected) settingsTrigger.focus()
+})
 </script>
 <template>
   <UiProvider :locale="rekaLocale(locale)"
@@ -77,112 +59,73 @@ const channelModes = computed(() => [
           })
         "
       />
-      <div v-if="snapshot" class="workspace">
-        <aside class="chains">
-          <UiSegmentedControl
-            v-if="snapshot.comparisonEnabled"
-            v-model="activeChain"
-            :options="[
-              { value: '0', label: t('pluginAnalysis.chain1') },
-              { value: '1', label: t('pluginAnalysis.chain2') }
-            ]"
-            :label="t('pluginAnalysis.chain')"
-            required
-          />
+      <template v-if="snapshot">
+        <PluginAnalysisCommandBar
+          :snapshot="snapshot"
+          :settings-open="settingsOpen"
+          @command="command"
+          @configure="configure"
+          @toggle-settings="settingsOpen = !settingsOpen"
+        />
+        <div class="workspace">
           <PluginAnalysisChain
-            :chain="snapshot.comparisonEnabled && activeChain === '1' ? 1 : 0"
             :snapshot="snapshot"
             :catalog-busy="catalogBusy"
             @command="command"
           />
-        </aside>
-        <section class="analysis">
-          <div class="analysis-heading">
-            <UiCheckbox
-              :model-value="snapshot.comparisonEnabled"
-              :label="t('pluginAnalysis.compareChains')"
-              :disabled="quarantined"
-              @update:model-value="command({ type: 'comparison', enabled: $event })"
+          <section class="analysis">
+            <p
+              v-if="error || snapshot.failure || eqFitWindow.error.value"
+              class="notice"
+              role="alert"
+            >
+              {{
+                error ||
+                (snapshot.failure
+                  ? t(`pluginAnalysis.failures.${snapshot.failure}`)
+                  : t("pluginAnalysis.eqFit.openFailed"))
+              }}
+            </p>
+            <PluginAnalysisReport
+              :snapshot="snapshot"
+              @eq-fit-selection="eqFitWindow.select"
+              @open-eq-fit="eqFitWindow.open"
             />
-            <span class="conditions">{{ conditions }}</span
-            ><UiSegmentedControl
-              :model-value="snapshot.settings.mid_side ? 'mid-side' : 'left-right'"
-              :options="channelModes"
-              :label="t('pluginAnalysis.channelMode')"
-              size="compact"
-              required
-              :disabled="quarantined"
-              @update:model-value="configure({ mid_side: $event === 'mid-side' })"
-            /><UiPopover align="end"
-              ><template #trigger
-                ><UiIconButton
-                  :label="t('pluginAnalysis.measurementSettings')"
-                  size="sm"
-                  variant="ghost"
-                  :disabled="quarantined"
-                  ><Settings2 :size="15" /></UiIconButton></template
-              ><PluginAnalysisSettings :settings="snapshot.settings" @configure="configure"
-            /></UiPopover>
-          </div>
-          <p v-if="error || snapshot.failure || eqFitWindow.error.value" class="error" role="alert">
-            {{
-              error ||
-              (snapshot.failure
-                ? t(`pluginAnalysis.failures.${snapshot.failure}`)
-                : t("pluginAnalysis.eqFit.openFailed"))
-            }}
-          </p>
-          <p v-if="snapshot.report && snapshot.reportRevision !== snapshot.revision" class="stale">
-            {{ t("pluginAnalysis.stale") }}
-          </p>
-          <PluginAnalysisReport
-            :snapshot="snapshot"
-            @eq-fit-selection="eqFitWindow.select"
-            @open-eq-fit="eqFitWindow.open"
-          />
-          <footer class="measurement-controls" :inert="quarantined || undefined">
-            <div class="input-level">
-              <span>{{ t("pluginAnalysis.level") }}</span
-              ><UiSlider
-                id="plugin-analysis-input-level"
-                v-model="inputLevel"
-                :min="-60"
-                :max="12"
-                :step="0.5"
-                :label="t('pluginAnalysis.level')"
-                :value-text="inputLevelText"
-                @change="configure({ level_dbfs: inputLevel })"
-              /><output for="plugin-analysis-input-level">{{ inputLevelText }}</output>
-            </div>
-            <UiCheckbox
-              :model-value="snapshot.automatic"
-              :label="t('pluginAnalysis.automatic')"
-              @update:model-value="command({ type: 'automatic', enabled: $event })"
-            />
-            <UiCheckbox
-              :model-value="snapshot.repeating"
-              :label="t('pluginAnalysis.repeat')"
-              @update:model-value="command({ type: 'repeat', enabled: $event })"
-            />
-            <div class="measurement-actions">
-              <UiButton
-                v-if="running"
+          </section>
+          <aside
+            v-if="settingsOpen"
+            id="plugin-analysis-settings"
+            class="settings-panel"
+            :aria-label="t('pluginAnalysis.measurementSettings')"
+          >
+            <header class="settings-heading">
+              <h2>{{ t("pluginAnalysis.measurementSettings") }}</h2>
+              <UiIconButton
+                :label="t('pluginAnalysis.closeSettings')"
                 size="sm"
-                variant="secondary"
-                @click="command({ type: 'cancel' })"
-                >{{ t("pluginAnalysis.cancel") }}</UiButton
-              ><UiButton size="sm" @click="command({ type: 'analyze' })">{{
-                t("pluginAnalysis.analyze")
-              }}</UiButton>
-            </div>
-          </footer>
-        </section>
-      </div>
+                variant="ghost"
+                @click="settingsOpen = false"
+                ><X :size="14"
+              /></UiIconButton>
+            </header>
+            <PluginAnalysisSettings :settings="snapshot.settings" @configure="configure" />
+          </aside>
+        </div>
+      </template>
       <p v-else class="loading" role="status">{{ t("pluginAnalysis.loading") }}</p>
     </main></UiProvider
   >
 </template>
 <style scoped>
+/* The window is a standalone instrument, so dense roles read at panel size.
+   The insert rack keeps Mixer density and is deliberately excluded. */
+.plugin-analysis-command-bar,
+.analysis,
+.settings-panel {
+  --ui-type-size-control: var(--ui-type-size-section-title);
+  --ui-type-size-caption: var(--ui-type-size-label);
+  --ui-type-size-micro: var(--ui-type-size-label);
+}
 .plugin-analysis-app {
   display: flex;
   flex-direction: column;
@@ -194,87 +137,56 @@ const channelModes = computed(() => [
 .analysis-titlebar {
   flex-shrink: 0;
 }
-.chains {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  min-height: 0;
-}
 .workspace {
   display: flex;
   flex: 1;
   min-height: 0;
 }
 .analysis {
-  --ui-type-size-control: var(--ui-type-size-section-title);
-  --ui-type-size-caption: var(--ui-type-size-label);
-  --ui-type-size-micro: var(--ui-type-size-label);
   display: flex;
   flex: 1;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
 }
-.analysis-heading {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 14px;
-  min-height: 44px;
-  padding: 0 14px 0 20px;
-  border-bottom: 1px solid var(--ui-color-border);
-}
-.conditions {
-  color: var(--ui-color-text-subtle);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
-}
-.measurement-controls {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 14px;
-  padding: 10px 14px;
-  border-top: 1px solid var(--ui-color-border);
-  background: var(--ui-color-surface-sunken);
-  font-size: var(--ui-type-size-caption);
-}
-.input-level {
-  display: grid;
-  grid-template-columns: minmax(100px, 160px) auto;
-  align-items: center;
-  column-gap: 10px;
-  flex: 0 1 240px;
-  min-width: 200px;
-}
-.input-level > span {
-  grid-column: 1 / -1;
-}
-.input-level output {
-  min-width: 72px;
-  font-family: var(--ui-type-family-data);
-  text-align: right;
-}
-.measurement-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: auto;
-}
-.error,
-.stale {
+.notice {
   margin: 0;
   padding: 8px 16px;
-  font-size: var(--ui-type-size-caption);
   border-bottom: 1px solid var(--ui-color-border);
+  border-left: 3px solid var(--ui-color-danger);
+  color: var(--ui-color-text);
+  background: color-mix(in srgb, var(--ui-color-danger) 10%, var(--ui-color-surface));
+  font-size: var(--ui-type-size-caption);
 }
-.error {
-  color: var(--ui-color-danger);
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: 320px;
+  min-height: 0;
+  overflow-y: auto;
+  border-left: 1px solid var(--ui-color-border);
+  background: var(--ui-color-surface);
 }
-.stale,
-.loading {
-  color: var(--ui-color-text-muted);
+.settings-heading {
+  position: sticky;
+  top: 0;
+  z-index: var(--ui-z-local-sticky);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  padding: 0 8px 0 16px;
+  border-bottom: 1px solid var(--ui-color-border);
+  background: var(--ui-color-surface);
+}
+.settings-heading h2 {
+  margin: 0;
+  font-size: var(--ui-type-size-panel-title);
+  font-weight: var(--ui-type-weight-semibold);
 }
 .loading {
   padding: 40px;
+  color: var(--ui-color-text-muted);
 }
 </style>

@@ -113,7 +113,7 @@ const plotSeries = computed<UiAnalysisSeries[]>(() => {
             label: `${t("pluginAnalysis.eqFit.fitted")} · ${targetLabel.value}`,
             x: response.value.frequency_hz,
             y: result.value.fittedDb,
-            color: "var(--ui-color-warning)",
+            color: "var(--ui-color-action)",
             dashed: true
           }
         ]
@@ -148,8 +148,7 @@ function fit(): void {
     :aria-label="t('pluginAnalysis.eqFit.title')"
     :aria-busy="status === 'running'"
   >
-    <div class="fit-controls">
-      <strong class="fit-title">{{ t("pluginAnalysis.eqFit.title") }}</strong>
+    <header class="fit-bar">
       <UiSelect
         v-if="mode === 'parallel'"
         v-model="chain"
@@ -170,36 +169,45 @@ function fit(): void {
           :aria-label="t('pluginAnalysis.eqFit.quota')"
         />
       </label>
-      <UiButton size="sm" :disabled="!!unavailable || status === 'running'" @click="fit">
-        {{
-          t(
-            status === "running"
-              ? "pluginAnalysis.eqFit.running"
-              : result
-                ? "pluginAnalysis.eqFit.again"
-                : "pluginAnalysis.eqFit.run"
-          )
-        }}
-      </UiButton>
-      <UiButton v-if="status === 'running'" size="sm" variant="secondary" @click="cancel">{{
-        t("pluginAnalysis.eqFit.cancel")
-      }}</UiButton>
-    </div>
-    <p v-if="unavailable" class="fit-note" role="status">
+      <div class="fit-actions">
+        <UiButton
+          size="sm"
+          variant="primary"
+          :disabled="!!unavailable || status === 'running'"
+          @click="fit"
+        >
+          {{
+            t(
+              status === "running"
+                ? "pluginAnalysis.eqFit.running"
+                : result
+                  ? "pluginAnalysis.eqFit.again"
+                  : "pluginAnalysis.eqFit.run"
+            )
+          }}
+        </UiButton>
+        <UiButton v-if="status === 'running'" size="sm" variant="secondary" @click="cancel">{{
+          t("pluginAnalysis.eqFit.cancel")
+        }}</UiButton>
+      </div>
+    </header>
+    <p v-if="unavailable" class="fit-notice" role="status">
       {{ t(`pluginAnalysis.eqFit.unavailable.${unavailable}`) }}
     </p>
-    <p v-else-if="status === 'running' || status === 'cancelled'" class="fit-note" role="status">
+    <p v-else-if="status === 'running' || status === 'cancelled'" class="fit-notice" role="status">
       {{ t(`pluginAnalysis.eqFit.${status}`) }}
     </p>
-    <p v-if="error" class="fit-error" role="alert">
+    <p v-if="error" class="fit-notice" data-tone="danger" role="alert">
       {{ t(`pluginAnalysis.eqFit.errors.${error}`) }}
     </p>
-    <ul v-if="warnings.length" class="fit-warnings">
+    <ul v-if="warnings.length" class="fit-notice fit-warnings" data-tone="warning">
       <li v-for="warning in warnings" :key="warning">
         {{ t(`pluginAnalysis.eqFit.warnings.${warning}`) }}
       </li>
     </ul>
     <PluginAnalysisPlot
+      class="fit-response"
+      :class="{ settled: result && response }"
       :title="t('pluginAnalysis.frequency')"
       x-label="Hz"
       x-unit="Hz"
@@ -221,52 +229,68 @@ function fit(): void {
 
 <style scoped>
 .eq-fit {
-  flex: none;
-  padding: 12px 16px;
-  background: var(--ui-color-surface-sunken);
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  min-width: 0;
 }
-.eq-fit > :deep(.plugin-analysis-plot) {
-  min-height: 300px;
-  margin-top: 12px;
-}
-.eq-fit :deep(figcaption) {
-  flex-wrap: wrap;
-}
-.fit-controls {
+.fit-bar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px 16px;
+  gap: 8px 16px;
+  min-height: 48px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--ui-color-border);
+  background: var(--ui-color-surface);
+  font-size: var(--ui-type-size-caption);
 }
-.fit-title {
-  font-size: var(--ui-type-size-control);
-}
-.fit-controls > :deep(.ui-select-shell) {
+.fit-bar > :deep(.ui-select-shell) {
   width: 160px;
 }
 .quota-control {
   display: flex;
   gap: 8px;
   align-items: center;
-  font-size: var(--ui-type-size-caption);
+  color: var(--ui-color-text-muted);
 }
 .quota-control > :deep(.ui-number-input) {
   width: 70px;
 }
-.fit-note,
-.fit-warnings,
-.fit-error {
-  margin: 8px 0 0;
+.fit-actions {
+  display: flex;
+  gap: 8px;
+}
+/* One strip per message; the rail colour repeats the tone the text already states. */
+.fit-notice {
+  margin: 0;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--ui-color-border);
+  border-left: 3px solid var(--ui-color-text-subtle);
+  color: var(--ui-color-text-muted);
+  background: var(--ui-color-surface);
   font-size: var(--ui-type-size-caption);
 }
-.fit-note {
-  color: var(--ui-color-text-muted);
+.fit-notice[data-tone="danger"] {
+  border-left-color: var(--ui-color-danger);
+  color: var(--ui-color-text);
+  background: color-mix(in srgb, var(--ui-color-danger) 10%, var(--ui-color-surface));
+}
+.fit-notice[data-tone="warning"] {
+  border-left-color: var(--ui-color-warning);
+  color: var(--ui-color-text);
+  background: color-mix(in srgb, var(--ui-color-warning) 10%, var(--ui-color-surface));
 }
 .fit-warnings {
-  padding-left: 18px;
-  color: var(--ui-color-warning);
+  display: grid;
+  gap: 4px;
+  padding-left: 32px;
 }
-.fit-error {
-  color: var(--ui-color-danger);
+.fit-response {
+  flex: 1 0 320px;
+}
+.fit-response.settled {
+  flex: none;
+  height: clamp(280px, 48vh, 560px);
 }
 </style>

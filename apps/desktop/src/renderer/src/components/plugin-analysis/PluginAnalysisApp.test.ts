@@ -3,7 +3,7 @@ import { createHead } from "@unhead/vue/client"
 import { shallowMount } from "@vue/test-utils"
 import { nextTick } from "vue"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { UiButton, UiCheckbox, UiIconButton, UiSlider } from "@heron/ui"
+import { UiIconButton } from "@heron/ui"
 import type { PluginAnalysisSnapshot } from "@heron/contracts"
 import { usePluginAnalysisStore } from "../../stores/pluginAnalysis"
 import { analysisSnapshot } from "../../test/plugin-analysis"
@@ -12,6 +12,7 @@ import { rpcSuccess } from "../../test/ipc"
 import AppTitleBar from "../application/AppTitleBar.vue"
 import PluginAnalysisApp from "./PluginAnalysisApp.vue"
 import PluginAnalysisChain from "./PluginAnalysisChain.vue"
+import PluginAnalysisCommandBar from "./PluginAnalysisCommandBar.vue"
 import PluginAnalysisSettings from "./PluginAnalysisSettings.vue"
 
 beforeEach(() => {
@@ -36,11 +37,7 @@ function mountApp(snapshot: PluginAnalysisSnapshot | null = analysisSnapshot()) 
   const store = usePluginAnalysisStore(pinia)
   store.snapshot = snapshot
   const wrapper = shallowMount(PluginAnalysisApp, {
-    global: {
-      plugins: [pinia, createHead()],
-      renderStubDefaultSlot: true,
-      stubs: { UiPopover: { template: '<section><slot name="trigger" /><slot /></section>' } }
-    }
+    global: { plugins: [pinia, createHead()], renderStubDefaultSlot: true }
   })
   return { wrapper, store }
 }
@@ -52,8 +49,8 @@ describe("analysis window orchestration", () => {
     expect(store.start).toHaveBeenCalledOnce()
     store.snapshot = analysisSnapshot()
     await nextTick()
-    expect(wrapper.find('[role="status"]').exists()).toBe(false)
-    expect(wrapper.text()).toContain("48 kHz · 256 samples")
+    expect(wrapper.text()).not.toContain("Opening Plugin Analysis…")
+    expect(wrapper.getComponent(PluginAnalysisCommandBar).props("snapshot")).toEqual(store.snapshot)
     expect(wrapper.getComponent(AppTitleBar).props()).toMatchObject({
       platform: "win32",
       projectName: "Plugin Analysis",
@@ -63,21 +60,15 @@ describe("analysis window orchestration", () => {
     expect(store.stop).toHaveBeenCalledOnce()
   })
 
-  it("commits level changes, analysis controls, chain intents and window actions through the store", async () => {
-    const { wrapper, store } = mountApp(analysisSnapshot({ status: "running" }))
-    const slider = wrapper.getComponent(UiSlider)
-    slider.vm.$emit("update:modelValue", 6)
+  it("routes command bar, settings, chain and window intents through the store", async () => {
+    const { wrapper, store } = mountApp()
+    const bar = wrapper.getComponent(PluginAnalysisCommandBar)
+    expect(wrapper.findComponent(PluginAnalysisSettings).exists()).toBe(false)
+    bar.vm.$emit("toggle-settings")
     await nextTick()
-    expect(store.configure).not.toHaveBeenCalled()
-    expect(wrapper.get("output").text()).toBe("+6.0 dBFS")
-    slider.vm.$emit("change", 6)
-    wrapper
-      .findAllComponents(UiCheckbox)
-      .find((c) => c.props("label") === "Auto analyze")!
-      .vm.$emit("update:modelValue", false)
-    const buttons = wrapper.findAllComponents(UiButton)
-    buttons.find((button) => button.text() === "Cancel")!.vm.$emit("click")
-    buttons.find((button) => button.text() === "Analyze")!.vm.$emit("click")
+    expect(bar.props("settingsOpen")).toBe(true)
+    bar.vm.$emit("configure", { level_dbfs: 6 })
+    bar.vm.$emit("command", { type: "analyze" })
     wrapper.getComponent(PluginAnalysisSettings).vm.$emit("configure", { block_size: 512 })
     wrapper
       .getComponent(PluginAnalysisChain)
@@ -89,43 +80,38 @@ describe("analysis window orchestration", () => {
     expect(store.configure).toHaveBeenNthCalledWith(1, { level_dbfs: 6 })
     expect(store.configure).toHaveBeenNthCalledWith(2, { block_size: 512 })
     expect(vi.mocked(store.command).mock.calls.map(([command]) => command)).toEqual([
-      { type: "automatic", enabled: false },
-      { type: "cancel" },
       { type: "analyze" },
       { type: "remove", instanceId: "effect" },
       { type: "window", action: "minimize" },
       { type: "window", action: "maximize" },
       { type: "window", action: "close" }
     ])
+    wrapper
+      .findAllComponents(UiIconButton)
+      .find((button) => button.props("label") === "Close measurement settings")!
+      .vm.$emit("click")
+    await nextTick()
+    expect(wrapper.findComponent(PluginAnalysisSettings).exists()).toBe(false)
+    expect(bar.props("settingsOpen")).toBe(false)
     wrapper.unmount()
   })
 
-  it("preserves stale results and recovery errors while quarantining measurement controls", async () => {
-    const { wrapper, store } = mountApp(
-      analysisSnapshot({ revision: 4, status: "quarantined", failure: "cleanup-failed" })
-    )
-    expect(wrapper.text()).toContain("Results are out of date.")
+  it("shows recovery errors and closes settings while quarantined", async () => {
+    const { wrapper, store } = mountApp()
+    wrapper.getComponent(PluginAnalysisCommandBar).vm.$emit("toggle-settings")
+    store.snapshot = analysisSnapshot({ status: "quarantined", failure: "cleanup-failed" })
+    await nextTick()
     expect(wrapper.get('[role="alert"]').text()).toBe(
       "Analysis stopped. Restart Heron to continue."
     )
-    expect(wrapper.get("footer").attributes("inert")).toBeDefined()
-    expect(wrapper.getComponent(UiIconButton).props("disabled")).toBe(true)
-    expect(wrapper.findAllComponents(UiButton).some((button) => button.text() === "Cancel")).toBe(
-      false
-    )
+    expect(wrapper.findComponent(PluginAnalysisSettings).exists()).toBe(false)
     store.error = "Cannot reach the analysis window."
     await nextTick()
     expect(wrapper.get('[role="alert"]').text()).toBe(store.error)
     store.error = ""
-    store.snapshot = analysisSnapshot({ status: "debouncing" })
+    store.snapshot = analysisSnapshot()
     await nextTick()
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
-    expect(wrapper.text()).not.toContain("Results are out of date.")
-    expect(wrapper.get("footer").attributes("inert")).toBeUndefined()
-    expect(wrapper.getComponent(UiIconButton).props("disabled")).toBe(false)
-    expect(wrapper.findAllComponents(UiButton).some((button) => button.text() === "Cancel")).toBe(
-      true
-    )
     wrapper.unmount()
   })
 })

@@ -29,10 +29,12 @@ function segment(
       v-for="field in rampFields"
       :key="field.key"
       v-slot="{ controlId }"
+      layout="inline"
       :label="t(`pluginAnalysis.${field.label}`)"
     >
       <UiNumberInput
         :id="controlId"
+        size="sm"
         :model-value="settings[field.key]"
         :min="field.min"
         :max="field.max"
@@ -44,9 +46,11 @@ function segment(
     <template v-for="index in [0, 1, 2]" :key="index">
       <UiField
         v-slot="{ controlId }"
+        layout="inline"
         :label="t('pluginAnalysis.segmentLevel', { segment: index + 1 })"
         ><UiNumberInput
           :id="controlId"
+          size="sm"
           :model-value="settings.dynamics_levels_dbfs[index]"
           :min="-100"
           :max="12"
@@ -56,9 +60,11 @@ function segment(
       /></UiField>
       <UiField
         v-slot="{ controlId }"
+        layout="inline"
         :label="t('pluginAnalysis.segmentDuration', { segment: index + 1 })"
         ><UiNumberInput
           :id="controlId"
+          size="sm"
           :model-value="settings.dynamics_seconds[index]"
           :min="0.01"
           :max="5"
@@ -69,16 +75,3 @@ function segment(
     </template>
   </section>
 </template>
-<style scoped>
-.dynamics-settings {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  grid-column: 1/-1;
-}
-h3 {
-  grid-column: 1/-1;
-  margin: 0;
-  font-size: var(--ui-type-size-control);
-}
-</style>

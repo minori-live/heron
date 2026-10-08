@@ -1,8 +1,9 @@
-import { shallowMount } from "@vue/test-utils"
+import { config, shallowMount } from "@vue/test-utils"
 import { nextTick } from "vue"
 import { describe, expect, it } from "vitest"
 import {
   UiAnalysisPlot,
+  UiCheckbox,
   UiField,
   UiIconButton,
   UiNumberInput,
@@ -27,6 +28,13 @@ import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
 import PluginAnalysisLinear from "./PluginAnalysisLinear.vue"
 import PluginAnalysisHarmonics from "./PluginAnalysisHarmonics.vue"
 import PluginAnalysisModel from "./PluginAnalysisModel.vue"
+
+// View-control bars and readout strips are layout wrappers; render their slotted content.
+config.global.stubs = {
+  ...config.global.stubs,
+  PluginAnalysisViewControls: false,
+  PluginAnalysisReadouts: false
+}
 
 describe("analysis measurement settings", () => {
   it("caps the sweep when lowering sample rate and emits numeric configuration patches", async () => {
@@ -107,13 +115,13 @@ describe("analysis measurement settings", () => {
 describe("analysis chain intents", () => {
   it("maps rack actions and blocks structural edits while scanning or quarantined", async () => {
     const wrapper = shallowMount(PluginAnalysisChain, {
-      props: { snapshot: analysisSnapshot(), catalogBusy: false, chain: 0 }
+      props: { snapshot: analysisSnapshot(), catalogBusy: false }
     })
     const rack = wrapper.getComponent(MixerPluginSection)
     expect(rack.props()).toMatchObject({
       structureEnabled: true,
       editorsEnabled: true,
-      slotRows: 6
+      slotRows: 1
     })
     const descriptor: PluginDescriptor = {
       source: { kind: "external" },
@@ -165,6 +173,31 @@ describe("analysis chain intents", () => {
     expect(rack.props()).toMatchObject({ structureEnabled: false, editorsEnabled: false })
     expect(wrapper.getComponent(UiIconButton).props("disabled")).toBe(true)
   })
+
+  it("toggles comparison and routes the selected chain's inserts and new effects", async () => {
+    const snapshot = analysisSnapshot()
+    snapshot.plugins = [
+      { id: "primary", channelId: snapshot.ref.id },
+      { id: "comparison", channelId: `${snapshot.ref.id}:comparison` }
+    ] as typeof snapshot.plugins
+    const wrapper = shallowMount(PluginAnalysisChain, { props: { snapshot, catalogBusy: false } })
+    const rack = wrapper.getComponent(MixerPluginSection)
+    expect(wrapper.findComponent(UiSegmentedControl).exists()).toBe(false)
+    wrapper.getComponent(UiCheckbox).vm.$emit("update:modelValue", true)
+    expect(wrapper.emitted("command")).toEqual([[{ type: "comparison", enabled: true }]])
+    await wrapper.setProps({ snapshot: { ...snapshot, comparisonEnabled: true } })
+    wrapper.getComponent(UiSegmentedControl).vm.$emit("update:modelValue", "1")
+    await nextTick()
+    expect(rack.props("inserts").map((p: { id: string }) => p.id)).toEqual(["comparison"])
+    const descriptor = {
+      source: { kind: "external" },
+      locator: { format: "vst3", artifactPath: "/effect.vst3", nativeId: "effect" }
+    }
+    rack.vm.$emit("insert", { descriptor, audioMode: "stereo" }, 0)
+    expect(wrapper.emitted("command")?.[1]?.[0]).toMatchObject({ type: "insert", chain: 1 })
+    await wrapper.setProps({ snapshot: { ...snapshot, comparisonEnabled: false } })
+    expect(rack.props("inserts").map((p: { id: string }) => p.id)).toEqual(["primary"])
+  })
 })
 
 describe("analysis report composition", () => {
@@ -182,7 +215,7 @@ describe("analysis report composition", () => {
         stubs: {
           UiTabs: {
             props: ["modelValue"],
-            template: '<section><slot :name="modelValue" /></section>'
+            template: '<section><slot name="list-end" /><slot :name="modelValue" /></section>'
           }
         }
       }

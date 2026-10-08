@@ -1,4 +1,4 @@
-import { shallowMount, type VueWrapper } from "@vue/test-utils"
+import { config, shallowMount, type VueWrapper } from "@vue/test-utils"
 import { nextTick } from "vue"
 import { describe, expect, it } from "vitest"
 import {
@@ -15,6 +15,13 @@ import PluginAnalysisLinear from "./PluginAnalysisLinear.vue"
 import PluginAnalysisHarmonics from "./PluginAnalysisHarmonics.vue"
 import PluginAnalysisDynamics from "./PluginAnalysisDynamics.vue"
 import PluginAnalysisModel from "./PluginAnalysisModel.vue"
+
+// View-control bars and readout strips are layout wrappers; render their slotted content.
+config.global.stubs = {
+  ...config.global.stubs,
+  PluginAnalysisViewControls: false,
+  PluginAnalysisReadouts: false
+}
 
 // Shared UI owns gestures; these tests exercise the normalized control intents and
 // the report-to-plot contract owned by the analysis presenters.

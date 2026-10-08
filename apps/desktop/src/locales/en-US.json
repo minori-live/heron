@@ -2361,7 +2361,36 @@
     "rampDuration": "Time per level",
     "segmentLevel": "Segment {segment} level",
     "segmentDuration": "Segment {segment} duration",
-    "blockPerformance": "Processing time by block size"
+    "blockPerformance": "Processing time by block size",
+    "levelShort": "Level",
+    "status": {
+      "idle": "No results",
+      "debouncing": "Queued",
+      "running": "Measuring",
+      "complete": "Up to date",
+      "cancelled": "Cancelled",
+      "failed": "Failed",
+      "quarantined": "Stopped"
+    },
+    "phases": {
+      "preparing": "Preparing plug-ins",
+      "linear": "Linear response",
+      "harmonics": "Harmonics",
+      "model": "Hammerstein model",
+      "performance": "Performance"
+    },
+    "progress": "Analysis progress",
+    "emptyTitle": "No measurement yet",
+    "emptyDescription": "Analyze the chain to see results here.",
+    "measuringTitle": "Measuring…",
+    "show": "Show",
+    "settingsSections": {
+      "engine": "Engine",
+      "sweep": "Linear sweep",
+      "tone": "Distortion",
+      "model": "Hammerstein"
+    },
+    "closeSettings": "Close measurement settings"
   },
   "onboarding": {
     "title": "Welcome to Heron",

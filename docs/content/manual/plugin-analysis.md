@@ -21,7 +21,8 @@ are not silently omitted from the directory.
 
 ## Set the measurement conditions
 
-Open **Measurement settings** at the top right to set linear excitation (Sweep,
+Open **Measurement settings** at the top right. The settings panel docks beside
+the report, so results stay visible while you change it. Set linear excitation (Sweep,
 Delta or Random white noise), FFT size (16384, 32768 or 65536), processing speed
 (Realtime, 2×, 4× or Ultra), sample rate, block size,
 frequency range, sweep duration and settle/tail
@@ -38,7 +39,8 @@ including phase and latency differences. It does not align the chains' latency.
 The individual-chain controls also select which 2D spectrum to inspect. Reports
 are published together after the complete comparison batch finishes.
 
-Choose **Analyze**. **Auto analyze** starts after an effect is added, removed,
+Choose **Analyze**. The status beside it shows the current measurement phase
+and progress, or whether the results are up to date. **Auto analyze** starts after an effect is added, removed,
 reordered or bypassed. Parameter, preset and measurement changes are analyzed after editing stops; the input-level slider commits when released. Continue editing while
 it runs; superseded reports are marked as describing the previous state.
 **Repeat analysis** reruns the complete measurement until cancelled.
