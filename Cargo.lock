@@ -1765,11 +1765,13 @@ name = "heron-eq"
 version = "0.6.4"
 dependencies = [
  "arboard",
+ "baseview-truce",
  "heron-audio-host",
  "heron-dsp-core",
  "heron-plugin-ui",
  "heron-vst3-host",
  "iced_runtime",
+ "raw-window-handle 0.5.2",
  "rustfft",
  "serde",
  "serde_json",

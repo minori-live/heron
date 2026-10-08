@@ -283,7 +283,7 @@ impl WindowImpl for BaseviewWindow {
         loop {
             // A nested message pump may run while on_event/on_frame still
             // borrows the handler. Keep tasks queued for the outer dispatch
-            // instead of popping and losing a ScaleChanged notification.
+            // instead of popping and losing scale or focus notifications.
             if self.window_state.handler.try_borrow_mut().is_err() {
                 break;
             }
@@ -479,12 +479,12 @@ unsafe fn wnd_proc_inner(
             }
         }
         WM_SETFOCUS => {
-            window_state.handle_event(Event::Window(WindowEvent::Focused));
+            window_state.deferred_tasks.borrow_mut().push_back(WindowTask::FocusChanged(true));
 
             None
         }
         WM_KILLFOCUS => {
-            window_state.handle_event(Event::Window(WindowEvent::Unfocused));
+            window_state.deferred_tasks.borrow_mut().push_back(WindowTask::FocusChanged(false));
 
             None
         }
@@ -792,6 +792,10 @@ impl WindowState {
             WindowTask::Focus => unsafe {
                 SetFocus(self.hwnd);
             },
+            WindowTask::FocusChanged(focused) => {
+                let event = if focused { WindowEvent::Focused } else { WindowEvent::Unfocused };
+                self.handle_event(Event::Window(event));
+            }
             WindowTask::ScaleChanged => {
                 // The scale cell was updated without entering the handler.
                 // Read the current physical extent after any queued Resize;
@@ -811,6 +815,8 @@ pub(super) enum WindowTask {
     Resize(Size),
     /// Request keyboard focus for the window.
     Focus,
+    /// Preserve native focus transitions until the current handler callback returns.
+    FocusChanged(bool),
     /// Notify the handler of the new host scale after its mutable borrow ends.
     ScaleChanged,
 }

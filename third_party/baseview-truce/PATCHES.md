@@ -16,6 +16,12 @@ Implementation changes are confined to `src/win/window.rs`:
 - A nested native message pump leaves deferred tasks queued while the handler
   is borrowed. The outer dispatch drains them after that borrow ends, so a
   `ScaleChanged` notification cannot be popped and silently ignored.
+- Native `Focused` and `Unfocused` transitions use the same FIFO queue. A
+  reentrant focus change during rendering retains every transition until the
+  handler callback returns, so the Iced bridge can cancel interrupted gestures.
+  This addresses the [focus reentry review of PR #222](https://github.com/minori-live/heron/pull/222#discussion_r4215168764).
+  Heron's `native_focus` regression verifies real loss/gain transitions are
+  delivered exactly once, in order, after the active frame callback returns.
 - Pinned windows ignore `WM_DPICHANGED`'s DPI-only suggested rectangle because
   the host owns their accepted physical extent. System-scale windows retain the
   published OS DPI behavior.
@@ -26,5 +32,5 @@ This pairs with Heron's `truce-gui` patch. Other platforms and all unrelated
 source are unchanged. Registry cache markers, the packaged lockfile and VCS
 metadata are omitted; provenance from the published VCS metadata is recorded
 above. Remove both patches together after an upstream release supplies the
-equivalent Windows behavior and Heron's packaged native-editor regression
-passes with that release.
+equivalent Windows behavior and Heron's packaged native-editor and
+`native_focus` regressions pass with that release.
