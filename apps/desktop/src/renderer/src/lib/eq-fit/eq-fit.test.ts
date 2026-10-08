@@ -244,7 +244,7 @@ describe("measurement validity policy", () => {
       { ...valid, sampleRate: 0 },
       { ...valid, sampleRate: Infinity },
       { ...valid, quota: 0 },
-      { ...valid, quota: 9 },
+      { ...valid, quota: 25 },
       { ...valid, quota: 1.5 },
       { ...valid, frequencyHz: valid.frequencyHz.slice(1) },
       {

@@ -91,7 +91,7 @@ describe("EQ fit orchestration", () => {
     expect(wrapper.getComponent(UiNumberInput).props()).toMatchObject({
       modelValue: 3,
       min: 1,
-      max: 8
+      max: 24
     })
     expect(runButton(wrapper).props("disabled")).toBe(true)
     expect(wrapper.get('[role="status"]').text()).toContain("Choose the chain")

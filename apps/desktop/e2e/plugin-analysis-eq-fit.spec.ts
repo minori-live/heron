@@ -179,7 +179,12 @@ async function openEqFit(
     })
   }, initial)
   await page.goto(`${server.url}/plugin-analysis-eq-fit.html`)
-  await expect(page.getByRole("button", { name: "Fit EQ", exact: true })).toBeVisible()
+  await expect(
+    page.getByRole("button", {
+      name: initial.locale === "zh-cmn-Hans-CN" ? "拟合 EQ" : "Fit EQ",
+      exact: true
+    })
+  ).toBeVisible()
 }
 
 async function replaceSnapshot(page: Page, snapshot: PluginAnalysisEqFitSnapshot): Promise<void> {
@@ -213,6 +218,8 @@ test("built worker fits raw bins and keeps its controls and result readable at n
   await openEqFit(page, rendererServer)
   const quota = page.getByRole("spinbutton", { name: "EQ quota" })
   await expect(quota).toHaveValue("3")
+  await quota.fill("24")
+  await quota.press("Tab")
   const fitButton = page.getByRole("button", { name: "Fit EQ", exact: true })
   await expect(fitButton).toBeEnabled()
   await fitButton.focus()
@@ -230,6 +237,27 @@ test("built worker fits raw bins and keeps its controls and result readable at n
     page.getByRole("img", { name: "Residual (measured − fitted)", exact: true })
   ).toBeVisible()
   await expect(page.getByText(/Fitted EQ.*L → L/)).toBeVisible()
+  const presetButton = result.getByRole("button", { name: "Heron EQ preset", exact: true })
+  await presetButton.click()
+  const preset = JSON.parse(
+    await result.getByRole("textbox", { name: "Heron EQ preset", exact: true }).inputValue()
+  )
+  expect(preset).toMatchObject({
+    format: "heron-eq",
+    version: 1,
+    config: { bypass: false, processing_mode: "ZeroLatency" }
+  })
+  expect(preset.config.bands).toHaveLength(1)
+  expect(preset.config.bands[0]).toMatchObject({
+    id: 1,
+    shape: "Bell",
+    slope_db_oct: 12,
+    channel: "Stereo"
+  })
+  expect(preset.config.bands[0].frequency_hz).toBeCloseTo(1000, 0)
+  expect(preset.config.bands[0].q).toBeCloseTo(1.2, 2)
+  expect(preset.config.output_gain_db).toBeCloseTo(1.5, 2)
+  await presetButton.click()
   const evidence = test.info().outputPath("synthetic-bell-fit-metrics.txt")
   await writeFile(
     evidence,
@@ -305,9 +333,53 @@ test("built worker fits raw bins and keeps its controls and result readable at n
   })
   await quota.focus()
   await quota.press("ArrowDown")
-  await expect(quota).toHaveValue("2")
+  await expect(quota).toHaveValue("23")
   await expect(result).toHaveCount(0)
   await fit(page)
+  expect(errors).toEqual([])
+})
+
+test("Chinese EQ fit results keep numeric metrics and parameters visible across locale changes", async ({
+  page,
+  rendererServer
+}) => {
+  const errors: string[] = []
+  page.on("pageerror", (error) => errors.push(error.message))
+  await page.setViewportSize({ width: 1280, height: 900 })
+  const snapshot = eqFitSnapshot({ locale: "zh-cmn-Hans-CN" })
+  await openEqFit(page, rendererServer, snapshot)
+  await page.getByRole("button", { name: "拟合 EQ", exact: true }).click()
+  await expect(page.getByRole("button", { name: "重新拟合", exact: true })).toBeVisible()
+  // Capture the completed window before assertions so a rendering exception
+  // retains evidence of the blank result area as well as the browser error.
+  await page.screenshot({
+    path: test.info().outputPath("eq-fit-chinese.png"),
+    fullPage: true,
+    animations: "disabled"
+  })
+  expect(errors).toEqual([])
+  const result = page.getByRole("region", { name: "EQ 拟合结果", exact: true })
+  await expect(result).toBeVisible()
+  expect(await metric(result, "整体增益")).toBeCloseTo(1.5, 1)
+  expect(await metric(result, "RMS 误差")).toBeLessThan(0.1)
+  const parameters = result.getByRole("table", { name: "拟合 EQ 参数", exact: true })
+  await expect(parameters.getByRole("columnheader")).toHaveText(["滤波器", "频率", "增益", "Q"])
+  const bell = parameters
+    .getByRole("row")
+    .filter({ has: page.getByRole("cell", { name: "Bell", exact: true }) })
+  await expect(bell).toBeVisible()
+  const cells = await bell.getByRole("cell").allTextContents()
+  expect(Number.parseFloat(cells[1].replaceAll(",", ""))).toBeCloseTo(1000, -1)
+  expect(Number.parseFloat(cells[2])).toBeCloseTo(6, 1)
+  expect(Number.parseFloat(cells[3])).toBeCloseTo(1.2, 1)
+  await replaceSnapshot(page, { ...snapshot, locale: "en-US" })
+  const englishResult = page.getByRole("region", { name: "EQ fit result", exact: true })
+  await expect(englishResult).toBeVisible()
+  expect(await metric(englishResult, "Overall Gain")).toBeCloseTo(1.5, 1)
+  await replaceSnapshot(page, snapshot)
+  await expect(result).toBeVisible()
+  expect(await metric(result, "整体增益")).toBeCloseTo(1.5, 1)
+  expect(rendererServer.workerRequests()).toBe(1)
   expect(errors).toEqual([])
 })
 

@@ -23,6 +23,13 @@ export { parseProbeStdout } from "./plugin-descriptor-decoder"
 
 const BUILTIN_PLUGINS = [
   {
+    id: "live.minori.heron.eq",
+    bundleName: "Heron EQ.vst3",
+    classId: "8A8341D5CA36B6C9A9572788F40EBB9F",
+    name: "Heron EQ",
+    kind: "effect" as const
+  },
+  {
     id: "live.minori.heron.gain",
     bundleName: "Heron Gain.vst3",
     classId: "46774F504DF84B4AC1F308AB88DD3677",

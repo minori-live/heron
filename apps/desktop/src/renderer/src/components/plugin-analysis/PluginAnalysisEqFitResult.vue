@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
+import { intlLocale } from "../../i18n"
 import type { EqFitSuccess } from "./eqFitWorkerTypes"
 import PluginAnalysisPlot from "./PluginAnalysisPlot.vue"
 import PluginAnalysisReadouts from "./PluginAnalysisReadouts.vue"
+import PluginAnalysisEqFitPreset from "./PluginAnalysisEqFitPreset.vue"
 
 const props = defineProps<{ result: EqFitSuccess; frequencies: number[]; quota: number }>()
-const { t, n } = useI18n()
+const { t, locale } = useI18n()
 const residualSeries = computed(() => [
   {
     label: t("pluginAnalysis.eqFit.residual"),
@@ -20,7 +22,8 @@ const residualDomain = computed<readonly [number, number]>(() => {
   const extent = Math.max(3, props.result.maxErrorDb * 1.1)
   return [-extent, extent]
 })
-const decimal = (value: number, digits = 3) => n(value, { maximumFractionDigits: digits })
+const decimal = (value: number, digits = 3) =>
+  value.toLocaleString(intlLocale(locale.value), { maximumFractionDigits: digits })
 const summary = computed(() => {
   const db = t("pluginAnalysis.units.db")
   const r = props.result
@@ -66,6 +69,7 @@ const summary = computed(() => {
           </tbody>
         </table>
         <p v-else class="fit-note">{{ t("pluginAnalysis.eqFit.flat") }}</p>
+        <PluginAnalysisEqFitPreset :result="result" />
       </div>
       <PluginAnalysisPlot
         class="fit-residual"

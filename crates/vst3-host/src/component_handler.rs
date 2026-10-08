@@ -118,13 +118,7 @@ impl HandlerShared {
             // thread. The matching consumer is exclusively owned by the audio processor.
             &mut *self.parameter_producer.get()
         };
-        let queued = producer
-            .try_push(QueuedParameter {
-                id,
-                value,
-                sample_offset: 0,
-            })
-            .is_ok();
+        let queued = producer.try_push(QueuedParameter { id, value }).is_ok();
         if !queued {
             return false;
         }

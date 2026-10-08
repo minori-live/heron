@@ -59,6 +59,7 @@ win:
     - from: ../../target/bundles
       to: plugins
       filter:
+        - Heron EQ.vst3/**/*
         - Heron Gain.vst3/**/*
         - Heron Metronome.vst3/**/*
         - Heron Sine.vst3/**/*
@@ -86,6 +87,7 @@ mac:
     - from: ../../target/bundles
       to: plugins
       filter:
+        - Heron EQ.vst3/**/*
         - Heron Gain.vst3/**/*
         - Heron Metronome.vst3/**/*
         - Heron Sine.vst3/**/*
@@ -107,6 +109,7 @@ linux:
     - from: ../../target/bundles
       to: plugins
       filter:
+        - Heron EQ.vst3/**/*
         - Heron Gain.vst3/**/*
         - Heron Metronome.vst3/**/*
         - Heron Sine.vst3/**/*

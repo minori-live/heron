@@ -134,12 +134,29 @@ for the **1 − 2** difference view, and outside Magnitude. When viewing both
 comparison chains, select the chain to fit in the EQ Fit window; an
 individual-chain view already identifies it.
 
-In the new window, set the EQ quota from **1 to 8**, default **3**, and choose
+In the new window, set the EQ quota from **1 to 24**, default **3**, and choose
 **Fit EQ**. The result contains at most that many **Bell**, **LowShelf** or
 **HighShelf** sections, each with Frequency, Gain and Q. **Overall Gain** is
 separate and does not use the quota; a flat response may need no sections.
 The fitted curve approximates the **measured response**.
 It is not an inverse correction, and fitting does not insert effects into a chain.
+
+Choose **Heron EQ preset** below the parameters to show and copy the portable
+JSON containing static band settings. To apply the result, copy the complete JSON, add a new empty **Heron EQ**
+instance in **Zero latency**, open its top-bar **⋯** menu and choose the clipboard
+icon whose tooltip starts with **Paste bands**.
+Pasting adds the fitted bands and preserves the destination's processing mode
+and output settings; separately set its output gain to **Overall Gain**.
+A flat fit with no bands needs only the output gain setting, so skip pasting.
+Save the project to retain the settings. This transfers bands rather than importing
+a whole preset; Heron's host state recall uses a separate VST3 state format.
+The native EQ editor displays only its own Pre/Post and routed sidechain audio;
+band transfer does not display or control the measured source plug-in.
+At the measurement sample rate, its Zero Latency mode
+reproduces the fitted curve with one RBJ filter section per band, using the same frequency, gain and Q values.
+Bell and shelf bands do not display a dB/oct roll-off.
+The fit data does not reproduce the measured plug-in's original phase or
+cross-channel routing. Larger quotas can take longer; **Cancel** remains available.
 
 The EQ Fit window's magnitude graph overlays the measured and fitted curves.
 The residual is **measured − fitted**, in dB. RMS error and maximum absolute
