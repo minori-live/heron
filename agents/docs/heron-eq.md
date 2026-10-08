@@ -229,12 +229,17 @@ secondary menu changes. Separate regressions must cover immediate previews
 without audio, stale FIR rejection and Match failure/dismissal without parameter
 changes.
 
-The `vst3_resize` regression passed through one live native Windows attachment
-at the observed 200% system DPI and 100% host zoom. It grows, shrinks and repeats
-the accepted size (1120 × 760 → 1500 × 950 → 1040 × 700 → 1120 × 760), checking
-actual mouse hits on bypass, curve nodes and the Gain rotary. Arbitrary host-zoom
-negotiation is a separate boundary; additional 125% host zoom remains an open
-limitation tracked in [issue #220](https://github.com/minori-live/heron/issues/220).
+The `vst3_resize` regression uses live native Windows attachments at actual
+per-window DPI with 100% and 125% host zoom. The negotiated VST3 view and child
+HWND must have the same physical extent. It grows, shrinks and repeats the
+accepted logical size (1120 × 760 → 1500 × 950 → 1040 × 700 → 1120 × 760),
+checking actual mouse hits on bypass, curve nodes and the Gain rotary. It also
+changes zoom on an attached view and checks Escape cancellation, focus loss
+and closure during parameter gestures. The fixed-version toolkit patches and
+their provenance are recorded in `third_party/truce-gui/PATCHES.md` and
+`third_party/baseview-truce/PATCHES.md`; the native focus-loss event bridge is
+recorded in `third_party/truce-iced/PATCHES.md` for
+[issue #220](https://github.com/minori-live/heron/issues/220).
 The narrow host regression reproduces the
 old implementation's input drift and verifies native identity, retained platform
 fallback mapping and replacement-child coordinates after the fix.
