@@ -35,9 +35,17 @@ describe("PluginCatalogService orchestration", () => {
 
     await service.initialize()
 
-    expect(service.list().plugins).toHaveLength(3)
+    expect(service.list().plugins).toHaveLength(4)
     expect(service.list().plugins).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          source: { kind: "builtin", id: "live.minori.heron.eq" },
+          locator: expect.objectContaining({ nativeId: "8A8341D5CA36B6C9A9572788F40EBB9F" }),
+          name: "Heron EQ",
+          kind: "effect",
+          compatibility: "load-error",
+          compatibilityReason: "probe unavailable"
+        }),
         expect.objectContaining({
           source: { kind: "builtin", id: "live.minori.heron.gain" },
           compatibility: "load-error",

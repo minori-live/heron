@@ -364,13 +364,13 @@ async function run(): Promise<void> {
     if (!parent.isDestroyed()) parent.destroy()
     client.close()
     liveClient = null
-    app.exit(0)
   }
 }
 
 void app
   .whenReady()
   .then(run)
+  .then(() => app.exit(0))
   .catch((error: unknown) => {
     console.error(error)
     app.exit(1)

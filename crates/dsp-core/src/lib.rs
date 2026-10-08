@@ -1,5 +1,6 @@
 use std::{error::Error, fmt};
 
+pub mod eq;
 pub mod mixer;
 
 #[derive(Debug, Clone, Copy, PartialEq)]

@@ -16,7 +16,7 @@ import {
 
 export { eqMagnitudeDb, type EqSection, type EqFilterType } from "./biquad"
 export const EQ_FIT_DEFAULT_QUOTA = 3
-export const EQ_FIT_MAX_QUOTA = 8
+export const EQ_FIT_MAX_QUOTA = 24
 
 export interface EqFitInput {
   sampleRate: number

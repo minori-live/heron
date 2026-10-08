@@ -14,6 +14,7 @@ members = [
     "crates/iced-ui",
     "plugins/heron-plugin-ui",
     "plugins/heron-gain",
+    "plugins/heron-eq",
     "plugins/heron-metronome",
     "plugins/heron-sine",
 ]
@@ -31,6 +32,7 @@ rust-version = "1.98"
 license = "GPL-3.0-only"
 
 [workspace.dependencies]
+arboard = { version = "3.6.1", default-features = false, features = ["wayland-data-control"] }
 ara2-bridge-core = "=0.3.0"
 ara2-bridge-host = { path = "third_party/ara2-bridge-host" }
 ara2-bridge-sys = "=0.3.0"

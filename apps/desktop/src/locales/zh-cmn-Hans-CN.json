@@ -2175,6 +2175,8 @@
       "elapsed": "拟合耗时",
       "used": "已使用 {used} / {quota} 个 EQ。整体增益不占用配额。",
       "parameters": "拟合 EQ 参数",
+      "preset": "Heron EQ 预置",
+      "presetHelp": "复制此 JSON，在新的零延迟 Heron EQ 的 ⋯ 菜单中选择“Paste bands”，再单独将输出设为整体增益；无频段的拟合只需设置整体增益。Heron 随工程保存这些设置。",
       "filter": "滤波器",
       "frequency": "频率",
       "gain": "增益",
@@ -2188,7 +2190,7 @@
         "choose-path": "请在上方选择单一信号路径。L + R 显示两条路径，不能作为一条响应拟合。",
         "choose-chain": "请选择要拟合的链路。",
         "missing-path": "所选链路中没有此信号路径。",
-        "invalid-quota": "请输入 1 到 8 之间的整数 EQ 配额。",
+        "invalid-quota": "请输入 1 到 24 之间的整数 EQ 配额。",
         "invalid-measurement": "测量质量数据无效，请重新分析。",
         "truncated-tail": "测得的尾音被截断。请增加尾音时长并重新分析后再拟合。",
         "unstable-response": "重复测量的差异超过 10%，无法给出稳定的 EQ 近似。"
