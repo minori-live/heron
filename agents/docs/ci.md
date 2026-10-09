@@ -14,9 +14,14 @@ builds, and tagged releases.
   update manifests. Configure the `Gate` check (shown
   under the `CI` workflow) as the only required status check for pull requests.
 - **Test** (`.github/workflows/test.yml`) runs repository checks on Linux x64,
-  Windows x64, and macOS. Linux runs `mise run ci:check:coverage`, a variant of
-  the full check graph that swaps every test invocation for its coverage-producing
-  counterpart, so each test suite runs exactly once. Windows and macOS run
+  Windows x64, and macOS. The Linux Checks leg runs
+  `mise run ci:check:coverage`, the coverage-producing test pass, while two
+  sibling jobs run the work that does not produce coverage:
+  `mise run ci:check:static` (formatting, lint, Vue ESLint, Clippy, TypeScript,
+  design audits, Storybook, and benchmark compilation) and
+  `mise run test:e2e` (the Electron end-to-end suite and crash smoke). Running
+  them in parallel keeps the coverage rebuild off their critical path, and no
+  test suite is repeated. Windows and macOS run
   `mise run ci:check:native-coverage`, which collects Rust coverage from workspace
   tests and instrumented napi-rs calls while running desktop and project-database
   tests without JavaScript coverage. All reports are uploaded to Codecov and
@@ -127,12 +132,15 @@ the actual Mach-O and installer checks execute on the macOS runner.
 
 On the Linux Checks leg, CI runs `mise run ci:check:coverage` with the
 combined coverage orchestrator in place of the plain Rust and Vitest runs, so
-every test suite executes exactly once with coverage enabled. The orchestrator
-first runs the Rust tests and builds instrumented napi-rs modules. That preparation
-also generates the gitignored package loaders and typings required by type-aware
-Oxlint on a clean checkout. The check then runs the JavaScript linters before the
-orchestrator resumes with the JavaScript tests and merged report; no test suite or
-native build is repeated. Cargo doc tests still execute as correctness checks, but
+every test suite executes exactly once with coverage enabled. The static and
+design checks, the benchmark compile, and the Electron end-to-end suite run in
+the sibling `Static checks` and `Electron end-to-end` jobs, so the coverage
+orchestrator no longer waits for linters or a browser launch. The `static` job's
+`check:prepare` step generates the gitignored package loaders and typings that
+type-aware Oxlint needs on a clean checkout. The orchestrator first runs the Rust
+tests and builds instrumented napi-rs modules, then runs the JavaScript tests and
+merged report; no test suite or native build is repeated. Cargo doc tests still
+execute as correctness checks, but
 their bodies are not instrumented into the external-test LCOV report. The same
 mise task reproduces the Linux leg locally.
 

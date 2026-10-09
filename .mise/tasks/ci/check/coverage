@@ -5,10 +5,10 @@ set -euo pipefail
 
 # The shared `check:*` tasks define what a full validation run covers. This task
 # only adds what is specific to the Linux coverage leg: the llvm-cov shell and
-# the official plug-in fixtures, which need a network fetch and CMake.
-mise run version:check
-mise run check:static
-
+# the official plug-in fixtures, which need a network fetch and CMake. The
+# static and design checks, the benchmark compile, and the Electron end-to-end
+# tests run in their own Linux jobs so a coverage rebuild does not serialize
+# them behind the coverage step.
 target="$(cargo xtask host-target)"
 coverage_target="$PWD/target-coverage"
 mkdir -p "$coverage_target"
@@ -29,6 +29,3 @@ fi
   cargo xtask coverage report
   node scripts/rewrite-lcov-paths.ts coverage/rust/lcov.info
 )
-
-mise run check:bench
-mise run check:design

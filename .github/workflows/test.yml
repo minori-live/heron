@@ -34,12 +34,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Linux runs the full repository checks with JavaScript and Rust coverage.
+        # Linux runs the coverage-producing tests; its static, design, benchmark,
+        # and Electron end-to-end checks run in the sibling `static` and `e2e`
+        # jobs so they do not serialize behind the coverage rebuild.
         # Windows and macOS collect Rust coverage from Cargo and instrumented napi-rs
         # calls while still running the desktop and project-database tests normally.
         # Oxfmt, Oxlint, Vue ESLint, design audits, TypeScript-only checks, and
-        # Storybook produce identical results on every platform and would otherwise
-        # dominate the slower runners.
+        # Storybook produce identical results on every platform, so the `static`
+        # job runs them once on Linux.
         include:
           - name: Linux x64
             os: ubuntu-24.04
@@ -67,13 +69,14 @@ jobs:
             ${{ github.event_name != 'pull_request' && github.token || '' }}
           cache-rust-build: "true"
 
-      - name: Install Playwright Chromium and Linux dependencies
+      # The fixture bundles are built with CMake+Ninja. Steinberg's VSTGUI
+      # integration enables its standalone library even when only plug-in example
+      # targets are requested, and the probes load that library at runtime.
+      - name: Install plug-in fixture dependencies
         if: runner.os == 'Linux'
-        run: |
-          mise run ci:install:playwright
-          # Steinberg's VSTGUI CMake integration enables its standalone library
-          # even when only plug-in example targets are requested.
-          sudo apt-get install --yes --no-install-recommends dbus-x11 libgtkmm-3.0-dev ninja-build xauth xvfb
+        run: >-
+          sudo apt-get install --yes --no-install-recommends
+          libgtkmm-3.0-dev ninja-build
 
       # A miss runs the network fetch and CMake builds; a hit restores only the
       # finished bundles. The bundles stay small because intermediate build
@@ -185,14 +188,6 @@ jobs:
           path: target/official-plug-in-fixtures
           key: ${{ steps.official-fixtures.outputs.cache-primary-key }}
 
-      - name: Run Electron end-to-end tests
-        if: runner.os == 'Linux'
-        run: mise run test:e2e
-
-      - name: Verify consent-gated Electron crash delivery
-        if: runner.os == 'Linux'
-        run: xvfb-run -a pnpm --filter @heron/desktop test:crash-reporting
-
       - name: Verify Sentry symbol artifacts
         run: pnpm --filter @heron/desktop test:sentry-symbols
 
@@ -223,6 +218,70 @@ jobs:
           name: ${{ matrix.codecov-rust-flag }}
           fail_ci_if_error: true
           disable_search: true
+
+      - name: Report shared compiler cache health
+        if: ${{ always() && steps.setup_build.outcome == 'success' }}
+        run: mise run ci:report:sccache
+
+  static:
+    name: Static and design checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up build environment
+        id: setup_build
+        uses: ./.github/actions/setup-build
+        with:
+          github-token: >-
+            ${{ github.event_name != 'pull_request' && github.token || '' }}
+          cache-rust-build: "true"
+
+      # `check:design` runs Storybook stories and Playwright assertions in
+      # Chromium, so this job needs the browser even though it never launches
+      # Electron.
+      - name: Install Playwright Chromium and Linux dependencies
+        run: mise run ci:install:playwright
+
+      - name: Run static checks
+        run: mise run ci:check:static
+
+      - name: Report shared compiler cache health
+        if: ${{ always() && steps.setup_build.outcome == 'success' }}
+        run: mise run ci:report:sccache
+
+  e2e:
+    name: Electron end-to-end (Linux x64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up build environment
+        id: setup_build
+        uses: ./.github/actions/setup-build
+        with:
+          github-token: >-
+            ${{ github.event_name != 'pull_request' && github.token || '' }}
+          cache-rust-build: "true"
+
+      - name: Install Playwright Chromium and Linux dependencies
+        run: |
+          mise run ci:install:playwright
+          sudo apt-get install --yes --no-install-recommends dbus-x11 libgtkmm-3.0-dev ninja-build xauth xvfb
+
+      - name: Run Electron end-to-end tests
+        run: mise run test:e2e
+
+      - name: Verify consent-gated Electron crash delivery
+        run: xvfb-run -a pnpm --filter @heron/desktop test:crash-reporting
 
       - name: Report shared compiler cache health
         if: ${{ always() && steps.setup_build.outcome == 'success' }}
