@@ -203,6 +203,22 @@ await test("large environment caches save only from main and tag refs", async ()
   assert.match(toolchain, /cache_save: \$\{\{ .*github\.ref == 'refs\/heads\/main'/u)
 })
 
+await test("Linux coverage, static checks, and Electron e2e run in separate jobs", async () => {
+  const [workflow, coverageTask, staticTask] = await Promise.all([
+    readFile(resolve(workspaceRoot, ".github/workflows/test.yml"), "utf8"),
+    readFile(resolve(workspaceRoot, ".mise/tasks/ci/check/coverage"), "utf8"),
+    readFile(resolve(workspaceRoot, ".mise/tasks/ci/check/static"), "utf8")
+  ])
+  assert.match(workflow, /^ {2}static:/mu)
+  assert.match(workflow, /^ {2}e2e:/mu)
+  // The coverage task must not rebuild the uninstrumented checks; the parallel
+  // static job owns them so a coverage rebuild never serializes them again.
+  for (const task of ["check:static", "check:bench", "check:design"]) {
+    assert.doesNotMatch(coverageTask, new RegExp(`mise run ${task}(\\s|$)`, "u"))
+    assert.match(staticTask, new RegExp(`mise run ${task}(\\s|$)`, "u"))
+  }
+})
+
 await test("universal macOS packaging includes only the universal DSP binding", async () => {
   const universalConfig = await readFile(
     resolve(workspaceRoot, "apps/desktop/electron-builder.universal.yml"),

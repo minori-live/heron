@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#MISE hide=true
+#MISE depends=["install"]
+set -euo pipefail
+
+# Everything that does not need coverage instrumentation or an Electron launch:
+# formatting, lint, Vue ESLint, Clippy, TypeScript-only checks, design audits,
+# Storybook, and the benchmark compile. These produce identical results on every
+# platform, so the Linux checks job runs them once in its own job instead of
+# serializing them ahead of the coverage build.
+mise run version:check
+mise run check:static
+mise run check:bench
+mise run check:design
