@@ -178,6 +178,31 @@ await test("Windows native coverage exposes the mise cargo-llvm-cov binary", asy
   assert.match(task, /cygpath -u/u)
 })
 
+await test("large environment caches save only from main and tag refs", async () => {
+  const source = await readFile(
+    resolve(workspaceRoot, ".github/actions/setup-build/action.yml"),
+    "utf8"
+  )
+  // The self-saving `actions/cache` form writes a merge-ref copy on every pull
+  // request. Those copies spend the repository's 10 GB cache quota and evict the
+  // sccache objects that make repeat compiler-cache hits possible.
+  assert.doesNotMatch(source, /uses: actions\/cache@/u)
+  const steps = source.split(/\n {4}- name: /u).slice(1)
+  const saveSteps = steps.filter((step) => step.startsWith("Save "))
+  assert.deepEqual(
+    saveSteps.map((step) => step.split("\n", 1)[0]),
+    ["Save Cargo downloads", "Save pnpm store", "Save Electron downloads"]
+  )
+  for (const step of saveSteps) {
+    assert.match(step, /github\.ref == 'refs\/heads\/main'/u)
+    assert.match(step, /startsWith\(github\.ref, 'refs\/tags\/'\)/u)
+    assert.match(step, /steps\.[a-z-]+\.outputs\.cache-primary-key/u)
+  }
+  const toolchain = steps.find((step) => step.startsWith("Install locked toolchain"))
+  assert.ok(toolchain, "missing the locked toolchain step")
+  assert.match(toolchain, /cache_save: \$\{\{ .*github\.ref == 'refs\/heads\/main'/u)
+})
+
 await test("universal macOS packaging includes only the universal DSP binding", async () => {
   const universalConfig = await readFile(
     resolve(workspaceRoot, "apps/desktop/electron-builder.universal.yml"),
