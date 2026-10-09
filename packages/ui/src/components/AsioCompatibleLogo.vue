@@ -29,5 +29,7 @@ const props = withDefaults(
   max-width: 100%;
   height: auto;
   object-fit: contain;
+  /* The official white artwork needs a dark backdrop in both themes. */
+  background: var(--ui-palette-neutral-950);
 }
 </style>
