@@ -16,7 +16,7 @@ const meta = {
         :style="{
           display: 'inline-block',
           padding: 'var(--ui-space-6)',
-          background: 'var(--ui-palette-neutral-950)'
+          background: 'var(--ui-color-surface)'
         }"
       >
         <AsioCompatibleLogo v-bind="args" style="--asio-compatible-logo-width:32mm" />
