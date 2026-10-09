@@ -571,9 +571,14 @@ fn executable_name(binary: &str, windows: bool) -> OsString {
 }
 
 fn coverage_prepare(workspace: &Path, target: &str) -> Result<(), XtaskError> {
+    // Clear only the raw profile counters. A full `llvm-cov clean` also removes
+    // build artifacts, which on Windows fails while the running
+    // `heron_xtask.exe` lives in the coverage target directory. `--profraw-only`
+    // already sweeps every `*.profraw` in the target directory, so it does not
+    // need `--workspace` (the two flags conflict).
     run_spec(
         workspace,
-        &CommandSpec::cargo(["llvm-cov", "clean", "--workspace"]),
+        &CommandSpec::cargo(["llvm-cov", "clean", "--profraw-only"]),
     )?;
     run_spec(
         workspace,

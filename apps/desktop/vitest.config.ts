@@ -26,13 +26,11 @@ export default defineConfig({
     // Node 26 exposes its own file-backed Web Storage globals. Disable them in
     // test workers so happy-dom can install its isolated in-memory storage.
     execArgv: ["--no-experimental-webstorage"],
-    environment: "happy-dom",
-    setupFiles: [resolve(import.meta.dirname, "src/renderer/src/test/setup.ts")],
-    include: ["src/renderer/src/**/*.test.ts", "src/main/**/*.test.ts", "src/shared/**/*.test.ts"],
     restoreMocks: true,
-    // GitHub's Windows runners occasionally starve happy-dom workers while the
-    // filesystem-heavy main-process tests run in parallel. Bound concurrency
-    // there instead of retrying tests and masking deterministic failures.
+    // GitHub's Windows runners occasionally starve test workers while the
+    // filesystem-heavy suites run in parallel. Bound concurrency there instead
+    // of retrying tests and masking deterministic failures. Projects run one at
+    // a time, so the limit stays at two workers for the whole desktop suite.
     maxWorkers: isConstrainedWindowsCi ? 2 : undefined,
     testTimeout: isConstrainedWindowsCi ? 15_000 : undefined,
     coverage: {
@@ -50,6 +48,32 @@ export default defineConfig({
         "src/main/**/*.d.ts",
         "src/renderer/src/**/*.d.ts"
       ]
-    }
+    },
+    // Main-process and shared tests do not touch the DOM, so they run under the
+    // much cheaper Node environment. Only the renderer project pays the
+    // happy-dom environment cost, which is created once per test file.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "main",
+          environment: "node",
+          include: ["src/main/**/*.test.ts", "src/shared/**/*.test.ts"]
+        }
+      },
+      {
+        extends: true,
+        test: {
+          name: "renderer",
+          environment: "happy-dom",
+          setupFiles: [resolve(import.meta.dirname, "src/renderer/src/test/setup.ts")],
+          include: ["src/renderer/src/**/*.test.ts"],
+          // happy-dom is expensive to construct, and the default `forks` pool
+          // creates it once per test file. `vmThreads` keeps per-file isolation
+          // while reusing one environment per worker.
+          pool: "vmThreads"
+        }
+      }
+    ]
   }
 })

@@ -186,7 +186,10 @@ run = [
 
 [tasks."check:bench"]
 hide = true
-depends = ["check:prepare"]
+# `cargo bench --no-run` compiles Rust benchmark targets only; it never loads
+# the napi-rs addon. Depending on `check:prepare` rebuilt the uninstrumented
+# addon after the Linux coverage leg had already produced an instrumented one.
+depends = ["install", "version:check"]
 run = "cargo xtask bench check"
 
 [tasks."check:prepare"]
