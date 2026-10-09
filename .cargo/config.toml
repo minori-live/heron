@@ -1,2 +1,7 @@
 [alias]
 xtask = "run --quiet --package heron-xtask --"
+
+[env]
+# Mixed native suites share file/device lifecycles and spawn analysis workers.
+# Apply to direct cargo test, xtask, and llvm-cov without limiting compilation.
+RUST_TEST_THREADS = "1"

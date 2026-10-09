@@ -30,10 +30,10 @@ export default defineConfig({
     setupFiles: [resolve(import.meta.dirname, "src/renderer/src/test/setup.ts")],
     include: ["src/renderer/src/**/*.test.ts", "src/main/**/*.test.ts", "src/shared/**/*.test.ts"],
     restoreMocks: true,
-    // GitHub's Windows runners occasionally starve happy-dom workers while the
-    // filesystem-heavy main-process tests run in parallel. Bound concurrency
-    // there instead of retrying tests and masking deterministic failures.
-    maxWorkers: isConstrainedWindowsCi ? 2 : undefined,
+    // Main-process file/native lifecycle tests share this runner with renderer
+    // tests. Keep the mixed suite serial locally and under coverage on every OS.
+    fileParallelism: false,
+    maxConcurrency: 1,
     testTimeout: isConstrainedWindowsCi ? 15_000 : undefined,
     coverage: {
       provider: "v8",
