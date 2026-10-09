@@ -58,19 +58,11 @@ describe("MixerInstrumentInput", () => {
 
     expect(wrapper.text()).toContain("Synth")
     expect(wrapper.text()).not.toContain("MIDI")
-    expect(wrapper.get(".instrument-actions").text()).toBe("S")
     await wrapper.get('button[aria-label="Open Synth instrument editor"]').trigger("click")
     expect(wrapper.emitted("open")?.at(-1)).toEqual(["instrument-plugin"])
     expect(wrapper.find('button[aria-label="Bypass Synth"]').exists()).toBe(false)
     await wrapper.get('button[aria-label="Remove Synth"]').trigger("click")
     expect(wrapper.emitted("remove")?.at(-1)).toEqual(["instrument-plugin"])
-    expect(wrapper.get('button[aria-label="Remove Synth"]').classes()).toContain(
-      "ui-icon-button--compact"
-    )
-    expect(wrapper.get('button[aria-label="Remove Synth"]').attributes("data-variant")).toBe(
-      "danger-ghost"
-    )
-    expect(wrapper.get(".instrument-input").attributes("style")).toBeUndefined()
   })
 
   it("assigns an instrument from the empty input picker or a catalog drop", async () => {

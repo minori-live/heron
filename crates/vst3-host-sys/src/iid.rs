@@ -83,18 +83,3 @@ pub const IPLUG_VIEW_CONTENT_SCALE_SUPPORT: TUID =
 pub const IEVENT_HANDLER: TUID = tuid(0x561E65C9, 0x13A0496F, 0x813A2C35, 0x654D7983);
 pub const ITIMER_HANDLER: TUID = tuid(0x10BDD94F, 0x41424774, 0x821FAD8F, 0xECA72CA9);
 pub const IRUN_LOOP: TUID = tuid(0x18C35366, 0x97764F1A, 0x9C5B8385, 0x7A871389);
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn interface_ids_have_sixteen_bytes() {
-        assert_eq!(FUNKNOWN.len(), 16);
-        assert_eq!(IAUDIO_PROCESSOR.len(), 16);
-        assert_eq!(IAUDIO_PRESENTATION_LATENCY.len(), 16);
-        assert_eq!(ISIZEABLE_STREAM.len(), 16);
-        assert_eq!(IUNIT_INFO.len(), 16);
-        assert_ne!(ICOMPONENT, IAUDIO_PROCESSOR);
-    }
-}

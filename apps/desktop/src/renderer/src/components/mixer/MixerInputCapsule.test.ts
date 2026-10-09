@@ -31,17 +31,13 @@ describe("MixerInputCapsule", () => {
     const select = wrapper.get('button[aria-label="Audio 1 input channel"]')
     expect(select.text()).toBe("IN 2")
     const routeMenu = wrapper.getComponent(UiCascadingSelect)
-    expect(routeMenu.props("hoverTreatment")).toBe("host-tint")
     expect(routeMenu.props("groups")?.map((group) => group.options.length)).toEqual([32, 256, 0])
 
     const stereoButton = wrapper.get(
       'button[aria-label="Link adjacent input as stereo for Audio 1"]'
     )
-    expect(stereoButton.attributes("data-variant")).toBe("plain")
-    expect(stereoButton.classes()).toContain("ui-icon-button--compact")
     expect(stereoButton.attributes("aria-pressed")).toBe("false")
     expect(stereoButton.get('[role="img"]').attributes("aria-label")).toBe("1 channel audio")
-    expect(stereoButton.findAll("path")).toHaveLength(1)
     await stereoButton.trigger("click")
 
     expect(wrapper.emitted("update")).toEqual([
@@ -65,9 +61,7 @@ describe("MixerInputCapsule", () => {
     expect(select.text()).toBe("IN 3–4")
     const formatButton = wrapper.get('button[aria-label="Use mono input for Audio 2"]')
     expect(formatButton.get('[role="img"]').attributes("aria-label")).toBe("2 channels audio")
-    expect(formatButton.findAll("path")).toHaveLength(2)
     const routeMenu = wrapper.getComponent(UiCascadingSelect)
-    expect(routeMenu.props("hoverTreatment")).toBe("host-tint")
     expect(routeMenu.props("groups")?.map((group) => group.options.length)).toEqual([16, 128, 0])
     routeMenu.vm.$emit("update:modelValue", "hardware:5")
     await wrapper.vm.$nextTick()

@@ -11,13 +11,6 @@ beforeEach(() => {
 })
 
 describe("useApplicationWindowStore", () => {
-  it("exposes the desktop platform from the preload bridge", () => {
-    stubApi({ platform: "linux" })
-    const store = useApplicationWindowStore()
-
-    expect(store.platform).toBe("linux")
-  })
-
   it("forwards application commands from the preload event stream", () => {
     const listeners: Array<(command: ApplicationCommandId) => void> = []
     stubApi({

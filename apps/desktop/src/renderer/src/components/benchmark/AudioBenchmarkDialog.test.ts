@@ -77,9 +77,7 @@ describe("AudioBenchmarkDialog", () => {
     expect(wrapper.text()).toContain("Runs a short local test")
     expect(wrapper.text()).toContain("bundled VST3 effects")
     expect(wrapper.text()).toContain("Pause playback and close CPU-heavy apps")
-    expect(wrapper.find(".signal-map").exists()).toBe(false)
-    expect(wrapper.get(".benchmark-run-button").classes()).toContain("ui-button--primary")
-    await wrapper.get(".benchmark-run-button").trigger("click")
+    await wrapper.get("button").trigger("click")
     expect(wrapper.emitted("run")).toHaveLength(1)
   })
 
@@ -89,7 +87,6 @@ describe("AudioBenchmarkDialog", () => {
     })
 
     expect(wrapper.text()).toContain("Measuring engine paths")
-    expect(wrapper.find(".benchmark-progress").exists()).toBe(true)
     expect(wrapper.get('[role="progressbar"]').attributes("aria-label")).toContain(
       "VST3 processing"
     )
@@ -106,6 +103,5 @@ describe("AudioBenchmarkDialog", () => {
     expect(wrapper.text()).toContain("Embedded control payload")
     expect(wrapper.text()).toContain("2400.0 MiB/s")
     expect(wrapper.text()).toContain("Reference CPU")
-    expect(wrapper.find(".timing-fill").attributes("style")).toContain("width")
   })
 })

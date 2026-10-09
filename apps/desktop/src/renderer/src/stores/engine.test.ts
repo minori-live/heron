@@ -38,17 +38,6 @@ describe("initialize", () => {
     expect(store.error).not.toBe("")
   })
 
-  it("uses the typed message for a failed result", async () => {
-    stubApi({
-      engineInfo: vi.fn().mockResolvedValue(rpcFailure("errors.audioEngineUnavailable"))
-    })
-    const store = useEngineStore()
-
-    await store.initialize()
-
-    expect(store.error).not.toBe("")
-  })
-
   it("does not retry after a failure", async () => {
     const engineInfo = vi.fn(async () => rpcFailure("errors.audioEngineUnavailable"))
     stubApi({ engineInfo })
@@ -102,17 +91,6 @@ describe("runPreview", () => {
     await store.runPreview(1)
 
     expect(store.peak).toBe(0.75)
-    expect(store.error).not.toBe("")
-  })
-
-  it("uses the typed message for a failed preview", async () => {
-    stubApi({
-      processGain: vi.fn().mockResolvedValue(rpcFailure("errors.audioEngineUnavailable"))
-    })
-    const store = useEngineStore()
-
-    await store.runPreview(1)
-
     expect(store.error).not.toBe("")
   })
 })

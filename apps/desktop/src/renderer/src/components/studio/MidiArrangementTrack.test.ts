@@ -99,7 +99,6 @@ describe("MidiArrangementTrack", () => {
       }
     })
 
-    expect(wrapper.get(".midi-clip").classes()).toContain("ui-timeline-clip--dragging")
     expect(
       wrapper.get<HTMLElement>('[data-testid="midi-clip-drop-preview"]').element.style.left
     ).toBe("240px")
@@ -143,7 +142,6 @@ describe("MidiArrangementTrack", () => {
       }
     })
 
-    expect(wrapper.find(".empty-hint").exists()).toBe(false)
     expect(wrapper.get('[data-testid="midi-recording-preview"]')).toBeDefined()
     expect(wrapper.findAll(".preview-note")).toHaveLength(1)
   })

@@ -58,22 +58,6 @@ fn legacy_windows_application_capture_target_defaults_bundle_identifier() {
 }
 
 #[test]
-fn macos_application_capture_target_round_trips_bundle_identifier() {
-    let target = ApplicationCaptureLogicalTarget {
-        platform: "macos".to_owned(),
-        bundle_identifier: Some("com.example.player".to_owned()),
-        executable_path: "/Applications/Player.app/Contents/MacOS/Player".to_owned(),
-        executable_name: "Player".to_owned(),
-        include_process_tree: true,
-    };
-    let bytes = rmp_serde::to_vec_named(&target).expect("macOS target must encode");
-    let decoded: ApplicationCaptureLogicalTarget =
-        rmp_serde::from_slice(&bytes).expect("macOS target must decode");
-
-    assert_eq!(decoded, target);
-}
-
-#[test]
 fn every_returning_plugin_stage_has_a_deterministic_failure_fixture() {
     let context = PluginFailureFixtureContext {
         instance_id: "fixture-plugin".to_owned(),

@@ -19,11 +19,8 @@ describe("OperationProgressDialog", () => {
         }
       }
     })
-    expect(wrapper.get(".operation-description").text()).toBe("Import · Writing project asset")
-    expect(wrapper.find("h3").exists()).toBe(false)
-    expect(wrapper.text()).not.toContain("In progress")
+    expect(wrapper.get('[aria-atomic="true"]').text()).toBe("Import · Writing project asset")
     expect(wrapper.get("[role=progressbar]").attributes("aria-valuenow")).toBe("50")
-    expect(wrapper.text()).not.toContain("50%")
     await wrapper.get("button").trigger("click")
     expect(wrapper.emitted("cancel")).toHaveLength(1)
   })
@@ -44,9 +41,9 @@ describe("OperationProgressDialog", () => {
         }
       }
     })
-    expect(wrapper.get("[role=progressbar]").classes()).toContain("ui-progress--indeterminate")
+    expect(wrapper.get("[role=progressbar]").attributes("aria-valuenow")).toBeUndefined()
     expect(wrapper.find("button").exists()).toBe(false)
-    expect(wrapper.get(".operation-description").text()).toBe(
+    expect(wrapper.get('[aria-atomic="true"]').text()).toBe(
       "Commit · 8 captured frames were dropped."
     )
   })
@@ -67,7 +64,7 @@ describe("OperationProgressDialog", () => {
         }
       }
     })
-    expect(wrapper.get(".operation-description").text()).toBe("Finalize · Completed")
+    expect(wrapper.get('[aria-atomic="true"]').text()).toBe("Finalize · Completed")
     expect(wrapper.get("[role=progressbar]").attributes("aria-valuenow")).toBe("100")
     expect(wrapper.find("button").exists()).toBe(false)
   })
@@ -101,11 +98,8 @@ describe("OperationProgressDialog", () => {
       }
     })
 
-    expect(wrapper.get(".operation-description").text()).toBe(
+    expect(wrapper.get('[aria-atomic="true"]').text()).toBe(
       "Opening project · The operation could not be completed."
-    )
-    expect(wrapper.get(".operation-description").classes()).toContain(
-      "operation-description--danger"
     )
     expect(wrapper.find("[role=alert]").exists()).toBe(false)
   })
@@ -127,12 +121,9 @@ describe("OperationProgressDialog", () => {
         }
       }
     })
-    expect(wrapper.get(".operation-description").text()).toBe(
+    expect(wrapper.get('[aria-atomic="true"]').text()).toBe(
       "Opening project · Preparing project graph"
     )
-    expect(wrapper.get(".operation-description").attributes("aria-atomic")).toBe("true")
-    expect(wrapper.text()).not.toContain("50%")
-    expect(wrapper.find("h3").exists()).toBe(false)
     expect(wrapper.get("[role=progressbar]").attributes("aria-label")).toBe(
       "Preparing project graph"
     )
@@ -156,7 +147,7 @@ describe("OperationProgressDialog", () => {
       }
     })
 
-    expect(wrapper.get(".operation-description").text()).toBe(
+    expect(wrapper.get('[aria-atomic="true"]').text()).toBe(
       "Closing project · Closing project database"
     )
     expect(Number(wrapper.get("[role=progressbar]").attributes("aria-valuenow"))).toBeCloseTo(

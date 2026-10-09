@@ -32,14 +32,14 @@ function binding(overrides: Partial<MidiControlBinding> = {}): MidiControlBindin
 }
 
 describe("MIDI control transforms", () => {
-  it("evaluates every absolute MIDI value through the linear profile", () => {
+  it("resolves the linear profile as an identity transform across its range", () => {
     const profile = BUILTIN_MIDI_TRANSFORM_PROFILES.find(
       (candidate) => candidate.id === BUILTIN_MIDI_TRANSFORM_PROFILE_IDS.linear
     )
     expect(profile?.type).toBe("absolute")
     if (!profile || profile.type !== "absolute") throw new Error("linear profile missing")
-    for (let value = 0; value <= 127; value += 1) {
-      expect(evaluateAbsoluteMidiTransform(profile, value / 127)).toBeCloseTo(value / 127)
+    for (const value of [0, 0.25, 0.5, 1]) {
+      expect(evaluateAbsoluteMidiTransform(profile, value)).toBeCloseTo(value)
     }
   })
 

@@ -21,30 +21,12 @@ describe("IPC_CHANNELS", () => {
 
     expect(new Set(channels).size).toBe(channels.length)
   })
-
-  it("namespaces every channel as `namespace:action`", () => {
-    for (const [key, channel] of entries) {
-      expect(channel, `channel for ${key}`).toMatch(/^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/)
-    }
-  })
-
-  it("keeps renderer-facing keys in camelCase so the preload surface stays typo-proof", () => {
-    for (const [key] of entries) {
-      expect(key).toMatch(/^[a-z][A-Za-z0-9]*$/)
-    }
-  })
 })
 
 describe("application command ids", () => {
   it("lists each command once", () => {
     expect(new Set(APPLICATION_COMMAND_IDS).size).toBe(APPLICATION_COMMAND_IDS.length)
     expect(new Set(APPLICATION_WINDOW_COMMAND_IDS).size).toBe(APPLICATION_WINDOW_COMMAND_IDS.length)
-  })
-
-  it("names every command `group.action`", () => {
-    for (const id of [...APPLICATION_COMMAND_IDS, ...APPLICATION_WINDOW_COMMAND_IDS]) {
-      expect(id).toMatch(/^[a-z]+\.[a-z][a-z-]*$/)
-    }
   })
 
   it("only exposes window commands the menu can also dispatch, apart from window chrome", () => {

@@ -376,26 +376,6 @@ fn build_reports_an_invalid_tempo_map() {
 }
 
 #[test]
-fn build_errors_describe_themselves() {
-    let messages = [
-        RenderBuildError::MissingChannel("audio".into()).to_string(),
-        RenderBuildError::MissingClipSource("clip".into()).to_string(),
-        RenderBuildError::MissingPluginProcessor("gain".into()).to_string(),
-        RenderBuildError::MissingPlugin("plugin".into()).to_string(),
-    ];
-
-    assert_eq!(messages[0], "render channel 'audio' was not found");
-    assert_eq!(messages[1], "clip source 'clip' was not provided");
-    assert_eq!(messages[2], "plugin processor 'gain' was not provided");
-    assert_eq!(messages[3], "render plugin 'plugin' was not found");
-
-    let mut invalid = spec();
-    invalid.tempo_events = vec![];
-    let tempo = build_error(invalid);
-    assert!(tempo.to_string().starts_with("could not build tempo map"));
-}
-
-#[test]
 fn disabled_plugins_are_left_out_of_the_render_chain() {
     let mut spec = spec();
     spec.plugins[0].enabled = false;

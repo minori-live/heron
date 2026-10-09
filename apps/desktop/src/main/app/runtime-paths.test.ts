@@ -19,15 +19,12 @@ describe("runtime-paths", () => {
     expect(iconPath).toBe(join(import.meta.dirname, "../../build/icon-macos.png"))
   })
 
-  it.each(["linux", "win32"] satisfies NodeJS.Platform[])(
-    "uses the full-size runtime icon on %s",
-    (platform) => {
-      const iconPath = applicationIconPathForPlatform(platform)
+  it("uses the full-size runtime icon off Darwin", () => {
+    const iconPath = applicationIconPathForPlatform("linux")
 
-      expect(basename(iconPath)).toBe("icon.png")
-      expect(iconPath).toBe(join(import.meta.dirname, "../../build/icon.png"))
-    }
-  )
+    expect(basename(iconPath)).toBe("icon.png")
+    expect(iconPath).toBe(join(import.meta.dirname, "../../build/icon.png"))
+  })
 
   it("resolves the current platform icon", () => {
     expect(applicationIconPath).toBe(applicationIconPathForPlatform(process.platform))

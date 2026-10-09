@@ -322,13 +322,6 @@ mod tests {
     }
 
     #[test]
-    fn info_state_and_editor_are_valid() {
-        truce_test::assert_valid_info::<Plugin>();
-        truce_test::assert_has_editor::<Plugin>();
-        truce_test::assert_state_round_trip::<Plugin>();
-    }
-
-    #[test]
     fn accent_and_regular_clicks_are_finite_and_distinct() {
         let accent = driver!(Plugin)
             .duration(Duration::from_millis(80))

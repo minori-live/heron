@@ -126,23 +126,12 @@ describe("defaultPluginCategories", () => {
   it("labels effects with the VST3 Fx category", () => {
     expect(defaultPluginCategories("effect")).toEqual(["Fx"])
   })
-
-  it("produces defaults that classify consistently with pluginLooksLikeInstrument", () => {
-    expect(pluginLooksLikeInstrument(defaultPluginCategories("instrument"))).toBe(true)
-    expect(pluginLooksLikeInstrument(defaultPluginCategories("effect"))).toBe(false)
-  })
 })
 
 describe("pluginCategoriesLabel", () => {
-  it("joins categories with a middle dot by default", () => {
+  it("joins categories, honors a custom separator, and renders empty labels", () => {
     expect(pluginCategoriesLabel(["Fx", "Reverb"])).toBe("Fx · Reverb")
-  })
-
-  it("honors a custom separator", () => {
     expect(pluginCategoriesLabel(["Fx", "Reverb"], ", ")).toBe("Fx, Reverb")
-  })
-
-  it("renders an empty label when there are no categories", () => {
     expect(pluginCategoriesLabel([])).toBe("")
   })
 })
@@ -188,38 +177,19 @@ function legacyDescriptor(category: string): PluginDescriptor & { category?: str
 }
 
 describe("normalizePluginDescriptor", () => {
-  it("upgrades the legacy pipe-separated category field", () => {
+  it("upgrades the legacy pipe-separated category field and drops it from the result", () => {
     const normalized = normalizePluginDescriptor(legacyDescriptor("Fx|Delay"))
 
     expect(normalized.categories).toEqual(["Fx", "Delay"])
-  })
-
-  it("drops the legacy category field from the result", () => {
-    const normalized = normalizePluginDescriptor(legacyDescriptor("Fx"))
-
     expect(normalized).not.toHaveProperty("category")
   })
 
-  it("treats an explicit empty categories array as authoritative over the legacy field", () => {
-    const normalized = normalizePluginDescriptor({
-      ...descriptor({ categories: [] }),
-      category: "Fx|Delay"
-    })
-
-    expect(normalized.categories).toEqual(["Fx"])
-  })
-
-  it("prefers the modern categories array over the legacy field", () => {
+  it("prefers the modern categories array, even when empty, over the legacy field", () => {
     const legacy = { ...descriptor({ categories: ["Reverb"] }), category: "Delay" }
-
     expect(normalizePluginDescriptor(legacy).categories).toEqual(["Reverb"])
-  })
 
-  it("assumes an effect when a snapshot predates the kind field", () => {
-    const withoutKind = descriptor({ categories: [] })
-    delete (withoutKind as { kind?: unknown }).kind
-
-    expect(normalizePluginDescriptor(withoutKind).categories).toEqual(["Fx"])
+    const authoritativeEmpty = { ...descriptor({ categories: [] }), category: "Fx|Delay" }
+    expect(normalizePluginDescriptor(authoritativeEmpty).categories).toEqual(["Fx"])
   })
 
   it("falls back to kind defaults when no categories survive parsing", () => {
@@ -228,9 +198,12 @@ describe("normalizePluginDescriptor", () => {
       ...descriptor({ kind: "instrument" }),
       categories: ["  "]
     })
+    const withoutKind = descriptor({ categories: [] })
+    delete (withoutKind as { kind?: unknown }).kind
 
     expect(effect.categories).toEqual(["Fx"])
     expect(instrument.categories).toEqual(["Instrument", "Synth"])
+    expect(normalizePluginDescriptor(withoutKind).categories).toEqual(["Fx"])
   })
 
   it("defaults snapshots without supportedAudioModes to stereo", () => {

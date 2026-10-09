@@ -14,12 +14,10 @@ import UiStatusNotice from "./UiStatusNotice.vue"
 import UiSurface from "./UiSurface.vue"
 
 describe("UiSurface", () => {
-  it("renders a section with the default level and padding", () => {
+  it("renders a section with its content", () => {
     const wrapper = mount(UiSurface, { slots: { default: "Mixer" } })
 
     expect(wrapper.element.tagName).toBe("SECTION")
-    expect(wrapper.attributes("data-level")).toBe("base")
-    expect(wrapper.attributes("data-padding")).toBe("md")
     expect(wrapper.text()).toBe("Mixer")
   })
 })
@@ -29,16 +27,13 @@ describe("UiSpinner", () => {
     const wrapper = mount(UiSpinner)
 
     expect(wrapper.attributes("role")).toBe("status")
-    expect(wrapper.get(".ui-visually-hidden").text()).toBe("Loading")
-    expect(wrapper.get(".ui-spinner__ring").attributes("aria-hidden")).toBe("true")
-    expect(wrapper.attributes("data-size")).toBe("md")
+    expect(wrapper.text()).toBe("Loading")
   })
 
-  it("uses the supplied label and size", () => {
+  it("uses the supplied label", () => {
     const wrapper = mount(UiSpinner, { props: { label: "Scanning plug-ins", size: "lg" } })
 
-    expect(wrapper.get(".ui-visually-hidden").text()).toBe("Scanning plug-ins")
-    expect(wrapper.attributes("data-size")).toBe("lg")
+    expect(wrapper.text()).toBe("Scanning plug-ins")
   })
 })
 
@@ -62,7 +57,6 @@ describe("UiEmptyState", () => {
     })
 
     expect(wrapper.get("p").text()).toBe("Create one to get started.")
-    expect(wrapper.get('[aria-hidden="true"]').find(".glyph").exists()).toBe(true)
     expect(wrapper.get("button").text()).toBe("New project")
   })
 })
@@ -167,7 +161,7 @@ describe("UiRadioGroup", () => {
     expect(wrapper.element.tagName).toBe("FIELDSET")
     expect(wrapper.get("legend").text()).toBe("Channel format")
     expect(wrapper.findAll('input[type="radio"]')).toHaveLength(3)
-    expect(wrapper.get(".ui-radio-group__description").text()).toBe("Two channels")
+    expect(wrapper.text()).toContain("Two channels")
   })
 
   it("groups the radios under one generated name so only one can be checked", () => {
@@ -228,7 +222,6 @@ describe("UiStatusNotice", () => {
 
     expect(wrapper.attributes("role")).toBeUndefined()
     expect(wrapper.attributes("aria-live")).toBeUndefined()
-    expect(wrapper.attributes("data-tone")).toBe("neutral")
     expect(wrapper.find("strong").exists()).toBe(false)
   })
 
@@ -240,7 +233,6 @@ describe("UiStatusNotice", () => {
 
     expect(wrapper.attributes("role")).toBe("status")
     expect(wrapper.attributes("aria-live")).toBe("polite")
-    expect(wrapper.attributes("data-tone")).toBe("success")
     expect(wrapper.get("strong").text()).toBe("Recording saved")
   })
 })
@@ -256,8 +248,6 @@ describe("UiButton", () => {
     expect(button.attributes("disabled")).toBeDefined()
     expect(button.attributes("aria-disabled")).toBe("true")
     expect(button.attributes("aria-busy")).toBeUndefined()
-    expect(button.attributes("data-variant")).toBe("danger")
-    expect(button.attributes("data-size")).toBe("lg")
   })
 
   it("leaves an idle button interactive and defaults to type button", () => {

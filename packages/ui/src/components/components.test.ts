@@ -9,6 +9,7 @@ import UiChoiceChip from "./UiChoiceChip.vue"
 import UiField from "./UiField.vue"
 import UiNumberInput from "./UiNumberInput.vue"
 import UiProgress from "./UiProgress.vue"
+import UiSearchInput from "./UiSearchInput.vue"
 import UiSegmentedControl from "./UiSegmentedControl.vue"
 import UiSelect from "./UiSelect.vue"
 import UiStatusNotice from "./UiStatusNotice.vue"
@@ -171,13 +172,11 @@ describe("UI controls", () => {
       }
     })
 
-    expect(wrapper.classes()).toContain("ui-select-shell--compact")
     expect(wrapper.get("select").attributes("aria-label")).toBe("Key signature")
     expect(wrapper.findAll("optgroup").map((group) => group.attributes("label"))).toEqual([
       "Major keys",
       "Minor keys"
     ])
-    expect(wrapper.find(".ui-select__separator").exists()).toBe(true)
     await wrapper.get("select").setValue("minor:0")
     expect(wrapper.emitted("update:modelValue")).toEqual([["minor:0"]])
   })
@@ -417,5 +416,27 @@ describe("UI feedback semantics", () => {
 
     expect(wrapper.attributes("role")).toBe("alert")
     expect(wrapper.attributes("aria-live")).toBe("assertive")
+  })
+})
+
+describe("UiSearchInput", () => {
+  it("labels the search field and emits text changes", async () => {
+    const wrapper = mount(UiSearchInput, { props: { label: "Search assets", modelValue: "Kick" } })
+    const input = wrapper.get('input[type="search"]')
+    expect(input.attributes("aria-label")).toBe("Search assets")
+    expect(input.attributes("placeholder")).toBe("Search assets")
+    expect((input.element as HTMLInputElement).value).toBe("Kick")
+    await input.setValue("Bass")
+    expect(wrapper.emitted("update:modelValue")).toEqual([["Bass"]])
+    await wrapper.setProps({ modelValue: "Piano" })
+    expect((input.element as HTMLInputElement).value).toBe("Piano")
+  })
+
+  it("preserves the disabled state and custom placeholder", () => {
+    const wrapper = mount(UiSearchInput, {
+      props: { label: "Search assets", placeholder: "Name…", disabled: true }
+    })
+    expect(wrapper.get("input").attributes("disabled")).toBeDefined()
+    expect(wrapper.get("input").attributes("placeholder")).toBe("Name…")
   })
 })

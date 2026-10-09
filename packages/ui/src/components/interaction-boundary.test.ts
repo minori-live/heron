@@ -99,12 +99,10 @@ describe("Storybook interaction boundary components", () => {
 
     wrapper.element.dispatchEvent(drag("dragover", transfer))
     await wrapper.vm.$nextTick()
-    expect(wrapper.classes()).toContain("ui-drop-zone--active")
     expect(transfer.dropEffect).toBe("copy")
 
     window.dispatchEvent(new Event("dragend"))
     await wrapper.vm.$nextTick()
-    expect(wrapper.classes()).not.toContain("ui-drop-zone--active")
 
     wrapper.element.dispatchEvent(drag("drop", transfer))
     expect(wrapper.emitted("drop")).toEqual([
