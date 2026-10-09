@@ -59,7 +59,11 @@ builds, and tagged releases.
 The Test and Build workflows install the versions in `mise.lock`, use frozen
 pnpm dependencies, and pin the VST3 SDK commit where a native setup is
 required. The mise installation, pnpm store, Cargo downloads, and Electron
-downloads have separate platform-and-architecture cache keys. Rust compilation
+downloads have separate platform-and-architecture cache keys and are restored on
+every run. Only `main` and tag runs save them, so pull requests read main's
+entries through the base-branch fallback instead of writing merge-ref copies;
+those copies previously consumed most of the repository's 10 GB cache quota and
+evicted shared sccache objects. Rust compilation
 uses sccache's shared GitHub Actions backend. Check jobs may restore a Cargo `target`
 cache; packaging jobs leave it disabled because the directory is large and can
 retain stale platform-specific build state. The Linux check leg additionally
@@ -73,7 +77,7 @@ native binding tests, and export merged Rust profiles after Node exits. Linux
 also runs the JavaScript coverage suites and official plug-in fixtures. Each
 test suite runs once. Instrumented artifacts stay in `target-coverage/`, outside
 the shared Checks `target` cache. cargo-llvm-cov chains the sccache
-`RUSTC_WRAPPER` and instruments only workspace crates, so sccache caches those
+`RUSTC_WRAPPER`, and sccache caches the instrumented
 builds and repeat runs reuse them.
 
 ### Compiler cache writes
