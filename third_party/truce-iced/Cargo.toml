@@ -64,10 +64,10 @@ features = ["canvas"]
 version = "0.4"
 
 [dependencies.pollster]
-version = "1.0"
+version = "0.4"
 
 [dependencies.raw-window-handle]
-version = "0.6"
+version = "0.5"
 
 [dependencies.truce-core]
 version = "6.3.0"
@@ -87,7 +87,7 @@ version = "0.1.1-truce.13"
 package = "baseview-truce"
 
 [target.'cfg(not(target_os = "ios"))'.dependencies.keyboard-types]
-version = "0.8"
+version = "0.7"
 
 [target.'cfg(target_os = "ios")'.dependencies.objc2]
 version = "0.6"

@@ -39,6 +39,19 @@
       "matchManagers": ["cargo"],
       "matchPackageNames": ["windows-core"],
       "allowedVersions": "<0.63"
+    },
+    {
+      "description": "third_party crates are vendored published releases plus Heron patches; bumping their internal dependencies breaks source that only moves with an upstream release.",
+      "matchManagers": ["cargo"],
+      "matchFileNames": ["third_party/**"],
+      "enabled": false
+    },
+    {
+      "description": "heron-eq's native focus test bridges baseview's raw-window-handle 0.5 handle, so the test alias must stay on the same major.",
+      "matchManagers": ["cargo"],
+      "matchFileNames": ["plugins/heron-eq/**"],
+      "matchPackageNames": ["raw-window-handle"],
+      "allowedVersions": "<0.6"
     }
   ]
 }
