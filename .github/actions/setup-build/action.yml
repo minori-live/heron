@@ -49,7 +49,7 @@ runs:
     - name: Install locked toolchain
       uses: jdx/mise-action@v5.1.1
       with:
-        version: 2026.10.3
+        version: 2026.10.6
         cache: true
         # Restore main's tool cache everywhere, but let only main and tags
         # write it; merge-ref copies only consume the shared cache quota.
