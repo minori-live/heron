@@ -7,6 +7,12 @@ set -euo pipefail
 # desktop and project-database suites. Formatting, lint, Clippy, TypeScript and
 # Storybook produce identical results everywhere, so `check:static` and
 # `check:design` stay on the Linux leg instead of running here.
+# Each phase runs through the shared `scripts/ci-timing.bash` helper, which
+# reports wall clock plus the sccache counter delta for the phase, so the
+# GitHub step summary breaks the single "Run repository checks" duration into
+# compilation and execution time.
+source scripts/ci-timing.bash
+
 if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
   llvm_cov_bin="$(cygpath -u "$(mise which cargo-llvm-cov)")"
   export PATH="$(dirname "$llvm_cov_bin"):$PATH"
@@ -25,12 +31,12 @@ fi
 (
   export CARGO_TARGET_DIR="$coverage_target"
   eval "$(cargo llvm-cov show-env --sh --target "$target")"
-  mise run check:rust-tests:coverage
-  pnpm --filter @heron/dsp-node build:debug
-  pnpm test:native-bindings
-  cargo xtask coverage report
+  timed rust-tests:instrumented mise run check:rust-tests:coverage
+  timed addon-build:instrumented pnpm --filter @heron/dsp-node build:debug
+  timed native-bindings pnpm test:native-bindings
+  timed coverage-report cargo xtask coverage report
   node scripts/rewrite-lcov-paths.ts coverage/rust/lcov.info
 )
 
-pnpm --filter @heron/desktop test:unit
-pnpm --filter @heron/project-db test:integration
+timed desktop-unit pnpm --filter @heron/desktop test:unit
+timed project-db-integration pnpm --filter @heron/project-db test:integration

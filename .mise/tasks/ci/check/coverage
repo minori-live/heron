@@ -6,8 +6,15 @@ set -euo pipefail
 # The shared `check:*` tasks define what a full validation run covers. This task
 # only adds what is specific to the Linux coverage leg: the llvm-cov shell and
 # the official plug-in fixtures, which need a network fetch and CMake.
-mise run version:check
-mise run check:static
+#
+# Each phase runs through the shared `scripts/ci-timing.bash` helper, which
+# reports wall clock plus the sccache counter delta for the phase, so the
+# GitHub step summary breaks the single "Run repository checks" duration into
+# compilation and execution time.
+source scripts/ci-timing.bash
+
+timed version:check mise run version:check
+timed check:static mise run check:static
 
 target="$(cargo xtask host-target)"
 coverage_target="$PWD/target-coverage"
@@ -22,13 +29,13 @@ fi
 (
   export CARGO_TARGET_DIR="$coverage_target"
   eval "$(cargo llvm-cov show-env --sh --target "$target")"
-  mise run check:rust-tests:coverage
-  pnpm --filter @heron/dsp-node build:debug
-  mise run check:js-tests:coverage
-  mise run test:official-plugin-fixtures
-  cargo xtask coverage report
+  timed rust-tests:instrumented mise run check:rust-tests:coverage
+  timed addon-build:instrumented pnpm --filter @heron/dsp-node build:debug
+  timed js-tests:coverage mise run check:js-tests:coverage
+  timed official-plugin-fixtures mise run test:official-plugin-fixtures
+  timed coverage-report cargo xtask coverage report
   node scripts/rewrite-lcov-paths.ts coverage/rust/lcov.info
 )
 
-mise run check:bench
-mise run check:design
+timed check:bench mise run check:bench
+timed check:design mise run check:design

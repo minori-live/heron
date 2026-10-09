@@ -111,6 +111,21 @@ zero writes. Compare total job time as well as cache statistics. If main still
 reports errors, use the diagnostic category to distinguish rate limiting,
 authorization, entry conflicts, and storage limits before making further changes.
 
+### Check phase timings
+
+The Linux and native coverage tasks run every phase through
+`scripts/ci-timing.ts`. The task shell executes the command unchanged; the
+script only snapshots the sccache counters before the phase and appends a row to
+the GitHub step summary afterwards. Each row reports wall clock, the phase's
+rustc invocation count (the sccache hit+miss delta), cache hits and misses, and
+the exit status. That separates compilation from execution: a slow phase with no
+rustc invocations spent its time in tests, fixtures, or packaging instead.
+
+The timings are diagnostics. A failed snapshot or summary prints to stderr and
+never changes the task or phase result. Use them to attribute the single "Run
+repository checks" duration before changing profiles, the task graph, or
+coverage scope, and keep the plain phase output as the record of what actually ran.
+
 ### Universal macOS build ownership
 
 `ci:build:macos-universal` owns the two N-API builds, universalization, native
