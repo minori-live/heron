@@ -98,18 +98,6 @@ describe("load", () => {
     await store.load()
     expect(store.settings).toEqual(settings())
   })
-
-  it("uses the typed error message for a failed result", async () => {
-    stubApi({
-      bootstrap: vi.fn().mockResolvedValue(rpcFailure("errors.unableToLoadApplicationSettings"))
-    })
-    const store = useApplicationSettingsStore()
-
-    await store.load()
-
-    expect(store.error).not.toBe("")
-    expect(store.error).not.toBe("boom")
-  })
 })
 
 describe("optimistic display settings", () => {

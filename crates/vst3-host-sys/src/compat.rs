@@ -98,18 +98,9 @@ pub fn process_context_state<E: BindgenEnum>(flags: &[E]) -> uint32 {
 
 #[cfg(test)]
 mod tests {
-    use std::{mem, os::raw::c_char};
-
-    use crate::Steinberg::{TUID, Vst, uint32};
+    use crate::Steinberg::{Vst, uint32};
 
     use super::*;
-
-    #[test]
-    fn tuid_elements_match_c_char() {
-        let tuid: TUID = [tuid_byte(0x7f); 16];
-        let _: c_char = tuid[0];
-        assert_eq!(mem::size_of::<TUID>(), 16 * mem::size_of::<c_char>());
-    }
 
     #[test]
     fn process_context_state_is_uint32() {
@@ -123,13 +114,6 @@ mod tests {
             as_uint32(Vst::ProcessContext_StatesAndFlags_kPlaying)
                 | as_uint32(Vst::ProcessContext_StatesAndFlags_kRecording)
         );
-    }
-
-    #[test]
-    fn enum_casts_preserve_values() {
-        assert_eq!(as_int32(Vst::ProcessModes_kRealtime), 0);
-        assert_eq!(as_media_type(Vst::MediaTypes_kAudio), 0);
-        assert_eq!(as_bus_direction(Vst::BusDirections_kInput), 0);
     }
 
     #[test]

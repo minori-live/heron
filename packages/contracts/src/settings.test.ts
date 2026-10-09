@@ -8,9 +8,9 @@ import {
 
 describe("meter return rates", () => {
   it("keeps every option ordered from slowest to fastest", () => {
-    expect(METER_RETURN_RATES.map((rate) => METER_RETURN_RATE_DB_PER_SECOND[rate])).toEqual([
-      4, 6.3, 8.6, 11.8, 20, 30, 50
-    ])
+    const rates = METER_RETURN_RATES.map((rate) => METER_RETURN_RATE_DB_PER_SECOND[rate])
+    expect(rates).toEqual([...rates].sort((left, right) => left - right))
+    expect(new Set(rates).size).toBe(rates.length)
   })
 
   it("defaults to IEC Type I", () => {

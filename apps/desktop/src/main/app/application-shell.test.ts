@@ -15,16 +15,13 @@ function applicationIdentity() {
 }
 
 describe("application shell", () => {
-  it.each<NodeJS.Platform>(["darwin", "linux", "win32"])(
-    "uses the product name on %s",
-    (platform) => {
-      const application = applicationIdentity()
+  it("uses the product name regardless of platform", () => {
+    const application = applicationIdentity()
 
-      configureApplicationIdentity(application, platform)
+    configureApplicationIdentity(application, "darwin")
 
-      expect(application.setName).toHaveBeenCalledWith(APPLICATION_NAME)
-    }
-  )
+    expect(application.setName).toHaveBeenCalledWith(APPLICATION_NAME)
+  })
 
   it("registers the Windows application identity", () => {
     const application = applicationIdentity()

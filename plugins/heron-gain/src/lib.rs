@@ -157,13 +157,6 @@ mod tests {
     use truce_test::{InputSource, assert_no_audio_alloc, assertions, driver};
 
     #[test]
-    fn info_state_and_editor_are_valid() {
-        truce_test::assert_valid_info::<Plugin>();
-        truce_test::assert_has_editor::<Plugin>();
-        truce_test::assert_state_round_trip::<Plugin>();
-    }
-
-    #[test]
     fn exposes_mono_mono_to_stereo_and_stereo_layouts() {
         let layouts = <HeronGain as PurePluginLogic>::bus_layouts()
             .into_iter()

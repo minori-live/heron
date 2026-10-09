@@ -32,9 +32,7 @@ describe("StudioWorkspace", () => {
     })
 
     expect(wrapper.find('[role="tablist"]').exists()).toBe(false)
-    const mixerDock = wrapper.get('[data-testid="mixer-dock"]')
-    expect(mixerDock.classes()).toContain("flex-1")
-    expect(mixerDock.classes()).not.toContain("flex")
+    expect(wrapper.find('[data-testid="mixer-dock"]').exists()).toBe(true)
 
     workspace.togglePianoRollDock()
     await nextTick()

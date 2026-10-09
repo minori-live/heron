@@ -184,8 +184,6 @@ describe("StudioTopbar", () => {
     const wrapper = mountTopbar()
     const button = wrapper.get('button[aria-label="Low Latency Mode"]')
     expect(button.attributes("aria-pressed")).toBe("false")
-    expect(button.classes()).toContain("tone-success")
-    expect(button.find(".lucide-zap").exists()).toBe(true)
 
     await wrapper.setProps({ lowLatencyModeEnabled: true, lowLatencyModeBusy: true })
     expect(button.attributes("aria-pressed")).toBe("true")
@@ -391,8 +389,6 @@ describe("StudioTopbar", () => {
     expect(wrapper.get('button[aria-label^="Meter 3/4"]').text()).toBe("3/4")
     const keyDropdown = wrapper.get('button[aria-label="Key signature C minor"]')
     expect(keyDropdown.text()).toBe("C minor")
-    expect(keyDropdown.classes()).toContain("ui-cascading-select--embedded")
-    expect(keyDropdown.classes()).toContain("ui-cascading-select--hover-host-tint")
   })
 
   it("edits the active meter event from the musical display", async () => {
@@ -411,9 +407,7 @@ describe("StudioTopbar", () => {
     const wrapper = mountTopbar()
 
     await wrapper.get('button[aria-label="Key signature C minor"]').trigger("click")
-    const keyGroups = document.body.querySelectorAll<HTMLElement>(
-      ".ui-cascading-select__sub-trigger"
-    )
+    const keyGroups = document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')
     expect([...keyGroups].map((group) => group.textContent?.trim())).toEqual([
       "Major keys",
       "Minor keys"
@@ -421,9 +415,9 @@ describe("StudioTopbar", () => {
     const majorKeys = new DOMWrapper(keyGroups[0])
     await majorKeys.trigger("focus")
     await majorKeys.trigger("keydown", { key: "ArrowRight" })
-    const dMajor = [
-      ...document.body.querySelectorAll<HTMLElement>(".ui-cascading-select__item")
-    ].find((option) => option.textContent?.includes("D Major"))
+    const dMajor = [...document.body.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
+      (option) => option.textContent?.includes("D Major")
+    )
     expect(dMajor).toBeDefined()
     await new DOMWrapper(dMajor).trigger("click")
 

@@ -178,7 +178,9 @@ it.each([
   "clears $kind search then dismisses the popup through Escape with query '$query'",
   async ({ kind, query }) => {
     // Flush the previous menu's deferred focus restoration before opening a new popup.
+    // The restoration is scheduled on a macrotask, so a microtask flush is not enough.
     await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 0))
     const Component = kind === "context" ? UiContextMenu : UiDropdownMenu
     const wrapper = mount(Component, {
       attachTo: document.body,

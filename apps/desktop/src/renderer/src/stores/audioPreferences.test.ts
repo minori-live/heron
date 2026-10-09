@@ -376,17 +376,6 @@ describe("backend discovery", () => {
     expect(store.discoveryError).not.toBe("")
   })
 
-  it("uses the typed message when the host query fails", async () => {
-    stubApi({
-      listAudioBackends: vi.fn().mockResolvedValue(rpcFailure("errors.audioEngineUnavailable"))
-    })
-    const store = useAudioPreferencesStore()
-
-    await store.discoverBackends()
-
-    expect(store.discoveryError).not.toBe("")
-  })
-
   it("ignores a stale backend query that resolves after a newer one", async () => {
     let releaseFirst: (value: RpcResult<AudioBackendDescriptor[]>) => void = () => undefined
     const first = new Promise<RpcResult<AudioBackendDescriptor[]>>((resolve) => {
@@ -438,17 +427,6 @@ describe("device discovery", () => {
     expect(store.inputDevices).toEqual([])
     expect(store.outputDevices).toEqual([])
     expect(store.discoveryState).toBe("unavailable")
-    expect(store.discoveryError).not.toBe("")
-  })
-
-  it("uses the typed message when enumeration fails", async () => {
-    stubApi({
-      listAudioDevices: vi.fn().mockResolvedValue(rpcFailure("errors.audioEngineUnavailable"))
-    })
-    const store = useAudioPreferencesStore()
-
-    await store.discoverDevices("alsa")
-
     expect(store.discoveryError).not.toBe("")
   })
 

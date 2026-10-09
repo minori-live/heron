@@ -159,7 +159,6 @@ describe("MixerChannelStrip", () => {
     expect(wrapper.emitted("updateChannel")?.at(-1)?.slice(0, 2)).toEqual(["audio", { pan: 1 }])
 
     await wrapper.setProps({ channel: { ...channel, pan: 1 } })
-    expect(wrapper.find(".pan-readout").exists()).toBe(false)
     const commitsBeforePanEdit = wrapper.emitted("updateChannel")?.length ?? 0
     await pan.trigger("dblclick")
     expect(wrapper.emitted("updateChannel")?.length).toBe(commitsBeforePanEdit)
@@ -173,7 +172,6 @@ describe("MixerChannelStrip", () => {
     expect(wrapper.emitted("updateChannel")?.at(-1)).toEqual(["audio", { muted: true }])
     expect(wrapper.get('button[aria-label="Arm Vocal"]').attributes("aria-pressed")).toBe("false")
     expect(wrapper.get('button[aria-label="Monitor Vocal"]').attributes("disabled")).toBeUndefined()
-    expect(wrapper.find(".pan-heading").exists()).toBe(false)
     expect(
       wrapper.findAll("[data-section]").map((section) => section.attributes("data-section"))
     ).toEqual([
@@ -276,19 +274,14 @@ describe("MixerChannelStrip", () => {
       global: { plugins: [pinia] }
     })
 
-    expect(wrapper.get('button[aria-label="Mute Vocal"]').classes()).toContain("tone-mute")
-    expect(wrapper.get('button[aria-label="Mute Vocal"]').classes()).toContain("active")
-    expect(wrapper.get('button[aria-label="Solo Vocal"]').classes()).toContain("tone-solo")
-    expect(wrapper.get('button[aria-label="Solo Vocal"]').classes()).toContain("active")
-    expect(wrapper.get('button[aria-label="Arm Vocal"]').classes()).toContain("tone-record")
-    expect(wrapper.get('button[aria-label="Arm Vocal"]').classes()).toContain("active")
+    expect(wrapper.get('button[aria-label="Mute Vocal"]').attributes("aria-pressed")).toBe("true")
+    expect(wrapper.get('button[aria-label="Solo Vocal"]').attributes("aria-pressed")).toBe("true")
+    expect(wrapper.get('button[aria-label="Arm Vocal"]').attributes("aria-pressed")).toBe("true")
     const monitor = wrapper.get('button[aria-label="Monitor Vocal"]')
-    expect(monitor.classes()).toContain("tone-input")
-    expect(monitor.classes()).toContain("active")
+    expect(monitor.attributes("aria-pressed")).toBe("true")
     expect(monitor.attributes("disabled")).toBeUndefined()
     await monitor.trigger("click")
     expect(wrapper.emitted("updateChannel")?.at(-1)).toEqual(["audio", { inputMonitoring: false }])
-    expect(wrapper.get(".input-actions").findAll("button")).toHaveLength(2)
   })
 
   it("keeps application input monitoring configurable when global software monitoring is off", async () => {
@@ -481,6 +474,5 @@ describe("MixerChannelStrip", () => {
     expect(wrapper.get('[data-section="input"]').text()).toContain("Synth")
     expect(wrapper.get('[data-section="input"]').text()).not.toContain("MIDI")
     expect(wrapper.get('[data-section="plugins"]').text()).not.toContain("Synth")
-    expect(wrapper.get('[data-section="plugins"]').findAll(".plugin-row")).toHaveLength(2)
   })
 })

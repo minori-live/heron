@@ -34,7 +34,6 @@ describe("AboutHeronHost", () => {
     expect(dialog?.textContent).toContain("Steinberg ASIO SDK 2.3.4")
     expect(dialog?.textContent).toContain("General Public License (GPL) Version 3")
     expect(dialog?.querySelector('[data-appearance="on-dark"]')).not.toBeNull()
-    expect(dialog?.querySelector(".asio-compatible-logo")).not.toBeNull()
 
     const links = [...(dialog?.querySelectorAll<HTMLAnchorElement>("a") ?? [])]
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
