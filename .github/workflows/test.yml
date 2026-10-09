@@ -225,7 +225,7 @@ jobs:
 
   static:
     name: Static and design checks
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:
       - name: Check out source
@@ -256,7 +256,7 @@ jobs:
 
   e2e:
     name: Electron end-to-end (Linux x64)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:
       - name: Check out source
