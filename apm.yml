@@ -18,5 +18,7 @@ dependencies:
     - mattpocock/skills/skills/productivity/grill-me
     - microsoft/apm/packages/apm-guide/.apm/skills/apm-usage
     - vueuse/skills/skills/vueuse-functions
+    - luoling8192/create-pr-with-evidence-skill#ae59b8b557e1df061d9c5ee6c4d56d672f1f2aa6
+    - lennney/stop-that-shit/skills/stop-that-shit#694bbd59e26b522cd63801a01590ccaa77c7fe84
 includes: auto
 scripts: {}
