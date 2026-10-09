@@ -62,8 +62,12 @@ required. The mise installation, pnpm store, Cargo downloads, and Electron
 downloads have separate platform-and-architecture cache keys. Rust compilation
 uses sccache's shared GitHub Actions backend. Check jobs may restore a Cargo `target`
 cache; packaging jobs leave it disabled because the directory is large and can
-retain stale platform-specific build state. Coverage is collected in each
-Checks test pass. Every platform uses cargo-llvm-cov's external-test environment
+retain stale platform-specific build state. The Linux check leg additionally
+caches the built official VST3/CLAP fixtures as
+`target/official-plug-in-fixtures`, keyed on the pinned fixture commits and the
+CMake/toolchain inputs. Only the finished bundles are archived, and only `main`
+and tag runs save, so pull requests cannot add fixture cache writes. Coverage is
+collected in each Checks test pass. Every platform uses cargo-llvm-cov's external-test environment
 to run Cargo tests, build the napi-rs module with instrumentation, execute the
 native binding tests, and export merged Rust profiles after Node exits. Linux
 also runs the JavaScript coverage suites and official plug-in fixtures. Each
@@ -151,7 +155,12 @@ workspace). Rust coverage requires the locked `cargo-llvm-cov` tool and the
 `coverage/` (gitignored) and are uploaded to Codecov with the repository
 `CODECOV_TOKEN` secret. The combined Rust coverage run writes instrumented
 objects to `target-coverage/` so they stay out of the shared `target/` cache,
-and keeps the sccache wrapper so repeat runs reuse cached builds. LCOV source
+and keeps the sccache wrapper so repeat runs reuse cached builds. Each coverage
+run clears only the raw `*.profraw` counters (`cargo llvm-cov clean
+--profraw-only`), keeping the instrumented artifacts so local runs stay
+incremental and Windows never tries to delete the running `heron_xtask` binary.
+`cargo llvm-cov report` re-merges the fresh profiles into `*.profdata`, so a
+retained profile merge cannot serve a stale report. LCOV source
 paths are rewritten relative to the repository before upload so reports from
 POSIX and Windows checkouts merge against the same files. Use the combined
 command when native calls made by JavaScript must be reflected in Rust coverage;
