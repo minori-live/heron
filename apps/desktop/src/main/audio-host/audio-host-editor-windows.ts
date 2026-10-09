@@ -5,6 +5,17 @@ import type {
   NativeEditorToolbarState
 } from "@heron/dsp-node"
 import type { PluginEditorMode, PluginParameterInfo } from "@heron/contracts"
+import {
+  acknowledgeContentSize,
+  applyEditorBounds,
+  equivalentContentSize,
+  nativeExtent,
+  nativeParentTopInset,
+  sameNativeLayout,
+  settledContentSize,
+  type EditorLayoutState
+} from "./audio-host-editor-layout.ts"
+export { nativeExtent } from "./audio-host-editor-layout.ts"
 
 const TOOLBAR_HEIGHT = 60
 const NARROW_TOOLBAR_HEIGHT = 96
@@ -81,6 +92,7 @@ interface EditorWindowEntry {
   toolbarKey: string
   minimumNativeWidth: number
   minimumNativeHeight: number
+  layout?: EditorLayoutState
 }
 
 export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
@@ -108,14 +120,18 @@ export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
           open: false
         }
       }
+      this.invalidateLayout(existing)
       existing.window.show()
-      this.resizeNativeHost(instanceId, existing)
       existing.toolbarWindow.showInactive()
       existing.window.focus()
       const result = await openNative()
-      return this.entries.get(instanceId) === existing && !existing.closing
-        ? result
-        : { ...result, open: false }
+      if (this.entries.get(instanceId) !== existing || existing.closing) {
+        return { ...result, open: false }
+      }
+      // Reopening can replace the native attachment without changing its size.
+      this.invalidateLayout(existing)
+      this.resizeNativeHost(instanceId, existing)
+      return result
     }
 
     const window = new BaseWindow({
@@ -175,7 +191,8 @@ export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
       nativeRestackTimer: null,
       toolbarKey: "",
       minimumNativeWidth: 1,
-      minimumNativeHeight: 1
+      minimumNativeHeight: 1,
+      layout: {}
     }
     this.entries.set(instanceId, entry)
 
@@ -220,8 +237,18 @@ export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
       }
     })
     window.on("move", () => {
-      if (!entry.closing) this.resizeNativeHost(instanceId, entry)
+      if (!entry.closing && !entry.applyingPluginSize) this.resizeNativeHost(instanceId, entry)
     })
+    const invalidateWindowLayout = () => this.invalidateLayout(entry)
+    window.on("show", invalidateWindowLayout)
+    window.on("hide", invalidateWindowLayout)
+    const invalidateToolbarLayout = () => {
+      const layout = (entry.layout ??= {})
+      layout.toolbar = undefined
+      layout.view = undefined
+    }
+    toolbarWindow.on("show", invalidateToolbarLayout)
+    toolbarWindow.on("hide", invalidateToolbarLayout)
     window.on("focus", () => {
       // On Windows, activating the owned toolbar can focus the parent first.
       // Wait until focus settles so opening a native <select> is not cancelled
@@ -351,12 +378,16 @@ export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
     try {
       entry.window.setResizable(snapshot.resizable)
       const toolbarHeight = toolbarHeightFor(snapshot.width)
-      const [currentWidth = 1, currentHeight = 1] = entry.window.getContentSize()
-      const totalHeight = snapshot.height + toolbarHeight
-      if (currentWidth !== snapshot.width || currentHeight !== totalHeight) {
-        entry.window.setContentSize(snapshot.width, totalHeight)
+      const layout = (entry.layout ??= {})
+      const scaleFactor = this.scaleFactor(entry.window)
+      const [actualWidth = 1, actualHeight = 1] = entry.window.getContentSize()
+      const current = settledContentSize(layout, [actualWidth, actualHeight], scaleFactor)
+      const requested: [number, number] = [snapshot.width, snapshot.height + toolbarHeight]
+      if (!equivalentContentSize(current, requested, scaleFactor)) {
+        entry.window.setContentSize(...requested)
+        const [width = 1, height = 1] = entry.window.getContentSize()
+        acknowledgeContentSize(layout, requested, [width, height], scaleFactor)
       }
-      this.layoutToolbar(entry, snapshot.width, toolbarHeight)
       this.resizeNativeHost(snapshot.instanceId, entry)
     } finally {
       entry.applyingPluginSize = false
@@ -371,6 +402,7 @@ export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
     const modeChanged = entry.toolbarState?.activeMode !== state.activeMode
     const zoomChanged = entry.toolbarState?.zoomPercent !== state.zoomPercent
     const sidechainWasPending = entry.toolbarState?.sidechainPending === true
+    if (modeChanged || zoomChanged) this.invalidateLayout(entry, true)
     entry.toolbarState = state
     if (
       state.activeMode === "parameters" &&
@@ -387,7 +419,12 @@ export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
       if (entry.toolbarState?.activeMode !== state.activeMode) return
     }
     if (entry.window.isDestroyed()) return
-    const [width = 1, height = 1] = entry.window.getContentSize()
+    const [actualWidth = 1, actualHeight = 1] = entry.window.getContentSize()
+    const [width, height] = settledContentSize(
+      (entry.layout ??= {}),
+      [actualWidth, actualHeight],
+      this.scaleFactor(entry.window)
+    )
     const toolbarHeight = toolbarHeightFor(width)
     if (state.activeMode === "parameters") {
       entry.minimumNativeWidth = 1
@@ -425,19 +462,52 @@ export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
   private resizeNativeHost(instanceId: string, entry: EditorWindowEntry): void {
     if (entry.window.isDestroyed()) return
     const scaleFactor = this.scaleFactor(entry.window)
-    const [width = 1, height = 1] = entry.window.getContentSize()
+    const handle = entry.window.getNativeWindowHandle?.().toString("hex")
+    const layout = (entry.layout ??= {})
+    if (
+      (layout.displayScale !== undefined && layout.displayScale !== scaleFactor) ||
+      (layout.nativeHandle !== undefined && layout.nativeHandle !== handle)
+    ) {
+      this.invalidateLayout(entry, true)
+    }
+    const currentLayout = (entry.layout ??= {})
+    currentLayout.displayScale = scaleFactor
+    const [actualWidth = 1, actualHeight = 1] = entry.window.getContentSize()
+    const [width, height] = settledContentSize(
+      currentLayout,
+      [actualWidth, actualHeight],
+      scaleFactor
+    )
     const toolbarHeight = toolbarHeightFor(width)
     const requestedHeight = Math.max(1, height - toolbarHeight)
     this.layoutToolbar(entry, width, toolbarHeight)
     if (entry.toolbarState?.activeMode === "parameters") return
     const native = nativeExtent(width, requestedHeight, scaleFactor)
-    entry.client.resizeEditorHost({
-      instanceId,
+    const requested = {
       width: native.width,
       height: native.height,
       topInset: nativeParentTopInset(entry.window, toolbarHeight, scaleFactor),
       displayScale: scaleFactor
-    })
+    }
+    if (
+      currentLayout.nativeHandle === handle &&
+      sameNativeLayout(currentLayout.native, requested)
+    ) {
+      if (entry.client.editorHostSnapshot(instanceId)?.attached) return
+      currentLayout.content = undefined
+    }
+    // Cache before entering native code, whose onSize callbacks can reenter us.
+    const previous = currentLayout.native
+    const previousHandle = currentLayout.nativeHandle
+    currentLayout.native = requested
+    currentLayout.nativeHandle = handle
+    try {
+      entry.client.resizeEditorHost({ instanceId, ...requested })
+    } catch (error) {
+      currentLayout.native = previous
+      currentLayout.nativeHandle = previousHandle
+      throw error
+    }
     this.scheduleNativeRestack(instanceId, entry)
     // applySnapshot calls back into this method after changing the Electron
     // window so the native child receives its final geometry. Do not feed that
@@ -445,7 +515,15 @@ export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
     // can keep the two snapshots one pixel apart and recurse synchronously.
     if (entry.applyingPluginSize) return
     const accepted = entry.client.editorHostSnapshot(instanceId)
-    if (!accepted?.attached || (accepted.width === width && accepted.height === requestedHeight)) {
+    if (!accepted?.attached) currentLayout.native = undefined
+    if (
+      !accepted?.attached ||
+      equivalentContentSize(
+        [width, requestedHeight],
+        [accepted.width, accepted.height],
+        scaleFactor
+      )
+    ) {
       return
     }
     if (accepted.width > width) {
@@ -490,7 +568,12 @@ export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
       return
     }
     const scaleFactor = this.scaleFactor(entry.window)
-    const [width = 1, height = 1] = entry.window.getContentSize()
+    const [actualWidth = 1, actualHeight = 1] = entry.window.getContentSize()
+    const [width, height] = settledContentSize(
+      (entry.layout ??= {}),
+      [actualWidth, actualHeight],
+      scaleFactor
+    )
     const toolbarHeight = toolbarHeightFor(width)
     const native = nativeExtent(width, Math.max(1, height - toolbarHeight), scaleFactor)
     entry.client.resizeEditorHost({
@@ -515,20 +598,31 @@ export class ElectronPluginEditorWindows implements AudioHostEditorWindows {
     if (!entry.window.isDestroyed()) entry.window.destroy()
   }
 
+  private invalidateLayout(entry: EditorWindowEntry, content = false): void {
+    entry.layout = { content: content ? undefined : entry.layout?.content }
+  }
+
   private layoutToolbar(entry: EditorWindowEntry, width: number, height: number): void {
     if (entry.window.isDestroyed() || entry.toolbarWindow.isDestroyed()) return
-    const viewHeight =
-      entry.toolbarState?.activeMode === "parameters"
-        ? (entry.window.getContentSize()[1] ?? height)
-        : height
+    const [actualWidth = width, actualHeight = height] = entry.window.getContentSize()
+    const viewHeight = entry.toolbarState?.activeMode === "parameters" ? actualHeight : height
     const contentBounds = entry.window.getContentBounds()
-    entry.toolbarWindow.setBounds({
-      x: contentBounds.x,
-      y: contentBounds.y,
-      width: Math.max(1, width),
-      height: viewHeight
-    })
-    entry.toolbar.setBounds({ x: 0, y: 0, width: Math.max(1, width), height: viewHeight })
+    const layout = (entry.layout ??= {})
+    layout.toolbar = applyEditorBounds(
+      layout.toolbar,
+      {
+        x: contentBounds.x,
+        y: contentBounds.y,
+        width: Math.max(1, actualWidth),
+        height: viewHeight
+      },
+      entry.toolbarWindow
+    )
+    layout.view = applyEditorBounds(
+      layout.view,
+      { x: 0, y: 0, width: Math.max(1, actualWidth), height: viewHeight },
+      entry.toolbar
+    )
   }
 
   private renderToolbar(entry: EditorWindowEntry): void {
@@ -614,41 +708,6 @@ function toolbarHeightFor(width: number): number {
 
 export function mapParentBeforeNativeAttach(platform: NodeJS.Platform): boolean {
   return platform === "linux"
-}
-
-function nativeDimension(
-  value: number,
-  scaleFactor: number,
-  platform: NodeJS.Platform = process.platform
-): number {
-  const scale = platform === "darwin" ? 1 : Math.max(0.01, scaleFactor)
-  return Math.max(1, Math.round(value * scale))
-}
-
-function nativeParentTopInset(
-  window: BaseWindow,
-  toolbarHeight: number,
-  scaleFactor: number,
-  platform: NodeJS.Platform = process.platform
-): number {
-  const windowBounds = window.getBounds()
-  const contentBounds = window.getContentBounds()
-  const nativeChromeHeight =
-    platform === "linux" ? Math.max(0, contentBounds.y - windowBounds.y) : 0
-  return nativeDimension(toolbarHeight + nativeChromeHeight, scaleFactor, platform)
-}
-
-export function nativeExtent(
-  width: number,
-  height: number,
-  scaleFactor: number,
-  platform: NodeJS.Platform = process.platform
-): { width: number; height: number } {
-  const scale = platform === "darwin" ? 1 : Math.max(0.01, scaleFactor)
-  return {
-    width: Math.max(1, Math.round(width * scale)),
-    height: Math.max(1, Math.round(height * scale))
-  }
 }
 
 function toolbarHtml(
