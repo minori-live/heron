@@ -14,8 +14,8 @@ import {
   sameNativeLayout,
   settledContentSize,
   type EditorLayoutState
-} from "./audio-host-editor-layout"
-export { nativeExtent } from "./audio-host-editor-layout"
+} from "./audio-host-editor-layout.ts"
+export { nativeExtent } from "./audio-host-editor-layout.ts"
 
 const TOOLBAR_HEIGHT = 60
 const NARROW_TOOLBAR_HEIGHT = 96
