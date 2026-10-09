@@ -17,8 +17,6 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: "1"
-  # Pinned once so the fixture cache key and the checkout step cannot drift.
-  CLAP_PLUGINS_COMMIT: 81791d08bb4e5198213440fe43b8e99745210130
   # CI-only compilation tuning. Local dev builds keep full debug info and the
   # optimized dev profile from Cargo.toml; CI only needs line tables for
   # useful backtraces, and MSVC PDB generation is a large part of Windows
@@ -87,13 +85,15 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: target/official-plug-in-fixtures
-          key: official-plug-in-fixtures-${{ runner.os }}-${{ runner.arch }}-${{ env.CLAP_PLUGINS_COMMIT }}-${{ hashFiles('CMakeLists.txt', 'mise.toml', 'mise.lock', '.github/actions/setup-build/action.yml') }}
+          key: official-plug-in-fixtures-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('CMakeLists.txt', 'mise.toml', 'mise.lock', '.github/workflows/test.yml', '.github/actions/setup-build/action.yml') }}
           restore-keys: |
             official-plug-in-fixtures-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Fetch pinned official CLAP examples
         if: runner.os == 'Linux' && steps.official-fixtures.outputs.cache-hit != 'true'
         shell: bash
+        env:
+          CLAP_PLUGINS_COMMIT: 81791d08bb4e5198213440fe43b8e99745210130
         run: |
           fixture_source="$RUNNER_TEMP/clap-plugins"
           git init "$fixture_source"
