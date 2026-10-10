@@ -4,8 +4,8 @@
   "heronVersion": "0.6.5",
   "capture": "fit-automation.json emitted by the unchanged original EqParams::normalized_values for fit-preset.json; see heron-plugins EQ compatibility capture harness",
   "automation": {
-    "bytes": 616,
-    "sha256": "ad8d6cefcf9ced4c83ef7833a1ca439b18cc768f40411f11b4f3d67016c1376e"
+    "bytes": 425,
+    "sha256": "c188604d6782389e9efa3105c99af87accc4fabb622e17bbdd607ad99df23e45"
   },
   "preset": {
     "sha256": "47e3fd9a829b50a14f61aefc0d37a243d9409fd3d671cb061227d62f080bb61d"

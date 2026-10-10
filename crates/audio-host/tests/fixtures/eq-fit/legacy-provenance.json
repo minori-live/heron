@@ -22,9 +22,11 @@
       "channels": 2,
       "layout": "channel-major f32 little-endian",
       "input": "0.1*sin(2*pi*440*t) + 0.05*sin(2*pi*8000*t)",
-      "maximumAbsoluteMigrationError": 1e-06
+      "maximumAbsoluteMigrationError": 1e-6
     },
-    "fitAutomation": "original EqParams::normalized_values of fit-preset.json, excluding unchanged default values"
+    "fitAutomation": "original EqParams::normalized_values of fit-preset.json, excluding unchanged default values",
+    "parameterContract": "Original ParamInfo defaults, declared units, plain bounds, step count, flags and normalized quarter points for every immutable automation ID",
+    "storageFormatting": "JSON uses repository formatting after capture; state and audio remain byte-for-byte original captures"
   },
   "files": {
     "heron-0.6.5-nondefault.pluginstate": {
@@ -36,21 +38,30 @@
       "sha256": "a422992819fab664e7c8cbd6972599dcdaf9d85678bef9acd4ae811ac7d1b60e"
     },
     "heron-0.6.5-parameter-ids.json": {
-      "bytes": 1565,
-      "sha256": "6027210b944f53b6714a6774b75f85231a1a4ce5db2ad93f61983cece4a2b3c9"
+      "bytes": 1138,
+      "sha256": "2cdb5e2988b39b41fb38801e15bd7efeaffc997f185ee6b8f1ae1a53298527c3"
     },
     "fit-automation.json": {
-      "bytes": 616,
-      "sha256": "ad8d6cefcf9ced4c83ef7833a1ca439b18cc768f40411f11b4f3d67016c1376e"
+      "bytes": 425,
+      "sha256": "c188604d6782389e9efa3105c99af87accc4fabb622e17bbdd607ad99df23e45"
     },
     "generate_legacy.rs": {
-      "bytes": 3250,
-      "sha256": "2fcf44786e4507ae77b711f6fb9d68478fbdfe266969076620f3c24880d4851b"
+      "bytes": 4292,
+      "sha256": "c4acea2f92a047fb0f251b97367ec6fa2fea5532f52229516b9f5f00c5d2a7dc"
+    },
+    "heron-0.6.5-default-parameters.json": {
+      "bytes": 42769,
+      "sha256": "923f3d993091dc7cd12d6a51cfa246199e7cdde8f4a53543f01b70d6bd493f77"
     }
   },
   "hostFixture": {
     "path": "legacy.pluginstate",
     "source": "heron-plugins/plugins/heron-eq/tests/fixtures/heron-0.6.5-nondefault.pluginstate",
-    "note": "EQ source-state baseline from original Heron 0.6.5; not part of the three-plugin 0.6.4 project archive."
+    "note": "EQ source-state baseline from original Heron 0.6.5; not part of the three-plugin 0.6.4 project archive.",
+    "automation": {
+      "path": "fit-automation.json",
+      "sha256": "c188604d6782389e9efa3105c99af87accc4fabb622e17bbdd607ad99df23e45",
+      "note": "Repository-formatted copy of the original normalized parameter mapping; source files above refer to captured producer fixtures."
+    }
   }
 }

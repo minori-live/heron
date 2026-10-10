@@ -167,7 +167,7 @@ during gain/frequency changes, and axis labels remain readable.
 Verify resize routing through the same live Windows attachment, growing,
 shrinking and repeating an accepted size before clicking and dragging the
 relocated controls. The packaged regression command is
-`cargo test -p heron-eq --features rt-paranoid --test vst3_resize -- --ignored --nocapture`.
+`cargo test -p heron-audio-host --test builtin_eq_resize -- --ignored --test-threads=1 --nocapture`.
 The 2026-10-08 run passed at the observed 200% system DPI and 100% host zoom;
 this does not establish arbitrary host-zoom negotiation. Same-cache GPU evidence
 must also retain the real widget tree across sizes and check control painting,

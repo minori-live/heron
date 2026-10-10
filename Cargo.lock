@@ -1117,7 +1117,6 @@ name = "heron-dsp-core"
 version = "0.6.5"
 dependencies = [
  "criterion",
- "serde",
 ]
 
 [[package]]

@@ -198,18 +198,18 @@ destination's mode and output settings rather than replacing the whole preset.
 Use the repository-managed toolchain from a PowerShell 7 login shell on Windows.
 
 ```sh
-mise exec -- cargo test -p heron-dsp-core eq::
-mise exec -- cargo test -p heron-eq --features rt-paranoid
-mise exec -- cargo clippy -p heron-dsp-core -p heron-eq -p heron-audio-host --all-targets --features 'heron-eq/rt-paranoid,heron-audio-engine/bench-internals' -- -D warnings
-mise exec -- cargo truce build -p heron-eq --vst3 --debug
-mise exec -- cargo build -p heron-vst3-host --bin heron-vst3-probe
-mise exec -- node apps/desktop/scripts/builtin-vst3-smoke.ts
-mise exec -- cargo test -p heron-eq --test vst3_bundle -- --ignored --nocapture
-mise exec -- cargo test -p heron-eq --features rt-paranoid --test vst3_resize -- --ignored --nocapture
-mise exec -- cargo test -p heron-eq --lib render_fit_and_full_native_editors -- --ignored --nocapture
+mise run test:builtin-vst3
+mise exec -- cargo test -p heron-audio-host --test builtin_eq_resize -- --ignored --test-threads=1 --nocapture
 mise exec -- pnpm --filter @heron/desktop check
 mise exec -- pnpm --filter @heron/desktop exec playwright test e2e/plugin-analysis-eq-fit.spec.ts --workers=1
 ```
+
+The resize regression requires an interactive Windows desktop and a GPU. Pure
+EQ DSP, parameter/editor, real-time and render tests run in `heron-plugins`;
+see its [EQ verification commands](https://github.com/minori-live/heron-plugins/blob/main/agents/docs/heron-eq.md).
+Heron uses the prepared VST3 bundle, with no plugin source dependency. The legacy
+state smoke restores all four original native states together; the three-plugin
+project archive and EQ's separate 0.6.5 source fixture retain explicit provenance.
 
 The probe must inspect the built bundle, including class identity, layouts,
 sidechain/event buses and native editor support. Rendering alone does not prove
@@ -234,7 +234,7 @@ secondary menu changes. Separate regressions must cover immediate previews
 without audio, stale FIR rejection and Match failure/dismissal without parameter
 changes.
 
-The `vst3_resize` regression uses live native Windows attachments at actual
+The `builtin_eq_resize` regression uses live native Windows attachments at actual
 per-window DPI with 100% and 125% host zoom. The negotiated VST3 view and child
 HWND must have the same physical extent. It grows, shrinks and repeats the
 accepted logical size (1120 × 760 → 1500 × 950 → 1040 × 700 → 1120 × 760),

@@ -11,9 +11,6 @@ path = "src/lib.rs"
 [lints]
 workspace = true
 
-[dependencies]
-serde.workspace = true
-
 [dev-dependencies]
 criterion.workspace = true
 
