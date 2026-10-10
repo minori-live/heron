@@ -32,7 +32,10 @@ await test("retains both macOS architectures, Windows PDB and Linux addon symbol
     await file(join(target, "release/libheron_dsp_node.so"), "linux symbols")
     await file(join(target, "x86_64-pc-windows-msvc/release/heron_dsp_node.dll"), "windows addon")
     await file(join(target, "x86_64-pc-windows-msvc/release/heron_dsp_node.pdb"), "windows symbols")
-    await stageSentrySymbols(target, main, output)
+    const plugins = join(root, "plugin-symbols")
+    await file(join(plugins, "symbols/linux-x64/Heron Gain.so"), "matching plug-in symbols")
+    await file(join(plugins, "symbols-manifest.json"), "pinned plug-in source and debug IDs")
+    await stageSentrySymbols(target, main, output, plugins)
     assert.equal(await readFile(join(output, "main/index.js.map"), "utf8"), "source map: matching")
     assert.equal(
       await readFile(join(output, "native/host/libheron_dsp_node.so"), "utf8"),
@@ -41,6 +44,14 @@ await test("retains both macOS architectures, Windows PDB and Linux addon symbol
     assert.equal(
       await readFile(join(output, "native/x86_64-pc-windows-msvc/heron_dsp_node.pdb"), "utf8"),
       "windows symbols"
+    )
+    assert.equal(
+      await readFile(join(output, "native/heron-plugins/linux-x64/Heron Gain.so"), "utf8"),
+      "matching plug-in symbols"
+    )
+    assert.equal(
+      await readFile(join(output, "heron-plugins-symbols-manifest.json"), "utf8"),
+      "pinned plug-in source and debug IDs"
     )
     for (const architecture of ["aarch64-apple-darwin", "x86_64-apple-darwin"]) {
       const profile = join(output, "native", architecture)

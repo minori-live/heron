@@ -9,6 +9,14 @@ implementation checklists, and other automation-specific conventions. Manage
 reusable agent skills through `apm.yml` rather than documenting or editing
 installed copies under `.agents/skills/`.
 
+Native plugin development is owned by
+[Heron Plugins' local standards](https://github.com/minori-live/heron-plugins/blob/main/agents/docs/README.md).
+Its engineering, testing, architecture, environment and native UI rules were
+migrated and adapted from this documentation on 2026-10-10. Maintain plugin
+DSP/editor contracts there; this repository continues to own application,
+audio-host and artifact-consumer rules. Shared engineering principles remain
+local in each repository so either can be developed independently.
+
 ## Notes
 
 - [Architecture and real-time constraints](architecture.md)
@@ -20,6 +28,10 @@ installed copies under `.agents/skills/`.
 - [Product interaction design](interaction-design.md)
 - [Rust performance benchmarks](benchmarks.md)
 - [Continuous integration and releases](ci.md)
+- [Built-in plug-in distribution](builtin-plugin-distribution.md)
+- [EQ host integration and fitted-preset interchange](heron-eq.md)
+- [Plugin development standards](https://github.com/minori-live/heron-plugins/blob/main/agents/docs/README.md)
+- [Legacy built-in project fixture](legacy-builtin-project-fixture.md)
 - [Crash reporting operations](crash-reporting.md)
 - [Design system](design-system.md)
 - [Desktop localization](localization.md)

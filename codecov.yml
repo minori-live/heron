@@ -36,17 +36,14 @@ flag_management:
     - name: rust-linux
       paths:
         - crates/
-        - plugins/
       carryforward: false
     - name: rust-windows
       paths:
         - crates/
-        - plugins/
       carryforward: false
     - name: rust-macos
       paths:
         - crates/
-        - plugins/
       carryforward: false
 
 component_management:
@@ -111,7 +108,3 @@ component_management:
       name: vst3-host-sys
       paths:
         - crates/vst3-host-sys/**
-    - component_id: plugins
-      name: plugins
-      paths:
-        - plugins/**

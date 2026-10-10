@@ -6,6 +6,15 @@
 - Scope: native Heron EQ editor layout, parameter gestures and response previews
 - Related: [ADR-0029](0029-native-heron-eq.md)
 
+## Current ownership
+
+[ADR-0031](0031-artifact-delivered-built-in-plugins.md) moves the native editor
+and shared UI to `heron-plugins`. This record preserves the accepted interaction
+decision; maintain its current plugin requirements and evidence in the producer's
+[interaction design](https://github.com/minori-live/heron-plugins/blob/main/agents/docs/interaction-design.md)
+and [EQ notes](https://github.com/minori-live/heron-plugins/blob/main/agents/docs/heron-eq.md).
+Heron continues to own host automation, project recall and integration acceptance.
+
 ## Context
 
 Heron EQ supports direct curve editing with at most 24 bands. The frequency
@@ -167,7 +176,7 @@ during gain/frequency changes, and axis labels remain readable.
 Verify resize routing through the same live Windows attachment, growing,
 shrinking and repeating an accepted size before clicking and dragging the
 relocated controls. The packaged regression command is
-`cargo test -p heron-eq --features rt-paranoid --test vst3_resize -- --ignored --nocapture`.
+`cargo test -p heron-audio-host --test builtin_eq_resize -- --ignored --test-threads=1 --nocapture`.
 The 2026-10-08 run passed at the observed 200% system DPI and 100% host zoom;
 this does not establish arbitrary host-zoom negotiation. Same-cache GPU evidence
 must also retain the real widget tree across sizes and check control painting,

@@ -122,6 +122,7 @@ pnpm lint
 - [Renderer/native-call boundary](agents/docs/native-call-boundary.md)
 - [Project database development rules](agents/docs/project-database.md)
 - [Agent development notes](agents/docs/README.md)
+- [Plugin development standards](https://github.com/minori-live/heron-plugins/blob/main/agents/docs/README.md)
 - [Agent skill dependencies](apm.yml)
 
 ## Documentation Boundary

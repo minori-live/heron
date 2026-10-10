@@ -59,10 +59,8 @@ win:
     - from: ../../target/bundles
       to: plugins
       filter:
-        - Heron EQ.vst3/**/*
-        - Heron Gain.vst3/**/*
-        - Heron Metronome.vst3/**/*
-        - Heron Sine.vst3/**/*
+        - "*.vst3/**/*"
+        - bundle-manifest.json
   target:
     - nsis
 
@@ -77,6 +75,8 @@ mac:
   hardenedRuntime: true
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+  # Keep the producer's signed bundles byte-identical to the locked release.
+  signIgnore: '/Contents/Resources/plugins/.*\.vst3(?:/|$)'
   extraResources:
     - from: ../../THIRD_PARTY_NOTICES.txt
       to: THIRD_PARTY_NOTICES.txt
@@ -87,10 +87,8 @@ mac:
     - from: ../../target/bundles
       to: plugins
       filter:
-        - Heron EQ.vst3/**/*
-        - Heron Gain.vst3/**/*
-        - Heron Metronome.vst3/**/*
-        - Heron Sine.vst3/**/*
+        - "*.vst3/**/*"
+        - bundle-manifest.json
   target:
     - dmg
     - zip
@@ -109,9 +107,7 @@ linux:
     - from: ../../target/bundles
       to: plugins
       filter:
-        - Heron EQ.vst3/**/*
-        - Heron Gain.vst3/**/*
-        - Heron Metronome.vst3/**/*
-        - Heron Sine.vst3/**/*
+        - "*.vst3/**/*"
+        - bundle-manifest.json
   target:
     - AppImage

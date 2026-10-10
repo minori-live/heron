@@ -16,47 +16,18 @@ import { PluginDiscoveryService, PLUGIN_SCANNER_VERSION } from "./plugin-discove
 import { PluginProbeClient } from "./plugin-probe-client"
 import { PluginRuntimeService, type PluginRuntime } from "./plugin-runtime-service"
 import { PluginScanner } from "./plugin-scanner"
+import { loadBuiltinPluginInventory, type BuiltinPluginInventory } from "./builtin-plugin-manifest"
 
 export { canReuseCachedBundle } from "./plugin-discovery-service"
 export { descriptorFromProbe, descriptorsFromModuleInfo } from "./plugin-descriptor-normalizer"
 export { parseProbeStdout } from "./plugin-descriptor-decoder"
-
-const BUILTIN_PLUGINS = [
-  {
-    id: "live.minori.heron.eq",
-    bundleName: "Heron EQ.vst3",
-    classId: "8A8341D5CA36B6C9A9572788F40EBB9F",
-    name: "Heron EQ",
-    kind: "effect" as const
-  },
-  {
-    id: "live.minori.heron.gain",
-    bundleName: "Heron Gain.vst3",
-    classId: "46774F504DF84B4AC1F308AB88DD3677",
-    name: "Heron Gain",
-    kind: "effect" as const
-  },
-  {
-    id: "live.minori.heron.sine",
-    bundleName: "Heron Sine.vst3",
-    classId: "C1351DFA4DDD4B4AC1F30896F6D9DF76",
-    name: "Heron Sine",
-    kind: "instrument" as const
-  },
-  {
-    id: "live.minori.heron.metronome",
-    bundleName: "Heron Metronome.vst3",
-    classId: "8CD16A11027ACC7FDF0C1419E86D1024",
-    name: "Heron Metronome",
-    kind: "instrument" as const
-  }
-] as const
 
 type ScanListener = (event: PluginScanEvent) => void
 
 export interface PluginCatalogDependencies {
   probeClient?: PluginProbeClient
   discovery?: PluginDiscoveryService
+  builtinInventory?: (directory: string) => Promise<BuiltinPluginInventory>
 }
 
 export class PluginCatalogService {
@@ -72,6 +43,7 @@ export class PluginCatalogService {
   private readonly runtimePluginProbes = new Map<string, Promise<PluginDescriptor[]>>()
   private readonly probeClient: PluginProbeClient
   private readonly discovery: PluginDiscoveryService
+  private readonly builtinInventory: (directory: string) => Promise<BuiltinPluginInventory>
 
   constructor(
     userData: string,
@@ -82,6 +54,7 @@ export class PluginCatalogService {
     this.probeClient = dependencies.probeClient ?? new PluginProbeClient(probePath)
     this.discovery =
       dependencies.discovery ?? new PluginDiscoveryService(userData, this.probeClient)
+    this.builtinInventory = dependencies.builtinInventory ?? loadBuiltinPluginInventory
   }
 
   attachRuntime(runtime: PluginRuntime): void {
@@ -96,14 +69,19 @@ export class PluginCatalogService {
   private async refreshBuiltins(): Promise<void> {
     const external = this.catalog.plugins.filter((plugin) => plugin.source.kind === "external")
     const builtins: PluginDescriptor[] = []
-    for (const spec of BUILTIN_PLUGINS) {
+    const inventory = await this.builtinInventory(this.builtinDirectory)
+    for (const spec of inventory.plugins) {
       const modulePath = join(this.builtinDirectory, spec.bundleName)
       try {
+        if (inventory.error) throw new Error(inventory.error)
         const descriptors = await this.probeClient.probe(modulePath)
         const descriptor = descriptors.find(
-          (candidate) => pluginLocator(candidate).nativeId === spec.classId
+          (candidate) =>
+            pluginLocator(candidate).format === "vst3" &&
+            pluginLocator(candidate).nativeId === spec.classId
         )
         if (!descriptor) throw new Error(`Built-in Class ID changed; expected ${spec.classId}`)
+        if (descriptor.kind !== spec.kind) throw new Error("Built-in plug-in kind changed")
         builtins.push({
           ...descriptor,
           source: { kind: "builtin", id: spec.id },
@@ -137,7 +115,7 @@ export class PluginCatalogService {
           kind: spec.kind,
           architecture: process.arch,
           buses: spec.kind === "instrument" ? [outputBus] : [inputBus, outputBus],
-          supportedAudioModes: spec.kind === "instrument" ? ["mono", "stereo"] : ["stereo"],
+          supportedAudioModes: [],
           hasEditor: true,
           compatibility: "load-error",
           compatibilityReason: reason
@@ -172,6 +150,14 @@ export class PluginCatalogService {
         candidateLocator.artifactPath === snapshotLocator.artifactPath
       )
     })
+    if (!descriptor && snapshot.source.kind === "builtin") {
+      return normalizePluginDescriptor({
+        ...structuredClone(snapshot),
+        supportedAudioModes: [],
+        compatibility: "load-error",
+        compatibilityReason: "Bundled plug-in is absent from the installed suite"
+      })
+    }
     return normalizePluginDescriptor(descriptor ? structuredClone(descriptor) : snapshot)
   }
 

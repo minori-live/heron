@@ -4,9 +4,20 @@
 - Date: 2026-10-07
 - Owners: project maintainers
 - Scope: native processor/editor ownership, 24-band compatibility, preset interchange;
-  feature verification is recorded separately in [the EQ implementation notes](../heron-eq.md)
+  plugin feature verification is recorded in [the producer's EQ notes](https://github.com/minori-live/heron-plugins/blob/main/agents/docs/heron-eq.md),
+  and host/fitting acceptance in [Heron's integration notes](../heron-eq.md)
 - Related: [ADR-0001](0001-runtime-ownership-and-transactions.md),
   [ADR-0025](0025-plugin-analysis-eq-fitting.md)
+
+## Current ownership
+
+[ADR-0031](0031-artifact-delivered-built-in-plugins.md) moves the EQ DSP,
+parameters, editor and toolkit patches into `heron-plugins`. Heron retains its
+embedded host, fitting/export workflow and artifact integration tests. The
+processing, state and interaction contracts below remain in force.
+The producer maintains their current implementation rules in its local
+[architecture](https://github.com/minori-live/heron-plugins/blob/main/agents/docs/architecture.md)
+and [EQ notes](https://github.com/minori-live/heron-plugins/blob/main/agents/docs/heron-eq.md).
 
 ## Context
 

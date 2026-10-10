@@ -11,19 +11,8 @@ members = [
     "crates/audio-host",
     "crates/vst3-host-sys",
     "crates/vst3-host",
-    "crates/iced-ui",
-    "plugins/heron-plugin-ui",
-    "plugins/heron-gain",
-    "plugins/heron-eq",
-    "plugins/heron-metronome",
-    "plugins/heron-sine",
 ]
 resolver = "3"
-
-[workspace.metadata.cargo-shear]
-# Referenced by the expansion of `truce::plugin!` when the plug-in crates enable
-# their default `vst3` feature, so cargo-shear cannot observe the source usage.
-ignored = ["truce-vst3"]
 
 [workspace.package]
 version = "0.6.5"
@@ -32,7 +21,6 @@ rust-version = "1.98"
 license = "GPL-3.0-only"
 
 [workspace.dependencies]
-arboard = { version = "3.6.1", default-features = false, features = ["wayland-data-control"] }
 ara2-bridge-core = "=0.3.0"
 ara2-bridge-host = { path = "third_party/ara2-bridge-host" }
 ara2-bridge-sys = "=0.3.0"
@@ -48,8 +36,6 @@ clap = { version = "4.6.6", features = ["derive"] }
 cpal = "0.18.2"
 clap-sys = "=0.5.0"
 criterion = { version = "0.8.2", features = ["csv_output", "html_reports"] }
-iced_core = "0.14.0"
-iced_widget = "0.14.2"
 libc = "0.2"
 # Standalone Rust tests and benchmarks link the N-API crates without a Node
 # host on macOS and Linux. Keep symbol lookup dynamic even with older napi 3.x
@@ -78,11 +64,7 @@ serde_bytes = "0.11"
 serde_json = "1"
 thiserror = "2"
 tokio = { version = "1.53.1", default-features = false, features = ["macros", "rt-multi-thread", "sync", "time"] }
-truce = { version = "=6.3.0", default-features = false }
 ts-rs = { version = "12", features = ["serde-compat", "no-serde-warnings"] }
-truce-iced = "=6.3.0"
-truce-test = "=6.3.0"
-truce-vst3 = "=6.3.0"
 windows = "0.62.2"
 heron-dsp-core = { path = "crates/dsp-core" }
 heron-audio-plugin = { path = "crates/audio-plugin" }
@@ -93,16 +75,8 @@ heron-audio-engine = { path = "crates/audio-engine" }
 heron-audio-host = { path = "crates/audio-host" }
 heron-vst3-host = { path = "crates/vst3-host" }
 heron-vst3-host-sys = { path = "crates/vst3-host-sys" }
-heron-iced-ui = { path = "crates/iced-ui" }
-heron-plugin-ui = { path = "plugins/heron-plugin-ui" }
 
 [patch.crates-io]
-# Preserve one Windows host content scale across the bundled native editor's
-# window, rendering and input. See each vendored crate's PATCHES.md.
-baseview-truce = { path = "third_party/baseview-truce" }
-truce-gui = { path = "third_party/truce-gui" }
-# Forward native focus loss to the bundled editor's existing gesture cleanup.
-truce-iced = { path = "third_party/truce-iced" }
 # The published testkit depends on the published host crate. Redirect that edge
 # to the audited in-tree host implementation so integration tests exercise the
 # same code that ships and Cargo never links two ABI-identical host runtimes.

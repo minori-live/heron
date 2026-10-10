@@ -45,13 +45,6 @@
       "matchManagers": ["cargo"],
       "matchFileNames": ["third_party/**"],
       "enabled": false
-    },
-    {
-      "description": "heron-eq's native focus test bridges baseview's raw-window-handle 0.5 handle, so the test alias must stay on the same major.",
-      "matchManagers": ["cargo"],
-      "matchFileNames": ["plugins/heron-eq/**"],
-      "matchPackageNames": ["raw-window-handle"],
-      "allowedVersions": "<0.6"
     }
   ]
 }

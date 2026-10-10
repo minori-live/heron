@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import expected from "../../../../../../../plugins/heron-eq/tests/fixtures/fit-preset.json"
-import response from "../../../../../../../plugins/heron-eq/tests/fixtures/fit-response.json"
+import expected from "../../../../../../../crates/audio-host/tests/fixtures/eq-fit/fit-preset.json"
+import response from "../../../../../../../crates/audio-host/tests/fixtures/eq-fit/fit-response.json"
 import { heronEqPreset } from "./preset"
 import { eqMagnitudeDb, fitEq, type EqSection } from "./index"
 

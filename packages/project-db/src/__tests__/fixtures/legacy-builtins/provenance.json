@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "heronVersion": "0.6.4",
+  "sourceCommit": "3bb8209aaaccce6fb5ab1e27e725c58a8cc0e5e6",
+  "generatedBy": "Original ProjectDatabase.create/applyCommand/savePluginStates/dumpTo; lossless gzip for fixture storage",
+  "dependencies": {
+    "pglite": "0.5.8",
+    "drizzleOrm": "0.45.3",
+    "truceStateEncoder": "6.3.0"
+  },
+  "archive": {
+    "file": "legacy-builtins-0.6.4.hrs.gz",
+    "sha256": "72f9c29db2855e83156b463f0c0efa7712125d0192101498fd9ca604b2d659d4",
+    "rawSha256": "0292c67498ee8669af3b9a908c2b02bf6d6b5b828eee3ecf71559630d72ae8e7",
+    "rawBytes": 41956352
+  },
+  "states": [
+    {
+      "file": "gain.pluginstate",
+      "sha256": "78a753dfdaaecdcae95d9ed2b636d7e9a7595477cd276af7e3dccd49f73329b3",
+      "bytes": 48
+    },
+    {
+      "file": "sine.pluginstate",
+      "sha256": "b5a5d38679825f7177d6bf9ff27050e6c2335910078f2004903084bb5ecf19f8",
+      "bytes": 72
+    },
+    {
+      "file": "metronome.pluginstate",
+      "sha256": "fd5c673cd7c18f065e29cc5d6cab7f9159778affe89bb27c26688ebb8bb186eb",
+      "bytes": 84
+    }
+  ],
+  "sourceTrees": {
+    "packages/project-db": "889ff8aadf332d40bc7cf35c4b2ae1fa9db8f480",
+    "packages/contracts": "f3a610dd60e1bc27142aef649845d48da7a606b1",
+    "packages/project-model": "7233cb14f9cc5a5df246f3a7d5540ffc20aa4310"
+  }
+}

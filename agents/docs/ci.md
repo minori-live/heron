@@ -186,7 +186,7 @@ carryforward is disabled so a missing platform report cannot reuse stale data.
 Codecov merges all four uploads into the repository totals. Repository-level
 project and patch statuses and the components for each coverage-producing
 workspace package or crate (`desktop`, `contracts`, `project-db`,
-`project-model`, `ui`, the `dsp-*` / host crates, and `plugins`) remain the
+`project-model`, `ui`, and the `dsp-*` / host crates) remain the
 coverage gates. The workflow uses manual Codecov notification triggering so
 statuses and the PR comment are published only after all matrix uploads succeed.
 Rust coverage ignores vendored `third_party/` sources (also listed under

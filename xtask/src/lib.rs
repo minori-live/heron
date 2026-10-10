@@ -1,5 +1,5 @@
 use std::env;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::fmt;
 use std::fs;
 use std::io;
@@ -75,7 +75,7 @@ enum BenchMode {
 
 #[derive(Debug, Subcommand)]
 enum NativeCommand {
-    /// Build the VST3 probe and bundled plug-ins, then stage them for Electron.
+    /// Build and stage the VST3 and CLAP probes for Electron.
     Build(NativeBuildArgs),
     /// Build and merge arm64/x64 macOS native artifacts for a universal app.
     UniversalMacos(NativeUniversalMacosArgs),
@@ -348,7 +348,6 @@ fn native_build(workspace: &Path, args: &NativeBuildArgs) -> Result<(), XtaskErr
         workspace,
         &native_probe_spec(args.profile, &target, "heron-clap-host", CLAP_PROBE),
     )?;
-    run_spec(workspace, &native_plugins_spec(args.profile, &target))?;
     stage_native_artifacts(workspace, args.profile, &target)
 }
 
@@ -383,16 +382,6 @@ fn native_macos_universal(workspace: &Path, profile: BuildProfile) -> Result<(),
         run_spec(workspace, &lipo_spec(&arm64_file, &x64_file, &output))?;
     }
 
-    for relative_path in macos_plugin_binary_relative_paths(&arm64.source_bundles)? {
-        run_spec(
-            workspace,
-            &lipo_spec(
-                &arm64.source_bundles.join(&relative_path),
-                &x64.source_bundles.join(&relative_path),
-                &arm64.stable_bundles.join(relative_path),
-            ),
-        )?;
-    }
     Ok(())
 }
 
@@ -409,36 +398,6 @@ fn lipo_spec(arm64_file: &Path, x64_file: &Path, output: &Path) -> CommandSpec {
     }
 }
 
-fn macos_plugin_binary_relative_paths(source_bundles: &Path) -> Result<Vec<PathBuf>, XtaskError> {
-    let mut paths = Vec::new();
-    for entry in fs::read_dir(source_bundles).map_err(|source| XtaskError::Io {
-        operation: "failed to read target-specific VST3 bundles",
-        source,
-    })? {
-        let entry = entry.map_err(|source| XtaskError::Io {
-            operation: "failed to read a VST3 bundle entry",
-            source,
-        })?;
-        let path = entry.path();
-        if !entry.file_type().is_ok_and(|kind| kind.is_dir())
-            || path.extension() != Some(OsStr::new("vst3"))
-        {
-            continue;
-        }
-        let Some(binary_name) = path.file_stem() else {
-            continue;
-        };
-        paths.push(
-            PathBuf::from(entry.file_name())
-                .join("Contents")
-                .join("MacOS")
-                .join(binary_name),
-        );
-    }
-    paths.sort();
-    Ok(paths)
-}
-
 fn native_probe_spec(
     profile: BuildProfile,
     target: &str,
@@ -453,35 +412,12 @@ fn native_probe_spec(
     CommandSpec::cargo(args)
 }
 
-fn native_plugins_spec(profile: BuildProfile, target: &str) -> CommandSpec {
-    let mut args = vec!["truce", "build", "--vst3", "--target", target];
-    if !profile.is_release() {
-        args.push("--debug");
-    }
-    CommandSpec::cargo(args)
-}
-
 fn stage_native_artifacts(
     workspace: &Path,
     profile: BuildProfile,
     target: &str,
 ) -> Result<(), XtaskError> {
     let paths = native_artifact_paths(workspace, profile, target, cfg!(windows));
-    for entry in fs::read_dir(&paths.source_bundles).map_err(|source| XtaskError::Io {
-        operation: "failed to read target-specific VST3 bundles",
-        source,
-    })? {
-        let entry = entry.map_err(|source| XtaskError::Io {
-            operation: "failed to read a VST3 bundle entry",
-            source,
-        })?;
-        if entry.file_type().is_ok_and(|kind| kind.is_dir())
-            && entry.path().extension() == Some(OsStr::new("vst3"))
-        {
-            copy_directory(&entry.path(), &paths.stable_bundles.join(entry.file_name()))?;
-        }
-    }
-
     let stable_profile = paths
         .stable_vst3_probe
         .parent()
@@ -507,8 +443,6 @@ fn stage_native_artifacts(
 
 #[derive(Debug, Eq, PartialEq)]
 struct NativeArtifactPaths {
-    source_bundles: PathBuf,
-    stable_bundles: PathBuf,
     source_vst3_probe: PathBuf,
     stable_vst3_probe: PathBuf,
     source_clap_probe: PathBuf,
@@ -527,39 +461,11 @@ fn native_artifact_paths(
     let vst3_executable = executable_name(VST3_PROBE, windows);
     let clap_executable = executable_name(CLAP_PROBE, windows);
     NativeArtifactPaths {
-        source_bundles: target_directory.join("bundles").join(target),
-        stable_bundles: target_directory.join("bundles"),
         source_vst3_probe: profile_directory.join(&vst3_executable),
         stable_vst3_probe: stable_profile_directory.join(vst3_executable),
         source_clap_probe: profile_directory.join(&clap_executable),
         stable_clap_probe: stable_profile_directory.join(clap_executable),
     }
-}
-
-fn copy_directory(source: &Path, destination: &Path) -> Result<(), XtaskError> {
-    fs::create_dir_all(destination).map_err(|source| XtaskError::Io {
-        operation: "failed to create a staged VST3 bundle directory",
-        source,
-    })?;
-    for entry in fs::read_dir(source).map_err(|source| XtaskError::Io {
-        operation: "failed to read a VST3 bundle directory",
-        source,
-    })? {
-        let entry = entry.map_err(|source| XtaskError::Io {
-            operation: "failed to read a VST3 bundle entry",
-            source,
-        })?;
-        let destination_entry = destination.join(entry.file_name());
-        if entry.file_type().is_ok_and(|kind| kind.is_dir()) {
-            copy_directory(&entry.path(), &destination_entry)?;
-        } else {
-            fs::copy(entry.path(), destination_entry).map_err(|source| XtaskError::Io {
-                operation: "failed to stage a VST3 bundle file",
-                source,
-            })?;
-        }
-    }
-    Ok(())
 }
 
 fn executable_name(binary: &str, windows: bool) -> OsString {
@@ -645,6 +551,7 @@ fn run_spec(workspace: &Path, spec: &CommandSpec) -> Result<(), XtaskError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ffi::OsStr;
 
     #[test]
     fn parses_rustc_host_target() {
@@ -711,9 +618,6 @@ mod tests {
         );
         assert!(probe.args.contains(&OsString::from("heron-clap-host")));
         assert!(probe.args.contains(&OsString::from(CLAP_PROBE)));
-
-        let plugins = native_plugins_spec(BuildProfile::Debug, "aarch64-apple-darwin");
-        assert!(plugins.args.contains(&OsString::from("--debug")));
     }
 
     #[test]
@@ -732,17 +636,6 @@ mod tests {
             true,
         );
 
-        assert_eq!(
-            paths.source_bundles,
-            workspace
-                .join("target")
-                .join("bundles")
-                .join("x86_64-pc-windows-msvc")
-        );
-        assert_eq!(
-            paths.stable_bundles,
-            workspace.join("target").join("bundles")
-        );
         assert_eq!(
             paths.source_vst3_probe,
             workspace

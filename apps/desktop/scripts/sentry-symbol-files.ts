@@ -13,7 +13,8 @@ async function entries(path: string) {
 export async function stageSentrySymbols(
   target: string,
   mainBundle: string,
-  destination: string
+  destination: string,
+  pluginSymbols?: string
 ): Promise<void> {
   await rm(destination, { recursive: true, force: true })
   await mkdir(destination, { recursive: true })
@@ -55,4 +56,13 @@ export async function stageSentrySymbols(
     }
   }
   if (!addonFound) throw new Error("No Heron native addon found in the release build")
+  if (pluginSymbols) {
+    await cp(join(pluginSymbols, "symbols"), join(destination, "native", "heron-plugins"), {
+      recursive: true
+    })
+    await cp(
+      join(pluginSymbols, "symbols-manifest.json"),
+      join(destination, "heron-plugins-symbols-manifest.json")
+    )
+  }
 }

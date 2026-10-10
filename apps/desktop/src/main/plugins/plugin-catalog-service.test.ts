@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import type { PluginDescriptor } from "@heron/contracts"
+import { BUILTIN_PLUGIN_BASELINE } from "./builtin-plugin-manifest"
 import {
   canReuseCachedBundle,
   descriptorFromProbe,
@@ -300,12 +301,14 @@ describe("PluginCatalogService orchestration", () => {
     const discovery = { loadCachedCatalog: vi.fn().mockResolvedValue(null), scan: vi.fn() }
     const service = new PluginCatalogService("user-data", "probe", "builtins", {
       probeClient: probeClient as never,
-      discovery: discovery as never
+      discovery: discovery as never,
+      builtinInventory: async () => ({ plugins: BUILTIN_PLUGIN_BASELINE, error: null })
     })
 
     await service.initialize()
 
     expect(service.list().plugins).toHaveLength(4)
+    expect(probeClient.probe).toHaveBeenCalledTimes(4)
     expect(service.list().plugins).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

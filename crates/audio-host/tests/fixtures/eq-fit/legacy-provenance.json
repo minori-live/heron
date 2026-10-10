@@ -1,0 +1,67 @@
+{
+  "kind": "generated pre-extraction compatibility baseline, not an existing user project",
+  "repository": "https://github.com/minori-live/heron",
+  "commit": "b8a5c9c76b25275b252dc98b1684a5a87281043f",
+  "heronVersion": "0.6.5",
+  "producerVersion": "0.6.4",
+  "truceVersion": "6.3.0",
+  "sourceTrees": {
+    "plugins/heron-eq/src": "d21007cf792c7dd3748266be9d5d30f499d6708c",
+    "crates/dsp-core/src/eq": "9913a6f51a939374990b2159d0a0cae0608282c3",
+    "plugins/heron-plugin-ui/src": "74ebde6fb11d7721ec1e8c9912be540f24524c28",
+    "crates/iced-ui/src": "a076e90aae80a008c6fa0b79d7c46f2af5014ca0"
+  },
+  "generation": {
+    "source": "git archive origin/main plugins/heron-eq crates/dsp-core plugins/heron-plugin-ui crates/iced-ui third_party/baseview-truce third_party/truce-gui third_party/truce-iced truce.toml",
+    "harness": "generate_legacy.rs copied to archived plugins/heron-eq/examples/capture_legacy.rs; cargo run -p heron-eq --example capture_legacy -- <output>",
+    "manifestAdaptation": "temporary standalone workspace at Heron version 0.6.5, original Rust source and truce.toml unchanged; host-only dev dependencies removed; original EQ used original heron-dsp-core; identical pinned GUI patch directories",
+    "capture": "Params::set_plain + original MIDI bindings; snapshot_plugin/restore_plugin until canonical (maximum 8 iterations); driver with state_blob",
+    "audio": {
+      "sampleRate": 48000,
+      "durationMilliseconds": 20,
+      "channels": 2,
+      "layout": "channel-major f32 little-endian",
+      "input": "0.1*sin(2*pi*440*t) + 0.05*sin(2*pi*8000*t)",
+      "maximumAbsoluteMigrationError": 1e-6
+    },
+    "fitAutomation": "original EqParams::normalized_values of fit-preset.json, excluding unchanged default values",
+    "parameterContract": "Original ParamInfo defaults, declared units, plain bounds, step count, flags and normalized quarter points for every immutable automation ID",
+    "storageFormatting": "JSON uses repository formatting after capture; state and audio remain byte-for-byte original captures"
+  },
+  "files": {
+    "heron-0.6.5-nondefault.pluginstate": {
+      "bytes": 3621,
+      "sha256": "b17a0a13acff76eb5930e1feaa4a06f7b94fb9a073229f55c06cd10a9011ee7b"
+    },
+    "heron-0.6.5-nondefault.f32le": {
+      "bytes": 7680,
+      "sha256": "a422992819fab664e7c8cbd6972599dcdaf9d85678bef9acd4ae811ac7d1b60e"
+    },
+    "heron-0.6.5-parameter-ids.json": {
+      "bytes": 1138,
+      "sha256": "2cdb5e2988b39b41fb38801e15bd7efeaffc997f185ee6b8f1ae1a53298527c3"
+    },
+    "fit-automation.json": {
+      "bytes": 425,
+      "sha256": "c188604d6782389e9efa3105c99af87accc4fabb622e17bbdd607ad99df23e45"
+    },
+    "generate_legacy.rs": {
+      "bytes": 4292,
+      "sha256": "c4acea2f92a047fb0f251b97367ec6fa2fea5532f52229516b9f5f00c5d2a7dc"
+    },
+    "heron-0.6.5-default-parameters.json": {
+      "bytes": 42769,
+      "sha256": "923f3d993091dc7cd12d6a51cfa246199e7cdde8f4a53543f01b70d6bd493f77"
+    }
+  },
+  "hostFixture": {
+    "path": "legacy.pluginstate",
+    "source": "heron-plugins/plugins/heron-eq/tests/fixtures/heron-0.6.5-nondefault.pluginstate",
+    "note": "EQ source-state baseline from original Heron 0.6.5; not part of the three-plugin 0.6.4 project archive.",
+    "automation": {
+      "path": "fit-automation.json",
+      "sha256": "c188604d6782389e9efa3105c99af87accc4fabb622e17bbdd607ad99df23e45",
+      "note": "Repository-formatted copy of the original normalized parameter mapping; source files above refer to captured producer fixtures."
+    }
+  }
+}

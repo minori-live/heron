@@ -38,6 +38,8 @@ evidence belong in their owning documents rather than being copied into each ADR
 | [0029 — Native Heron EQ](0029-native-heron-eq.md)                                                      | Accepted                           | 24 stable native EQ slots, actual audio spectra, bounded preparation and fitted-preset interchange          |
 | [0030 — EQ graph and fixed band controls](0030-eq-graph-and-floating-controls.md)                      | Accepted                           | Graph-first editor, fixed lower-center controls, contextual settings and host parameter gestures            |
 
+| [0031 — Artifact-delivered built-in plug-ins](0031-artifact-delivered-built-in-plugins.md) | Accepted | Independent producer releases, pinned VST3 consumption, inventory and native symbols |
+
 Accepted means the architecture is chosen, not that every feature or release
 acceptance test is complete. Each record states its implementation scope; the
 [roadmap](../roadmap.md) owns delivery and evidence status. A proposal cannot be
@@ -46,7 +48,7 @@ used as permission to implement or claim an accepted compatibility commitment.
 ## 2026-09-06 baseline reset
 
 The numbers in this section's mapping table belong to a **superseded series**.
-Current records are 0001–0023 and 0025–0030; 0009 in the table below refers to the retired
+Current records are 0001–0023 and 0025–0031; 0009 in the table below refers to the retired
 record, not to any record in this series.
 
 At the maintainer's request, the previous 16 records were consolidated into this
@@ -114,7 +116,7 @@ Prefer one cohesive decision over a record for each implementation step.
 
 ## Lifecycle and review
 
-Use four digits and a short kebab-case title, starting the next record at **0031**.
+Use four digits and a short kebab-case title, starting the next record at **0032**.
 Copy [the template](template.md). Status is Proposed, Accepted, Superseded by
 ADR-NNNN, or Rejected. Accepted records change only for editorial corrections,
 links and explicit implementation-scope clarification; changing a decision
