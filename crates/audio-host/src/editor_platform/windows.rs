@@ -102,6 +102,7 @@ pub struct Container {
     hwnd: Hwnd,
     attached_view: Hwnd,
     input_transform: Box<InputTransform>,
+    platform_scaled: bool,
 }
 
 impl Container {
@@ -151,6 +152,7 @@ impl Container {
             hwnd,
             attached_view: std::ptr::null_mut(),
             input_transform: Box::new(InputTransform::new()),
+            platform_scaled,
         })
     }
 
@@ -191,10 +193,6 @@ impl Container {
         let current_height = rect.bottom.saturating_sub(rect.top).max(1) as u32;
         let target_width = nonzero_extent(geometry.frame_width);
         let target_height = nonzero_extent(geometry.frame_height);
-        if has_extent && current_width == target_width && current_height == target_height {
-            return;
-        }
-
         if self.attached_view != attached_view {
             self.attached_view = attached_view;
             self.input_transform.x.set(1.0);
@@ -202,39 +200,54 @@ impl Container {
             self.input_transform.forced_width.set(0);
             self.input_transform.forced_height.set(0);
         }
-        let previous_was_forced = self.input_transform.forced_width.get() == current_width
-            && self.input_transform.forced_height.get() == current_height;
-        let logical_width = if previous_was_forced {
-            f64::from(current_width) * self.input_transform.x.get()
-        } else {
-            f64::from(current_width)
-        };
-        let logical_height = if previous_was_forced {
-            f64::from(current_height) * self.input_transform.y.get()
-        } else {
-            f64::from(current_height)
-        };
-        self.input_transform
-            .x
-            .set(logical_width / f64::from(target_width));
-        self.input_transform
-            .y
-            .set(logical_height / f64::from(target_height));
-        self.input_transform.forced_width.set(target_width);
-        self.input_transform.forced_height.set(target_height);
+        // Native-scaled editors reflow into the accepted physical extent. Their
+        // mouse coordinates already match that layout, including when onSize is
+        // rendered later. An old/target ratio would move every hit target.
+        if !self.platform_scaled {
+            self.input_transform.x.set(1.0);
+            self.input_transform.y.set(1.0);
+            self.input_transform.forced_width.set(0);
+            self.input_transform.forced_height.set(0);
+        }
+        if has_extent && current_width == target_width && current_height == target_height {
+            return;
+        }
 
-        if !previous_was_forced {
-            let transform = std::ptr::from_ref(self.input_transform.as_ref()) as usize;
-            unsafe {
-                // SAFETY: input_transform has a stable boxed address until the container
-                // destroys its child HWND during Drop. Comctl32 removes the subclass on
-                // WM_NCDESTROY before that box is released.
-                SetWindowSubclass(
-                    attached_view,
-                    Some(plugin_input_subclass),
-                    PLUGIN_INPUT_SUBCLASS_ID,
-                    transform,
-                );
+        if self.platform_scaled {
+            let previous_was_forced = self.input_transform.forced_width.get() == current_width
+                && self.input_transform.forced_height.get() == current_height;
+            let logical_width = if previous_was_forced {
+                f64::from(current_width) * self.input_transform.x.get()
+            } else {
+                f64::from(current_width)
+            };
+            let logical_height = if previous_was_forced {
+                f64::from(current_height) * self.input_transform.y.get()
+            } else {
+                f64::from(current_height)
+            };
+            self.input_transform
+                .x
+                .set(logical_width / f64::from(target_width));
+            self.input_transform
+                .y
+                .set(logical_height / f64::from(target_height));
+            self.input_transform.forced_width.set(target_width);
+            self.input_transform.forced_height.set(target_height);
+
+            if !previous_was_forced {
+                let transform = std::ptr::from_ref(self.input_transform.as_ref()) as usize;
+                unsafe {
+                    // SAFETY: input_transform has a stable boxed address until the container
+                    // destroys its child HWND during Drop. Comctl32 removes the subclass on
+                    // WM_NCDESTROY before that box is released.
+                    SetWindowSubclass(
+                        attached_view,
+                        Some(plugin_input_subclass),
+                        PLUGIN_INPUT_SUBCLASS_ID,
+                        transform,
+                    );
+                }
             }
         }
         unsafe {
@@ -412,6 +425,10 @@ unsafe extern "system" {
 unsafe extern "system" {
     fn GetModuleHandleW(module_name: *const u16) -> Hinstance;
 }
+
+#[cfg(test)]
+#[path = "windows_input_tests.rs"]
+mod input_tests;
 
 #[cfg(test)]
 mod tests {

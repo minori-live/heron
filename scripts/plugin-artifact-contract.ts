@@ -49,6 +49,14 @@ export interface SymbolsManifest {
 // to the default project and Gain supplies the host's benchmark processor.
 export const REQUIRED_BUILTINS: readonly BuiltinBundle[] = [
   {
+    builtinId: "live.minori.heron.eq",
+    name: "Heron EQ",
+    kind: "effect",
+    format: "vst3",
+    nativeId: "8A8341D5CA36B6C9A9572788F40EBB9F",
+    bundleName: "Heron EQ.vst3"
+  },
+  {
     builtinId: "live.minori.heron.gain",
     name: "Heron Gain",
     kind: "effect",

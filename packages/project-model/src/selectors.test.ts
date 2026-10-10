@@ -12,6 +12,7 @@ import {
   channelForTrack,
   instrumentTracks,
   meterFor,
+  midiControlChannels,
   patchMixerGraph,
   projectContentEndSeconds,
   sendsFor,
@@ -223,6 +224,29 @@ describe("track and channel selectors", () => {
 
     expect(sendsFor(value, "audio").map((send) => send.id)).toEqual(["audio-to-output"])
     expect(sendsFor(value, "instrument")).toEqual([])
+  })
+})
+
+describe("midiControlChannels", () => {
+  it("uses canonical kind order and excludes system channels", () => {
+    const channels = [
+      channel({ id: "output", kind: "output", outputChannelId: null }),
+      channel({ id: "instrument-b", kind: "instrument", sortOrder: 1 }),
+      channel({ id: "metronome", kind: "instrument", systemRole: "metronome" }),
+      channel({ id: "master", kind: "master", outputChannelId: null }),
+      channel({ id: "bus", kind: "aux" }),
+      channel({ id: "audio", kind: "audio" }),
+      channel({ id: "instrument-a", kind: "instrument" })
+    ]
+
+    expect(midiControlChannels(channels).map((candidate) => candidate.id)).toEqual([
+      "audio",
+      "instrument-a",
+      "instrument-b",
+      "bus",
+      "master",
+      "output"
+    ])
   })
 })
 

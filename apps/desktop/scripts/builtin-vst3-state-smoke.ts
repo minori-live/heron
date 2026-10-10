@@ -23,6 +23,12 @@ const plugins = [
     name: "Heron Metronome",
     id: "8CD16A11027ACC7FDF0C1419E86D1024",
     kind: "instrument"
+  },
+  {
+    slug: "eq",
+    name: "Heron EQ",
+    id: "8A8341D5CA36B6C9A9572788F40EBB9F",
+    kind: "effect"
   }
 ] as const
 const runtime = new AudioHostRuntime(2, 4)
@@ -39,11 +45,17 @@ async function send(command: unknown): Promise<Result> {
   return decoded.result
 }
 
+function statePath(slug: string): string {
+  return slug === "eq"
+    ? resolve(workspace, "crates/audio-host/tests/fixtures/eq-fit/legacy.pluginstate")
+    : resolve(fixtures, `${slug}.pluginstate`)
+}
+
 try {
-  // Keep all three modules loaded together: each restored state must remain
+  // Keep all four modules loaded together: each restored state must remain
   // independent of another plug-in's parameters and shared editor implementation.
   for (const plugin of plugins) {
-    const component = await readFile(resolve(fixtures, `${plugin.slug}.pluginstate`))
+    const component = await readFile(statePath(plugin.slug))
     const loaded = await send({
       type: "load-plugin",
       instance_id: `legacy-${plugin.slug}`,
@@ -70,12 +82,12 @@ try {
     assert.ok(component.bytes.bytes instanceof Uint8Array)
     assert.deepEqual(
       new Uint8Array(component.bytes.bytes),
-      new Uint8Array(await readFile(resolve(fixtures, `${plugin.slug}.pluginstate`))),
+      new Uint8Array(await readFile(statePath(plugin.slug))),
       `${plugin.name} did not retain its original nondefault component state`
     )
     await send({ type: "unload-plugin", instance_id: `legacy-${plugin.slug}` })
   }
-  console.log("Built-in VST3 historical state restore passed (three independent native modules)")
+  console.log("Built-in VST3 historical state restore passed (four independent native modules)")
 } finally {
   clearInterval(pump)
   runtime.close()

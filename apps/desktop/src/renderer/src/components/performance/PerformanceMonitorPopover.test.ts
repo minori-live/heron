@@ -58,7 +58,7 @@ describe("PerformanceMonitorPopover", () => {
     const wrapper = mountPopover(runtime())
     const trigger = wrapper.find(".performance-trigger")
 
-    expect(trigger.classes()).toContain("normal")
+    expect(trigger.attributes("aria-label")).toContain("Status: normal")
     expect(trigger.text()).toContain("CPU —")
     expect(trigger.text()).toContain("MEM —")
     expect(wrapper.find(".performance-alerts").exists()).toBe(false)
@@ -76,7 +76,9 @@ describe("PerformanceMonitorPopover", () => {
       }
     ])
 
-    expect(wrapper.find(".performance-trigger").classes()).toContain("critical")
+    expect(wrapper.find(".performance-trigger").attributes("aria-label")).toContain(
+      "Status: critical"
+    )
     expect(wrapper.find(".performance-trigger").text()).toContain("CPU 96%")
     expect(wrapper.find(".performance-trigger").text()).toContain("MEM 82%")
     const alerts = wrapper.findAll(".performance-alert")

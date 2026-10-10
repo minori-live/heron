@@ -418,6 +418,16 @@ await test("manifest identities and binary architectures are verified before pub
   )
   assert.throws(() =>
     parseBundleManifest(
+      {
+        ...manifest,
+        plugins: REQUIRED_BUILTINS.filter((entry) => entry.builtinId !== "live.minori.heron.eq")
+      },
+      lock.release,
+      platform
+    )
+  )
+  assert.throws(() =>
+    parseBundleManifest(
       { ...manifest, plugins: [...REQUIRED_BUILTINS, REQUIRED_BUILTINS[0]] },
       lock.release,
       platform

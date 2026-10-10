@@ -119,10 +119,7 @@ describe("MixerConsole", () => {
     const scroller = wrapper.get(".channel-scroll")
     expect(scroller.attributes("style")).toContain("--plugin-section-height: 156px")
     expect(scroller.attributes("style")).toContain("--send-section-height: 116px")
-    expect(wrapper.find(".mixer-section-labels").exists()).toBe(true)
     expect(wrapper.findAll(".channel-strip")).toHaveLength(6)
-    expect(wrapper.find(".channel-strip.master").classes()).toContain("master")
-    expect(wrapper.get(".mixer-toolbar").find("strong").exists()).toBe(false)
 
     mixerStore.graph = {
       ...mixerStore.graph,

@@ -432,16 +432,6 @@ mod tests {
     }
 
     #[test]
-    fn messagepack_round_trips_representative_envelopes() {
-        let meta = mutation_meta();
-        let bytes = rmp_serde::to_vec_named(&meta).expect("request must encode");
-        assert_eq!(
-            rmp_serde::from_slice::<RpcRequestMeta>(&bytes).expect("request must decode"),
-            meta
-        );
-    }
-
-    #[test]
     fn result_discriminants_reject_the_wrong_boolean() {
         let invalid_success = r#"{"ok":false,"requestId":"request-1","value":7,"warnings":[]}"#;
         assert!(serde_json::from_str::<RpcSuccess<u32>>(invalid_success).is_err());

@@ -34,12 +34,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Linux runs the full repository checks with JavaScript and Rust coverage.
+        # Linux runs the coverage-producing tests; its static, design, benchmark,
+        # and Electron end-to-end checks run in the sibling `static` and `e2e`
+        # jobs so they do not serialize behind the coverage rebuild.
         # Windows and macOS collect Rust coverage from Cargo and instrumented napi-rs
         # calls while still running the desktop and project-database tests normally.
         # Oxfmt, Oxlint, Vue ESLint, design audits, TypeScript-only checks, and
-        # Storybook produce identical results on every platform and would otherwise
-        # dominate the slower runners.
+        # Storybook produce identical results on every platform, so the `static`
+        # job runs them once on Linux.
         include:
           - name: Linux x64
             os: ubuntu-24.04
@@ -67,16 +69,31 @@ jobs:
             ${{ github.event_name != 'pull_request' && github.token || '' }}
           cache-rust-build: "true"
 
-      - name: Install Playwright Chromium and Linux dependencies
+      # The fixture bundles are built with CMake+Ninja. Steinberg's VSTGUI
+      # integration enables its standalone library even when only plug-in example
+      # targets are requested, and the probes load that library at runtime.
+      - name: Install plug-in fixture dependencies
         if: runner.os == 'Linux'
-        run: |
-          mise run ci:install:playwright
-          # Steinberg's VSTGUI CMake integration enables its standalone library
-          # even when only plug-in example targets are requested.
-          sudo apt-get install --yes --no-install-recommends dbus-x11 libgtkmm-3.0-dev ninja-build xauth xvfb
+        run: >-
+          sudo apt-get install --yes --no-install-recommends
+          libgtkmm-3.0-dev ninja-build
+
+      # A miss runs the network fetch and CMake builds; a hit restores only the
+      # finished bundles. The bundles stay small because intermediate build
+      # trees are not cached, and `test:official-plugin-fixtures` still probes
+      # them at runtime so a stale or broken cache is caught on main.
+      - name: Restore official plug-in fixture cache
+        id: official-fixtures
+        if: runner.os == 'Linux'
+        uses: actions/cache/restore@v6
+        with:
+          path: target/official-plug-in-fixtures
+          key: official-plug-in-fixtures-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('CMakeLists.txt', 'mise.toml', 'mise.lock', '.github/workflows/test.yml', '.github/actions/setup-build/action.yml') }}
+          restore-keys: |
+            official-plug-in-fixtures-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Fetch pinned official CLAP examples
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && steps.official-fixtures.outputs.cache-hit != 'true'
         shell: bash
         env:
           CLAP_PLUGINS_COMMIT: 81791d08bb4e5198213440fe43b8e99745210130
@@ -101,7 +118,7 @@ jobs:
           echo "CLAP_FIXTURE_SOURCE=$fixture_source" >> "$GITHUB_ENV"
 
       - name: Build official VST3 and CLAP examples
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && steps.official-fixtures.outputs.cache-hit != 'true'
         shell: bash
         run: |
           cmake \
@@ -130,6 +147,27 @@ jobs:
               exit 1
             fi
           done
+
+          # Cache only the finished bundles so the restored archive stays small.
+          rm -rf target/official-plug-in-fixtures
+          mkdir -p target/official-plug-in-fixtures
+          cp -a "$again_path" "$synth_path" target/official-plug-in-fixtures/
+          cp -a "$clap_path" target/official-plug-in-fixtures/
+
+      - name: Expose official plug-in fixture paths
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          fixtures="target/official-plug-in-fixtures"
+          again_path="$fixtures/again.vst3"
+          synth_path="$fixtures/note-expression-synth.vst3"
+          clap_path="$fixtures/clap-plugins.clap"
+          for fixture in "$again_path" "$synth_path" "$clap_path"; do
+            if [[ ! -e "$fixture" ]]; then
+              echo "::error::Official plug-in fixture is missing: $fixture"
+              exit 1
+            fi
+          done
           echo "VST3_AGAIN_FIXTURE=$again_path" >> "$GITHUB_ENV"
           echo "VST3_SYNTH_FIXTURE=$synth_path" >> "$GITHUB_ENV"
           echo "CLAP_PLUGIN_FIXTURE=$clap_path" >> "$GITHUB_ENV"
@@ -140,13 +178,18 @@ jobs:
       - name: Verify downloaded built-in VST3 identities and legacy state restoration
         run: mise run test:builtin-vst3
 
-      - name: Run Electron end-to-end tests
-        if: runner.os == 'Linux'
-        run: mise run test:e2e
-
-      - name: Verify consent-gated Electron crash delivery
-        if: runner.os == 'Linux'
-        run: xvfb-run -a pnpm --filter @heron/desktop test:crash-reporting
+      # Save only after the fixture probes inside the checks above have exercised
+      # the relocated bundles, so a broken cache is never published from main.
+      - name: Save official plug-in fixture cache
+        if: >-
+          success() &&
+          runner.os == 'Linux' &&
+          steps.official-fixtures.outputs.cache-hit != 'true' &&
+          (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+        uses: actions/cache/save@v6
+        with:
+          path: target/official-plug-in-fixtures
+          key: ${{ steps.official-fixtures.outputs.cache-primary-key }}
 
       - name: Verify Sentry symbol artifacts
         run: pnpm --filter @heron/desktop test:sentry-symbols
@@ -178,6 +221,70 @@ jobs:
           name: ${{ matrix.codecov-rust-flag }}
           fail_ci_if_error: true
           disable_search: true
+
+      - name: Report shared compiler cache health
+        if: ${{ always() && steps.setup_build.outcome == 'success' }}
+        run: mise run ci:report:sccache
+
+  static:
+    name: Static and design checks
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up build environment
+        id: setup_build
+        uses: ./.github/actions/setup-build
+        with:
+          github-token: >-
+            ${{ github.event_name != 'pull_request' && github.token || '' }}
+          cache-rust-build: "true"
+
+      # `check:design` runs Storybook stories and Playwright assertions in
+      # Chromium, so this job needs the browser even though it never launches
+      # Electron.
+      - name: Install Playwright Chromium and Linux dependencies
+        run: mise run ci:install:playwright
+
+      - name: Run static checks
+        run: mise run ci:check:static
+
+      - name: Report shared compiler cache health
+        if: ${{ always() && steps.setup_build.outcome == 'success' }}
+        run: mise run ci:report:sccache
+
+  e2e:
+    name: Electron end-to-end (Linux x64)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up build environment
+        id: setup_build
+        uses: ./.github/actions/setup-build
+        with:
+          github-token: >-
+            ${{ github.event_name != 'pull_request' && github.token || '' }}
+          cache-rust-build: "true"
+
+      - name: Install Playwright Chromium and Linux dependencies
+        run: |
+          mise run ci:install:playwright
+          sudo apt-get install --yes --no-install-recommends dbus-x11 libgtkmm-3.0-dev ninja-build xauth xvfb
+
+      - name: Run Electron end-to-end tests
+        run: mise run test:e2e
+
+      - name: Verify consent-gated Electron crash delivery
+        run: xvfb-run -a pnpm --filter @heron/desktop test:crash-reporting
 
       - name: Report shared compiler cache health
         if: ${{ always() && steps.setup_build.outcome == 'success' }}

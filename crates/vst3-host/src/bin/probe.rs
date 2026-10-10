@@ -73,6 +73,7 @@ struct AudioBusOutput {
 struct LayoutProbeOutput {
     supported: bool,
     buses: Vec<AudioBusOutput>,
+    event_inputs: u32,
 }
 
 impl From<AudioBusDescriptor> for AudioBusOutput {
@@ -257,14 +258,16 @@ fn deep_inspect(module_path: &Path, class: ClassInfo) -> ClassOutput {
     } else {
         &effect_results
     };
-    let buses = preferred_mode
-        .and_then(|preferred| {
-            results
-                .iter()
-                .find(|(name, _)| *name == preferred)
-                .map(|(_, output)| output.buses.clone())
-        })
+    let preferred_output = preferred_mode.and_then(|preferred| {
+        results
+            .iter()
+            .find(|(name, _)| *name == preferred)
+            .map(|(_, output)| output)
+    });
+    let buses = preferred_output
+        .map(|output| output.buses.clone())
         .unwrap_or_default();
+    let event_inputs = preferred_output.map_or(0, |output| output.event_inputs);
     let audio_inputs = buses.iter().filter(|bus| bus.direction == "input").count() as u32;
     let audio_outputs = buses.iter().filter(|bus| bus.direction == "output").count() as u32;
     ClassOutput {
@@ -278,7 +281,7 @@ fn deep_inspect(module_path: &Path, class: ClassInfo) -> ClassOutput {
         has_editor: initialized,
         audio_inputs,
         audio_outputs,
-        event_inputs: u32::from(instrument),
+        event_inputs,
         supported_audio_modes,
         buses,
         ara: None,
@@ -406,6 +409,7 @@ fn run_layout_probe(
         layout,
     ) {
         Ok(mut processor) => {
+            let event_inputs = processor.event_input_bus_count();
             let buses = processor
                 .audio_buses()
                 .unwrap_or_default()
@@ -426,11 +430,13 @@ fn run_layout_probe(
                     )
                     .is_ok(),
                 buses,
+                event_inputs,
             }
         }
         Err(_) => LayoutProbeOutput {
             supported: false,
             buses: Vec::new(),
+            event_inputs: 0,
         },
     };
     println!("{}", serde_json::to_string(&output)?);

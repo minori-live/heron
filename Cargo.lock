@@ -313,7 +313,7 @@ dependencies = [
  "regex",
  "rustc-hash",
  "shlex 2.0.1",
- "syn 2.0.119",
+ "syn 3.0.6",
 ]
 
 [[package]]
@@ -1047,7 +1047,7 @@ dependencies = [
 
 [[package]]
 name = "heron-audio-engine"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
  "bwavfile",
  "cpal",
@@ -1075,7 +1075,7 @@ dependencies = [
 
 [[package]]
 name = "heron-audio-host"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
  "ara2-bridge-core",
  "ara2-bridge-host",
@@ -1088,17 +1088,20 @@ dependencies = [
  "heron-dsp-runtime",
  "heron-vst3-host",
  "rustfft",
+ "serde",
+ "serde_json",
  "sha2",
  "tokio",
+ "windows",
 ]
 
 [[package]]
 name = "heron-audio-plugin"
-version = "0.6.4"
+version = "0.6.5"
 
 [[package]]
 name = "heron-clap-host"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
  "clap-sys",
  "heron-audio-plugin",
@@ -1111,14 +1114,15 @@ dependencies = [
 
 [[package]]
 name = "heron-dsp-core"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
  "criterion",
+ "serde",
 ]
 
 [[package]]
 name = "heron-dsp-node"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
  "bwavfile",
  "criterion",
@@ -1136,7 +1140,7 @@ dependencies = [
 
 [[package]]
 name = "heron-dsp-render"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
  "criterion",
  "heron-audio-plugin",
@@ -1146,7 +1150,7 @@ dependencies = [
 
 [[package]]
 name = "heron-dsp-runtime"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
  "midly",
  "rmp-serde",
@@ -1158,7 +1162,7 @@ dependencies = [
 
 [[package]]
 name = "heron-vst3-host"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
  "bitflags 2.13.2",
  "cc",
@@ -1174,7 +1178,7 @@ dependencies = [
 
 [[package]]
 name = "heron-vst3-host-sys"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
  "bindgen 0.73.2",
  "cc",
@@ -1182,7 +1186,7 @@ dependencies = [
 
 [[package]]
 name = "heron-xtask"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
  "clap 4.6.7",
 ]
@@ -2000,9 +2004,9 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
 name = "ringbuf"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b123165531e325df9079f56c036f2da4103a5d5abfef9e2fda4b9c34d1ef7aa"
+checksum = "b58b631e416dd7d84549d7e6a50f767e111f9b03e30d04f40072f6618f386aaf"
 dependencies = [
  "crossbeam-utils",
  "portable-atomic",

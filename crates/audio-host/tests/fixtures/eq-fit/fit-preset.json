@@ -1,0 +1,41 @@
+{
+  "format": "heron-eq",
+  "version": 1,
+  "config": {
+    "bands": [
+      {
+        "id": 1,
+        "enabled": true,
+        "shape": "LowShelf",
+        "frequency_hz": 180,
+        "gain_db": 3,
+        "q": 0.7071067811865476,
+        "slope_db_oct": 12,
+        "channel": "Stereo"
+      },
+      {
+        "id": 2,
+        "enabled": true,
+        "shape": "Bell",
+        "frequency_hz": 2400,
+        "gain_db": -5,
+        "q": 1.2,
+        "slope_db_oct": 12,
+        "channel": "Stereo"
+      },
+      {
+        "id": 3,
+        "enabled": true,
+        "shape": "HighShelf",
+        "frequency_hz": 14500,
+        "gain_db": 4,
+        "q": 0.9,
+        "slope_db_oct": 12,
+        "channel": "Stereo"
+      }
+    ],
+    "output_gain_db": -2,
+    "bypass": false,
+    "processing_mode": "ZeroLatency"
+  }
+}

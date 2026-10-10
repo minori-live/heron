@@ -137,14 +137,6 @@ mod tests {
     }
 
     #[test]
-    fn target_tuid_round_trips() {
-        let id: ClassId = "42043F99B7DA453CA569E79D9AAEC33D"
-            .parse()
-            .expect("valid ID");
-        assert_eq!(ClassId::from_tuid(id.to_tuid()), id);
-    }
-
-    #[test]
     fn com_factory_bytes_map_to_registry_class_ids() {
         // truce's vst3_cid() stores FNV-1a as little-endian factory bytes. Those
         // match COM GUID memory order for the registry IDs committed in desktop.

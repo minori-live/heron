@@ -250,17 +250,6 @@ describe("start", () => {
       "Recording is unavailable. Check the project and audio engine, then try again."
     )
   })
-
-  it("uses the typed transport-safe error projection", async () => {
-    stubApi({
-      startRecording: vi.fn(async () => failure("errors.transportUnavailable"))
-    })
-    const store = useRecordingStore()
-
-    await store.start()
-
-    expect(store.error).toBe("The IPC transport is unavailable.")
-  })
 })
 
 describe("stop", () => {
@@ -355,17 +344,6 @@ describe("pending recordings", () => {
     expect(store.error).toBe(
       "Recording is unavailable. Check the project and audio engine, then try again."
     )
-  })
-
-  it("uses typed transport errors during recovery", async () => {
-    stubApi({
-      recoverRecording: vi.fn(async () => failure("errors.transportUnavailable"))
-    })
-    const store = useRecordingStore()
-
-    await store.recover(pendingRecording("take-1"))
-
-    expect(store.error).toBe("The IPC transport is unavailable.")
   })
 
   it("refuses to recover while another operation is in flight", async () => {

@@ -2175,6 +2175,8 @@
       "elapsed": "Fit time",
       "used": "{used} of {quota} EQ sections used. Overall Gain is outside the quota.",
       "parameters": "Fitted EQ parameters",
+      "preset": "Heron EQ preset",
+      "presetHelp": "Copy this JSON, then use Paste bands in the ⋯ menu of a fresh Zero Latency Heron EQ. Set its output to Overall Gain separately; for a fit with no bands, set only Overall Gain. Heron saves these settings with the project.",
       "filter": "Filter",
       "frequency": "Frequency",
       "gain": "Gain",
@@ -2188,7 +2190,7 @@
         "choose-path": "Choose one signal path above. L + R displays two paths and cannot be fitted as one response.",
         "choose-chain": "Choose the chain to fit.",
         "missing-path": "This signal path is unavailable in the selected chain.",
-        "invalid-quota": "Enter a whole-number EQ quota from 1 to 8.",
+        "invalid-quota": "Enter a whole-number EQ quota from 1 to 24.",
         "invalid-measurement": "The measurement quality data is invalid. Run analysis again.",
         "truncated-tail": "The measured tail was truncated. Increase tail time and run analysis again before fitting.",
         "unstable-response": "Repeated measurements differ by more than 10%. A stable EQ approximation is unavailable."

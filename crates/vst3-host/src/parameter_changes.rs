@@ -10,8 +10,11 @@ use heron_vst3_host_sys::{
     iid,
 };
 
-const QUEUE_CAPACITY: usize = 64;
+pub(crate) const QUEUE_CAPACITY: usize = 64;
 const POINT_CAPACITY: usize = 32;
+// Locked Truce 6.3.0 accepts at most 512 wire points per process call. This
+// conservative GUI budget leaves sample-offset automation admission unchanged.
+const TOTAL_POINT_CAPACITY: usize = 512;
 
 #[derive(Clone, Copy)]
 struct Point {
@@ -25,6 +28,7 @@ struct ParamQueue {
     id: ParamID,
     points: [MaybeUninit<Point>; POINT_CAPACITY],
     len: usize,
+    has_gui: bool,
 }
 
 impl ParamQueue {
@@ -34,12 +38,14 @@ impl ParamQueue {
             id: 0,
             points: [const { MaybeUninit::uninit() }; POINT_CAPACITY],
             len: 0,
+            has_gui: false,
         }
     }
 
     fn reset(&mut self, id: ParamID) {
         self.id = id;
         self.len = 0;
+        self.has_gui = false;
     }
 
     fn push(&mut self, point: Point) -> bool {
@@ -101,6 +107,49 @@ impl ParameterChanges {
             sample_offset,
             value,
         })
+    }
+
+    fn total_points(&self) -> usize {
+        self.queues[..self.len].iter().map(|queue| queue.len).sum()
+    }
+
+    /// A GUI notification is one current value at offset zero, independently
+    /// of sample-accurate automation. Automation at zero or later retains its
+    /// order and takes precedence over this block's GUI initial value.
+    pub(crate) fn add_gui_value(&mut self, id: ParamID, value: ParamValue) -> bool {
+        let index = self.queues[..self.len]
+            .iter()
+            .position(|queue| queue.id == id)
+            .unwrap_or(self.len);
+        if index < self.len && self.queues[index].has_gui {
+            self.queues[index].points[0].write(Point {
+                sample_offset: 0,
+                value,
+            });
+            return true;
+        }
+        if self.total_points() >= TOTAL_POINT_CAPACITY {
+            return false;
+        }
+        if index == self.len {
+            let Some(queue) = self.queues.get_mut(index) else {
+                return false;
+            };
+            queue.reset(id);
+            self.len += 1;
+        }
+        let queue = &mut self.queues[index];
+        if queue.len == POINT_CAPACITY {
+            return false;
+        }
+        queue.points.copy_within(0..queue.len, 1);
+        queue.points[0].write(Point {
+            sample_offset: 0,
+            value,
+        });
+        queue.len += 1;
+        queue.has_gui = true;
+        true
     }
 
     pub(crate) fn for_each_last(&self, mut visit: impl FnMut(ParamID, ParamValue)) {

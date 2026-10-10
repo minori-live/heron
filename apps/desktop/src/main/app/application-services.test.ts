@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import { BUILTIN_MIDI_TRANSFORM_PROFILE_IDS } from "@heron/contracts"
+import { createStartedApplicationServices } from "./started-application-services"
 
 const fakes = vi.hoisted(() => ({
   graph: {
@@ -258,5 +259,24 @@ describe("createApplicationServices", () => {
     await expect(runtime.openEditor("plugin")).rejects.toThrow("channel")
     services.dispose()
     expect(fakes.applicationDispose).toHaveBeenCalledOnce()
+  })
+})
+
+describe("createStartedApplicationServices", () => {
+  it("disposes event registrations in order and only once", () => {
+    const calls: string[] = []
+    const first = vi.fn(() => calls.push("ipc"))
+    const second = vi.fn(() => calls.push("application-events"))
+    const services = createStartedApplicationServices({} as never, {} as never, [
+      { dispose: first },
+      { dispose: second }
+    ])
+
+    services.dispose()
+    services.dispose()
+
+    expect(calls).toEqual(["ipc", "application-events"])
+    expect(first).toHaveBeenCalledOnce()
+    expect(second).toHaveBeenCalledOnce()
   })
 })

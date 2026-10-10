@@ -49,8 +49,11 @@ runs:
     - name: Install locked toolchain
       uses: jdx/mise-action@v5.1.1
       with:
-        version: 2026.10.3
+        version: 2026.10.6
         cache: true
+        # Restore main's tool cache everywhere, but let only main and tags
+        # write it; merge-ref copies only consume the shared cache quota.
+        cache_save: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) && 'true' || 'false' }}
         # Explicit empty input suppresses mise-action's automatic token default.
         github_token: ${{ inputs.github-token }}
 
@@ -124,9 +127,10 @@ runs:
         echo "pnpm-store=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
 
     - name: Restore Cargo downloads
+      id: cargo-downloads
       # rust-cache already caches the registry and git databases.
       if: inputs.cache-rust-build != 'true'
-      uses: actions/cache@v6
+      uses: actions/cache/restore@v6
       with:
         path: |
           ${{ steps.cache-paths.outputs.cargo-home }}/registry/index
@@ -136,16 +140,44 @@ runs:
         restore-keys: |
           cargo-downloads-${{ runner.os }}-${{ runner.arch }}-
 
+    - name: Save Cargo downloads
+      # Pull requests read main's entry through the base-branch fallback, so
+      # their merge-ref copy only spends the repository's 10 GB cache quota and
+      # evicts shared compiler-cache objects. Concentrate writes on main and
+      # tags, matching the sccache and rust-cache steps.
+      if: >-
+        inputs.cache-rust-build != 'true' &&
+        (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) &&
+        steps.cargo-downloads.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: |
+          ${{ steps.cache-paths.outputs.cargo-home }}/registry/index
+          ${{ steps.cache-paths.outputs.cargo-home }}/registry/cache
+          ${{ steps.cache-paths.outputs.cargo-home }}/git/db
+        key: ${{ steps.cargo-downloads.outputs.cache-primary-key }}
+
     - name: Restore pnpm store
-      uses: actions/cache@v6
+      id: pnpm-store
+      uses: actions/cache/restore@v6
       with:
         path: ${{ steps.cache-paths.outputs.pnpm-store }}
         key: pnpm-store-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
         restore-keys: |
           pnpm-store-${{ runner.os }}-${{ runner.arch }}-
 
+    - name: Save pnpm store
+      if: >-
+        (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) &&
+        steps.pnpm-store.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.cache-paths.outputs.pnpm-store }}
+        key: ${{ steps.pnpm-store.outputs.cache-primary-key }}
+
     - name: Restore Electron downloads
-      uses: actions/cache@v6
+      id: electron-downloads
+      uses: actions/cache/restore@v6
       with:
         path: |
           ~/.cache/electron
@@ -157,6 +189,21 @@ runs:
         key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
         restore-keys: |
           electron-${{ runner.os }}-${{ runner.arch }}-
+
+    - name: Save Electron downloads
+      if: >-
+        (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) &&
+        steps.electron-downloads.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: |
+          ~/.cache/electron
+          ~/.cache/electron-builder
+          ~/Library/Caches/electron
+          ~/Library/Caches/electron-builder
+          ~/AppData/Local/electron/Cache
+          ~/AppData/Local/electron-builder/Cache
+        key: ${{ steps.electron-downloads.outputs.cache-primary-key }}
 
     - name: Fetch pinned VST3 SDK
       shell: bash

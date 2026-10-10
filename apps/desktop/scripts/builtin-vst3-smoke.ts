@@ -24,6 +24,14 @@ const probePath = resolve(repositoryRoot, "target", "debug", `heron-vst3-probe${
 
 const expected = [
   {
+    bundle: "Heron EQ.vst3",
+    classId: "8A8341D5CA36B6C9A9572788F40EBB9F",
+    audioInputs: 2,
+    audioOutputs: 1,
+    eventInputs: 1,
+    supportedAudioModes: ["mono", "mono-to-stereo", "stereo"]
+  },
+  {
     bundle: "Heron Gain.vst3",
     classId: "46774F504DF84B4AC1F308AB88DD3677",
     audioInputs: 1,

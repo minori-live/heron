@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { DOMWrapper, enableAutoUnmount, flushPromises, mount } from "@vue/test-utils"
 import type { MixerBusState, MixerChannelState, MixerSendState } from "@heron/contracts"
-import { UiCascadingSelect, UiRotaryControl } from "@heron/ui"
+import { UiRotaryControl } from "@heron/ui"
 import MixerSendSection from "./MixerSendSection.vue"
 
 const channel: MixerChannelState = {
@@ -68,11 +68,10 @@ describe("MixerSendSection", () => {
       }
     })
 
-    expect(wrapper.get(".send-row").classes()).toContain("tap-post")
+    expect(wrapper.get(".send-row").attributes("data-tap")).toBe("post")
     expect(wrapper.get('button[aria-label="Edit send to BUS 7"]').text()).toBe("BUS 7")
     expect(wrapper.text()).not.toContain("EMPTY SEND")
     expect(wrapper.find('button[aria-label="Add send in empty slot"]').exists()).toBe(false)
-    expect(wrapper.findAll(".send-row.alignment-spacer")).toHaveLength(0)
 
     const level = wrapper.get('input[aria-label="BUS 7 send level"]')
     await level.setValue("-6")
@@ -109,7 +108,7 @@ describe("MixerSendSection", () => {
     await new DOMWrapper(destination).trigger("click")
     await flushPromises()
     const destinationGroups = Array.from(
-      document.body.querySelectorAll<HTMLButtonElement>(".ui-cascading-select__sub-trigger")
+      document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
     )
     expect(destinationGroups.map((button) => button.textContent?.trim())).toEqual([
       "Buses",
@@ -118,7 +117,7 @@ describe("MixerSendSection", () => {
     await new DOMWrapper(destinationGroups[1]).trigger("keydown", { key: "ArrowRight" })
     await flushPromises()
     const outputOption = Array.from(
-      document.body.querySelectorAll<HTMLButtonElement>(".ui-cascading-select__item")
+      document.body.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')
     ).find((button) => button.textContent?.trim() === "Output 1–2")
     await new DOMWrapper(outputOption).trigger("click")
     expect(wrapper.emitted("updateSend")?.at(-1)).toEqual([
@@ -139,20 +138,11 @@ describe("MixerSendSection", () => {
       }
     })
 
-    expect(wrapper.get(".send-row").classes()).toContain("tap-pre")
     expect(wrapper.get(".send-row").attributes("data-tap")).toBe("pre")
-    expect(wrapper.get(".send-config").text()).toBe("BUS 7")
-    expect(wrapper.find(".send-config i").exists()).toBe(false)
-    expect(wrapper.find(".send-config b").exists()).toBe(false)
-    expect(wrapper.get(".send-level").attributes("style")).toContain("--rotary-control-accent")
-    expect(wrapper.get(".send-level").attributes("style")).toContain("--ui-color-action")
-    expect(wrapper.get(".send-level").classes()).toContain("ui-rotary-control--ring-emphasized")
     expect(wrapper.getComponent(UiRotaryControl).props("dragRangePixels")).toBe(180)
 
     await wrapper.setProps({ sends: [{ ...send, tap: "post-pan" }] })
-    expect(wrapper.get(".send-row").classes()).toContain("tap-post-pan")
-    expect(wrapper.get(".send-config").text()).toBe("BUS 7")
-    expect(wrapper.get(".send-level").attributes("style")).toContain("--ui-signal-meter-safe")
+    expect(wrapper.get(".send-row").attributes("data-tap")).toBe("post-pan")
   })
 
   it("adds a send from available BUS and Output targets", async () => {
@@ -171,23 +161,21 @@ describe("MixerSendSection", () => {
       }
     })
 
-    expect(wrapper.findAll(".send-row.empty")).toHaveLength(1)
     expect(wrapper.find(".send-row.alignment-spacer").exists()).toBe(false)
     expect(wrapper.find('button[aria-label="Add send"]').exists()).toBe(false)
     expect(wrapper.get('button[aria-label="Add send in empty slot"]').text()).toBe("")
-    expect(wrapper.getComponent(UiCascadingSelect).props("hoverTreatment")).toBe("host-tint")
 
     await wrapper.get('button[aria-label="Add send in empty slot"]').trigger("click")
     await flushPromises()
     const routeGroups = Array.from(
-      document.body.querySelectorAll<HTMLButtonElement>(".ui-cascading-select__sub-trigger")
+      document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
     )
     expect(routeGroups.map((button) => button.textContent?.trim())).toEqual(["Buses", "Outputs"])
 
     await new DOMWrapper(routeGroups[0]).trigger("keydown", { key: "ArrowRight" })
     await flushPromises()
     const busOption = Array.from(
-      document.body.querySelectorAll<HTMLButtonElement>(".ui-cascading-select__item")
+      document.body.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')
     ).find((button) => button.textContent?.trim() === "BUS 7")
     await new DOMWrapper(busOption).trigger("click")
     expect(wrapper.emitted("addSend")?.at(-1)).toEqual([{ kind: "bus", bus: 7 }])
@@ -195,12 +183,12 @@ describe("MixerSendSection", () => {
     await wrapper.get('button[aria-label="Add send in empty slot"]').trigger("click")
     await flushPromises()
     const outputGroup = Array.from(
-      document.body.querySelectorAll<HTMLButtonElement>(".ui-cascading-select__sub-trigger")
+      document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
     ).find((button) => button.textContent?.trim() === "Outputs")
     await new DOMWrapper(outputGroup).trigger("keydown", { key: "ArrowRight" })
     await flushPromises()
     const outputOption = Array.from(
-      document.body.querySelectorAll<HTMLButtonElement>(".ui-cascading-select__item")
+      document.body.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')
     ).find((button) => button.textContent?.trim() === "Output 1–2")
     await new DOMWrapper(outputOption).trigger("click")
     expect(wrapper.emitted("addSend")?.at(-1)).toEqual([{ kind: "output", channelId: "output" }])

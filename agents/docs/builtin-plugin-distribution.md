@@ -2,7 +2,7 @@
 
 The producer is [heron-plugins](https://github.com/minori-live/heron-plugins).
 It owns plug-in sources and releases; Heron owns integration with its embedded
-audio runtime. See [ADR-0029](adr/0029-artifact-delivered-built-in-plugins.md).
+audio runtime. See [ADR-0031](adr/0031-artifact-delivered-built-in-plugins.md).
 
 ## Dependency preparation
 
@@ -23,6 +23,10 @@ binary architecture, then replaces `target/bundles`. The installed inventory is
 plug-in source fallback. Use `pnpm plugins:prepare --offline` to require existing
 verified cached assets, or `--platform macos-universal` for universal packaging.
 The ordinary native mise tasks prepare plug-ins automatically.
+
+The suite must contain EQ, Gain, Sine and Metronome with their persisted native
+identities. Missing or malformed installed inventory exposes all four as
+unavailable entries in the application catalog.
 
 Runtime archives contain only VST3 bundles, notices and inventory. AU and AAX
 are standalone producer assets. Heron never downloads them for its application.

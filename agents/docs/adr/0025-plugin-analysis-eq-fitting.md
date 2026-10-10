@@ -5,6 +5,7 @@
 - Owners: project maintainers
 - Scope: first-version magnitude approximation, independent window and renderer worker ownership
 - Related: [ADR-0016](0016-plugin-analysis.md), [ADR-0017](0017-plugin-analysis-comparison.md),
+  [ADR-0029 (24-band quota and portable presets)](0029-native-heron-eq.md),
   [EQ fitting pull request](https://github.com/minori-live/heron/pull/211),
   [Plugin Analysis manual](../../../docs/content/manual/plugin-analysis.md#fit-a-parametric-eq)
 
@@ -55,8 +56,9 @@ receipt, while a new Analysis owner resets them. Child snapshots carry source
 and selection revisions and omit unchanged report bodies by known report ID.
 Window commands use explicit maximize state and bounded, acknowledged receipts.
 
-The fit is volatile and read-only. The quota accepts one through eight sections
-and is an upper bound; overall gain is outside it. The target is the measured
+The fit is volatile and read-only. The current quota accepts one through 24 sections
+as amended by ADR-0029; its original eight-section ceiling is retired. The quota
+is an upper bound; overall gain is outside it. The target is the measured
 magnitude, not an inverse correction. A fit neither inserts an effect nor
 recovers the original plug-in's internal parameters.
 

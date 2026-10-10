@@ -14,9 +14,14 @@ builds, and tagged releases.
   update manifests. Configure the `Gate` check (shown
   under the `CI` workflow) as the only required status check for pull requests.
 - **Test** (`.github/workflows/test.yml`) runs repository checks on Linux x64,
-  Windows x64, and macOS. Linux runs `mise run ci:check:coverage`, a variant of
-  the full check graph that swaps every test invocation for its coverage-producing
-  counterpart, so each test suite runs exactly once. Windows and macOS run
+  Windows x64, and macOS. The Linux Checks leg runs
+  `mise run ci:check:coverage`, the coverage-producing test pass, while two
+  sibling jobs run the work that does not produce coverage:
+  `mise run ci:check:static` (formatting, lint, Vue ESLint, Clippy, TypeScript,
+  design audits, Storybook, and benchmark compilation) and
+  `mise run test:e2e` (the Electron end-to-end suite and crash smoke). Running
+  them in parallel keeps the coverage rebuild off their critical path, and no
+  test suite is repeated. Windows and macOS run
   `mise run ci:check:native-coverage`, which collects Rust coverage from workspace
   tests and instrumented napi-rs calls while running desktop and project-database
   tests without JavaScript coverage. All reports are uploaded to Codecov and
@@ -59,17 +64,25 @@ builds, and tagged releases.
 The Test and Build workflows install the versions in `mise.lock`, use frozen
 pnpm dependencies, and pin the VST3 SDK commit where a native setup is
 required. The mise installation, pnpm store, Cargo downloads, and Electron
-downloads have separate platform-and-architecture cache keys. Rust compilation
+downloads have separate platform-and-architecture cache keys and are restored on
+every run. Only `main` and tag runs save them, so pull requests read main's
+entries through the base-branch fallback instead of writing merge-ref copies;
+those copies previously consumed most of the repository's 10 GB cache quota and
+evicted shared sccache objects. Rust compilation
 uses sccache's shared GitHub Actions backend. Check jobs may restore a Cargo `target`
 cache; packaging jobs leave it disabled because the directory is large and can
-retain stale platform-specific build state. Coverage is collected in each
-Checks test pass. Every platform uses cargo-llvm-cov's external-test environment
+retain stale platform-specific build state. The Linux check leg additionally
+caches the built official VST3/CLAP fixtures as
+`target/official-plug-in-fixtures`, keyed on the pinned fixture commits and the
+CMake/toolchain inputs. Only the finished bundles are archived, and only `main`
+and tag runs save, so pull requests cannot add fixture cache writes. Coverage is
+collected in each Checks test pass. Every platform uses cargo-llvm-cov's external-test environment
 to run Cargo tests, build the napi-rs module with instrumentation, execute the
 native binding tests, and export merged Rust profiles after Node exits. Linux
 also runs the JavaScript coverage suites and official plug-in fixtures. Each
 test suite runs once. Instrumented artifacts stay in `target-coverage/`, outside
 the shared Checks `target` cache. cargo-llvm-cov chains the sccache
-`RUSTC_WRAPPER` and instruments only workspace crates, so sccache caches those
+`RUSTC_WRAPPER`, and sccache caches the instrumented
 builds and repeat runs reuse them.
 
 ### Compiler cache writes
@@ -119,12 +132,15 @@ the actual Mach-O and installer checks execute on the macOS runner.
 
 On the Linux Checks leg, CI runs `mise run ci:check:coverage` with the
 combined coverage orchestrator in place of the plain Rust and Vitest runs, so
-every test suite executes exactly once with coverage enabled. The orchestrator
-first runs the Rust tests and builds instrumented napi-rs modules. That preparation
-also generates the gitignored package loaders and typings required by type-aware
-Oxlint on a clean checkout. The check then runs the JavaScript linters before the
-orchestrator resumes with the JavaScript tests and merged report; no test suite or
-native build is repeated. Cargo doc tests still execute as correctness checks, but
+every test suite executes exactly once with coverage enabled. The static and
+design checks, the benchmark compile, and the Electron end-to-end suite run in
+the sibling `Static checks` and `Electron end-to-end` jobs, so the coverage
+orchestrator no longer waits for linters or a browser launch. The `static` job's
+`check:prepare` step generates the gitignored package loaders and typings that
+type-aware Oxlint needs on a clean checkout. The orchestrator first runs the Rust
+tests and builds instrumented napi-rs modules, then runs the JavaScript tests and
+merged report; no test suite or native build is repeated. Cargo doc tests still
+execute as correctness checks, but
 their bodies are not instrumented into the external-test LCOV report. The same
 mise task reproduces the Linux leg locally.
 
@@ -151,7 +167,12 @@ workspace). Rust coverage requires the locked `cargo-llvm-cov` tool and the
 `coverage/` (gitignored) and are uploaded to Codecov with the repository
 `CODECOV_TOKEN` secret. The combined Rust coverage run writes instrumented
 objects to `target-coverage/` so they stay out of the shared `target/` cache,
-and keeps the sccache wrapper so repeat runs reuse cached builds. LCOV source
+and keeps the sccache wrapper so repeat runs reuse cached builds. Each coverage
+run clears only the raw `*.profraw` counters (`cargo llvm-cov clean
+--profraw-only`), keeping the instrumented artifacts so local runs stay
+incremental and Windows never tries to delete the running `heron_xtask` binary.
+`cargo llvm-cov report` re-merges the fresh profiles into `*.profdata`, so a
+retained profile merge cannot serve a stale report. LCOV source
 paths are rewritten relative to the repository before upload so reports from
 POSIX and Windows checkouts merge against the same files. Use the combined
 command when native calls made by JavaScript must be reflected in Rust coverage;
@@ -165,7 +186,7 @@ carryforward is disabled so a missing platform report cannot reuse stale data.
 Codecov merges all four uploads into the repository totals. Repository-level
 project and patch statuses and the components for each coverage-producing
 workspace package or crate (`desktop`, `contracts`, `project-db`,
-`project-model`, `ui`, the `dsp-*` / host crates, and `plugins`) remain the
+`project-model`, `ui`, and the `dsp-*` / host crates) remain the
 coverage gates. The workflow uses manual Codecov notification triggering so
 statuses and the PR comment are published only after all matrix uploads succeed.
 Rust coverage ignores vendored `third_party/` sources (also listed under

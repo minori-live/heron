@@ -1,0 +1,16 @@
+{
+  "repository": "https://github.com/minori-live/heron",
+  "commit": "b8a5c9c76b25275b252dc98b1684a5a87281043f",
+  "heronVersion": "0.6.5",
+  "capture": "fit-automation.json emitted by the unchanged original EqParams::normalized_values for fit-preset.json; see heron-plugins EQ compatibility capture harness",
+  "automation": {
+    "bytes": 616,
+    "sha256": "ad8d6cefcf9ced4c83ef7833a1ca439b18cc768f40411f11b4f3d67016c1376e"
+  },
+  "preset": {
+    "sha256": "47e3fd9a829b50a14f61aefc0d37a243d9409fd3d671cb061227d62f080bb61d"
+  },
+  "response": {
+    "sha256": "8efbde1369fb3009b59e587c478ba3e18e8cc31639db2b680fe3b7788b2c8e5c"
+  }
+}

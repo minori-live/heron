@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it } from "vitest"
 import { h } from "vue"
 
 import UiAlertDialog from "./UiAlertDialog.vue"
-import UiButton from "./UiButton.vue"
 import UiDialog from "./UiDialog.vue"
 import UiIconButton from "./UiIconButton.vue"
 import UiMenubar from "./UiMenubar.vue"
@@ -70,7 +69,7 @@ describe("UiDialog", () => {
     await flushPromises()
 
     expect(portal('[role="dialog"]').attributes("data-size")).toBe("lg")
-    expect(document.body.querySelector(".ui-dialog__actions")).toBeNull()
+    expect(portal('[role="dialog"]').findAll("footer")).toHaveLength(0)
   })
 
   it("offers a labelled close affordance that clears the model", async () => {
@@ -111,14 +110,11 @@ describe("UiDialog", () => {
     })
     await flushPromises()
 
-    const closeSlot = document.body.querySelector('[data-dialog-part="close-slot"]')
-    expect(closeSlot).not.toBeNull()
     expect(document.body.querySelector('[aria-label="Close dialog"]')).toBeNull()
 
     await wrapper.setProps({ dismissible: true })
     await flushPromises()
 
-    expect(document.body.querySelector('[data-dialog-part="close-slot"]')).toBe(closeSlot)
     expect(document.body.querySelector('[aria-label="Close dialog"]')).not.toBeNull()
   })
 
@@ -131,7 +127,7 @@ describe("UiDialog", () => {
     await flushPromises()
 
     expect(portal('[role="dialog"]').findAll("h2")).toHaveLength(1)
-    expect(portal(".custom-heading").text()).toBe("Custom")
+    expect(portal('[role="dialog"]').text()).toContain("Custom")
   })
 
   it("opens from a trigger slot", async () => {
@@ -156,13 +152,13 @@ describe("UiAlertDialog", () => {
     })
     await flushPromises()
 
-    const [cancel, confirm] = portalAll(".ui-alert-dialog__button")
+    const [cancel, confirm] = portalAll("button")
     await new DOMWrapper(cancel).trigger("click")
     expect(wrapper.emitted("cancel")).toHaveLength(1)
 
     await wrapper.setProps({ modelValue: true })
     await flushPromises()
-    await new DOMWrapper(portalAll(".ui-alert-dialog__button")[1] ?? confirm).trigger("click")
+    await new DOMWrapper(portalAll("button")[1] ?? confirm).trigger("click")
     expect(wrapper.emitted("confirm")).toHaveLength(1)
   })
 
@@ -181,10 +177,9 @@ describe("UiAlertDialog", () => {
     await flushPromises()
 
     expect(portal(".ui-alert-dialog").attributes("data-tone")).toBe("danger")
-    const buttons = portalAll(".ui-alert-dialog__button")
+    const buttons = portalAll("button")
     expect(buttons[0]?.textContent?.trim()).toBe("Keep")
     expect(buttons[1]?.textContent?.trim()).toBe("Delete")
-    expect(buttons[1]?.classList.contains("ui-alert-dialog__button--danger")).toBe(true)
   })
 
   it("renders custom actions and reports the chosen value", async () => {
@@ -203,9 +198,8 @@ describe("UiAlertDialog", () => {
     })
     await flushPromises()
 
-    const buttons = portalAll(".ui-alert-dialog__button")
+    const buttons = portalAll("button")
     expect(buttons.map((node) => node.textContent?.trim())).toEqual(["Save", "Discard", "Cancel"])
-    expect(buttons[1]?.classList.contains("ui-alert-dialog__button--danger")).toBe(true)
 
     await new DOMWrapper(buttons[1]).trigger("click")
     expect(wrapper.emitted("action")).toEqual([["discard"]])
@@ -223,7 +217,7 @@ describe("UiAlertDialog", () => {
     })
     await flushPromises()
 
-    for (const button of portalAll(".ui-alert-dialog__button")) {
+    for (const button of portalAll("button")) {
       expect(button.hasAttribute("disabled")).toBe(true)
     }
   })
@@ -241,8 +235,8 @@ describe("UiAlertDialog", () => {
     })
     await flushPromises()
 
-    expect(portal(".ui-alert-dialog__eyebrow").text()).toBe("Recording")
-    expect(portal(".ui-alert-dialog__detail").text()).toContain("take-01.wav")
+    expect(portal('[role="alertdialog"]').text()).toContain("Recording")
+    expect(portal('[role="alertdialog"]').text()).toContain("take-01.wav")
   })
 })
 
@@ -284,22 +278,21 @@ describe("UiTooltip", () => {
     expect(tooltip.get("kbd").text()).toBe("Space")
   })
 
-  it("opens when its Storybook trigger is a UiButton", async () => {
+  it("omits the shortcut key when none is supplied", async () => {
     mount(UiProvider, {
       attachTo: document.body,
       props: { tooltipDelay: 0 },
       slots: {
-        default: () =>
-          h(UiTooltip, { text: "Record arm", delayDuration: 0 }, () =>
-            h(UiButton, { size: "sm" }, () => "Record arm")
-          )
+        default: () => h(UiTooltip, { text: "Play" }, () => h("button", { type: "button" }, "▶"))
       }
     })
 
     await new DOMWrapper(document.body.querySelector<HTMLElement>("button")).trigger("focus")
     await flushPromises()
 
-    expect(portal('[data-ui-part="tooltip-content"]').text()).toContain("Record arm")
+    const tooltip = portal('[data-ui-part="tooltip-content"]')
+    expect(tooltip.text()).toContain("Play")
+    expect(tooltip.find("kbd").exists()).toBe(false)
   })
 
   it("stays hidden when disabled", async () => {
@@ -370,10 +363,9 @@ describe("UiMenubar", () => {
     })
 
     expect(wrapper.attributes("aria-label")).toBe("Main menu")
-    expect(wrapper.findAll(".ui-menubar__trigger").map((item) => item.text())).toEqual([
-      "File",
-      "Edit"
-    ])
+    expect(
+      wrapper.findAll('[role="menubar"] [role="menuitem"]').map((item) => item.text())
+    ).toEqual(["File", "Edit"])
   })
 
   it("shows items, shortcuts, separators, and reports the selected value", async () => {
@@ -393,17 +385,17 @@ describe("UiMenubar", () => {
       }
     })
 
-    await wrapper.get(".ui-menubar__trigger").trigger("pointerdown", { button: 0 })
+    await wrapper.get('[role="menubar"] [role="menuitem"]').trigger("pointerdown", { button: 0 })
     await flushPromises()
 
-    const items = portalAll(".ui-menubar__item")
+    const items = portalAll('[role="menu"] [role="menuitem"]')
     expect(items.map((item) => item.querySelector("span")?.textContent)).toEqual([
       "New project",
       "Close"
     ])
-    expect(items[0]?.querySelector(".ui-menubar__shortcut")?.textContent?.trim()).toBe("Ctrl+N")
-    expect(items[1]?.querySelector(".ui-menubar__shortcut")).toBeNull()
-    expect(document.body.querySelector(".ui-menubar__separator")).not.toBeNull()
+    expect(items[0]?.querySelector("kbd")?.textContent?.trim()).toBe("Ctrl+N")
+    expect(items[1]?.querySelector("kbd")).toBeNull()
+    expect(document.body.querySelector('[role="separator"]')).not.toBeNull()
     expect(items[1]?.hasAttribute("data-disabled")).toBe(true)
 
     await new DOMWrapper(items[0]).trigger("click")

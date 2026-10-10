@@ -32,6 +32,17 @@ main/native boundary is N-API within one process.
 - The audio callback owns only real-time-safe state. It must not perform N-API,
   Electron IPC, filesystem I/O, allocation, logging, or blocking locks.
 
+## Built-in plug-in dependency
+
+`heron-plugins` owns the Gain, Sine, Metronome and EQ sources, native UI,
+EQ DSP and format exports. Heron retains its runtime, host, metronome scheduling
+and tests that exercise the host against prepared VST3 bundles. Builds prepare
+an immutable producer release pinned by commit and per-platform SHA256, while
+the installed manifest supplies the inventory and probes establish capabilities.
+A missing bundle remains unavailable with its saved state intact. See
+[ADR-0031](adr/0031-artifact-delivered-built-in-plugins.md) and
+[the distribution contract](builtin-plugin-distribution.md).
+
 ## Dependency contracts
 
 The process diagram is also a dependency direction. Imports and runtime calls

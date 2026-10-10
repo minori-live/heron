@@ -1,6 +1,6 @@
 {
   "name": "@heron/desktop",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "A browser-technology digital audio workstation with a Rust DSP core.",
   "license": "GPL-3.0-only",
   "private": true,
@@ -41,7 +41,7 @@
     "@sentry/electron": "^8.0.0",
     "dompurify": "3.4.16",
     "electron-updater": "6.8.9",
-    "marked": "18.0.14",
+    "marked": "18.1.0",
     "vue-i18n": "^11.4.10"
   },
   "devDependencies": {

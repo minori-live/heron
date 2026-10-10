@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import MidiRecordingPreview from "./MidiRecordingPreview.vue"
 
 describe("MidiRecordingPreview", () => {
-  it("draws released and active notes inside a growing recording region", () => {
+  it("draws recorded notes inside a growing recording region", () => {
     const wrapper = mount(MidiRecordingPreview, {
       props: {
         take: {
@@ -48,6 +48,5 @@ describe("MidiRecordingPreview", () => {
     expect(notes).toHaveLength(2)
     expect(notes[0]?.element.style.left).toBe("30px")
     expect(notes[0]?.element.style.width).toBe("60px")
-    expect(notes[1]?.classes()).toContain("active")
   })
 })

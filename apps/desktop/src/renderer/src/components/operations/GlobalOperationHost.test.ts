@@ -34,15 +34,12 @@ describe("GlobalOperationHost", () => {
     const dialog = document.body.querySelector("[role=dialog]")
     expect(dialog?.querySelectorAll("h2")).toHaveLength(1)
     expect(dialog?.querySelector("h2")?.textContent).toBe("Background operation")
-    expect(dialog?.querySelector("header p")).toBeNull()
     expect(dialog?.querySelector('[data-dialog-part="close-slot"]')).not.toBeNull()
     expect(dialog?.querySelector('[aria-label="Close dialog"]')).toBeNull()
-    expect(dialog?.querySelector(".operation-description")?.textContent?.trim()).toBe(
+    expect(dialog?.querySelector('[aria-atomic="true"]')?.textContent?.trim()).toBe(
       "Saving project · Saving project archive"
     )
     expect(dialog?.textContent).not.toContain("Lifecycle")
-    expect(dialog?.querySelector("h3")).toBeNull()
-    expect(dialog?.textContent).not.toContain("Track progress and review")
     wrapper.unmount()
     expect(unsubscribe).not.toHaveBeenCalled()
     store.stopSubscription()

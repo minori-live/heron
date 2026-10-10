@@ -39,6 +39,12 @@
       "matchManagers": ["cargo"],
       "matchPackageNames": ["windows-core"],
       "allowedVersions": "<0.63"
+    },
+    {
+      "description": "third_party crates are vendored published releases plus Heron patches; bumping their internal dependencies breaks source that only moves with an upstream release.",
+      "matchManagers": ["cargo"],
+      "matchFileNames": ["third_party/**"],
+      "enabled": false
     }
   ]
 }

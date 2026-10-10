@@ -14,10 +14,7 @@ use heron_vst3_host_sys::{
         BindgenEnum, as_bus_direction, as_int32, as_media_type, as_uint32, combine_uint32_flags,
     },
 };
-use ringbuf::{
-    HeapCons, HeapProd, HeapRb,
-    traits::{Consumer, Split},
-};
+use ringbuf::{HeapCons, HeapProd, HeapRb, traits::Split};
 
 use crate::{
     ClassId, ComPtr, HostError, HostResult, Module, event_list::EventList,
@@ -26,6 +23,9 @@ use crate::{
 };
 
 mod buses;
+pub(crate) mod parameter_drain;
+
+use parameter_drain::GuiParameterDrain;
 
 use buses::{
     InitializedComponent, activate_event_input_buses, apply_bus_activation_overrides,
@@ -123,7 +123,6 @@ pub struct HostProcessContext {
 pub(crate) struct QueuedParameter {
     pub(crate) id: u32,
     pub(crate) value: f64,
-    pub(crate) sample_offset: i32,
 }
 
 struct AudioBusStorage {
@@ -222,12 +221,14 @@ pub struct StereoProcessor {
     component: ComPtr<IComponent>,
     input_events: Box<EventList>,
     input_parameters: Box<ParameterChanges>,
+    gui_flush_parameters: Box<ParameterChanges>,
     output_parameters: Box<ParameterChanges>,
     output_parameter_writer: Option<OutputParameterWriter>,
     process_context: Box<ProcessContext>,
     process_context_requirements: u32,
     sample_rate: f64,
     parameter_consumer: HeapCons<QueuedParameter>,
+    gui_parameters: Box<GuiParameterDrain>,
     module: Rc<Module>,
     kind: PluginKind,
     layout: AudioLayout,
@@ -344,12 +345,14 @@ impl StereoProcessor {
                 component,
                 input_events,
                 input_parameters,
+                gui_flush_parameters: ParameterChanges::new(),
                 output_parameters,
                 output_parameter_writer: None,
                 process_context,
                 process_context_requirements: 0,
                 sample_rate,
                 parameter_consumer,
+                gui_parameters: GuiParameterDrain::new(),
                 module,
                 kind,
                 layout,
@@ -583,6 +586,20 @@ impl StereoProcessor {
         Ok(buses)
     }
 
+    /// Returns the initialized component's actual MIDI/event input bus count.
+    #[must_use]
+    pub fn event_input_bus_count(&self) -> u32 {
+        unsafe {
+            // SAFETY: the component is live; media and direction are SDK enum values.
+            ((*component_table(&self.component)).get_bus_count)(
+                self.component.as_ptr(),
+                as_media_type(Vst::MediaTypes_kEvent),
+                as_bus_direction(Vst::BusDirections_kInput),
+            )
+        }
+        .max(0) as u32
+    }
+
     #[must_use]
     pub fn layout(&self) -> AudioLayout {
         self.layout
@@ -666,13 +683,8 @@ impl StereoProcessor {
         self.audio_output_buses
             .connect_main(&mut output_channels[..self.layout.output_channels() as usize]);
         let event_list = (!self.input_events.is_empty()).then(|| self.input_events.as_interface());
-        while let Some(parameter) = self.parameter_consumer.try_pop() {
-            let _ = self.input_parameters.add_value(
-                parameter.id,
-                parameter.sample_offset,
-                parameter.value,
-            );
-        }
+        self.gui_parameters
+            .drain(&mut self.parameter_consumer, &mut self.input_parameters);
         self.output_parameters.clear();
         let parameter_changes = self.input_parameters.as_interface();
         let output_parameter_changes = self.output_parameters.as_interface();
@@ -741,45 +753,49 @@ impl StereoProcessor {
     }
 
     pub(crate) fn flush_parameters(&mut self) -> HostResult<()> {
-        self.input_parameters.clear();
-        while let Some(parameter) = self.parameter_consumer.try_pop() {
-            let _ = self.input_parameters.add_value(
-                parameter.id,
-                parameter.sample_offset,
-                parameter.value,
-            );
-        }
-        self.output_parameters.clear();
-        if self.input_parameters.is_empty() {
-            return Ok(());
-        }
-        let mut data = ProcessData {
-            processMode: as_int32(Vst::ProcessModes_kRealtime),
-            symbolicSampleSize: as_int32(Vst::SymbolicSampleSizes_kSample32),
-            numSamples: 0,
-            numInputs: 0,
-            numOutputs: 0,
-            inputs: std::ptr::null_mut(),
-            outputs: std::ptr::null_mut(),
-            inputParameterChanges: self.input_parameters.as_interface(),
-            outputParameterChanges: self.output_parameters.as_interface(),
-            inputEvents: std::ptr::null_mut(),
-            outputEvents: std::ptr::null_mut(),
-            processContext: std::ptr::null_mut(),
-        };
-        let result = check("process(parameter flush)", unsafe {
-            // SAFETY: zero-sample ProcessData contains live parameter interfaces and no buffers.
-            ((*processor_table(&self.processor)).process)(
-                self.processor.as_ptr(),
-                std::ptr::addr_of_mut!(data),
-            )
-        });
-        if result.is_ok() {
-            self.publish_output_parameters();
-        }
-        self.input_parameters.clear();
-        self.output_parameters.clear();
-        result
+        // A controller flush must not consume scheduled sample-offset points
+        // belonging to the next audio block.
+        let processor = &self.processor;
+        let output = &mut self.output_parameters;
+        let writer = self.output_parameter_writer.as_ref();
+        self.gui_parameters.flush_control(
+            &mut self.parameter_consumer,
+            &mut self.gui_flush_parameters,
+            |parameters| {
+                output.clear();
+                let mut data = ProcessData {
+                    processMode: as_int32(Vst::ProcessModes_kRealtime),
+                    symbolicSampleSize: as_int32(Vst::SymbolicSampleSizes_kSample32),
+                    numSamples: 0,
+                    numInputs: 0,
+                    numOutputs: 0,
+                    inputs: std::ptr::null_mut(),
+                    outputs: std::ptr::null_mut(),
+                    inputParameterChanges: parameters.as_interface(),
+                    outputParameterChanges: output.as_interface(),
+                    inputEvents: std::ptr::null_mut(),
+                    outputEvents: std::ptr::null_mut(),
+                    processContext: std::ptr::null_mut(),
+                };
+                let result = check("process(parameter flush)", unsafe {
+                    // SAFETY: zero-sample ProcessData contains live parameter
+                    // interfaces; this control-thread call holds audio paused.
+                    ((*processor_table(processor)).process)(
+                        processor.as_ptr(),
+                        std::ptr::addr_of_mut!(data),
+                    )
+                });
+                if result.is_ok()
+                    && let Some(writer) = writer
+                {
+                    output.for_each_last(|id, value| {
+                        let _ = writer.publish(id, value);
+                    });
+                }
+                output.clear();
+                result
+            },
+        )
     }
 
     fn publish_output_parameters(&self) {

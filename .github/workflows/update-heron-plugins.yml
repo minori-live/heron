@@ -32,7 +32,7 @@ jobs:
           ref: main
       - uses: jdx/mise-action@v5.1.1
         with:
-          version: 2026.10.3
+          version: 2026.10.6
           install: false
       - name: Install the locked JavaScript toolchain
         run: |

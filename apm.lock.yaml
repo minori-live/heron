@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-09-05T18:09:56.812853+00:00'
+generated_at: '2026-10-09T10:05:52.702053+00:00'
 apm_version: 0.29.0
 dependencies:
 - repo_url: antfu/skills
@@ -300,6 +300,23 @@ dependencies:
     .agents/skills/skill-creator/scripts/run_loop.py: sha256:7bd6f674203168520517eec94c55f493c0d154339b061b4d7c0f0dad187d0f21
     .agents/skills/skill-creator/scripts/utils.py: sha256:3af8ae62c40c73ab712207436a0d9a981e845f25c5a7040229eb189cc8e45bb1
   content_hash: sha256:b2bfe91d69ca99994c0566baede889e7d2b9bb8791c6b6106c5d387392f717f6
+- repo_url: lennney/stop-that-shit
+  name: stop-that-shit
+  host: github.com
+  resolved_commit: 694bbd59e26b522cd63801a01590ccaa77c7fe84
+  resolved_ref: 694bbd59e26b522cd63801a01590ccaa77c7fe84
+  version: unknown
+  virtual_path: skills/stop-that-shit
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/stop-that-shit
+  - .agents/skills/stop-that-shit/SKILL.md
+  - .agents/skills/stop-that-shit/agents/openai.yaml
+  deployed_file_hashes:
+    .agents/skills/stop-that-shit/SKILL.md: sha256:d414f5d6532230cef2ee104c9bd8f77507114026e5497245fb794ee46088283b
+    .agents/skills/stop-that-shit/agents/openai.yaml: sha256:e899bc82bf4aa161c7fd4a19e163abddbe43418315ac29a865217dee76deb0db
+  content_hash: sha256:68ed7164a6def20e3eec36fc04334d9606a3636ef841ca131b982f6842d6ef7c
 - repo_url: leonardomso/rust-skills
   name: rust-skills
   host: github.com
@@ -880,6 +897,27 @@ dependencies:
     .agents/skills/rust-skills/rules/unsafe-safety-comment.md: sha256:4892500c59f446eb8031fcf2cc98bf64f3323276abee0355409f4af53cbdcaab
     .agents/skills/rust-skills/rules/unsafe-send-sync-manual.md: sha256:106ca8ba1843ec8dfe9658c5db41fd99d106bcf2b8b4ece41e8db1dd347372f2
   content_hash: sha256:3dd93033dd9a6b3f5c2631ef7b5a0ea50c57a4e1a63fb92d2a43797814a0ab3f
+- repo_url: luoling8192/create-pr-with-evidence-skill
+  name: create-pr-with-evidence
+  host: github.com
+  resolved_commit: ae59b8b557e1df061d9c5ee6c4d56d672f1f2aa6
+  resolved_ref: ae59b8b557e1df061d9c5ee6c4d56d672f1f2aa6
+  version: unknown
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/create-pr-with-evidence-skill
+  - .agents/skills/create-pr-with-evidence-skill/LICENSE
+  - .agents/skills/create-pr-with-evidence-skill/README.md
+  - .agents/skills/create-pr-with-evidence-skill/SKILL.md
+  - .agents/skills/create-pr-with-evidence-skill/agents/openai.yaml
+  - .agents/skills/create-pr-with-evidence-skill/references/pr-body.md
+  deployed_file_hashes:
+    .agents/skills/create-pr-with-evidence-skill/LICENSE: sha256:a075e1a135cb05d250bba7292bc713192a494b90347eb41b9d63e7c1a9724d5f
+    .agents/skills/create-pr-with-evidence-skill/README.md: sha256:4c705ec6f9a19a5502a061fbba7a837c6792cf49a06cdaadfc91b8d42435038f
+    .agents/skills/create-pr-with-evidence-skill/SKILL.md: sha256:6def1b815322fb4b4cb0c3df2dfa2c6425e1fe6cc8c5e7341fbd5d0a04a6e7e0
+    .agents/skills/create-pr-with-evidence-skill/agents/openai.yaml: sha256:7bfe8e22a250cc7881a5ea34988dcee0947ffa793b99b16b5fa577e43816250d
+    .agents/skills/create-pr-with-evidence-skill/references/pr-body.md: sha256:7836e9abe91bdca10ca5625c825003200a5cdd08052d4fd470ce0c55cc7a7e8d
+  content_hash: sha256:1e41687d4ccb56066f12548ddcc942cf03ad6f9345cee3ebb2d8c00d1c34acab
 - repo_url: mattpocock/skills
   name: grill-me
   host: github.com
@@ -1565,6 +1603,60 @@ deployments:
   - microsoft/apm/packages/apm-guide/.apm/skills/apm-usage
   active_owner: microsoft/apm/packages/apm-guide/.apm/skills/apm-usage
   content_hash: sha256:2730e3af333342d7ea70ba412abec19e91b28a29120ec704edb21a5ac99ad6a4
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/create-pr-with-evidence-skill
+  runtime: null
+  scope: project
+  owners:
+  - luoling8192/create-pr-with-evidence-skill
+  active_owner: luoling8192/create-pr-with-evidence-skill
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/create-pr-with-evidence-skill/LICENSE
+  runtime: null
+  scope: project
+  owners:
+  - luoling8192/create-pr-with-evidence-skill
+  active_owner: luoling8192/create-pr-with-evidence-skill
+  content_hash: sha256:a075e1a135cb05d250bba7292bc713192a494b90347eb41b9d63e7c1a9724d5f
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/create-pr-with-evidence-skill/README.md
+  runtime: null
+  scope: project
+  owners:
+  - luoling8192/create-pr-with-evidence-skill
+  active_owner: luoling8192/create-pr-with-evidence-skill
+  content_hash: sha256:4c705ec6f9a19a5502a061fbba7a837c6792cf49a06cdaadfc91b8d42435038f
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/create-pr-with-evidence-skill/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - luoling8192/create-pr-with-evidence-skill
+  active_owner: luoling8192/create-pr-with-evidence-skill
+  content_hash: sha256:6def1b815322fb4b4cb0c3df2dfa2c6425e1fe6cc8c5e7341fbd5d0a04a6e7e0
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/create-pr-with-evidence-skill/agents/openai.yaml
+  runtime: null
+  scope: project
+  owners:
+  - luoling8192/create-pr-with-evidence-skill
+  active_owner: luoling8192/create-pr-with-evidence-skill
+  content_hash: sha256:7bfe8e22a250cc7881a5ea34988dcee0947ffa793b99b16b5fa577e43816250d
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/create-pr-with-evidence-skill/references/pr-body.md
+  runtime: null
+  scope: project
+  owners:
+  - luoling8192/create-pr-with-evidence-skill
+  active_owner: luoling8192/create-pr-with-evidence-skill
+  content_hash: sha256:7836e9abe91bdca10ca5625c825003200a5cdd08052d4fd470ce0c55cc7a7e8d
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/frontend-design
@@ -4643,6 +4735,33 @@ deployments:
   - anthropics/skills/skills/skill-creator
   active_owner: anthropics/skills/skills/skill-creator
   content_hash: sha256:3af8ae62c40c73ab712207436a0d9a981e845f25c5a7040229eb189cc8e45bb1
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/stop-that-shit
+  runtime: null
+  scope: project
+  owners:
+  - lennney/stop-that-shit/skills/stop-that-shit
+  active_owner: lennney/stop-that-shit/skills/stop-that-shit
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/stop-that-shit/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - lennney/stop-that-shit/skills/stop-that-shit
+  active_owner: lennney/stop-that-shit/skills/stop-that-shit
+  content_hash: sha256:d414f5d6532230cef2ee104c9bd8f77507114026e5497245fb794ee46088283b
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/stop-that-shit/agents/openai.yaml
+  runtime: null
+  scope: project
+  owners:
+  - lennney/stop-that-shit/skills/stop-that-shit
+  active_owner: lennney/stop-that-shit/skills/stop-that-shit
+  content_hash: sha256:e899bc82bf4aa161c7fd4a19e163abddbe43418315ac29a865217dee76deb0db
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vite

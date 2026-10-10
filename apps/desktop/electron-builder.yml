@@ -75,6 +75,8 @@ mac:
   hardenedRuntime: true
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+  # Keep the producer's signed bundles byte-identical to the locked release.
+  signIgnore: '/Contents/Resources/plugins/.*\.vst3(?:/|$)'
   extraResources:
     - from: ../../THIRD_PARTY_NOTICES.txt
       to: THIRD_PARTY_NOTICES.txt

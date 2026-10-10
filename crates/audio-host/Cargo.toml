@@ -23,7 +23,17 @@ heron-audio-engine.workspace = true
 heron-vst3-host.workspace = true
 
 [dev-dependencies]
+serde.workspace = true
+serde_json.workspace = true
 heron-audio-engine = { workspace = true, features = ["test-support"] }
+
+[target.'cfg(windows)'.dev-dependencies]
+windows = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_UI_HiDpi",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+] }
 
 [lints]
 workspace = true

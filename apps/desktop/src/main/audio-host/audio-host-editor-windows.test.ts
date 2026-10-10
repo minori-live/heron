@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void
@@ -11,6 +11,9 @@ function deferred<T>() {
 const electron = vi.hoisted(() => {
   class FakeBaseWindow {
     static instances: FakeBaseWindow[] = []
+    static contentWidthAdjustment = 0
+    static contentHeightAdjustment = 0
+    static toolbarHeightAdjustment = 0
     readonly listeners = new Map<string, (...args: never[]) => void>()
     readonly contentView = { addChildView: vi.fn(), removeChildView: vi.fn() }
     readonly show = vi.fn(() => {
@@ -30,12 +33,24 @@ const electron = vi.hoisted(() => {
     })
     readonly setBounds = vi.fn(
       (bounds: { x: number; y: number; width: number; height: number }) => {
-        this.bounds = bounds
+        this.bounds = {
+          ...bounds,
+          height:
+            bounds.height +
+            (this.options.frame === false ? FakeBaseWindow.toolbarHeightAdjustment : 0)
+        }
       }
     )
+    readonly setContentSize = vi.fn((width: number, height: number) => {
+      this.contentSize = [
+        width + FakeBaseWindow.contentWidthAdjustment,
+        height + FakeBaseWindow.contentHeightAdjustment
+      ]
+    })
     readonly setResizable = vi.fn()
     readonly setMinimumSize = vi.fn()
     readonly options: Record<string, unknown>
+    contentTopInset = 29
     private destroyed = false
     private focused = false
     private bounds = { x: 10, y: 20, width: 800, height: 660 }
@@ -67,16 +82,17 @@ const electron = vi.hoisted(() => {
       return this.contentSize
     }
 
-    setContentSize(width: number, height: number): void {
-      this.contentSize = [width, height]
-    }
-
     getBounds(): { x: number; y: number; width: number; height: number } {
       return this.bounds
     }
 
     getContentBounds(): { x: number; y: number; width: number; height: number } {
-      return { ...this.bounds, y: 49 }
+      return {
+        x: this.bounds.x,
+        y: this.bounds.y + this.contentTopInset,
+        width: this.contentSize[0],
+        height: this.contentSize[1]
+      }
     }
 
     getNativeWindowHandle(): Buffer {
@@ -87,7 +103,10 @@ const electron = vi.hoisted(() => {
   class FakeWebContentsView {
     static instances: FakeWebContentsView[] = []
     readonly listeners = new Map<string, (...args: never[]) => void>()
-    readonly setBounds = vi.fn()
+    private bounds = { x: 0, y: 0, width: 1, height: 1 }
+    readonly setBounds = vi.fn((bounds: typeof this.bounds) => {
+      this.bounds = bounds
+    })
     readonly webContents = {
       close: vi.fn(),
       isDestroyed: vi.fn(() => false),
@@ -101,30 +120,139 @@ const electron = vi.hoisted(() => {
     constructor() {
       FakeWebContentsView.instances.push(this)
     }
+
+    getBounds(): typeof this.bounds {
+      return this.bounds
+    }
   }
 
-  return { FakeBaseWindow, FakeWebContentsView }
+  return { FakeBaseWindow, FakeWebContentsView, scaleFactor: 1 }
 })
 
 vi.mock("electron", () => ({
   BaseWindow: electron.FakeBaseWindow,
   WebContentsView: electron.FakeWebContentsView,
   screen: {
-    getDisplayMatching: () => ({ scaleFactor: 1 })
+    getDisplayMatching: () => ({ scaleFactor: electron.scaleFactor })
   }
 }))
 
 import {
   ElectronPluginEditorWindows,
   mapParentBeforeNativeAttach,
-  nativeExtent
+  nativeExtent,
+  type PluginEditorToolbarAction
 } from "./audio-host-editor-windows"
+
+async function editorLayoutHarness(constrained = false) {
+  const windows = new ElectronPluginEditorWindows()
+  let state = {
+    activeMode: "native" as "native" | "parameters",
+    zoomPercent: 100,
+    compareSlot: "a" as const,
+    canCompare: false,
+    canPaste: false,
+    canUndo: false,
+    canRedo: false,
+    sidechainBuses: [],
+    sidechainSources: [],
+    sidechainPending: false
+  }
+  const snapshot = {
+    instanceId: "layout-plugin",
+    width: 640,
+    height: 480,
+    displayScale: electron.scaleFactor,
+    resizable: !constrained,
+    attached: true
+  }
+  const client = {
+    drainEditorHostEvents: vi.fn(
+      () =>
+        [] as Array<{
+          instanceId: string
+          width: number
+          height: number
+          resizable: boolean
+        }>
+    ),
+    editorHostSnapshot: vi.fn(() => snapshot),
+    editorToolbarState: vi.fn(() => state),
+    focusEditorHost: vi.fn(),
+    registerEditorHost: vi.fn(),
+    resizeEditorHost: vi.fn(
+      (request: { width: number; height: number; displayScale: number; topInset: number }) => {
+        if (!constrained) {
+          const scale = process.platform === "darwin" ? 1 : request.displayScale
+          snapshot.width = Math.round(request.width / scale)
+          snapshot.height = Math.round(request.height / scale)
+        }
+        snapshot.displayScale = request.displayScale
+      }
+    ),
+    unregisterEditorHost: vi.fn()
+  }
+  const loadParameters = vi.fn(async () => [
+    {
+      runtimeToken: 7,
+      title: "Gain",
+      normalized: 0.5,
+      units: "dB",
+      stepCount: 0,
+      readOnly: false,
+      hidden: false
+    }
+  ])
+  const open = () =>
+    windows.open(
+      client as never,
+      snapshot.instanceId,
+      {
+        channelName: "Audio 1",
+        channelColor: "#58c6c2",
+        pluginName: "Gain",
+        theme: "dark",
+        locale: "en-US"
+      },
+      async () => ({ editorMode: state.activeMode, open: true }),
+      async (action: PluginEditorToolbarAction) => {
+        if (action.type === "mode") state = { ...state, activeMode: action.mode }
+        return state
+      },
+      loadParameters as never,
+      async () => undefined,
+      async () => undefined
+    )
+  await open()
+  return {
+    windows,
+    client,
+    snapshot,
+    open,
+    loadParameters,
+    setState: (patch: Partial<typeof state>) => {
+      state = { ...state, ...patch }
+    },
+    frame: () => electron.FakeBaseWindow.instances.at(-2)!,
+    toolbar: () => electron.FakeBaseWindow.instances.at(-1)!,
+    view: () => electron.FakeWebContentsView.instances.at(-1)!,
+    flush: async () => {
+      for (let i = 0; i < 4; i++) await Promise.resolve()
+    }
+  }
+}
 
 describe("native plug-in editor dimensions", () => {
   beforeEach(() => {
     electron.FakeBaseWindow.instances.length = 0
     electron.FakeWebContentsView.instances.length = 0
+    electron.FakeBaseWindow.contentWidthAdjustment = 0
+    electron.FakeBaseWindow.contentHeightAdjustment = 0
+    electron.FakeBaseWindow.toolbarHeightAdjustment = 0
+    electron.scaleFactor = 1
   })
+
+  afterEach(() => vi.restoreAllMocks())
 
   it("keeps AppKit dimensions in logical points", () => {
     expect(nativeExtent(640, 480, 2, "darwin")).toEqual({ width: 640, height: 480 })
@@ -143,6 +271,253 @@ describe("native plug-in editor dimensions", () => {
     expect(mapParentBeforeNativeAttach("linux")).toBe(true)
     expect(mapParentBeforeNativeAttach("darwin")).toBe(false)
     expect(mapParentBeforeNativeAttach("win32")).toBe(false)
+  })
+
+  it("moves the toolbar without resizing the native editor on the same display", async () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32")
+    const host = await editorLayoutHarness()
+    host.client.resizeEditorHost.mockClear()
+    host.toolbar().setBounds.mockClear()
+    host.view().setBounds.mockClear()
+
+    for (const [x, y] of [
+      [20, 30],
+      [40, 50],
+      [60, 70]
+    ]) {
+      host.frame().setBounds({ ...host.frame().getBounds(), x: x!, y: y! })
+      host.frame().emit("move")
+    }
+
+    expect(host.client.resizeEditorHost).not.toHaveBeenCalled()
+    expect(host.toolbar().setBounds).toHaveBeenCalledTimes(3)
+    expect(host.toolbar().getBounds()).toEqual({ x: 60, y: 99, width: 640, height: 60 })
+    expect(host.view().setBounds).not.toHaveBeenCalled()
+    await host.windows.closeAll()
+  })
+
+  it("synchronizes native size, display scale and toolbar inset when geometry changes", async () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32")
+    const host = await editorLayoutHarness()
+    host.client.resizeEditorHost.mockClear()
+    host.frame().setContentSize(700, 560)
+    host.frame().emit("resize")
+    expect(host.client.resizeEditorHost).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        width: 700,
+        height: 500,
+        topInset: 60,
+        displayScale: 1
+      })
+    )
+
+    host.client.resizeEditorHost.mockClear()
+    electron.scaleFactor = 1.5
+    host.frame().emit("move")
+    expect(host.client.resizeEditorHost).toHaveBeenCalledOnce()
+    expect(host.client.resizeEditorHost).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        width: 1050,
+        height: 750,
+        topInset: 90,
+        displayScale: 1.5
+      })
+    )
+
+    host.client.resizeEditorHost.mockClear()
+    host.frame().setContentSize(500, 596)
+    host.frame().emit("resize")
+    expect(host.client.resizeEditorHost).toHaveBeenCalledOnce()
+    expect(host.client.resizeEditorHost).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        width: 750,
+        height: 750,
+        topInset: 144,
+        displayScale: 1.5
+      })
+    )
+    expect(host.toolbar().getBounds().height).toBe(96)
+    await host.windows.closeAll()
+  })
+
+  it("synchronizes a changed X11 parent chrome inset even without a content resize", async () => {
+    vi.useFakeTimers()
+    vi.spyOn(process, "platform", "get").mockReturnValue("linux")
+    const host = await editorLayoutHarness()
+    try {
+      await vi.runAllTimersAsync()
+      host.client.resizeEditorHost.mockClear()
+      host.frame().contentTopInset = 31
+      host.frame().emit("move")
+      expect(host.client.resizeEditorHost).toHaveBeenCalledOnce()
+      expect(host.client.resizeEditorHost).toHaveBeenLastCalledWith(
+        expect.objectContaining({ topInset: 91 })
+      )
+      await host.windows.closeAll()
+      await vi.runAllTimersAsync()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("preserves a real one-pixel plugin resize at 100% DPI", async () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32")
+    const host = await editorLayoutHarness()
+    host.client.resizeEditorHost.mockClear()
+    host.frame().setContentSize.mockClear()
+    host.snapshot.width = 641
+    host.client.drainEditorHostEvents.mockReturnValueOnce([
+      {
+        instanceId: host.snapshot.instanceId,
+        width: 641,
+        height: 480,
+        resizable: true
+      }
+    ])
+
+    host.windows.drain(host.client as never)
+    await host.flush()
+    expect(host.frame().setContentSize).toHaveBeenCalledWith(641, 540)
+    expect(host.frame().getContentSize()).toEqual([641, 540])
+    expect(host.client.resizeEditorHost).toHaveBeenLastCalledWith(
+      expect.objectContaining({ width: 641, height: 480 })
+    )
+    host.client.resizeEditorHost.mockClear()
+    host.frame().setContentSize.mockClear()
+    for (let i = 0; i < 24; i++) host.windows.drain(host.client as never)
+    expect(host.frame().setContentSize).not.toHaveBeenCalled()
+    expect(host.client.resizeEditorHost).not.toHaveBeenCalled()
+    await host.windows.closeAll()
+  })
+
+  it("does not reapply unchanged toolbar or native geometry while draining state", async () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32")
+    const host = await editorLayoutHarness()
+    host.client.resizeEditorHost.mockClear()
+    host.frame().setContentSize.mockClear()
+    host.toolbar().setBounds.mockClear()
+    host.view().setBounds.mockClear()
+
+    for (let i = 0; i < 24; i++) host.windows.drain(host.client as never)
+    host.client.drainEditorHostEvents.mockReturnValue([
+      {
+        instanceId: host.snapshot.instanceId,
+        width: 640,
+        height: 480,
+        resizable: true
+      }
+    ])
+    for (let i = 0; i < 8; i++) host.windows.drain(host.client as never)
+
+    expect(host.toolbar().setBounds).not.toHaveBeenCalled()
+    expect(host.view().setBounds).not.toHaveBeenCalled()
+    expect(host.frame().setContentSize).not.toHaveBeenCalled()
+    expect(host.client.resizeEditorHost).not.toHaveBeenCalled()
+    await host.windows.closeAll()
+  })
+
+  it("reconciles native geometry after parameter mode, zoom and showing an existing editor", async () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32")
+    const host = await editorLayoutHarness()
+    host.client.resizeEditorHost.mockClear()
+    host.setState({ activeMode: "parameters" })
+    host.windows.drain(host.client as never)
+    await host.flush()
+    host.windows.drain(host.client as never)
+    expect(host.loadParameters).toHaveBeenCalledOnce()
+    expect(host.client.resizeEditorHost).not.toHaveBeenCalled()
+    expect(host.toolbar().getBounds()).toEqual(expect.objectContaining({ width: 720, height: 700 }))
+
+    host.setState({ activeMode: "native" })
+    host.windows.drain(host.client as never)
+    await host.flush()
+    expect(host.client.resizeEditorHost).toHaveBeenLastCalledWith(
+      expect.objectContaining({ width: 640, height: 480 })
+    )
+    expect(host.frame().getContentSize()).toEqual([640, 540])
+
+    host.client.resizeEditorHost.mockClear()
+    host.snapshot.width = 800
+    host.snapshot.height = 600
+    host.setState({ zoomPercent: 125 })
+    host.windows.drain(host.client as never)
+    await host.flush()
+    expect(host.client.resizeEditorHost).toHaveBeenLastCalledWith(
+      expect.objectContaining({ width: 800, height: 600 })
+    )
+    expect(host.frame().getContentSize()).toEqual([800, 660])
+
+    host.frame().hide()
+    host.client.resizeEditorHost.mockClear()
+    await host.open()
+    expect(host.client.resizeEditorHost).toHaveBeenCalled()
+    expect(host.frame().show).toHaveBeenCalled()
+    await host.windows.closeAll()
+  })
+
+  it("starts fresh layout state when an externally closed or retired host reopens", async () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32")
+    const host = await editorLayoutHarness()
+    const first = host.frame()
+    host.windows.hostClosed(host.snapshot.instanceId)
+    expect(first.destroy).toHaveBeenCalledOnce()
+    host.client.resizeEditorHost.mockClear()
+    await host.open()
+    expect(host.frame()).not.toBe(first)
+    expect(host.client.registerEditorHost).toHaveBeenCalledTimes(2)
+    expect(host.client.resizeEditorHost).toHaveBeenCalled()
+    expect(host.toolbar().setBounds).toHaveBeenCalled()
+
+    const second = host.frame()
+    await host.windows.close(host.snapshot.instanceId)
+    host.client.resizeEditorHost.mockClear()
+    host.windows.drain(host.client as never)
+    expect(host.client.resizeEditorHost).not.toHaveBeenCalled()
+    await host.open()
+    expect(host.frame()).not.toBe(second)
+    expect(host.client.registerEditorHost).toHaveBeenCalledTimes(3)
+    expect(host.client.resizeEditorHost).toHaveBeenCalled()
+    await host.windows.closeAll()
+  })
+
+  it("does not chase one-DIP content and toolbar readback rounding at 2x DPI", async () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32")
+    electron.scaleFactor = 2
+    electron.FakeBaseWindow.contentWidthAdjustment = 1
+    electron.FakeBaseWindow.contentHeightAdjustment = 1
+    electron.FakeBaseWindow.toolbarHeightAdjustment = 1
+    const host = await editorLayoutHarness(true)
+    expect(host.frame().getContentSize()).toEqual([641, 541])
+    expect(host.toolbar().getBounds().width).toBe(641)
+    expect(host.toolbar().getBounds().height).toBe(61)
+    host.client.resizeEditorHost.mockClear()
+    host.frame().setContentSize.mockClear()
+    host.toolbar().setBounds.mockClear()
+    host.client.drainEditorHostEvents.mockReturnValue([
+      {
+        instanceId: host.snapshot.instanceId,
+        width: 640,
+        height: 480,
+        resizable: false
+      }
+    ])
+
+    for (let i = 1; i <= 12; i++) {
+      host.frame().setBounds({ ...host.frame().getBounds(), x: 10 + i, y: 20 + i })
+      host.frame().emit("move")
+      host.windows.drain(host.client as never)
+      host.windows.drain(host.client as never)
+    }
+
+    expect(host.frame().setContentSize).not.toHaveBeenCalled()
+    expect(host.client.resizeEditorHost).not.toHaveBeenCalled()
+    expect(host.toolbar().setBounds).toHaveBeenCalledTimes(12)
+    expect(host.toolbar().setBounds.mock.calls.map(([bounds]) => bounds.width)).toEqual(
+      Array(12).fill(641)
+    )
+    expect(host.frame().getContentSize()).toEqual([641, 541])
+    expect(host.snapshot).toEqual(expect.objectContaining({ width: 640, height: 480 }))
+    await host.windows.closeAll()
   })
 
   it("does not recursively reconcile a constrained snapshot while applying it", () => {
@@ -208,6 +583,7 @@ describe("native plug-in editor dimensions", () => {
       window: {
         isDestroyed: () => false,
         getContentSize: () => [800, 660],
+        getBounds: () => ({ x: 10, y: 20, width: 800, height: 660 }),
         getContentBounds: () => ({ x: 10, y: 20, width: 800, height: 660 })
       },
       toolbarWindow: {

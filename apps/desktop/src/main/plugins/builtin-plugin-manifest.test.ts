@@ -9,7 +9,7 @@ import { PluginCatalogService } from "./plugin-catalog-service"
 function manifest() {
   return {
     schemaVersion: 1,
-    version: "0.6.4",
+    version: "0.6.5",
     sourceCommit: "a".repeat(40),
     platform:
       process.platform === "darwin"
@@ -29,10 +29,10 @@ function manifest() {
 function gain(path: string): PluginDescriptor {
   return {
     source: { kind: "builtin", id: "live.minori.heron.gain" },
-    locator: { format: "vst3", artifactPath: path, nativeId: BUILTIN_PLUGIN_BASELINE[0]!.classId },
+    locator: { format: "vst3", artifactPath: path, nativeId: "46774F504DF84B4AC1F308AB88DD3677" },
     name: "Heron Gain",
     vendor: "Heron Studio",
-    version: "0.6.4",
+    version: "0.6.5",
     categories: ["Fx"],
     kind: "effect",
     architecture: process.arch,
@@ -102,7 +102,14 @@ describe("bundled plug-in inventory", () => {
       })
       await catalog.initialize()
       expect(probeClient.probe).not.toHaveBeenCalled()
-      expect(catalog.list().plugins).toHaveLength(3)
+      expect(catalog.list().plugins).toHaveLength(4)
+      expect(catalog.list().plugins).toContainEqual(
+        expect.objectContaining({
+          source: { kind: "builtin", id: "live.minori.heron.eq" },
+          locator: expect.objectContaining({ nativeId: "8A8341D5CA36B6C9A9572788F40EBB9F" }),
+          kind: "effect"
+        })
+      )
       expect(
         catalog
           .list()
@@ -116,7 +123,7 @@ describe("bundled plug-in inventory", () => {
 
   it("marks a saved built-in unavailable after it leaves the installed inventory", async () => {
     const source = manifest()
-    source.plugins = source.plugins.slice(1)
+    source.plugins = source.plugins.filter((entry) => entry.builtinId !== "live.minori.heron.gain")
     await suite(source, async (directory) => {
       const catalog = new PluginCatalogService("unused", "probe", directory, {
         probeClient: { probe: vi.fn().mockResolvedValue([]) } as never,

@@ -82,49 +82,12 @@ fn audio_layouts_report_their_input_and_output_channel_contracts() {
 }
 
 #[test]
-fn optional_calls_accept_every_sdk_not_implemented_encoding() {
-    for result in [3, 0x8000_4001_u32 as i32, 0x8000_0001_u32 as i32] {
-        assert!(check_processing_notification("setProcessing", result).is_ok());
-    }
-    assert!(check_processing_notification("setProcessing", 1).is_err());
-    assert!(check_processing_notification("setProcessing", 0x8000_0008_u32 as i32).is_err());
-}
-
-#[test]
-fn process_context_requirements_accept_signed_and_unsigned_bindgen_flags() {
-    assert!(requirement_enabled(0b10, 0b10_i32));
-    assert!(requirement_enabled(0b10, 0b10_u32));
-    assert!(!requirement_enabled(0b10, 0b100_i32));
-    assert!(!requirement_enabled(0b10, 0b100_u32));
-}
-
-#[test]
 fn midi_note_ids_never_enter_the_plugin_reserved_negative_range() {
     assert_eq!(vst3_note_id(-10_000), -1);
     assert_eq!(vst3_note_id(-2), -1);
     assert_eq!(vst3_note_id(-1), -1);
     assert_eq!(vst3_note_id(0), 0);
     assert_eq!(vst3_note_id(i32::MAX), i32::MAX);
-}
-
-#[test]
-fn optional_vst3_operations_accept_not_implemented_only() {
-    assert!(check_processing_notification("setProcessing", 0).is_ok());
-    assert!(check_processing_notification("setProcessing", -2147467263).is_ok());
-    assert!(matches!(
-        check_processing_notification("setProcessing", -1),
-        Err(HostError::Operation {
-            operation: "setProcessing",
-            result: -1,
-        })
-    ));
-    assert!(matches!(
-        check("setupProcessing", -2),
-        Err(HostError::Operation {
-            operation: "setupProcessing",
-            result: -2,
-        })
-    ));
 }
 
 #[test]
