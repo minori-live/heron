@@ -138,12 +138,13 @@ examples, and benchmark compilation; `mise run check` remains the merge gate.
 
 The Rust xtask discovers `rustc -vV`'s host triple and builds into
 `target/<host-triple>/<profile>`. The `native:*` mise tasks combine the
-package-local `@heron/dsp-node` napi-rs build with xtask's VST3 probe and
-bundled plug-in build. xtask stages `heron-vst3-probe` into `target/debug` or
-`target/release` and plug-in bundles into `target/bundles` for stable runtime
-and packaging paths. The macOS universal CI task builds both Apple target
-triples and merges the probes and bundled plug-in executables with `lipo`
-before Electron packaging.
+package-local `@heron/dsp-node` napi-rs build with xtask's VST3 and CLAP probes
+and `plugins:prepare`. xtask stages the probes into `target/debug` or
+`target/release`; the preparation task downloads the checksum-locked producer
+release into `target/bundles`. The macOS universal CI task builds both Apple
+target triples and merges the probes with `lipo`, then verifies the downloaded
+universal plug-ins before Electron packaging. See
+[built-in plug-in distribution](builtin-plugin-distribution.md).
 
 VST3 SDK bindings are generated into Cargo's `OUT_DIR` by
 `heron-vst3-host-sys/build.rs` and are not checked into Git. A clean build

@@ -59,9 +59,8 @@ win:
     - from: ../../target/bundles
       to: plugins
       filter:
-        - Heron Gain.vst3/**/*
-        - Heron Metronome.vst3/**/*
-        - Heron Sine.vst3/**/*
+        - "*.vst3/**/*"
+        - bundle-manifest.json
   target:
     - nsis
 
@@ -86,9 +85,8 @@ mac:
     - from: ../../target/bundles
       to: plugins
       filter:
-        - Heron Gain.vst3/**/*
-        - Heron Metronome.vst3/**/*
-        - Heron Sine.vst3/**/*
+        - "*.vst3/**/*"
+        - bundle-manifest.json
   target:
     - dmg
     - zip
@@ -107,8 +105,7 @@ linux:
     - from: ../../target/bundles
       to: plugins
       filter:
-        - Heron Gain.vst3/**/*
-        - Heron Metronome.vst3/**/*
-        - Heron Sine.vst3/**/*
+        - "*.vst3/**/*"
+        - bundle-manifest.json
   target:
     - AppImage

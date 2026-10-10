@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import type { PluginDescriptor } from "@heron/contracts"
 import { PluginCatalogService } from "./plugin-catalog-service"
+import { BUILTIN_PLUGIN_BASELINE } from "./builtin-plugin-manifest"
 
 function externalDescriptor(buses: PluginDescriptor["buses"] = []): PluginDescriptor {
   return {
@@ -30,7 +31,8 @@ describe("PluginCatalogService orchestration", () => {
     const discovery = { loadCachedCatalog: vi.fn().mockResolvedValue(null), scan: vi.fn() }
     const service = new PluginCatalogService("user-data", "probe", "builtins", {
       probeClient: probeClient as never,
-      discovery: discovery as never
+      discovery: discovery as never,
+      builtinInventory: async () => ({ plugins: BUILTIN_PLUGIN_BASELINE, error: null })
     })
 
     await service.initialize()

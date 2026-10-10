@@ -1,0 +1,109 @@
+name: Update Heron plug-ins
+
+on:
+  repository_dispatch:
+    types: [heron-plugins-release-published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Optional explicit stable version; notifications always resolve latest
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-heron-plugins
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: github.repository == 'minori-live/heron'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PLUGIN_VERSION: ${{ inputs.version || github.event.client_payload.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: main
+      - uses: jdx/mise-action@v5.1.1
+        with:
+          version: 2026.10.3
+          install: false
+      - name: Install the locked JavaScript toolchain
+        run: |
+          mise install node pnpm
+          mise exec -- pnpm install --frozen-lockfile --prefer-offline
+      - name: Read any pending rolling upgrade
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="dsh0416/update-heron-plugins"
+          gh auth setup-git
+          remote="$(git ls-remote --heads origin "$branch")"
+          if [[ -n "$remote" ]]; then
+            git fetch origin "$branch:refs/remotes/origin/$branch"
+            ref="$(git rev-parse "refs/remotes/origin/$branch")"
+            pending="$RUNNER_TEMP/heron-plugins-pending-lock.json"
+            git show "$ref:heron-plugins.lock.json" > "$pending"
+            echo "PLUGIN_PENDING_LOCK=$pending" >> "$GITHUB_ENV"
+            echo "PLUGIN_PENDING_REF=$ref" >> "$GITHUB_ENV"
+          else
+            echo "PLUGIN_PENDING_REF=" >> "$GITHUB_ENV"
+          fi
+      - name: Resolve the complete stable release and verify consumed artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pending_args=()
+          if [[ -n "${PLUGIN_PENDING_LOCK:-}" ]]; then
+            pending_args=(--pending-lock "$PLUGIN_PENDING_LOCK")
+          fi
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && -n "$PLUGIN_VERSION" ]]; then
+            mise exec -- pnpm plugins:update "$PLUGIN_VERSION" "${pending_args[@]}"
+          else
+            mise exec -- pnpm plugins:update --latest "${pending_args[@]}"
+          fi
+          if git diff --quiet -- heron-plugins.lock.json; then
+            echo "PLUGINS_CHANGED=false" >> "$GITHUB_ENV"
+          else
+            mise exec -- pnpm plugins:prepare
+            mise exec -- pnpm plugins:prepare --symbols
+            echo "PLUGINS_CHANGED=true" >> "$GITHUB_ENV"
+          fi
+      - name: Open an upgrade pull request
+        if: env.PLUGINS_CHANGED == 'true'
+        env:
+          # The scoped synchronization token allows normal pull-request CI.
+          GH_TOKEN: ${{ secrets.HERON_PLUGINS_SYNC_TOKEN }}
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::error::Configure HERON_PLUGINS_SYNC_TOKEN with Heron contents and pull-request write permissions."
+            exit 1
+          fi
+          branch="dsh0416/update-heron-plugins"
+          version="$(jq -r '.release.version' heron-plugins.lock.json)"
+          git config user.name "Heron plug-in updater"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add heron-plugins.lock.json
+          git commit -m "Update Heron plug-ins to $version"
+          gh auth setup-git
+          git push --force-with-lease="refs/heads/$branch:$PLUGIN_PENDING_REF" origin "$branch"
+          pr_number="$(gh pr list --head "$branch" --state open --json number --jq '.[0].number // empty')"
+          if [[ -z "$pr_number" ]]; then
+            body="$RUNNER_TEMP/heron-plugins-upgrade.md"
+            cat > "$body" <<'BODY'
+          Update the bundled VST3 suite to the pinned heron-plugins release, including its source commit and SHA-256 checksums for all four platforms and matching crash symbols.
+
+          The updater verified the Linux x64 runtime and symbol archives. The normal Heron pull-request checks verify native integration and packaging across the supported platforms before this dependency update can merge.
+          BODY
+            gh pr create --base main --head "$branch" \
+              --title "Update Heron plug-ins to $version" --body-file "$body"
+          else
+            gh pr edit "$pr_number" --title "Update Heron plug-ins to $version"
+          fi

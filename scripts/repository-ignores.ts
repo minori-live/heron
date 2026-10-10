@@ -21,6 +21,8 @@ export const generatedAndBuildPaths = [
   "**/target/",
   "**/test-results/",
   "**/third_party/",
+  "crates/.dsp-node.napi-stage-*/",
+  "**/.napi-rs-filesystem-transaction*.swp/",
   "crates/dsp-node/index.d.ts",
   "crates/dsp-node/index.js",
   // Emitted by `mise run codegen:wire-types`; the Rust protocol owns the shape.
@@ -37,7 +39,6 @@ export const generatedAndBuildPaths = [
  */
 export const formatIgnorePatterns = [
   ...generatedAndBuildPaths,
-  "**/.napi-rs-filesystem-transaction.swp/",
   "**/*.toml",
   "Cargo.lock",
   "apm.lock.yaml",

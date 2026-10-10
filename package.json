@@ -14,6 +14,8 @@
     "docs:build": "pnpm --filter @heron/docs build",
     "docs:preview": "pnpm --filter @heron/docs preview",
     "build:desktop": "pnpm --filter @heron/desktop build",
+    "plugins:prepare": "node scripts/plugins-prepare.ts",
+    "plugins:update": "node scripts/plugins-update.ts",
     "db:generate": "pnpm --filter @heron/project-db db:generate",
     "db:check": "pnpm --filter @heron/project-db db:check",
     "check:packages": "pnpm --filter \"!@heron/dsp-node\" -r --if-present check",
@@ -42,6 +44,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@typescript/native": "catalog:",
     "@vue/compiler-dom": "catalog:",
     "@vue/compiler-sfc": "catalog:",
     "eslint": "^10.10.0",
@@ -52,9 +55,9 @@
     "oxfmt": "0.71.0",
     "oxlint": "1.86.0",
     "oxlint-tsgolint": "7.0.2003",
-    "@typescript/native": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "^8.70.0",
-    "unocss": "catalog:"
+    "unocss": "catalog:",
+    "unzipper": "0.12.5"
   }
 }

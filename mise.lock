@@ -52,11 +52,6 @@ version = "1.13.5"
 backend = "cargo:cargo-shear"
 specifiers = ["1.13"]
 
-[[tools."cargo:cargo-truce"]]
-version = "6.3.0"
-backend = "cargo:cargo-truce"
-specifiers = ["6.3"]
-
 [[tools.cmake]]
 version = "4.3.5"
 backend = "aqua:Kitware/CMake"

@@ -168,6 +168,9 @@ importers:
       unocss:
         specifier: 'catalog:'
         version: 66.10.5(cac@7.0.0)(rolldown@1.2.12)(srvx@1.0.5)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+      unzipper:
+        specifier: 0.12.5
+        version: 0.12.5
 
   apps/design-system:
     dependencies:

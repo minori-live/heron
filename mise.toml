@@ -8,7 +8,6 @@ rust = { channel = "stable", version = "latest", components = "rustfmt,clippy,ll
 "cargo:cargo-llvm-cov" = "0.8"
 "cargo:cargo-shear" = "1.13"
 cmake = "4.3"
-"cargo:cargo-truce" = "6.3"
 
 [tools."http:llvm"]
 version = "22.1.8"
@@ -102,11 +101,16 @@ run = "cargo xtask native build --profile release"
 
 [tasks."native:debug"]
 hide = true
-depends = ["native:staged:debug"]
+depends = ["native:staged:debug", "plugins:prepare"]
 
 [tasks."native:release"]
 hide = true
-depends = ["native:staged:release"]
+depends = ["native:staged:release", "plugins:prepare"]
+
+[tasks."plugins:prepare"]
+description = "Download and verify the locked built-in VST3 suite"
+depends = ["install"]
+run = "pnpm plugins:prepare"
 
 [tasks.dev]
 description = "Build debug native artifacts and start Electron development watchers"
@@ -261,7 +265,7 @@ description = "Run JavaScript lint, design audits, and Rust Clippy"
 depends = ["lint:js", "lint:rust"]
 
 [tasks.native]
-description = "Build release N-API, VST3 probe, and bundled plug-in artifacts"
+description = "Build release N-API and probes, and prepare locked plug-in artifacts"
 depends = ["native:release"]
 
 [tasks."build:desktop"]
@@ -365,6 +369,7 @@ run = [
   "pnpm --filter @heron/dsp-node exec napi build --platform --release --target x86_64-apple-darwin",
   "pnpm --filter @heron/dsp-node exec napi universalize",
   "cargo xtask native universal-macos --profile release",
+  "pnpm plugins:prepare --platform macos-universal",
   "mise run ci:verify:macos-universal",
   "pnpm build:desktop",
 ]

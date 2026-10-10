@@ -24,7 +24,7 @@
     "test:clap-runtime": "node scripts/clap-runtime-smoke.ts",
     "test:plugin-analysis": "node scripts/plugin-analysis-smoke.ts",
     "test:vst3-editor": "node scripts/vst3-editor-smoke-launch.ts",
-    "test:builtin-vst3": "node scripts/builtin-vst3-smoke.ts && node scripts/audio-benchmark-smoke.ts",
+    "test:builtin-vst3": "node scripts/builtin-vst3-smoke.ts && node scripts/builtin-vst3-state-smoke.ts && node scripts/audio-benchmark-smoke.ts",
     "verify:package-security": "node scripts/verify-electron-security.ts",
     "test:e2e": "pnpm build && playwright test",
     "pack": "node scripts/package-desktop.ts --dir",

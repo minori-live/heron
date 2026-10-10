@@ -137,6 +137,9 @@ jobs:
       - name: Run repository checks
         run: mise run ${{ matrix.check-task }}
 
+      - name: Verify downloaded built-in VST3 identities and legacy state restoration
+        run: mise run test:builtin-vst3
+
       - name: Run Electron end-to-end tests
         if: runner.os == 'Linux'
         run: mise run test:e2e

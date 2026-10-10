@@ -3,6 +3,7 @@ import { createRequire } from "node:module"
 import { join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { stageSentrySymbols } from "./sentry-symbol-files.ts"
+import { preparePluginArtifacts } from "../../../scripts/plugin-artifact-cache.ts"
 
 const appDirectory = fileURLToPath(new URL("..", import.meta.url))
 const workspace = resolve(appDirectory, "../..")
@@ -26,7 +27,13 @@ function sentry(args: string[]): void {
 
 // Preserve the matching per-architecture dSYM/PDB/ELF files before CI discards
 // the target tree. Avoid collecting dependency libraries and intermediate rlibs.
-await stageSentrySymbols(join(workspace, "target"), join(appDirectory, "out/main"), destination)
+const pluginSymbols = await preparePluginArtifacts({ workspace, symbols: true })
+await stageSentrySymbols(
+  join(workspace, "target"),
+  join(appDirectory, "out/main"),
+  destination,
+  pluginSymbols
+)
 
 if (!process.argv.includes("--stage-only")) {
   const credentials = [
