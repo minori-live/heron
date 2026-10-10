@@ -187,7 +187,7 @@ export const EmptySearchableTaxonomy: Story = {
     await userEvent.click(within(canvasElement).getByRole("button", { name: "Add audio effect" }))
     const page = within(document.body)
     await userEvent.type(await page.findByRole("textbox", { name: "Search effects" }), "missing")
-    await expect(await page.findByText("No effects match this search.")).toBeVisible()
+    await waitFor(() => expect(page.getByText("No effects match this search.")).toBeVisible())
     await expect(page.queryByRole("menu")).not.toBeInTheDocument()
   }
 }
