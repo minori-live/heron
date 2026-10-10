@@ -26,7 +26,14 @@ Heron consumes only complete VST3 artifacts from a GitHub release pinned by
 version, source commit and SHA256 in `heron-plugins.lock.json`. Its build tools
 validate the archive, manifest, required identities and architecture before
 replacing the staging directory. The unzipper dependency is build tooling only;
-it is not shipped in the renderer or native runtime. Verified cached archives
+it is not shipped in the renderer or native runtime. The build-only pinned
+`fs-native-extensions` dependency supplies precompiled OS file locking for all
+supported hosts; installation does not compile another native component.
+Recovery and publication share a permanent gate file locked exclusively by its
+open descriptor. The gate is never replaced or removed, and process exit
+releases the kernel lock. PID records and time-based lock deletion are not
+authority: a delayed recovery caller must never remove a successor's lock.
+Downloads and extraction remain outside the gate. Verified cached archives
 support offline builds. A missing or corrupt dependency fails the build; source
 compilation is not a fallback. An uninitialized lock explicitly blocks cutover.
 

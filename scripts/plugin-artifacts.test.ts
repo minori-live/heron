@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
-import { mkdtemp, mkdir, readFile, readdir, rm, stat, utimes, writeFile } from "node:fs/promises"
+import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises"
 import { join, sep } from "node:path"
 import { tmpdir } from "node:os"
 import test, { type TestContext } from "node:test"
@@ -288,11 +288,6 @@ await test("an interrupted stage commit restores the previous bundles before a f
   const { root } = await workspace(context)
   await mkdir(join(root, "target/.bundles.previous"), { recursive: true })
   await writeFile(join(root, "target/.bundles.previous/previous"), "recoverable")
-  await mkdir(join(root, "target/.heron-plugin-bundles.lock"))
-  await writeFile(
-    join(root, "target/.heron-plugin-bundles.lock/owner.json"),
-    JSON.stringify({ pid: 2147483647 })
-  )
   await assert.rejects(
     preparePluginArtifacts({
       workspace: root,
@@ -302,7 +297,6 @@ await test("an interrupted stage commit restores the previous bundles before a f
   )
   assert.equal(await readFile(join(root, "target/bundles/previous"), "utf8"), "recoverable")
   assert(!(await readdir(join(root, "target"))).includes(".bundles.previous"))
-  assert(!(await readdir(join(root, "target"))).includes(".heron-plugin-bundles.lock"))
 })
 
 await test("uninitialized locks fail before network access or staging", async (context) => {
@@ -322,20 +316,19 @@ await test("uninitialized locks fail before network access or staging", async (c
   assert.deepEqual((await readdir(root)).sort(), ["heron-plugins.lock.json"])
 })
 
-await test("abandoned incomplete staging owners are recoverable", async (context) => {
+await test("legacy owner records have no authority over the stable staging gate", async (context) => {
   const { root, archive } = await workspace(context)
   const lock = join(root, "target/.heron-plugin-bundles.lock")
-  for (const owner of ["", '{"pid":', "null", '{"pid":0}']) {
+  for (const owner of ['{"pid":', JSON.stringify({ pid: process.pid })]) {
     await mkdir(lock, { recursive: true })
     await writeFile(join(lock, "owner.json"), owner)
-    const old = new Date(Date.now() - 120_000)
-    await utimes(lock, old, old)
     await preparePluginArtifacts({
       workspace: root,
       platform,
       fetchArtifact: async () => new Response(Uint8Array.from(archive))
     })
-    assert(!(await readdir(join(root, "target"))).includes(".heron-plugin-bundles.lock"))
+    assert.equal(await readFile(join(lock, "owner.json"), "utf8"), owner)
+    assert((await stat(join(root, "target/.heron-plugin-bundles.gate"))).isFile())
   }
 })
 
@@ -369,7 +362,11 @@ await test("a slow preparation cannot overwrite a newer locked and published sta
     JSON.parse(await readFile(join(destination, "bundle-manifest.json"), "utf8")).version,
     "1.1.0"
   )
-  assert(!(await readdir(join(root, "target"))).some((entry) => entry.startsWith(".heron-")))
+  assert(
+    !(await readdir(join(root, "target"))).some(
+      (entry) => entry.startsWith(".heron-plugins-") || entry.startsWith(".heron-plugin-runtime-")
+    )
+  )
 })
 
 await test("archives cannot escape staging or create symlinks, Windows ADS or ambiguous paths", async (context) => {
@@ -485,7 +482,11 @@ await test("concurrent prepares share verified downloads and publish a complete 
     )
   )
   assert.equal((await readdir(join(root, "target/bundles"))).length, REQUIRED_BUILTINS.length + 1)
-  assert(!(await readdir(join(root, "target"))).some((entry) => entry.startsWith(".heron-")))
+  assert(
+    !(await readdir(join(root, "target"))).some(
+      (entry) => entry.startsWith(".heron-plugins-") || entry.startsWith(".heron-plugin-runtime-")
+    )
+  )
 })
 
 await test("the updater pins all platform artifacts to the published tag commit and rejects incomplete releases", async () => {

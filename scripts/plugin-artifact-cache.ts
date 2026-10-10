@@ -1,10 +1,9 @@
 import { createHash, randomUUID } from "node:crypto"
 import { createReadStream, createWriteStream } from "node:fs"
-import { access, cp, mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from "node:fs/promises"
+import { access, cp, mkdir, mkdtemp, readFile, rename, rm } from "node:fs/promises"
 import { basename, dirname, join } from "node:path"
 import { Readable, Transform } from "node:stream"
 import { pipeline } from "node:stream/promises"
-import { setTimeout } from "node:timers/promises"
 import {
   currentPluginPlatform,
   parsePluginLock,
@@ -14,6 +13,7 @@ import {
 } from "./plugin-artifact-contract.ts"
 import { extractPluginArchive, validateExtractedArtifact } from "./plugin-artifact-extract.ts"
 import { validatePluginSymbols, type PluginDebugInspector } from "./plugin-symbol-validation.ts"
+import { acquirePluginStageLock } from "./plugin-stage-lock.ts"
 
 export interface PluginPrepareOptions {
   workspace: string
@@ -99,58 +99,6 @@ async function cachedArchive(
   }
 }
 
-async function acquireStageLock(path: string): Promise<() => Promise<void>> {
-  const deadline = Date.now() + 60_000
-  while (true) {
-    try {
-      await mkdir(path)
-      const owner = join(path, "owner.json")
-      const partial = `${owner}.partial`
-      await writeFile(partial, JSON.stringify({ pid: process.pid }), { flag: "wx" })
-      await rename(partial, owner)
-      return () => rm(path, { recursive: true, force: true })
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error
-      try {
-        const owner = JSON.parse(await readFile(join(path, "owner.json"), "utf8")) as {
-          pid?: number
-        } | null
-        const pid = owner?.pid
-        if (typeof pid !== "number" || !Number.isSafeInteger(pid) || pid <= 0)
-          throw new SyntaxError("Invalid plug-in staging lock owner", { cause: error })
-        try {
-          process.kill(pid, 0)
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error
-          await rm(path, { recursive: true, force: true })
-          continue
-        }
-      } catch (error) {
-        if (!(error instanceof SyntaxError) && (error as NodeJS.ErrnoException).code !== "ENOENT")
-          throw error
-        // A process can stop before the atomic owner write. Also recover old
-        // incomplete owner files, allowing a live creator time to finish.
-        let age: number
-        try {
-          age = Date.now() - (await stat(path)).mtimeMs
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error
-          continue
-        }
-        if (age > 60_000) {
-          await rm(path, { recursive: true, force: true })
-          continue
-        }
-      }
-      if (Date.now() >= deadline)
-        throw new Error("Plug-in staging is busy; retry after the other prepare command finishes", {
-          cause: error
-        })
-      await setTimeout(100)
-    }
-  }
-}
-
 async function recoverStage(destination: string): Promise<string> {
   const previous = join(dirname(destination), `.${basename(destination)}.previous`)
   // Recover the old directory if a previous process stopped between the two
@@ -190,10 +138,10 @@ export async function preparePluginArtifacts(options: PluginPrepareOptions): Pro
   const destination = join(target, symbols ? "heron-plugin-symbols" : "bundles")
   const stageLock = join(
     target,
-    symbols ? ".heron-plugin-symbols.lock" : ".heron-plugin-bundles.lock"
+    symbols ? ".heron-plugin-symbols.gate" : ".heron-plugin-bundles.gate"
   )
   await mkdir(target, { recursive: true })
-  const releaseRecoveryLock = await acquireStageLock(stageLock)
+  const releaseRecoveryLock = await acquirePluginStageLock(stageLock)
   try {
     await recoverStage(destination)
   } finally {
@@ -222,7 +170,7 @@ export async function preparePluginArtifacts(options: PluginPrepareOptions): Pro
       source = join(staging, "bundles")
       await cp(join(staging, "bundle-manifest.json"), join(source, "bundle-manifest.json"))
     }
-    const unlock = await acquireStageLock(stageLock)
+    const unlock = await acquirePluginStageLock(stageLock)
     try {
       const current = parsePluginLock(
         JSON.parse(await readFile(join(options.workspace, "heron-plugins.lock.json"), "utf8"))
