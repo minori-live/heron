@@ -168,7 +168,12 @@ export async function preparePluginArtifacts(options: PluginPrepareOptions): Pro
       )
       runtimeStaging = await mkdtemp(join(target, ".heron-plugin-runtime-"))
       await extractValidatedArchive(runtimeArchive, runtimeStaging, release, platform, false)
-      await validatePluginSymbols(runtimeStaging, staging, release, platform, options.debugInfo)
+      try {
+        await validatePluginSymbols(runtimeStaging, staging, release, platform, options.debugInfo)
+      } catch (error) {
+        await Promise.all([rm(archive, { force: true }), rm(runtimeArchive, { force: true })])
+        throw error
+      }
     }
     let source = staging
     if (!symbols) {

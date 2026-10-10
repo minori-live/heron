@@ -624,16 +624,74 @@ await test("matching external symbols are staged independently of the runtime bu
   })
 })
 
+await test("failed symbol associations preserve the stage and allow fresh online downloads", async (context) => {
+  for (const modules of [
+    fixtureSymbolModules.slice(0, 1),
+    fixtureSymbolModules.map((module) => ({ ...module, debugId: "wrong-debug-id" }))
+  ]) {
+    const { root, fetchArtifact } = await symbolsWorkspace(context, symbolsArchive(modules))
+    await mkdir(join(root, "target/heron-plugin-symbols"), { recursive: true })
+    await writeFile(join(root, "target/heron-plugin-symbols/previous"), "known-good")
+    await assert.rejects(
+      preparePluginArtifacts({
+        workspace: root,
+        platform,
+        symbols: true,
+        fetchArtifact,
+        debugInfo: fixtureDebugInfo
+      })
+    )
+    assert.equal(
+      await readFile(join(root, "target/heron-plugin-symbols/previous"), "utf8"),
+      "known-good"
+    )
+    await assert.rejects(
+      preparePluginArtifacts({
+        workspace: root,
+        platform,
+        symbols: true,
+        offline: true,
+        debugInfo: fixtureDebugInfo
+      }),
+      /Missing plug-in cache/u
+    )
+    const downloaded: string[] = []
+    const runtime = runtimeArchive()
+    const symbols = symbolsArchive()
+    const destination = await preparePluginArtifacts({
+      workspace: root,
+      platform,
+      symbols: true,
+      fetchArtifact: async (url) => {
+        downloaded.push(url.split("/").at(-1) ?? "")
+        return new Response(Uint8Array.from(url.endsWith("-symbols.zip") ? symbols : runtime))
+      },
+      debugInfo: fixtureDebugInfo
+    })
+    assert.deepEqual(
+      downloaded.sort(),
+      [pluginAssetName(version, platform, true), pluginAssetName(version, platform)].sort()
+    )
+    assert.equal(
+      await readFile(join(destination, "symbols/Heron Gain.so"), "utf8"),
+      "matching fixture symbols"
+    )
+    assert(
+      !(await readdir(join(root, "target"))).some(
+        (entry) => entry.startsWith(".heron-plugins-") || entry.startsWith(".heron-plugin-runtime-")
+      )
+    )
+  }
+})
+
 await test("symbols must uniquely cover every locked plug-in with its actual Debug ID and architecture", async (context) => {
   const badManifests = [
-    fixtureSymbolModules.slice(0, 1),
     fixtureSymbolModules.map((module) => ({
       ...module,
       binaryPath: fixtureSymbolModules[0]?.binaryPath,
       debugId: fixtureSymbolModules[0]?.debugId
     })),
-    fixtureSymbolModules.map((module) => ({ ...module, binaryPath: undefined })),
-    fixtureSymbolModules.map((module) => ({ ...module, debugId: "wrong-debug-id" }))
+    fixtureSymbolModules.map((module) => ({ ...module, binaryPath: undefined }))
   ]
   for (const modules of badManifests) {
     const { root, fetchArtifact } = await symbolsWorkspace(context, symbolsArchive(modules))

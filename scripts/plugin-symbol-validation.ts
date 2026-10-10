@@ -48,8 +48,8 @@ function matchingVariant(info: PluginDebugInfo, expectedArch: string, debugId: s
   )
 }
 
-// Hashes pin bytes; this verifies that every shipped plug-in slice has usable
-// debug information for the same module, independent of release metadata.
+// Verify usable debug information for every shipped plug-in slice against its
+// actual runtime module.
 export async function validatePluginSymbols(
   runtimeDirectory: string,
   symbolsDirectory: string,
