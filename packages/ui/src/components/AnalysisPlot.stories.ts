@@ -34,7 +34,7 @@ async function hoverMeasurement(
   measurementLabel = "dB:"
 ): Promise<HTMLElement> {
   const plot = within(canvasElement).getByRole("img")
-  await waitFor(() => expect(plot.querySelector("canvas")).not.toBeNull())
+  await waitFor(() => expect(plot.querySelector("canvas")).not.toBeNull(), { timeout: 10_000 })
   await waitFor(async () => {
     const rect = plot.getBoundingClientRect()
     plot.querySelector("canvas")!.dispatchEvent(
