@@ -174,11 +174,6 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
-      - name: Generate SHA-256 checksums
-        shell: bash
-        working-directory: release-assets
-        run: sha256sum -- * > SHA256SUMS
-
       - name: Attest release artifacts
         if: github.event.repository.visibility == 'public'
         uses: actions/attest@v4
@@ -213,7 +208,7 @@ jobs:
 
             forbidden_assets="$(
               gh release view "$TAG_NAME" --json assets \
-                --jq '.assets[] | select(.name | test("[.](yml|yaml|blockmap)$")) | .name'
+                --jq '.assets[] | select(.name == "SHA256SUMS" or (.name | test("[.](yml|yaml|blockmap)$"))) | .name'
             )"
             while IFS= read -r asset; do
               if [[ -n "$asset" ]]; then

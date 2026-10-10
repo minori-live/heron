@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto"
-import { createReadStream } from "node:fs"
 import { readFile, stat } from "node:fs/promises"
 import { basename, resolve } from "node:path"
 import { parse } from "yaml"
@@ -61,12 +59,6 @@ export async function verifyUpdateAssets(
     }
     const path = resolve(directory, file.url)
     if ((await stat(path)).size !== file.size) throw new Error(`Size mismatch: ${file.url}`)
-    const hash = createHash("sha512")
-    for await (const chunk of createReadStream(path)) {
-      if (!(chunk instanceof Uint8Array)) throw new Error("Expected binary artifact data")
-      hash.update(chunk)
-    }
-    if (hash.digest("base64") !== file.sha512) throw new Error(`Checksum mismatch: ${file.url}`)
   }
   return metadataName
 }

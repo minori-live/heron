@@ -17,7 +17,6 @@ Heron 会为每个带标签的发布版本提供 Windows、macOS 与 Linux 安�
    - **Windows x64：** `.exe`
    - **macOS（Apple 芯片或 Intel）：** 通用 `.dmg`
    - **Linux x64 或 arm64：** `.AppImage`
-4. 如需校验下载内容，请保留随附的 `SHA256SUMS` 文件。
 
 如果你使用 Heron 0.5.1 或更早版本，需要手动安装首个采用新更新源的版本。
 这些旧版本会从 GitHub Release 附件读取更新清单，而新版本改由 Heron 网站提供。
@@ -34,8 +33,7 @@ Heron 仍处于实验阶段。如果发布页面还没有可用的安装包，�
 运行下载的安装程序。Windows 音频构建包含 ASIO® 支持。要进行低延迟工作，
 请在打开 Heron 前安装音频接口厂商提供的 64 位 ASIO 驱动。
 
-如果 Windows 提示无法识别的应用，请确认下载来自官方仓库，并在继续前校验
-其校验和。
+如果 Windows 提示无法识别的应用，请在继续前确认下载来自官方仓库。
 
 ## macOS
 

@@ -9,7 +9,6 @@ export type PluginPlatform = (typeof PLUGIN_PLATFORMS)[number]
 
 export interface PluginAsset {
   file: string
-  sha256: string
 }
 export interface PluginRelease {
   version: string
@@ -146,14 +145,10 @@ export function pluginBinaryPath(bundleName: string, platform: PluginPlatform): 
 
 function asset(value: unknown, filename: string): PluginAsset {
   const item = object(value)
-  if (
-    item.file !== filename ||
-    typeof item.sha256 !== "string" ||
-    !/^[0-9a-f]{64}$/u.test(item.sha256)
-  ) {
+  if (item.file !== filename) {
     throw new Error(`Invalid locked plug-in asset: ${filename}`)
   }
-  return { file: filename, sha256: item.sha256 }
+  return { file: filename }
 }
 
 export function parsePluginLock(value: unknown): PluginLock {

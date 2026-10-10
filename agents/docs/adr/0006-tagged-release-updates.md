@@ -20,7 +20,7 @@ authorize installation or make ordinary development packages update-enabled.
 Use the repository-locked electron-builder/electron-updater stack, NSIS on Windows,
 DMG plus update ZIP on universal macOS, and x64/arm64 AppImages on Linux. macOS
 requires Developer ID signing and notarization. Windows retains its unsigned
-packaging policy; checksums do not replace signing.
+packaging policy.
 
 Only the tag-push publish workflow sets `HERON_RELEASE_BUILD`. Validate push ref
 against `vVERSION` and embed the version/channel in main. The installed package
@@ -36,10 +36,10 @@ uses absolute URLs for public `minori-live/heron` Release installers, with no
 renderer-supplied feed or token.
 
 Generate metadata with `--publish never`. Before upload, validate channel files,
-referenced sizes and SHA-512 hashes. Linux uses separate `CHANNEL-linux.yml` and
+referenced sizes and metadata fields. Linux uses separate `CHANNEL-linux.yml` and
 `CHANNEL-linux-arm64.yml`. Stage versioned manifests on the `update-manifests`
 branch before creating the draft Release. The Release contains installers, the
-macOS ZIP and checksums; it contains no manifests or blockmaps. On the Release
+macOS ZIP; it contains no manifests or blockmaps. On the Release
 `published` event, promote the staged manifests to the branch's `current/`
 directory, then deploy them under the Pages `/updates/` route together with the
 documentation site. Main-branch documentation deployments overlay the same

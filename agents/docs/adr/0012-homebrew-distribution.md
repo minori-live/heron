@@ -8,7 +8,7 @@
 ## Context
 
 macOS users need a Homebrew installation path. Tagged release builds already
-produce signed and notarized Universal DMGs with SHA256SUMS. A separate Tap must
+produce signed and notarized Universal DMGs. A separate Tap must
 not introduce an independent application version or rebuild pipeline.
 
 ## Decision
@@ -49,9 +49,9 @@ on a Mac with the relevant devices.
 ## Verification
 
 Run Tap formatting and type checks, check the Cask's Ruby syntax, and lint both
-repositories' workflows. Synchronization verifies the published DMG's size and
-checksum before proposing a new version. Repeated notifications compare release
-checksums without downloading the installer again.
+repositories' workflows. Synchronization reads the published DMG's size and
+GitHub asset digest before proposing a new version. The digest supplies the
+Cask's required SHA256 field; synchronization does not download the installer.
 
 ## Reconsider when
 

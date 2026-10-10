@@ -21,11 +21,12 @@ pnpm plugins:update 0.6.4
 pnpm plugins:prepare
 ```
 
-Preparation verifies SHA256, manifest version/source/platform, identities and
-binary architecture, then replaces `target/bundles`. The installed inventory is
+Preparation validates the archive, manifest version/source/platform, identities
+and binary architecture, then replaces `target/bundles`. Downloads are cached by
+suite version, platform and asset filename. The installed inventory is
 `target/bundles/bundle-manifest.json`; bundles sit alongside it. There is no
 plug-in source fallback. Use `pnpm plugins:prepare --offline` to require existing
-verified cached assets, or `--platform macos-universal` for universal packaging.
+cached archives, or `--platform macos-universal` for universal packaging.
 The ordinary native mise tasks prepare plug-ins automatically.
 
 The suite must contain EQ, Gain, Sine and Metronome with their persisted native
@@ -59,7 +60,7 @@ above; a producer update failure does not revoke its published release. Retry
 the producer's workflow_dispatch after bootstrap or a failed update. Repeated
 runs preserve the existing upgrade commit when main and the selected lock are
 unchanged, and recover a missing PR after a successful branch push. Downgrades
-and same-version source or checksum changes are rejected against both main and
+and same-version source or asset-name changes are rejected against both main and
 the pending upgrade.
 
 ## First cutover and validation

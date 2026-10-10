@@ -18,7 +18,6 @@ release.
    - **Windows x64:** `.exe`
    - **macOS Apple silicon or Intel:** universal `.dmg`
    - **Linux x64 or arm64:** `.AppImage`
-4. Keep the accompanying `SHA256SUMS` file if you want to verify the download.
 
 If you have Heron 0.5.1 or earlier, install the first release using the new
 update feed manually. Those versions look for update metadata in GitHub Release
@@ -39,7 +38,7 @@ low-latency work, install the 64-bit ASIO driver supplied by your audio-interfac
 manufacturer before opening Heron.
 
 If Windows warns about an unrecognized application, confirm that the download
-came from the official repository and verify its checksum before continuing.
+came from the official repository before continuing.
 
 ## macOS
 

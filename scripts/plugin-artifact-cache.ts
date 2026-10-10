@@ -1,5 +1,5 @@
-import { createHash, randomUUID } from "node:crypto"
-import { createReadStream, createWriteStream } from "node:fs"
+import { randomUUID } from "node:crypto"
+import { createWriteStream } from "node:fs"
 import { access, cp, mkdir, mkdtemp, readFile, rename, rm } from "node:fs/promises"
 import { basename, dirname, join } from "node:path"
 import { Readable, Transform } from "node:stream"
@@ -9,7 +9,8 @@ import {
   parsePluginLock,
   PLUGIN_REPOSITORY,
   type PluginAsset,
-  type PluginPlatform
+  type PluginPlatform,
+  type PluginRelease
 } from "./plugin-artifact-contract.ts"
 import { extractPluginArchive, validateExtractedArtifact } from "./plugin-artifact-extract.ts"
 import { validatePluginSymbols, type PluginDebugInspector } from "./plugin-symbol-validation.ts"
@@ -22,12 +23,6 @@ export interface PluginPrepareOptions {
   offline?: boolean
   fetchArtifact?: (url: string) => Promise<Response>
   debugInfo?: PluginDebugInspector
-}
-
-export async function fileSha256(path: string): Promise<string> {
-  const hash = createHash("sha256")
-  for await (const chunk of createReadStream(path)) hash.update(chunk as Buffer)
-  return hash.digest("hex")
 }
 
 async function* downloadChunks(body: ReadableStream<Uint8Array>): AsyncGenerator<Uint8Array> {
@@ -56,18 +51,17 @@ async function exists(path: string): Promise<boolean> {
 async function cachedArchive(
   options: PluginPrepareOptions,
   version: string,
+  platform: PluginPlatform,
   asset: PluginAsset
 ): Promise<string> {
-  const directory = join(options.workspace, "target", "plugin-artifacts")
-  const cached = join(directory, `${asset.sha256}.zip`)
-  if (await exists(cached)) {
-    if ((await fileSha256(cached)) === asset.sha256) return cached
-    if (options.offline) throw new Error(`Corrupted plug-in cache in offline mode: ${asset.file}`)
-  } else if (options.offline) {
+  const directory = join(options.workspace, "target", "plugin-artifacts", version, platform)
+  const cached = join(directory, asset.file)
+  if (await exists(cached)) return cached
+  if (options.offline) {
     throw new Error(`Missing plug-in cache in offline mode: ${asset.file}`)
   }
   await mkdir(directory, { recursive: true })
-  const partial = join(directory, `${asset.sha256}.${randomUUID()}.partial`)
+  const partial = join(directory, `${asset.file}.${randomUUID()}.partial`)
   try {
     const url = `https://github.com/${PLUGIN_REPOSITORY}/releases/download/v${version}/${asset.file}`
     const response = await (
@@ -77,11 +71,9 @@ async function cachedArchive(
     if (!response.ok || !response.body)
       throw new Error(`Plug-in download failed (${response.status}): ${asset.file}`)
     let received = 0
-    const hash = createHash("sha256")
     const bounded = new Transform({
       transform(chunk: Buffer, _encoding, callback) {
         received += chunk.length
-        hash.update(chunk)
         callback(received > 2 * 1024 ** 3 ? new Error("Oversized plug-in download") : null, chunk)
       }
     })
@@ -90,12 +82,26 @@ async function cachedArchive(
       bounded,
       createWriteStream(partial, { flags: "wx" })
     )
-    if (hash.digest("hex") !== asset.sha256)
-      throw new Error(`Plug-in download SHA-256 mismatch: ${asset.file}`)
     await rename(partial, cached)
     return cached
   } finally {
     await rm(partial, { force: true })
+  }
+}
+
+async function extractValidatedArchive(
+  archive: string,
+  staging: string,
+  release: PluginRelease,
+  platform: PluginPlatform,
+  symbols: boolean
+): Promise<void> {
+  try {
+    await extractPluginArchive(archive, staging)
+    await validateExtractedArtifact(staging, release, platform, symbols)
+  } catch (error) {
+    await rm(archive, { force: true })
+    throw error
   }
 }
 
@@ -148,21 +154,20 @@ export async function preparePluginArtifacts(options: PluginPrepareOptions): Pro
     await releaseRecoveryLock()
   }
   const asset = release.assets[platform][symbols ? "symbols" : "runtime"]
-  const archive = await cachedArchive(options, release.version, asset)
+  const archive = await cachedArchive(options, release.version, platform, asset)
   const staging = await mkdtemp(join(target, ".heron-plugins-"))
   let runtimeStaging: string | undefined
   try {
-    await extractPluginArchive(archive, staging)
-    await validateExtractedArtifact(staging, release, platform, symbols)
+    await extractValidatedArchive(archive, staging, release, platform, symbols)
     if (symbols) {
       const runtimeArchive = await cachedArchive(
         options,
         release.version,
+        platform,
         release.assets[platform].runtime
       )
       runtimeStaging = await mkdtemp(join(target, ".heron-plugin-runtime-"))
-      await extractPluginArchive(runtimeArchive, runtimeStaging)
-      await validateExtractedArtifact(runtimeStaging, release, platform, false)
+      await extractValidatedArchive(runtimeArchive, runtimeStaging, release, platform, false)
       await validatePluginSymbols(runtimeStaging, staging, release, platform, options.debugInfo)
     }
     let source = staging

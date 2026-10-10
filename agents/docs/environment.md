@@ -39,7 +39,7 @@ they need workspace packages. Rust-only tasks such as `check-fast` and the
 Windows native builds always include cpal's ASIO backend. Windows development
 hosts therefore require Visual Studio's Desktop development with C++ workload
 and the LLVM/Clang toolchain pinned by `mise.toml`. The LLVM release artifact is
-installed from its immutable URL with a checked-in SHA-256 checksum, avoiding
+installed from its versioned URL, avoiding
 GitHub API release discovery. Set `LIBCLANG_PATH` to the installed toolchain's
 `bin` directory containing `libclang.dll`. `asio-sys` downloads the Steinberg
 ASIO SDK automatically; set `CPAL_ASIO_DIR` only when using a preinstalled SDK.
@@ -140,7 +140,7 @@ The Rust xtask discovers `rustc -vV`'s host triple and builds into
 `target/<host-triple>/<profile>`. The `native:*` mise tasks combine the
 package-local `@heron/dsp-node` napi-rs build with xtask's VST3 and CLAP probes
 and `plugins:prepare`. xtask stages the probes into `target/debug` or
-`target/release`; the preparation task downloads the checksum-locked producer
+`target/release`; the preparation task downloads the version-locked producer
 release into `target/bundles`. The macOS universal CI task builds both Apple
 target triples and merges the probes with `lipo`, then verifies the downloaded
 universal plug-ins before Electron packaging. See

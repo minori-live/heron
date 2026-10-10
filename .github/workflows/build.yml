@@ -152,10 +152,6 @@ jobs:
           fi
           chmod 600 "$certificate_path"
 
-          certificate_size="$(stat -f '%z' "$certificate_path")"
-          certificate_sha256="$(shasum -a 256 "$certificate_path" | awk '{print $1}')"
-          echo "macOS signing certificate: size=$certificate_size sha256=$certificate_sha256"
-
           if ! openssl pkcs12 \
             -info \
             -noout \

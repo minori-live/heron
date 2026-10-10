@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto"
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -73,7 +72,7 @@ describe("release update assets", () => {
         {
           url: artifact,
           size: bytes.length,
-          sha512: createHash("sha512").update(bytes).digest("base64")
+          sha512: "electron-builder-generated-value"
         }
       ]
     }
@@ -81,7 +80,7 @@ describe("release update assets", () => {
     // JSON is valid YAML; the fixture passes through the same production YAML parser.
     await writeFile(join(directory, metadataName), JSON.stringify(metadata))
     expect(await verifyUpdateAssets(directory, "1.0.0", "latest", platform)).toBe(metadataName)
-    await writeFile(join(directory, artifact), "bad installer!")
+    await writeFile(join(directory, artifact), "truncated")
     await expect(verifyUpdateAssets(directory, "1.0.0", "latest", platform)).rejects.toThrow()
   })
   it("points Pages manifests at Release installers without blockmap metadata", async () => {
@@ -104,7 +103,7 @@ describe("release update assets", () => {
             {
               url: artifact,
               size: bytes.length,
-              sha512: createHash("sha512").update(bytes).digest("base64"),
+              sha512: "electron-builder-generated-value",
               blockMapSize: 123
             }
           ],
@@ -118,7 +117,7 @@ describe("release update assets", () => {
       {
         url: "https://github.com/minori-live/heron/releases/download/v1.0.0-beta.1/Heron.exe",
         size: bytes.length,
-        sha512: createHash("sha512").update(bytes).digest("base64")
+        sha512: "electron-builder-generated-value"
       }
     ])
     expect(manifest.path).toBe(manifest.files[0].url)

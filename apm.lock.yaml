@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-10-09T10:05:52.702053+00:00'
+generated_at: '2026-10-10T22:13:54.051599+00:00'
 apm_version: 0.29.0
 dependencies:
 - repo_url: antfu/skills
@@ -317,10 +317,30 @@ dependencies:
     .agents/skills/stop-that-shit/SKILL.md: sha256:d414f5d6532230cef2ee104c9bd8f77507114026e5497245fb794ee46088283b
     .agents/skills/stop-that-shit/agents/openai.yaml: sha256:e899bc82bf4aa161c7fd4a19e163abddbe43418315ac29a865217dee76deb0db
   content_hash: sha256:68ed7164a6def20e3eec36fc04334d9606a3636ef841ca131b982f6842d6ef7c
+- repo_url: lennney/stop-that-shit
+  name: stss
+  host: github.com
+  resolved_commit: 694bbd59e26b522cd63801a01590ccaa77c7fe84
+  resolved_ref: 694bbd59e26b522cd63801a01590ccaa77c7fe84
+  version: unknown
+  virtual_path: skills/stss
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/stss
+  - .agents/skills/stss/SKILL.md
+  - .agents/skills/stss/agents/openai.yaml
+  - .agents/skills/stss/references/examples.md
+  deployed_file_hashes:
+    .agents/skills/stss/SKILL.md: sha256:7c969f970a8b095bdd857f7a2ee9c440c7a7ca64827354d42c18c3012521d00c
+    .agents/skills/stss/agents/openai.yaml: sha256:2452069609a07d4ad39179c5929d17c0f0c00bfca423017cfa5ce5669566afd5
+    .agents/skills/stss/references/examples.md: sha256:7c007d45cc5a9ae11306ece686eaba6f94da3fd7632ad621f3aa745d78df8ad5
+  content_hash: sha256:fc6b95cb75f86c244f83b7f044f307a66b036dd06a1ee8b70cc499cb77aba3e8
 - repo_url: leonardomso/rust-skills
   name: rust-skills
   host: github.com
   resolved_commit: fd2a861ab0406a4ac536a55274d14ea6fd1ca9c9
+  resolved_ref: fd2a861ab0406a4ac536a55274d14ea6fd1ca9c9
   version: unknown
   package_type: claude_skill
   deployed_files:
@@ -612,9 +632,9 @@ dependencies:
   - .agents/skills/rust-skills/rules/unsafe-send-sync-manual.md
   deployed_file_hashes:
     .agents/skills/rust-skills/.github/workflows/ci.yml: sha256:968afee6f0146675bb296dd06515677a0b1fdc0916a37ba73196038593d2ae8c
-    .agents/skills/rust-skills/AGENTS.md: sha256:0e95f5a3666031d6fac42bc6ca698b40b61648f4974c8ec355181ed4888c5c26
+    .agents/skills/rust-skills/AGENTS.md: sha256:5a74070e740c8aacec1264adfc537daeab14c0f629bb604943295c08fd9252e6
     .agents/skills/rust-skills/CHANGELOG.md: sha256:a54170f74bb352598518df6fc6bcca15f260b485e147ff607ad959f454e8590c
-    .agents/skills/rust-skills/CLAUDE.md: sha256:0e95f5a3666031d6fac42bc6ca698b40b61648f4974c8ec355181ed4888c5c26
+    .agents/skills/rust-skills/CLAUDE.md: sha256:5a74070e740c8aacec1264adfc537daeab14c0f629bb604943295c08fd9252e6
     .agents/skills/rust-skills/CONTRIBUTING.md: sha256:37f9fc8ed5f9f01cbfd5f53a5dec75b925233c21e28b07ac17c59dcebfd7b8c4
     .agents/skills/rust-skills/LICENSE: sha256:663ce6f8f087dc366602ac34eefd4cf71a5d8db411359422298a1399a014a9d5
     .agents/skills/rust-skills/README.md: sha256:d4b4aa637b20b3d1c7a1a7f71919de1ca293a588d5346ba29a60eec1ba0085ca
@@ -896,7 +916,7 @@ dependencies:
     .agents/skills/rust-skills/rules/unsafe-no-mangle-unsafe.md: sha256:429ffbd81bcf9f749614472a06c9ea2c14f3d242294318797ba5e30d7d559cd7
     .agents/skills/rust-skills/rules/unsafe-safety-comment.md: sha256:4892500c59f446eb8031fcf2cc98bf64f3323276abee0355409f4af53cbdcaab
     .agents/skills/rust-skills/rules/unsafe-send-sync-manual.md: sha256:106ca8ba1843ec8dfe9658c5db41fd99d106bcf2b8b4ece41e8db1dd347372f2
-  content_hash: sha256:3dd93033dd9a6b3f5c2631ef7b5a0ea50c57a4e1a63fb92d2a43797814a0ab3f
+  content_hash: sha256:b0a055da7be8a53d7e9a15fa84ea7371d8564a7498f0a531aecf16b75213ee72
 - repo_url: luoling8192/create-pr-with-evidence-skill
   name: create-pr-with-evidence
   host: github.com
@@ -2016,7 +2036,7 @@ deployments:
   owners:
   - leonardomso/rust-skills
   active_owner: leonardomso/rust-skills
-  content_hash: sha256:0e95f5a3666031d6fac42bc6ca698b40b61648f4974c8ec355181ed4888c5c26
+  content_hash: sha256:5a74070e740c8aacec1264adfc537daeab14c0f629bb604943295c08fd9252e6
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/rust-skills/CHANGELOG.md
@@ -2034,7 +2054,7 @@ deployments:
   owners:
   - leonardomso/rust-skills
   active_owner: leonardomso/rust-skills
-  content_hash: sha256:0e95f5a3666031d6fac42bc6ca698b40b61648f4974c8ec355181ed4888c5c26
+  content_hash: sha256:5a74070e740c8aacec1264adfc537daeab14c0f629bb604943295c08fd9252e6
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/rust-skills/CONTRIBUTING.md
@@ -4762,6 +4782,42 @@ deployments:
   - lennney/stop-that-shit/skills/stop-that-shit
   active_owner: lennney/stop-that-shit/skills/stop-that-shit
   content_hash: sha256:e899bc82bf4aa161c7fd4a19e163abddbe43418315ac29a865217dee76deb0db
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/stss
+  runtime: null
+  scope: project
+  owners:
+  - lennney/stop-that-shit/skills/stss
+  active_owner: lennney/stop-that-shit/skills/stss
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/stss/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - lennney/stop-that-shit/skills/stss
+  active_owner: lennney/stop-that-shit/skills/stss
+  content_hash: sha256:7c969f970a8b095bdd857f7a2ee9c440c7a7ca64827354d42c18c3012521d00c
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/stss/agents/openai.yaml
+  runtime: null
+  scope: project
+  owners:
+  - lennney/stop-that-shit/skills/stss
+  active_owner: lennney/stop-that-shit/skills/stss
+  content_hash: sha256:2452069609a07d4ad39179c5929d17c0f0c00bfca423017cfa5ce5669566afd5
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/stss/references/examples.md
+  runtime: null
+  scope: project
+  owners:
+  - lennney/stop-that-shit/skills/stss
+  active_owner: lennney/stop-that-shit/skills/stss
+  content_hash: sha256:7c007d45cc5a9ae11306ece686eaba6f94da3fd7632ad621f3aa745d78df8ad5
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vite

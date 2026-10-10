@@ -29,33 +29,8 @@ if [[ "$prepare_fixture" == 1 ]]; then
 fi
 pnpm install --frozen-lockfile --prefer-offline
 
-electron_package_dir="$(
-  cd apps/desktop
-  node -p 'require("node:path").dirname(require.resolve("electron/package.json"))'
-)"
-electron_version="$(node -p "require('$electron_package_dir/package.json').version")"
-electron_archive="electron-v${electron_version}-linux-x64.zip"
-electron_cache_dir=/root/.cache/heron-electron
-electron_cache="$electron_cache_dir/$electron_archive"
-electron_checksum="$(
-  node -p "require('$electron_package_dir/checksums.json')['$electron_archive']"
-)"
-
-mkdir -p "$electron_cache_dir" "$electron_package_dir/dist"
-if ! printf '%s  %s\n' "$electron_checksum" "$electron_cache" | sha256sum --check --status; then
-  curl \
-    --continue-at - \
-    --fail \
-    --location \
-    --retry 5 \
-    --retry-all-errors \
-    --retry-delay 2 \
-    "https://github.com/electron/electron/releases/download/v${electron_version}/${electron_archive}" \
-    --output "$electron_cache"
-fi
-printf '%s  %s\n' "$electron_checksum" "$electron_cache" | sha256sum --check --status
-unzip -q -o "$electron_cache" -d "$electron_package_dir/dist"
-printf 'electron' > "$electron_package_dir/path.txt"
+electron_config_cache=/root/.cache/heron-electron \
+  pnpm --filter @heron/desktop exec node node_modules/electron/install.js
 
 fixture_build_type="${HERON_DOCKER_BUILD_TYPE:-Release}"
 if [[ "$prepare_fixture" == 1 ]]; then
@@ -109,7 +84,7 @@ class_id="$(node -e '
 
 electron="$(cd apps/desktop && node -e 'process.stdout.write(require("electron"))')"
 if [[ ! -x "$electron" ]]; then
-  echo "Electron executable is missing after verified extraction: $electron" >&2
+  echo "Electron executable is missing after installation: $electron" >&2
   exit 1
 fi
 app_path="$work_root/apps/desktop/scripts/vst3-editor-smoke-app"

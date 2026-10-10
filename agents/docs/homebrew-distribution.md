@@ -9,7 +9,7 @@ Application versions and build artifacts remain owned here. See
 
 1. Update VERSION and synchronize package versions using existing release tooling.
 2. Push the matching v-prefixed tag. The publish workflow validates, signs,
-   notarizes, and uploads artifacts to a draft Release with SHA256SUMS.
+   notarizes, and uploads installers to a draft Release.
 3. Publish the reviewed Release. `notify-homebrew-tap.yml` notifies the Tap for
    non-prerelease v-prefixed releases independently of update-manifest promotion.
 4. The Tap re-reads the latest stable Release, verifies the downloaded DMG,
@@ -17,7 +17,8 @@ Application versions and build artifacts remain owned here. See
 
 Preparing an unreleased development version does not update the Cask. Drafts
 and prereleases do not advance it. Preserve published assets; the Tap rejects
-same-version checksum changes and automatic downgrades.
+same-version asset digest changes and automatic downgrades. The Tap reads the
+DMG digest supplied by GitHub's release API and writes it into the Cask.
 
 ## Setup and recovery
 

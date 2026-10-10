@@ -1,5 +1,4 @@
 import assert from "node:assert/strict"
-import { createHash } from "node:crypto"
 import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises"
 import { join, sep } from "node:path"
 import { tmpdir } from "node:os"
@@ -92,10 +91,7 @@ const version = "1.0.0"
 const sourceCommit = "a".repeat(40)
 const platform = "linux-x64" as const
 
-function lockedRelease(
-  hash: string,
-  suiteVersion = version
-): PluginLock & { release: PluginRelease } {
+function lockedRelease(suiteVersion = version): PluginLock & { release: PluginRelease } {
   return {
     schemaVersion: 1,
     repository: PLUGIN_REPOSITORY,
@@ -106,8 +102,8 @@ function lockedRelease(
         PLUGIN_PLATFORMS.map((platform) => [
           platform,
           {
-            runtime: { file: pluginAssetName(suiteVersion, platform), sha256: hash },
-            symbols: { file: pluginAssetName(suiteVersion, platform, true), sha256: hash }
+            runtime: { file: pluginAssetName(suiteVersion, platform) },
+            symbols: { file: pluginAssetName(suiteVersion, platform, true) }
           }
         ])
       ) as PluginRelease["assets"]
@@ -185,10 +181,6 @@ function fixtureDebugInfo(path: string): PluginDebugInfo {
 async function symbolsWorkspace(context: TestContext, archive = symbolsArchive()) {
   const fixture = await workspace(context, archive)
   const runtime = runtimeArchive()
-  fixture.lock.release.assets[platform].runtime.sha256 = createHash("sha256")
-    .update(runtime)
-    .digest("hex")
-  await writeFile(join(fixture.root, "heron-plugins.lock.json"), JSON.stringify(fixture.lock))
   return {
     ...fixture,
     fetchArtifact: async (url: string) =>
@@ -199,13 +191,12 @@ async function symbolsWorkspace(context: TestContext, archive = symbolsArchive()
 async function workspace(context: TestContext, archive = runtimeArchive()) {
   const root = await mkdtemp(join(tmpdir(), "heron-plugin-artifact-"))
   context.after(() => rm(root, { recursive: true, force: true }))
-  const hash = createHash("sha256").update(archive).digest("hex")
-  const lock = lockedRelease(hash)
+  const lock = lockedRelease()
   await writeFile(join(root, "heron-plugins.lock.json"), JSON.stringify(lock))
-  return { root, lock, archive, hash }
+  return { root, lock, archive }
 }
 
-await test("preparation verifies pinned bytes, preserves executable modes and replaces stale bundles", async (context) => {
+await test("preparation stages the locked release, preserves executable modes and replaces stale bundles", async (context) => {
   const { root, archive } = await workspace(context)
   await mkdir(join(root, "target/bundles/obsolete.vst3"), { recursive: true })
   await writeFile(join(root, "target/bundles/obsolete.vst3/old"), "old")
@@ -267,15 +258,20 @@ await test("failed or interrupted downloads preserve the existing stage and neve
       preparePluginArtifacts({ workspace: root, platform, fetchArtifact: async () => response })
     )
     assert.equal(await readFile(join(root, "target/bundles/previous"), "utf8"), "known-good")
-    assert.deepEqual(await readdir(join(root, "target/plugin-artifacts")), [])
+    assert.deepEqual(await readdir(join(root, "target/plugin-artifacts", version, platform)), [])
   }
 })
 
 await test("corrupted offline caches fail without replacing a stage; online preparation repairs the cache", async (context) => {
-  const { root, hash, archive } = await workspace(context)
-  await mkdir(join(root, "target/plugin-artifacts"), { recursive: true })
-  await writeFile(join(root, "target/plugin-artifacts", `${hash}.zip`), "corrupt")
+  const { root, archive } = await workspace(context)
+  const cached = join(root, "target/plugin-artifacts", version, platform)
+  await mkdir(cached, { recursive: true })
+  await writeFile(join(cached, pluginAssetName(version, platform)), "corrupt")
+  await mkdir(join(root, "target/bundles"), { recursive: true })
+  await writeFile(join(root, "target/bundles/previous"), "known-good")
   await assert.rejects(preparePluginArtifacts({ workspace: root, platform, offline: true }))
+  assert.equal(await readFile(join(root, "target/bundles/previous"), "utf8"), "known-good")
+  assert.deepEqual(await readdir(cached), [])
   await preparePluginArtifacts({
     workspace: root,
     platform,
@@ -346,11 +342,7 @@ await test("a slow preparation cannot overwrite a newer locked and published sta
   })
   await started.promise
   const updated = runtimeArchive(62, "1.1.0")
-  const hash = createHash("sha256").update(updated).digest("hex")
-  await writeFile(
-    join(root, "heron-plugins.lock.json"),
-    JSON.stringify(lockedRelease(hash, "1.1.0"))
-  )
+  await writeFile(join(root, "heron-plugins.lock.json"), JSON.stringify(lockedRelease("1.1.0")))
   const destination = await preparePluginArtifacts({
     workspace: root,
     platform,
@@ -470,7 +462,7 @@ await test("upgrade versions remain stable semver with numerically ordered compo
     assert.throws(() => stablePluginVersion(invalid))
 })
 
-await test("concurrent prepares share verified downloads and publish a complete stage", async (context) => {
+await test("concurrent prepares use the release cache and publish a complete stage", async (context) => {
   const { root, archive } = await workspace(context)
   await Promise.all(
     [1, 2].map(() =>
@@ -494,22 +486,29 @@ await test("the updater pins all platform artifacts to the published tag commit 
     pluginAssetName(version, platform),
     pluginAssetName(version, platform, true)
   ])
-  const digest = "e".repeat(64)
+  const urls: string[] = []
   const fetchRelease = async (url: string) => {
-    if (url.endsWith("SHA256SUMS"))
-      return new Response(files.map((file) => `${digest}  ${file}`).join("\n"))
+    urls.push(url)
     if (url.includes("/commits/")) return Response.json({ sha: sourceCommit })
     return Response.json({
       tag_name: `v${version}`,
       draft: false,
       prerelease: false,
-      assets: files.map((name) => ({ name, digest: `sha256:${digest}` }))
+      assets: files.map((name) => ({ name }))
     })
   }
   const lock = await pluginLockFromRelease(version, fetchRelease)
   assert.equal(lock.release?.sourceCommit, sourceCommit)
   assert(lock.release)
   assert.equal(Object.keys(lock.release.assets).length, 4)
+  assert.deepEqual(urls, [
+    `https://api.github.com/repos/${PLUGIN_REPOSITORY}/releases/tags/v${version}`,
+    `https://api.github.com/repos/${PLUGIN_REPOSITORY}/commits/v${version}`
+  ])
+  assert.deepEqual(lock.release.assets[platform], {
+    runtime: { file: pluginAssetName(version, platform) },
+    symbols: { file: pluginAssetName(version, platform, true) }
+  })
   assert.throws(() => parsePluginLock({ ...lock, repository: "untrusted/repo" }))
   await assert.rejects(
     pluginLockFromRelease(version, async (url) => {
@@ -546,9 +545,8 @@ await test("latest notifications converge on the newest release and reject mutat
   const fetchRelease = async (url: string) => {
     const selectedVersion = url.includes("v1.0.0") ? "1.0.0" : "1.1.0"
     const files = filesFor(selectedVersion)
-    if (url.endsWith("SHA256SUMS"))
-      return new Response(files.map((file) => `${"e".repeat(64)}  ${file}`).join("\n"))
-    if (url.includes("/commits/")) return Response.json({ sha: sourceCommit })
+    if (url.includes("/commits/"))
+      return Response.json({ sha: selectedVersion === "1.0.0" ? "b".repeat(40) : sourceCommit })
     return Response.json({
       tag_name: `v${selectedVersion}`,
       draft: false,
@@ -569,16 +567,14 @@ await test("rolling upgrades cannot regress or mutate an unmerged lock ahead of 
   const { root } = await workspace(context)
   const before = await readFile(join(root, "heron-plugins.lock.json"), "utf8")
   let latest = "1.1.0"
-  let digest = "e".repeat(64)
+  let publishedCommit = sourceCommit
   const fetchRelease = async (url: string) => {
     const selected = /\/v(\d+\.\d+\.\d+)/u.exec(url)?.[1] ?? latest
     const files = PLUGIN_PLATFORMS.flatMap((platform) => [
       pluginAssetName(selected, platform),
       pluginAssetName(selected, platform, true)
     ])
-    if (url.endsWith("SHA256SUMS"))
-      return new Response(files.map((file) => `${digest}  ${file}`).join("\n"))
-    if (url.includes("/commits/")) return Response.json({ sha: sourceCommit })
+    if (url.includes("/commits/")) return Response.json({ sha: publishedCommit })
     return Response.json({
       tag_name: `v${selected}`,
       draft: false,
@@ -590,10 +586,10 @@ await test("rolling upgrades cannot regress or mutate an unmerged lock ahead of 
   await assert.rejects(updatePluginLockToLatest(root, fetchRelease, pending), /downgrades/u)
   assert.equal(await readFile(join(root, "heron-plugins.lock.json"), "utf8"), before)
   latest = "1.2.0"
-  digest = "f".repeat(64)
+  publishedCommit = "b".repeat(40)
   await assert.rejects(updatePluginLockToLatest(root, fetchRelease, pending), /immutable/u)
   assert.equal(await readFile(join(root, "heron-plugins.lock.json"), "utf8"), before)
-  digest = "e".repeat(64)
+  publishedCommit = sourceCommit
   assert.equal(await updatePluginLockToLatest(root, fetchRelease, pending), true)
   assert.deepEqual(
     parsePluginLock(JSON.parse(await readFile(join(root, "heron-plugins.lock.json"), "utf8"))),

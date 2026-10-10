@@ -39,7 +39,7 @@ builds, and tagged releases.
   (Build with `full_release_profile: true`), and creates a draft GitHub Release
   only after both succeed. It stages verified update manifests on the
   `update-manifests` branch before creating the draft, while Release assets
-  contain installers and checksums only.
+  contain installers only.
 - **Publish update manifests** (`.github/workflows/publish-updates.yml`) handles
   the Release `published` event. It promotes the staged manifests and dispatches
   the shared Pages workflow from `main`, the branch allowed by the Pages
@@ -56,7 +56,7 @@ builds, and tagged releases.
 - Manual `workflow_dispatch` runs are available on `CI`, `Test`, and `Build`.
 - Tags beginning with `v` run `Publish`, which calls `Test` and `Build`. After
   both succeed, `Publish` downloads the Build artifacts, stages update metadata,
-  and adds the installers, a `SHA256SUMS` file, generated release notes, and
+  and adds the installers, generated release notes, and
   (for public repositories) GitHub artifact attestations to a draft GitHub
   Release. Publishing the draft makes the update manifests available at
   `https://heron.minori.live/updates/` after the Pages deployment succeeds.
