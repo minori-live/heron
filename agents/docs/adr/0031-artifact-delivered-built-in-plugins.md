@@ -49,10 +49,14 @@ that leaves the inventory remains unavailable with its state retained. Native
 Class IDs, parameter IDs and state semantics remain compatibility commitments;
 no project database migration is required.
 
-Plug-in updates arrive through Heron application updates. A stable producer
-release can open a dependency upgrade PR through a scoped PAT; merge remains a
-maintainer action. Release selection rejects downgrades and changes to the same
-published version.
+Plug-in updates arrive through Heron application updates. The producer owns
+opening dependency upgrade PRs and is the only repository configured with the
+scoped PAT. It checks out Heron's trusted main and executes the consumer-owned
+lock and artifact validation commands before pushing the upgrade branch; Heron
+needs no notification receiver. Merge remains a maintainer action. Release
+selection rejects downgrades and changes to the same published version,
+including unmerged upgrades. The first release is pinned and validated manually
+before the consumer commands become available on Heron main.
 
 The producer publishes symbols and source bundles without configuring Sentry
 in this migration. Heron uploads the pinned VST3 symbols to its existing project.

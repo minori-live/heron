@@ -41,15 +41,22 @@ source bundles; its own Sentry configuration and runtime capture are deferred.
 
 ## Automatic upgrade PRs
 
-Configure `HERON_PLUGINS_SYNC_TOKEN` in both repositories with a fine-grained
+Configure `HERON_PLUGINS_SYNC_TOKEN` only in `heron-plugins`, using a fine-grained
 PAT limited to `minori-live/heron`: Contents write and Pull requests write.
-Deploy the Heron receiver workflow on main before enabling producer notifications.
-A stable published release sends `heron-plugins-release-published`; the receiver
-validates the latest stable release and maintains the
-`dsh0416/update-heron-plugins` branch and one PR. The PR runs normal CI and is
-merged manually. Repeated notifications are no-ops; downgrades and same-version
-checksum changes are rejected. Use workflow_dispatch to retry a failed
-notification or dependency update.
+The producer's stable-release workflow checks out Heron's trusted main and runs
+the consumer-owned `plugins:update` and `plugins:prepare` commands. It verifies
+the latest stable release and maintains the `dsh0416/update-heron-plugins` branch
+and one manually merged PR. The PAT makes normal Heron PR CI run automatically.
+Heron needs no synchronization secret or release-notification receiver.
+
+Deploy the consumer scripts and initialized lock on Heron main before relying
+on automatic updates. Bootstrap the first release manually using the commands
+above; a producer update failure does not revoke its published release. Retry
+the producer's workflow_dispatch after bootstrap or a failed update. Repeated
+runs preserve the existing upgrade commit when main and the selected lock are
+unchanged, and recover a missing PR after a successful branch push. Downgrades
+and same-version source or checksum changes are rejected against both main and
+the pending upgrade.
 
 ## First cutover and validation
 
