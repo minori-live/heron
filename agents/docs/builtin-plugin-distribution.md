@@ -3,6 +3,10 @@
 The producer is [heron-plugins](https://github.com/minori-live/heron-plugins).
 It owns plug-in sources and releases; Heron owns integration with its embedded
 audio runtime. See [ADR-0031](adr/0031-artifact-delivered-built-in-plugins.md).
+Plugin engineering, testing, architecture and native UI rules are maintained in
+the producer's [documentation index](https://github.com/minori-live/heron-plugins/blob/main/agents/docs/README.md).
+Heron's [EQ integration notes](heron-eq.md) retain host and fitted-preset acceptance;
+plugin DSP/editor requirements live in the producer.
 
 ## Dependency preparation
 
