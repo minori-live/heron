@@ -4,6 +4,9 @@ mod dpi {
     include!("windows_dpi.rs");
 }
 
+#[path = "windows_surface.rs"]
+mod surface;
+
 type Hwnd = *mut c_void;
 type Hinstance = *mut c_void;
 
@@ -22,8 +25,8 @@ struct Point {
     y: i32,
 }
 
+#[cfg(test)]
 const WS_CHILD: u32 = 0x4000_0000;
-const WS_VISIBLE: u32 = 0x1000_0000;
 const WS_CLIPSIBLINGS: u32 = 0x0400_0000;
 const WS_CLIPCHILDREN: u32 = 0x0200_0000;
 const SWP_NOACTIVATE: u32 = 0x0010;
@@ -99,6 +102,10 @@ impl InputTransform {
 }
 
 pub struct Container {
+    // Destroy the surface and its plug-in child HWNDs before their input
+    // subclass reference data below is released.
+    surface: surface::Surface,
+    #[cfg(test)]
     hwnd: Hwnd,
     attached_view: Hwnd,
     input_transform: Box<InputTransform>,
@@ -125,31 +132,11 @@ impl Container {
         geometry: NativeContainerGeometry,
         platform_scaled: bool,
     ) -> Result<Self, String> {
-        let class_name = [
-            'S' as u16, 'T' as u16, 'A' as u16, 'T' as u16, 'I' as u16, 'C' as u16, 0,
-        ];
-        let hwnd = with_native_child_scale_context(platform_scaled, || unsafe {
-            // SAFETY: all pointers are static UTF-16 data, null, or a live Electron HWND.
-            CreateWindowExW(
-                0,
-                class_name.as_ptr(),
-                std::ptr::null(),
-                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-                geometry.x,
-                geometry.y,
-                nonzero_extent(geometry.frame_width) as i32,
-                nonzero_extent(geometry.frame_height) as i32,
-                parent,
-                std::ptr::null_mut(),
-                hinstance,
-                std::ptr::null_mut(),
-            )
-        });
-        if hwnd.is_null() {
-            return Err("CreateWindowExW failed for VST3 child container".into());
-        }
+        let surface = surface::Surface::create(parent, hinstance, geometry)?;
         Ok(Self {
-            hwnd,
+            #[cfg(test)]
+            hwnd: surface.handle(),
+            surface,
             attached_view: std::ptr::null_mut(),
             input_transform: Box::new(InputTransform::new()),
             platform_scaled,
@@ -157,22 +144,18 @@ impl Container {
     }
 
     pub fn attach_handle(&self) -> *mut c_void {
-        self.hwnd
+        self.surface.handle()
     }
 
     pub fn resize(&mut self, geometry: NativeContainerGeometry) {
+        self.surface.resize(geometry);
+        let hwnd = self.surface.handle();
+        if hwnd.is_null() {
+            return;
+        }
         unsafe {
-            // SAFETY: hwnd is live until Drop and dimensions are clamped non-zero.
-            SetWindowPos(
-                self.hwnd,
-                std::ptr::null_mut(),
-                geometry.x,
-                geometry.y,
-                nonzero_extent(geometry.frame_width) as i32,
-                nonzero_extent(geometry.frame_height) as i32,
-                SWP_NOACTIVATE | SWP_NOZORDER,
-            );
-            let attached_view = GetWindow(self.hwnd, GW_CHILD);
+            // SAFETY: the surface owns this live HWND on the current UI thread.
+            let attached_view = GetWindow(hwnd, GW_CHILD);
             if !attached_view.is_null() {
                 self.resize_attached_view(attached_view, geometry);
             }
@@ -267,10 +250,7 @@ impl Container {
     }
 
     pub fn focus(&self) {
-        unsafe {
-            // SAFETY: hwnd is a live child window owned by this UI thread.
-            SetFocus(self.hwnd);
-        }
+        self.surface.focus();
     }
 }
 
@@ -358,15 +338,6 @@ fn point_lparam(x: i32, y: i32) -> isize {
     let x = x.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16 as u16;
     let y = y.clamp(i32::from(i16::MIN), i32::from(i16::MAX)) as i16 as u16;
     ((u32::from(y) << 16) | u32::from(x)) as isize
-}
-
-impl Drop for Container {
-    fn drop(&mut self) {
-        unsafe {
-            // SAFETY: hwnd is destroyed exactly once by its owning UI thread.
-            DestroyWindow(self.hwnd);
-        }
-    }
 }
 
 #[link(name = "user32")]

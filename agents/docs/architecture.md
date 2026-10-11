@@ -169,9 +169,12 @@ bounded mailbox and wakes Electron main through a non-blocking N-API
 threadsafe function. Electron drains at most one bounded batch per turn and
 owns the platform application loop; the embedded runtime never creates or
 pumps a winit event loop. Electron `BaseWindow` owns each native plug-in editor
-surface and a sandboxed `WebContentsView` toolbar; Rust attaches only the
-platform child view below that toolbar and returns resize/state requests through
-a bounded queue drained by Electron main.
+surface and a sandboxed `WebContentsView` toolbar; Rust attaches the platform
+native view below that toolbar and returns resize/state requests through a
+bounded queue drained by Electron main. Windows uses a borderless owned native
+popup so plug-in OpenGL rendering remains independent of Chromium composition;
+native owner notifications synchronize its position and visibility. See
+[ADR-0033](adr/0033-windows-native-editor-surfaces.md).
 
 ## Audio plug-in formats
 

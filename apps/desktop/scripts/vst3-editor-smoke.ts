@@ -2,7 +2,7 @@ import { resolve } from "node:path"
 import { writeFile } from "node:fs/promises"
 import { decode, encode } from "@msgpack/msgpack"
 import { AudioHostRuntime } from "@heron/dsp-node"
-import { app, BaseWindow, desktopCapturer } from "electron"
+import { app, BaseWindow, desktopCapturer, Menu, screen } from "electron"
 import {
   ElectronPluginEditorWindows,
   type PluginEditorToolbarAction
@@ -60,7 +60,7 @@ interface WireResponse {
 }
 
 const repositoryRoot = resolve(import.meta.dirname, "..", "..", "..")
-const smokeArgumentsMarker = "heron-editor-smoke-arguments:"
+const smokeArgumentsMarker = "heron-editor-smoke-arguments"
 const smokeArgumentsMarkerIndex = process.argv.indexOf(smokeArgumentsMarker)
 const smokeArguments =
   smokeArgumentsMarkerIndex === -1
@@ -85,6 +85,7 @@ const initialObservationDelayMs = Number.parseInt(
   10
 )
 const requireInteraction = process.env.HERON_EDITOR_SMOKE_REQUIRE_INTERACTION === "1"
+const initialScreenshotPath = process.env.HERON_EDITOR_SMOKE_INITIAL_SCREENSHOT
 const screenshotPath = process.env.HERON_EDITOR_SMOKE_SCREENSHOT
 if (!Number.isFinite(observationDelayMs) || observationDelayMs < 0 || observationDelayMs > 60_000) {
   throw new Error("HERON_EDITOR_SMOKE_DELAY_MS must be between 0 and 60000")
@@ -96,8 +97,68 @@ if (
 ) {
   throw new Error("HERON_EDITOR_SMOKE_INITIAL_DELAY_MS must be between 0 and 60000")
 }
+
+async function captureEditorScreenshot(path: string, phase: "initial" | "final"): Promise<void> {
+  const title = "Editor Smoke — VST3 Fixture"
+  if (process.platform === "win32") {
+    // A window-only capture omits the owned native surface and toolbar windows.
+    // Capture their composed desktop pixels, including the native editor controls.
+    const owner = BaseWindow.getAllWindows().find((window) => window.getTitle() === title)
+    if (!owner) throw new Error(`could not find the ${phase} native editor smoke window`)
+    // Exclude the frame shadow and surrounding desktop from shareable evidence.
+    const bounds = owner.getContentBounds()
+    const display = screen.getDisplayMatching(bounds)
+    const displayBounds = display.bounds
+    if (
+      bounds.width <= 0 ||
+      bounds.height <= 0 ||
+      bounds.x < displayBounds.x ||
+      bounds.y < displayBounds.y ||
+      bounds.x + bounds.width > displayBounds.x + displayBounds.width ||
+      bounds.y + bounds.height > displayBounds.y + displayBounds.height
+    ) {
+      throw new Error(`the ${phase} native editor smoke window is not fully within one display`)
+    }
+    const sources = await desktopCapturer.getSources({
+      types: ["screen"],
+      thumbnailSize: {
+        width: Math.ceil(displayBounds.width * display.scaleFactor),
+        height: Math.ceil(displayBounds.height * display.scaleFactor)
+      }
+    })
+    const source = sources.find((candidate) => candidate.display_id === String(display.id))
+    if (!source || source.thumbnail.isEmpty()) {
+      throw new Error(`could not capture the ${phase} native editor smoke display`)
+    }
+    const imageSize = source.thumbnail.getSize()
+    const scaleX = imageSize.width / displayBounds.width
+    const scaleY = imageSize.height / displayBounds.height
+    const x = Math.floor((bounds.x - displayBounds.x) * scaleX)
+    const y = Math.floor((bounds.y - displayBounds.y) * scaleY)
+    const right = Math.ceil((bounds.x + bounds.width - displayBounds.x) * scaleX)
+    const bottom = Math.ceil((bounds.y + bounds.height - displayBounds.y) * scaleY)
+    await writeFile(
+      path,
+      source.thumbnail.crop({ x, y, width: right - x, height: bottom - y }).toPNG()
+    )
+    return
+  }
+  const sources = await desktopCapturer.getSources({
+    types: ["window"],
+    thumbnailSize: { width: 1962, height: 1464 }
+  })
+  const source = sources.find((candidate) => candidate.name === title)
+  if (!source || source.thumbnail.isEmpty()) {
+    throw new Error(`could not capture the ${phase} native editor smoke window`)
+  }
+  await writeFile(path, source.thumbnail.toPNG())
+}
+
 async function run(): Promise<void> {
   console.log("VST3 editor smoke: Electron ready")
+  // Match installApplicationMenu: the app has no in-window menu outside macOS.
+  // Electron's default smoke-app menu otherwise shifts content below the HWND client origin.
+  if (process.platform !== "darwin") Menu.setApplicationMenu(null)
   const parent = new BaseWindow({
     title: "Heron VST3 editor smoke",
     show: false,
@@ -283,6 +344,7 @@ async function run(): Promise<void> {
       console.log("VST3 editor smoke: observing initial native attachment")
       await new Promise((resolveWait) => setTimeout(resolveWait, initialObservationDelayMs))
     }
+    if (initialScreenshotPath) await captureEditorScreenshot(initialScreenshotPath, "initial")
     const toolbar = client.editorToolbarState("editor-smoke")
     if (!toolbar?.canCompare || toolbar.compareSlot !== "a") {
       throw new Error("native editor toolbar state is unavailable")
@@ -334,16 +396,8 @@ async function run(): Promise<void> {
         contentSize: window.getContentSize()
       }))
     )
-    if (screenshotPath) {
-      const sources = await desktopCapturer.getSources({
-        types: ["window"],
-        thumbnailSize: { width: 1962, height: 1464 }
-      })
-      const source = sources.find((candidate) => candidate.name === "Editor Smoke — VST3 Fixture")
-      if (!source) throw new Error("could not capture the native editor smoke window")
-      await writeFile(screenshotPath, source.thumbnail.toPNG())
-    }
     await new Promise((resolveWait) => setTimeout(resolveWait, observationDelayMs))
+    if (screenshotPath) await captureEditorScreenshot(screenshotPath, "final")
     const changedParameters = (await readParameters()).filter(
       (parameter) => beforeInteraction.get(parameter.parameter_key) !== parameter.normalized
     )

@@ -106,8 +106,12 @@ the final module lifetime; context teardown still follows library teardown.
 
 Electron main creates one `BaseWindow` per native plug-in editor and registers
 its platform handle before sending `OpenPluginEditor`. A sandboxed
-`WebContentsView` renders the host-owned toolbar at the top of that window;
-Rust creates only the native child container and VST3 view below it. Toolbar
+`WebContentsView` in a separate owned window renders the host toolbar at the top;
+Rust creates the native container and plug-in view below it. On Windows the
+container is an owned borderless popup, avoiding Chromium composition conflicts
+with OpenGL plug-in editors. Owner notifications keep its position and visibility
+synchronized without adding another event loop; see
+[ADR-0033](adr/0033-windows-native-editor-surfaces.md). Toolbar
 A/B, clipboard, undo/redo, and zoom actions use typed asynchronous control
 requests. Tokio routes them through the same bounded UI mailbox, so Electron's
 request caller never waits synchronously for plug-in state save or restore
