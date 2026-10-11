@@ -13,8 +13,7 @@ async function entries(path: string) {
 export async function stageSentrySymbols(
   target: string,
   mainBundle: string,
-  destination: string,
-  pluginSymbols?: string
+  destination: string
 ): Promise<void> {
   await rm(destination, { recursive: true, force: true })
   await mkdir(destination, { recursive: true })
@@ -29,11 +28,7 @@ export async function stageSentrySymbols(
   for (const profile of profiles) {
     const files = await entries(profile)
     for (const entry of files) {
-      if (
-        !/^(?:lib)?heron[-_]/.test(entry.name) ||
-        /\.(?:rlib|rmeta|d|a|exp|lib)$/.test(entry.name)
-      )
-        continue
+      if (!/^(?:lib)?heron_dsp_node\.(?:so|dll|pdb|dylib(?:\.dSYM)?)$/.test(entry.name)) continue
       if (/^(?:lib)?heron_dsp_node\.(?:dylib|so|dll)$/.test(entry.name)) {
         addonFound = true
         if (
@@ -56,13 +51,4 @@ export async function stageSentrySymbols(
     }
   }
   if (!addonFound) throw new Error("No Heron native addon found in the release build")
-  if (pluginSymbols) {
-    await cp(join(pluginSymbols, "symbols"), join(destination, "native", "heron-plugins"), {
-      recursive: true
-    })
-    await cp(
-      join(pluginSymbols, "symbols-manifest.json"),
-      join(destination, "heron-plugins-symbols-manifest.json")
-    )
-  }
 }

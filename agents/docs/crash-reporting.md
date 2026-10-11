@@ -20,6 +20,10 @@ main bundles. `pnpm --filter @heron/desktop upload:sentry-symbols --stage-only` 
 local release symbols without network access. Normal invocation stages and uploads
 when all three Sentry environment variables are available.
 
+Uploads cover Heron's application source maps and native addon symbols.
+Plug-in Sentry integration is deferred; plug-in symbols are not downloaded or
+uploaded. See [ADR-0033](adr/0033-runtime-only-plugin-artifacts.md).
+
 To upload a retained artifact manually with the locked CLI, extract it and run
 `sentry-cli debug-files upload --include-sources --wait <artifact>/native`, followed
 by `sentry-cli sourcemaps upload --release heron@<version> --validate <artifact>/main`.

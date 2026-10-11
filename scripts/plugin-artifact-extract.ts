@@ -1,5 +1,5 @@
 import { createRequire } from "node:module"
-import { chmod, lstat, mkdir, readFile, readdir } from "node:fs/promises"
+import { chmod, mkdir, readFile, readdir } from "node:fs/promises"
 import { createWriteStream } from "node:fs"
 import { dirname, join } from "node:path"
 import { pipeline } from "node:stream/promises"
@@ -7,7 +7,6 @@ import { Transform, type Readable } from "node:stream"
 import {
   artifactRelativePath,
   parseBundleManifest,
-  parseSymbolsManifest,
   pluginBinaryPath,
   type PluginPlatform,
   type PluginRelease
@@ -140,27 +139,12 @@ export function validatePluginBinary(bytes: Buffer, platform: PluginPlatform): v
 export async function validateExtractedArtifact(
   directory: string,
   release: PluginRelease,
-  platform: PluginPlatform,
-  symbols: boolean
+  platform: PluginPlatform
 ): Promise<void> {
-  const allowed = symbols
-    ? ["symbols", "symbols-manifest.json"]
-    : ["bundles", "bundle-manifest.json"]
+  const allowed = ["bundles", "bundle-manifest.json"]
   const entries = await readdir(directory)
   if (entries.some((entry) => !allowed.includes(entry)))
     throw new Error("Unexpected plug-in archive root entry")
-  if (symbols) {
-    const manifest = parseSymbolsManifest(
-      JSON.parse(await readFile(join(directory, "symbols-manifest.json"), "utf8")),
-      release,
-      platform
-    )
-    for (const module of manifest.modules) {
-      const file = await lstat(join(directory, module.modulePath))
-      if (!file.isFile() || file.size === 0) throw new Error("Missing plug-in debug module")
-    }
-    return
-  }
   const manifest = parseBundleManifest(
     JSON.parse(await readFile(join(directory, "bundle-manifest.json"), "utf8")),
     release,

@@ -10,8 +10,9 @@ plugin DSP/editor requirements live in the producer.
 
 ## Dependency preparation
 
-`heron-plugins.lock.json` pins one stable release and all four VST3 runtime and
-symbol archives. `release: null` means the first release has not been selected;
+`heron-plugins.lock.json` pins one stable release and all four VST3 runtime
+archives. Obsolete symbol entries in older locks are ignored. `release: null`
+means the first release has not been selected;
 native development and packaging must not bypass that gate.
 
 After the producer publishes its first tested release:
@@ -38,11 +39,10 @@ are standalone producer assets. Heron never downloads them for its application.
 
 ## Symbols
 
-Release symbol upload prepares the locked VST3 symbol asset separately. This
-does not add symbols to ordinary application resources. Heron's own Sentry
-credentials upload both application/addon symbols and the pinned plug-in
-symbols to Heron's project. The producer publishes matching debug files and
-source bundles; its own Sentry configuration and runtime capture are deferred.
+Plug-in Sentry integration is deferred. The producer publishes runtime bundles
+and installers; Heron does not download, validate or upload plug-in symbols.
+Heron's application source maps and native addon symbol uploads continue.
+See [ADR-0033](adr/0033-runtime-only-plugin-artifacts.md).
 
 ## Automatic upgrade PRs
 

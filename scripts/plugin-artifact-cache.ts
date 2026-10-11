@@ -13,16 +13,13 @@ import {
   type PluginRelease
 } from "./plugin-artifact-contract.ts"
 import { extractPluginArchive, validateExtractedArtifact } from "./plugin-artifact-extract.ts"
-import { validatePluginSymbols, type PluginDebugInspector } from "./plugin-symbol-validation.ts"
 import { acquirePluginStageLock } from "./plugin-stage-lock.ts"
 
 export interface PluginPrepareOptions {
   workspace: string
   platform?: PluginPlatform
-  symbols?: boolean
   offline?: boolean
   fetchArtifact?: (url: string) => Promise<Response>
-  debugInfo?: PluginDebugInspector
 }
 
 async function* downloadChunks(body: ReadableStream<Uint8Array>): AsyncGenerator<Uint8Array> {
@@ -93,12 +90,11 @@ async function extractValidatedArchive(
   archive: string,
   staging: string,
   release: PluginRelease,
-  platform: PluginPlatform,
-  symbols: boolean
+  platform: PluginPlatform
 ): Promise<void> {
   try {
     await extractPluginArchive(archive, staging)
-    await validateExtractedArtifact(staging, release, platform, symbols)
+    await validateExtractedArtifact(staging, release, platform)
   } catch (error) {
     await rm(archive, { force: true })
     throw error
@@ -139,13 +135,10 @@ export async function preparePluginArtifacts(options: PluginPrepareOptions): Pro
       "heron-plugins.lock.json is uninitialized. Publish the first tested plug-in release, then run pnpm plugins:update <version>; source-built plug-ins are not a fallback."
     )
   const platform = options.platform ?? currentPluginPlatform()
-  const symbols = options.symbols ?? false
+  const asset = release.assets[platform].runtime
   const target = join(options.workspace, "target")
-  const destination = join(target, symbols ? "heron-plugin-symbols" : "bundles")
-  const stageLock = join(
-    target,
-    symbols ? ".heron-plugin-symbols.gate" : ".heron-plugin-bundles.gate"
-  )
+  const destination = join(target, "bundles")
+  const stageLock = join(target, ".heron-plugin-bundles.gate")
   await mkdir(target, { recursive: true })
   const releaseRecoveryLock = await acquirePluginStageLock(stageLock)
   try {
@@ -153,33 +146,12 @@ export async function preparePluginArtifacts(options: PluginPrepareOptions): Pro
   } finally {
     await releaseRecoveryLock()
   }
-  const asset = release.assets[platform][symbols ? "symbols" : "runtime"]
   const archive = await cachedArchive(options, release.version, platform, asset)
   const staging = await mkdtemp(join(target, ".heron-plugins-"))
-  let runtimeStaging: string | undefined
   try {
-    await extractValidatedArchive(archive, staging, release, platform, symbols)
-    if (symbols) {
-      const runtimeArchive = await cachedArchive(
-        options,
-        release.version,
-        platform,
-        release.assets[platform].runtime
-      )
-      runtimeStaging = await mkdtemp(join(target, ".heron-plugin-runtime-"))
-      await extractValidatedArchive(runtimeArchive, runtimeStaging, release, platform, false)
-      try {
-        await validatePluginSymbols(runtimeStaging, staging, release, platform, options.debugInfo)
-      } catch (error) {
-        await Promise.all([rm(archive, { force: true }), rm(runtimeArchive, { force: true })])
-        throw error
-      }
-    }
-    let source = staging
-    if (!symbols) {
-      source = join(staging, "bundles")
-      await cp(join(staging, "bundle-manifest.json"), join(source, "bundle-manifest.json"))
-    }
+    await extractValidatedArchive(archive, staging, release, platform)
+    const source = join(staging, "bundles")
+    await cp(join(staging, "bundle-manifest.json"), join(source, "bundle-manifest.json"))
     const unlock = await acquirePluginStageLock(stageLock)
     try {
       const current = parsePluginLock(
@@ -193,7 +165,6 @@ export async function preparePluginArtifacts(options: PluginPrepareOptions): Pro
     }
     return destination
   } finally {
-    if (runtimeStaging) await rm(runtimeStaging, { recursive: true, force: true })
     await rm(staging, { recursive: true, force: true })
   }
 }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises"
-import { join, sep } from "node:path"
+import { join } from "node:path"
 import { tmpdir } from "node:os"
 import test, { type TestContext } from "node:test"
 import { crc32 } from "node:zlib"
@@ -10,7 +10,6 @@ import {
   PLUGIN_PLATFORMS,
   PLUGIN_REPOSITORY,
   pluginAssetName,
-  pluginBinaryPath,
   stablePluginVersion,
   REQUIRED_BUILTINS,
   type PluginLock,
@@ -18,7 +17,6 @@ import {
 } from "./plugin-artifact-contract.ts"
 import { preparePluginArtifacts } from "./plugin-artifact-cache.ts"
 import { extractPluginArchive, validatePluginBinary } from "./plugin-artifact-extract.ts"
-import { validatePluginSymbols, type PluginDebugInfo } from "./plugin-symbol-validation.ts"
 import {
   pluginLockFromRelease,
   updatePluginLock,
@@ -102,8 +100,7 @@ function lockedRelease(suiteVersion = version): PluginLock & { release: PluginRe
         PLUGIN_PLATFORMS.map((platform) => [
           platform,
           {
-            runtime: { file: pluginAssetName(suiteVersion, platform) },
-            symbols: { file: pluginAssetName(suiteVersion, platform, true) }
+            runtime: { file: pluginAssetName(suiteVersion, platform) }
           }
         ])
       ) as PluginRelease["assets"]
@@ -137,55 +134,6 @@ function runtimeArchive(machine = 62, suiteVersion = version): Buffer {
       }
     ])
   ])
-}
-
-const fixtureSymbolModules = REQUIRED_BUILTINS.map((plugin) => ({
-  modulePath: `symbols/${plugin.name}.so`,
-  binaryPath: pluginBinaryPath(plugin.bundleName, platform),
-  debugId: plugin.nativeId,
-  arch: "x64" as const
-}))
-
-function symbolsArchive(modules: unknown[] = fixtureSymbolModules): Buffer {
-  return zip([
-    {
-      path: "symbols-manifest.json",
-      bytes: Buffer.from(
-        JSON.stringify({
-          schemaVersion: 1,
-          version,
-          sourceCommit,
-          platform,
-          format: "vst3",
-          modules
-        })
-      )
-    },
-    ...REQUIRED_BUILTINS.map((plugin) => ({
-      path: `symbols/${plugin.name}.so`,
-      bytes: Buffer.from("matching fixture symbols")
-    }))
-  ])
-}
-
-function fixtureDebugInfo(path: string): PluginDebugInfo {
-  const plugin = REQUIRED_BUILTINS.find((plugin) => path.includes(plugin.name))
-  assert(plugin)
-  return {
-    variants: [{ debug_id: plugin.nativeId, arch: "x86_64" }],
-    is_usable: true,
-    features: "symtab, unwind, debug"
-  }
-}
-
-async function symbolsWorkspace(context: TestContext, archive = symbolsArchive()) {
-  const fixture = await workspace(context, archive)
-  const runtime = runtimeArchive()
-  return {
-    ...fixture,
-    fetchArtifact: async (url: string) =>
-      new Response(Uint8Array.from(url.endsWith("-symbols.zip") ? archive : runtime))
-  }
 }
 
 async function workspace(context: TestContext, archive = runtimeArchive()) {
@@ -355,9 +303,7 @@ await test("a slow preparation cannot overwrite a newer locked and published sta
     "1.1.0"
   )
   assert(
-    !(await readdir(join(root, "target"))).some(
-      (entry) => entry.startsWith(".heron-plugins-") || entry.startsWith(".heron-plugin-runtime-")
-    )
+    !(await readdir(join(root, "target"))).some((entry) => entry.startsWith(".heron-plugins-"))
   )
 })
 
@@ -475,17 +421,12 @@ await test("concurrent prepares use the release cache and publish a complete sta
   )
   assert.equal((await readdir(join(root, "target/bundles"))).length, REQUIRED_BUILTINS.length + 1)
   assert(
-    !(await readdir(join(root, "target"))).some(
-      (entry) => entry.startsWith(".heron-plugins-") || entry.startsWith(".heron-plugin-runtime-")
-    )
+    !(await readdir(join(root, "target"))).some((entry) => entry.startsWith(".heron-plugins-"))
   )
 })
 
 await test("the updater pins all platform artifacts to the published tag commit and rejects incomplete releases", async () => {
-  const files = PLUGIN_PLATFORMS.flatMap((platform) => [
-    pluginAssetName(version, platform),
-    pluginAssetName(version, platform, true)
-  ])
+  const files = PLUGIN_PLATFORMS.map((platform) => pluginAssetName(version, platform))
   const urls: string[] = []
   const fetchRelease = async (url: string) => {
     urls.push(url)
@@ -506,8 +447,7 @@ await test("the updater pins all platform artifacts to the published tag commit 
     `https://api.github.com/repos/${PLUGIN_REPOSITORY}/commits/v${version}`
   ])
   assert.deepEqual(lock.release.assets[platform], {
-    runtime: { file: pluginAssetName(version, platform) },
-    symbols: { file: pluginAssetName(version, platform, true) }
+    runtime: { file: pluginAssetName(version, platform) }
   })
   assert.throws(() => parsePluginLock({ ...lock, repository: "untrusted/repo" }))
   await assert.rejects(
@@ -535,13 +475,80 @@ await test("an older dispatch does not downgrade the lock or write changes", asy
   assert.equal(await readFile(join(root, "heron-plugins.lock.json"), "utf8"), before)
 })
 
+await test("legacy symbol metadata does not change the locked runtime identity", async (context) => {
+  const { root, lock } = await workspace(context)
+  const legacy = structuredClone(lock)
+  for (const platform of PLUGIN_PLATFORMS)
+    Object.assign(legacy.release.assets[platform], {
+      symbols: { file: `heron-plugins-${version}-${platform}-vst3-symbols.zip` }
+    })
+  assert.deepEqual(parsePluginLock(legacy), lock)
+  await writeFile(join(root, "heron-plugins.lock.json"), JSON.stringify(legacy))
+  assert.equal(
+    await updatePluginLock(
+      root,
+      version,
+      async (url) =>
+        url.includes("/commits/")
+          ? Response.json({ sha: sourceCommit })
+          : Response.json({
+              tag_name: `v${version}`,
+              draft: false,
+              prerelease: false,
+              assets: PLUGIN_PLATFORMS.map((platform) => ({
+                name: pluginAssetName(version, platform)
+              }))
+            }),
+      legacy
+    ),
+    false
+  )
+})
+
+await test("releases without public symbols can be locked and prepared for runtime use", async (context) => {
+  const { root } = await workspace(context)
+  const suiteVersion = "1.1.0"
+  await updatePluginLock(root, suiteVersion, async (url) =>
+    url.includes("/commits/")
+      ? Response.json({ sha: sourceCommit })
+      : Response.json({
+          tag_name: `v${suiteVersion}`,
+          draft: false,
+          prerelease: false,
+          assets: PLUGIN_PLATFORMS.map((platform) => ({
+            name: pluginAssetName(suiteVersion, platform)
+          }))
+        })
+  )
+  const lock = parsePluginLock(
+    JSON.parse(await readFile(join(root, "heron-plugins.lock.json"), "utf8"))
+  )
+  assert(lock.release)
+  for (const platform of PLUGIN_PLATFORMS)
+    assert.deepEqual(lock.release.assets[platform], {
+      runtime: { file: pluginAssetName(suiteVersion, platform) }
+    })
+  const destination = await preparePluginArtifacts({
+    workspace: root,
+    platform,
+    fetchArtifact: async (url) => {
+      assert.equal(
+        url,
+        `https://github.com/${PLUGIN_REPOSITORY}/releases/download/v${suiteVersion}/${pluginAssetName(suiteVersion, platform)}`
+      )
+      return new Response(Uint8Array.from(runtimeArchive(62, suiteVersion)))
+    }
+  })
+  assert.equal(
+    JSON.parse(await readFile(join(destination, "bundle-manifest.json"), "utf8")).version,
+    suiteVersion
+  )
+})
+
 await test("latest notifications converge on the newest release and reject mutated versions", async (context) => {
   const { root } = await workspace(context)
   const filesFor = (version: string) =>
-    PLUGIN_PLATFORMS.flatMap((platform) => [
-      pluginAssetName(version, platform),
-      pluginAssetName(version, platform, true)
-    ])
+    PLUGIN_PLATFORMS.map((platform) => pluginAssetName(version, platform))
   const fetchRelease = async (url: string) => {
     const selectedVersion = url.includes("v1.0.0") ? "1.0.0" : "1.1.0"
     const files = filesFor(selectedVersion)
@@ -570,10 +577,7 @@ await test("rolling upgrades cannot regress or mutate an unmerged lock ahead of 
   let publishedCommit = sourceCommit
   const fetchRelease = async (url: string) => {
     const selected = /\/v(\d+\.\d+\.\d+)/u.exec(url)?.[1] ?? latest
-    const files = PLUGIN_PLATFORMS.flatMap((platform) => [
-      pluginAssetName(selected, platform),
-      pluginAssetName(selected, platform, true)
-    ])
+    const files = PLUGIN_PLATFORMS.map((platform) => pluginAssetName(selected, platform))
     if (url.includes("/commits/")) return Response.json({ sha: publishedCommit })
     return Response.json({
       tag_name: `v${selected}`,
@@ -594,199 +598,5 @@ await test("rolling upgrades cannot regress or mutate an unmerged lock ahead of 
   assert.deepEqual(
     parsePluginLock(JSON.parse(await readFile(join(root, "heron-plugins.lock.json"), "utf8"))),
     pending
-  )
-})
-
-await test("matching external symbols are staged independently of the runtime bundles", async (context) => {
-  const { root, fetchArtifact } = await symbolsWorkspace(context)
-  await mkdir(join(root, "target/bundles"), { recursive: true })
-  await writeFile(join(root, "target/bundles/known-good-runtime"), "runtime")
-  const destination = await preparePluginArtifacts({
-    workspace: root,
-    platform,
-    symbols: true,
-    fetchArtifact,
-    debugInfo: fixtureDebugInfo
-  })
-  assert.equal(
-    await readFile(join(destination, "symbols/Heron Gain.so"), "utf8"),
-    "matching fixture symbols"
-  )
-  assert.equal(await readFile(join(root, "target/bundles/known-good-runtime"), "utf8"), "runtime")
-  const manifest = JSON.parse(await readFile(join(destination, "symbols-manifest.json"), "utf8"))
-  assert.equal(manifest.modules[0].binaryPath, fixtureSymbolModules[0]?.binaryPath)
-  await preparePluginArtifacts({
-    workspace: root,
-    platform,
-    symbols: true,
-    offline: true,
-    debugInfo: fixtureDebugInfo
-  })
-})
-
-await test("failed symbol associations preserve the stage and allow fresh online downloads", async (context) => {
-  for (const modules of [
-    fixtureSymbolModules.slice(0, 1),
-    fixtureSymbolModules.map((module) => ({ ...module, debugId: "wrong-debug-id" }))
-  ]) {
-    const { root, fetchArtifact } = await symbolsWorkspace(context, symbolsArchive(modules))
-    await mkdir(join(root, "target/heron-plugin-symbols"), { recursive: true })
-    await writeFile(join(root, "target/heron-plugin-symbols/previous"), "known-good")
-    await assert.rejects(
-      preparePluginArtifacts({
-        workspace: root,
-        platform,
-        symbols: true,
-        fetchArtifact,
-        debugInfo: fixtureDebugInfo
-      })
-    )
-    assert.equal(
-      await readFile(join(root, "target/heron-plugin-symbols/previous"), "utf8"),
-      "known-good"
-    )
-    await assert.rejects(
-      preparePluginArtifacts({
-        workspace: root,
-        platform,
-        symbols: true,
-        offline: true,
-        debugInfo: fixtureDebugInfo
-      }),
-      /Missing plug-in cache/u
-    )
-    const downloaded: string[] = []
-    const runtime = runtimeArchive()
-    const symbols = symbolsArchive()
-    const destination = await preparePluginArtifacts({
-      workspace: root,
-      platform,
-      symbols: true,
-      fetchArtifact: async (url) => {
-        downloaded.push(url.split("/").at(-1) ?? "")
-        return new Response(Uint8Array.from(url.endsWith("-symbols.zip") ? symbols : runtime))
-      },
-      debugInfo: fixtureDebugInfo
-    })
-    assert.deepEqual(
-      downloaded.sort(),
-      [pluginAssetName(version, platform, true), pluginAssetName(version, platform)].sort()
-    )
-    assert.equal(
-      await readFile(join(destination, "symbols/Heron Gain.so"), "utf8"),
-      "matching fixture symbols"
-    )
-    assert(
-      !(await readdir(join(root, "target"))).some(
-        (entry) => entry.startsWith(".heron-plugins-") || entry.startsWith(".heron-plugin-runtime-")
-      )
-    )
-  }
-})
-
-await test("symbols must uniquely cover every locked plug-in with its actual Debug ID and architecture", async (context) => {
-  const badManifests = [
-    fixtureSymbolModules.map((module) => ({
-      ...module,
-      binaryPath: fixtureSymbolModules[0]?.binaryPath,
-      debugId: fixtureSymbolModules[0]?.debugId
-    })),
-    fixtureSymbolModules.map((module) => ({ ...module, binaryPath: undefined }))
-  ]
-  for (const modules of badManifests) {
-    const { root, fetchArtifact } = await symbolsWorkspace(context, symbolsArchive(modules))
-    await mkdir(join(root, "target/heron-plugin-symbols"), { recursive: true })
-    await writeFile(join(root, "target/heron-plugin-symbols/previous"), "known-good")
-    await assert.rejects(
-      preparePluginArtifacts({
-        workspace: root,
-        platform,
-        symbols: true,
-        fetchArtifact,
-        debugInfo: fixtureDebugInfo
-      })
-    )
-    assert.equal(
-      await readFile(join(root, "target/heron-plugin-symbols/previous"), "utf8"),
-      "known-good"
-    )
-  }
-  for (const invalid of [
-    {
-      variants: [{ debug_id: "wrong-debug-id", arch: "x86_64" }],
-      features: "debug",
-      is_usable: true
-    },
-    {
-      variants: [{ debug_id: REQUIRED_BUILTINS[0]?.nativeId ?? "", arch: "arm64" }],
-      features: "debug",
-      is_usable: true
-    },
-    {
-      variants: [{ debug_id: REQUIRED_BUILTINS[0]?.nativeId ?? "", arch: "x86_64" }],
-      features: "symtab, unwind",
-      is_usable: true
-    }
-  ]) {
-    const { root, fetchArtifact } = await symbolsWorkspace(context)
-    await assert.rejects(
-      preparePluginArtifacts({
-        workspace: root,
-        platform,
-        symbols: true,
-        fetchArtifact,
-        debugInfo: (path) =>
-          path.includes(`${sep}symbols${sep}`) ? invalid : fixtureDebugInfo(path)
-      })
-    )
-  }
-})
-
-await test("universal symbols allow one debug file per plug-in with both matching architecture slices", async (context) => {
-  const { root, lock } = await workspace(context)
-  const universalPlatform = "macos-universal" as const
-  const runtime = join(root, "runtime")
-  const symbols = join(root, "debug")
-  await mkdir(runtime)
-  await mkdir(symbols)
-  const header = { schemaVersion: 1, version, sourceCommit, platform: universalPlatform }
-  await writeFile(
-    join(runtime, "bundle-manifest.json"),
-    JSON.stringify({ ...header, plugins: REQUIRED_BUILTINS })
-  )
-  const modules = REQUIRED_BUILTINS.flatMap((plugin) =>
-    ["x64", "arm64"].map((arch) => ({
-      modulePath: `symbols/${plugin.name}.dSYM/Contents/Resources/DWARF/${plugin.name}`,
-      binaryPath: pluginBinaryPath(plugin.bundleName, universalPlatform),
-      arch,
-      debugId: `${plugin.nativeId}-${arch}`
-    }))
-  )
-  await writeFile(
-    join(symbols, "symbols-manifest.json"),
-    JSON.stringify({ ...header, format: "vst3", modules })
-  )
-  let inspected = 0
-  const inspect = (path: string): PluginDebugInfo => {
-    inspected += 1
-    const plugin = REQUIRED_BUILTINS.find((plugin) => path.includes(plugin.name))
-    assert(plugin)
-    return {
-      variants: [
-        { arch: "x86_64", debug_id: `${plugin.nativeId}-x64` },
-        { arch: "arm64", debug_id: `${plugin.nativeId}-arm64` }
-      ],
-      features: "symtab, unwind, debug",
-      is_usable: true
-    }
-  }
-  await validatePluginSymbols(runtime, symbols, lock.release, universalPlatform, inspect)
-  assert.equal(inspected, REQUIRED_BUILTINS.length * 2)
-  await writeFile(
-    join(symbols, "symbols-manifest.json"),
-    JSON.stringify({ ...header, format: "vst3", modules: modules.slice(0, -1) })
-  )
-  await assert.rejects(
-    validatePluginSymbols(runtime, symbols, lock.release, universalPlatform, inspect)
   )
 })

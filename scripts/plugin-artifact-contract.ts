@@ -13,7 +13,7 @@ export interface PluginAsset {
 export interface PluginRelease {
   version: string
   sourceCommit: string
-  assets: Record<PluginPlatform, { runtime: PluginAsset; symbols: PluginAsset }>
+  assets: Record<PluginPlatform, { runtime: PluginAsset }>
 }
 export interface PluginLock {
   schemaVersion: 1
@@ -35,15 +35,6 @@ export interface BundleManifest {
   platform: PluginPlatform
   plugins: BuiltinBundle[]
 }
-export interface SymbolsManifest {
-  schemaVersion: 1
-  version: string
-  sourceCommit: string
-  platform: PluginPlatform
-  format: "vst3"
-  modules: Array<{ modulePath: string; binaryPath: string; debugId: string; arch: "x64" | "arm64" }>
-}
-
 // These identities are persisted in existing projects; Metronome also belongs
 // to the default project and Gain supplies the host's benchmark processor.
 export const REQUIRED_BUILTINS: readonly BuiltinBundle[] = [
@@ -124,12 +115,8 @@ function commit(value: unknown): string {
   return value
 }
 
-export function pluginAssetName(
-  version: string,
-  platform: PluginPlatform,
-  symbols = false
-): string {
-  return `heron-plugins-${version}-${platform}-vst3${symbols ? "-symbols" : ""}.zip`
+export function pluginAssetName(version: string, platform: PluginPlatform): string {
+  return `heron-plugins-${version}-${platform}-vst3.zip`
 }
 
 export function pluginBinaryPath(bundleName: string, platform: PluginPlatform): string {
@@ -173,8 +160,7 @@ export function parsePluginLock(value: unknown): PluginLock {
           return [
             platform,
             {
-              runtime: asset(files.runtime, pluginAssetName(version, platform)),
-              symbols: asset(files.symbols, pluginAssetName(version, platform, true))
+              runtime: asset(files.runtime, pluginAssetName(version, platform))
             }
           ]
         })
@@ -271,50 +257,5 @@ export function parseBundleManifest(
     sourceCommit: release.sourceCommit,
     platform,
     plugins
-  }
-}
-
-export function parseSymbolsManifest(
-  value: unknown,
-  release: PluginRelease,
-  platform: PluginPlatform
-): SymbolsManifest {
-  const manifest = manifestHeader(value, release, platform)
-  if (
-    manifest.format !== "vst3" ||
-    !Array.isArray(manifest.modules) ||
-    manifest.modules.length === 0
-  )
-    throw new Error("Invalid plug-in symbols manifest")
-  const arches =
-    platform === "macos-universal"
-      ? ["x64", "arm64"]
-      : [platform.endsWith("arm64") ? "arm64" : "x64"]
-  const modules = manifest.modules.map((value): SymbolsManifest["modules"][number] => {
-    const item = object(value)
-    const modulePath = artifactRelativePath(item.modulePath)
-    const binaryPath = artifactRelativePath(item.binaryPath)
-    if (
-      !modulePath.startsWith("symbols/") ||
-      !binaryPath.startsWith("bundles/") ||
-      typeof item.debugId !== "string" ||
-      !item.debugId.trim() ||
-      !arches.includes(String(item.arch))
-    )
-      throw new Error("Invalid plug-in debug module")
-    return { modulePath, binaryPath, debugId: item.debugId, arch: item.arch as "x64" | "arm64" }
-  })
-  if (new Set(modules.map((item) => `${item.modulePath}:${item.arch}`)).size !== modules.length)
-    throw new Error("Duplicate plug-in debug module")
-  for (const arch of arches)
-    if (!modules.some((module) => module.arch === arch))
-      throw new Error(`Missing ${arch} plug-in symbols`)
-  return {
-    schemaVersion: 1,
-    version: release.version,
-    sourceCommit: release.sourceCommit,
-    platform,
-    format: "vst3",
-    modules
   }
 }

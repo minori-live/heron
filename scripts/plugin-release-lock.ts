@@ -46,15 +46,15 @@ export async function pluginLockFromRelease(
   }
   const assets = Object.fromEntries(
     PLUGIN_PLATFORMS.map((platform) => {
-      const files = Object.fromEntries(
-        (["runtime", "symbols"] as const).map((kind) => {
-          const file = pluginAssetName(version, platform, kind === "symbols")
-          const asset = release.assets.find((asset) => asset.name === file)
-          if (!asset) throw new Error(`Plug-in release is incomplete: ${file}`)
-          return [kind, { file }]
-        })
-      )
-      return [platform, files]
+      const runtime = pluginAssetName(version, platform)
+      if (!release.assets.some((asset) => asset.name === runtime))
+        throw new Error(`Plug-in release is incomplete: ${runtime}`)
+      return [
+        platform,
+        {
+          runtime: { file: runtime }
+        }
+      ]
     })
   ) as PluginRelease["assets"]
   return parsePluginLock({
@@ -84,7 +84,7 @@ export async function updatePluginLock(
   const path = join(workspace, "heron-plugins.lock.json")
   const existing = parsePluginLock(JSON.parse(await readFile(path, "utf8")))
   stablePluginVersion(version)
-  const previous = pending ? [existing, pending] : [existing]
+  const previous = pending ? [existing, parsePluginLock(pending)] : [existing]
   for (const lock of previous)
     if (lock.release && compareVersions(version, lock.release.version) < 0)
       throw new Error("Plug-in release downgrades are forbidden, including pending upgrades")

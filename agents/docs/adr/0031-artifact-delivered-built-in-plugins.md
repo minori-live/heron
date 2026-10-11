@@ -4,6 +4,7 @@
 - Date: 2026-10-10
 - Owners: project maintainers
 - Scope: independent plug-in production and Heron's pinned binary dependency
+- Plug-in symbol distribution is superseded by [ADR-0033](0033-runtime-only-plugin-artifacts.md).
 
 ## Context
 

@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-11
 - Scope: release assets and built-in plug-in caching
+- Plug-in symbol distribution is superseded by [ADR-0033](0033-runtime-only-plugin-artifacts.md).
 
 ## Decision
 
