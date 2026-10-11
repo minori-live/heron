@@ -76,6 +76,13 @@ const displayedClip = computed(() => preview.value ?? clipState.value)
 const displayedStartSeconds = computed(
   () => displayedClip.value.startFrame / props.clip.projectSampleRate
 )
+// Peak windows use asset frames, so keep frame zero anchored to the source even
+// when trimming moves the visible clip start. This origin may precede the timeline.
+const sourceStartSeconds = computed(
+  () =>
+    (displayedClip.value.startFrame - displayedClip.value.sourceOffsetFrames) /
+    props.clip.projectSampleRate
+)
 const displayedEndSeconds = computed(
   () =>
     (displayedClip.value.startFrame + displayedClip.value.lengthFrames) /
@@ -305,7 +312,7 @@ function editGesture(action: string, intent: UiGestureIntent): void {
           :tempo-map="tempoMap"
           :pixels-per-quarter="pixelsPerQuarter"
           :timeline-start-x="waveformTimelineStartX"
-          :clip-start-seconds="displayedStartSeconds"
+          :source-start-seconds="sourceStartSeconds"
         />
       </span>
     </UiTimelineClip>

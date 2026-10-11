@@ -108,6 +108,61 @@ describe("WaveformCanvas", () => {
     wrapper.unmount()
   })
 
+  it("selects source peaks after scrolling across a tempo change, including a negative source origin", async () => {
+    const wrapper = mount(WaveformCanvas, {
+      props: {
+        window: {
+          id: "trimmed-asset",
+          sampleRate: 48_000,
+          channels: 1,
+          frameCount: 12 * 48_000,
+          startFrame: 8 * 48_000,
+          endFrame: 12 * 48_000,
+          framesPerBucket: 48_000,
+          bucketCount: 4,
+          peaks: encode([-0.125, 0.125, -0.25, 0.25, -0.5, 0.5, -0.75, 0.75])
+        },
+        displayMode: "aggregate",
+        amplitudeScale: 1,
+        loading: false,
+        tempoMap: {
+          ticksPerQuarter: 960,
+          tempoEvents: [
+            { tick: 0, beatsPerMinute: 120 },
+            { tick: 3_840, beatsPerMinute: 60 }
+          ],
+          timeSignatureEvents: [{ tick: 0, numerator: 4, denominator: 4 }]
+        },
+        pixelsPerQuarter: 30,
+        timelineStartX: 60,
+        sourceStartSeconds: -8
+      }
+    })
+    await nextTick()
+
+    const expectAmplitudeAt = (x: number, amplitude: number): void => {
+      expect(context.moveTo).toHaveBeenCalledWith(x, 30 - amplitude * 30)
+      expect(context.lineTo).toHaveBeenCalledWith(x, 30 + amplitude * 30)
+    }
+
+    // Timeline seconds 1–4 show source seconds 9–12. The tempo change makes
+    // the first source second occupy 60 pixels and the later seconds 30 each.
+    expectAmplitudeAt(0.5, 0.25)
+    expectAmplitudeAt(60.5, 0.5)
+    expectAmplitudeAt(90.5, 0.75)
+
+    context.moveTo.mockClear()
+    context.lineTo.mockClear()
+    await wrapper.setProps({ sourceStartSeconds: -7 })
+    await nextTick()
+
+    // Moving the source origin alone must redraw source seconds 8–11.
+    expectAmplitudeAt(0.5, 0.125)
+    expectAmplitudeAt(60.5, 0.25)
+    expectAmplitudeAt(90.5, 0.5)
+    wrapper.unmount()
+  })
+
   it("announces loading and unavailable empty states without fake peaks", async () => {
     const wrapper = mount(WaveformCanvas, {
       props: {

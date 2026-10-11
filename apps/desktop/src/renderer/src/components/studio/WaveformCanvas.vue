@@ -17,7 +17,8 @@ const props = defineProps<{
   tempoMap?: TempoMapSnapshot
   pixelsPerQuarter?: number
   timelineStartX?: number
-  clipStartSeconds?: number
+  /** Timeline position of asset frame zero, including any trimmed source offset. */
+  sourceStartSeconds?: number
 }>()
 
 const canvas = useTemplateRef<HTMLCanvasElement>("canvas")
@@ -53,7 +54,7 @@ function draw(): void {
     props.tempoMap !== undefined &&
     props.pixelsPerQuarter !== undefined &&
     props.timelineStartX !== undefined &&
-    props.clipStartSeconds !== undefined
+    props.sourceStartSeconds !== undefined
   const geometry = canWarp
     ? buildWarpedWaveformGeometry(
         props.window,
@@ -63,7 +64,7 @@ function draw(): void {
         props.amplitudeScale,
         (x) =>
           (timelineXToSeconds(props.tempoMap!, props.timelineStartX! + x, props.pixelsPerQuarter!) -
-            props.clipStartSeconds!) *
+            props.sourceStartSeconds!) *
           props.window!.sampleRate
       )
     : buildWaveformGeometry(props.window, props.displayMode, width, height, props.amplitudeScale)
@@ -108,7 +109,7 @@ watch(
     props.tempoMap,
     props.pixelsPerQuarter,
     props.timelineStartX,
-    props.clipStartSeconds
+    props.sourceStartSeconds
   ],
   () => void nextTick(draw),
   { immediate: true }
