@@ -1,8 +1,8 @@
-version: 0.6.5
+version: 0.6.6
 files:
-  - url: https://github.com/minori-live/heron/releases/download/v0.6.5/Heron-0.6.5-linux-arm64.AppImage
-    sha512: uYbSHIHoLK++/ZaWM38yTSbr48rhvpIuRigKuaeZsb0PVYL5QYUL7gDbTObeKDwVYkjxOUOl2Z9Ejx7tEjEXmw==
-    size: 407996837
-path: https://github.com/minori-live/heron/releases/download/v0.6.5/Heron-0.6.5-linux-arm64.AppImage
-sha512: uYbSHIHoLK++/ZaWM38yTSbr48rhvpIuRigKuaeZsb0PVYL5QYUL7gDbTObeKDwVYkjxOUOl2Z9Ejx7tEjEXmw==
-releaseDate: 2026-10-09T16:32:04.673Z
+  - url: https://github.com/minori-live/heron/releases/download/v0.6.6/Heron-0.6.6-linux-arm64.AppImage
+    sha512: tl9y4oINP7ggc2HJEKoJybLufwK6Z++BI6Wlk2WvwAhwLHrrmx54yg+UmDriiwvj8WmyWfQeZiNef2gA71VE1w==
+    size: 414409355
+path: https://github.com/minori-live/heron/releases/download/v0.6.6/Heron-0.6.6-linux-arm64.AppImage
+sha512: tl9y4oINP7ggc2HJEKoJybLufwK6Z++BI6Wlk2WvwAhwLHrrmx54yg+UmDriiwvj8WmyWfQeZiNef2gA71VE1w==
+releaseDate: 2026-10-11T11:52:09.326Z
