@@ -1,5 +1,5 @@
 import { openAsBlob } from "node:fs"
-import { rm } from "node:fs/promises"
+import { readFile, rm } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 import { PGlite } from "@electric-sql/pglite"
 import { eq } from "drizzle-orm"
@@ -125,7 +125,9 @@ export class ProjectDatabase {
       await PGlite.create({
         ...pgliteByteaOptions,
         dataDir,
-        loadDataDir: await openAsBlob(templateArchivePath)
+        // Bundled templates live inside Electron's ASAR virtual filesystem,
+        // which openAsBlob cannot read. User archives still use file-backed blobs.
+        loadDataDir: new Blob([await readFile(templateArchivePath)])
       })
     )
     try {
