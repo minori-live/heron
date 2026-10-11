@@ -1,11 +1,11 @@
-version: 0.6.6
+version: 0.7.0
 files:
-  - url: https://github.com/minori-live/heron/releases/download/v0.6.6/Heron-0.6.6-mac-universal.zip
-    sha512: i9GU7dDdf5WeUaUYIli6OfRBgTZKho5+JiNzWrRIbYFHQi3ku00ECGWiGOqb+3eEm1bW3dN4Iu3lNuM+bjCfNw==
-    size: 333968020
-  - url: https://github.com/minori-live/heron/releases/download/v0.6.6/Heron-0.6.6-mac-universal.dmg
-    sha512: 3j6A5XyYXdm/3gqgX2xj5lpmCeuvvMd9WGcCz6koTa9Hy/dlwfxZJAXqCjyFc2RZttzmMmxRySklrnimd3y2ng==
-    size: 341441615
-path: https://github.com/minori-live/heron/releases/download/v0.6.6/Heron-0.6.6-mac-universal.zip
-sha512: i9GU7dDdf5WeUaUYIli6OfRBgTZKho5+JiNzWrRIbYFHQi3ku00ECGWiGOqb+3eEm1bW3dN4Iu3lNuM+bjCfNw==
-releaseDate: 2026-10-11T12:03:00.184Z
+  - url: https://github.com/minori-live/heron/releases/download/v0.7.0/Heron-0.7.0-mac-universal.zip
+    sha512: GLDK9hYMsyKPEVB2y//DWSOlGJL5INDCc+jhtXDrsh/7niIJ8W6QnpfzKc46MoR4XvxKCKsUfCMQlTMaSlh/Kw==
+    size: 333967097
+  - url: https://github.com/minori-live/heron/releases/download/v0.7.0/Heron-0.7.0-mac-universal.dmg
+    sha512: i6Ir/z0pAmcvu7RhlltdfuA0YD2EwNAAFgaxEdj3GJDg2OIvVn3esCJmCSRUAtqq8ME9wYnDDRdoV/Ru2K8hfQ==
+    size: 341429121
+path: https://github.com/minori-live/heron/releases/download/v0.7.0/Heron-0.7.0-mac-universal.zip
+sha512: GLDK9hYMsyKPEVB2y//DWSOlGJL5INDCc+jhtXDrsh/7niIJ8W6QnpfzKc46MoR4XvxKCKsUfCMQlTMaSlh/Kw==
+releaseDate: 2026-10-11T17:30:47.395Z
