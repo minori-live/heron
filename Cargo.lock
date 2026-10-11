@@ -1047,7 +1047,7 @@ dependencies = [
 
 [[package]]
 name = "heron-audio-engine"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "bwavfile",
  "cpal",
@@ -1075,7 +1075,7 @@ dependencies = [
 
 [[package]]
 name = "heron-audio-host"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "ara2-bridge-core",
  "ara2-bridge-host",
@@ -1097,11 +1097,11 @@ dependencies = [
 
 [[package]]
 name = "heron-audio-plugin"
-version = "0.6.5"
+version = "0.6.6"
 
 [[package]]
 name = "heron-clap-host"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "clap-sys",
  "heron-audio-plugin",
@@ -1114,14 +1114,14 @@ dependencies = [
 
 [[package]]
 name = "heron-dsp-core"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "criterion",
 ]
 
 [[package]]
 name = "heron-dsp-node"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "bwavfile",
  "criterion",
@@ -1139,7 +1139,7 @@ dependencies = [
 
 [[package]]
 name = "heron-dsp-render"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "criterion",
  "heron-audio-plugin",
@@ -1149,7 +1149,7 @@ dependencies = [
 
 [[package]]
 name = "heron-dsp-runtime"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "midly",
  "rmp-serde",
@@ -1161,7 +1161,7 @@ dependencies = [
 
 [[package]]
 name = "heron-vst3-host"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "bitflags 2.13.2",
  "cc",
@@ -1177,7 +1177,7 @@ dependencies = [
 
 [[package]]
 name = "heron-vst3-host-sys"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "bindgen 0.73.2",
  "cc",
@@ -1185,7 +1185,7 @@ dependencies = [
 
 [[package]]
 name = "heron-xtask"
-version = "0.6.5"
+version = "0.6.6"
 dependencies = [
  "clap 4.6.7",
 ]
