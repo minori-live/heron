@@ -105,6 +105,7 @@ function selectMenuAction(id: string): void {
 
 <template>
   <UiContextMenu
+    :empty-message="t('common.noCommands')"
     :entries="menuEntries"
     :menu-label="t('studio.arrangement.midiClipMenu', { name: clip.name })"
     @open-context="!selected && emit('select', clip.id, false)"
@@ -121,8 +122,8 @@ function selectMenuAction(id: string): void {
         selected,
         signalColor: trackColor
       }"
-      :aria-label="`${clip.name}, MIDI clip`"
-      :label="`${clip.name}, MIDI clip`"
+      :aria-label="t('studio.clip.midiLabel', { name: clip.name })"
+      :label="t('studio.clip.midiLabel', { name: clip.name })"
       :open-label="t('studio.arrangement.openMidiClip')"
       :dragging="dragging"
       :editing="Boolean(active)"

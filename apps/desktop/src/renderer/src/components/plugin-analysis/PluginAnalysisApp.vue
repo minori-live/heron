@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useHead } from "@unhead/vue"
 import { computed, nextTick, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { X } from "@lucide/vue"
@@ -14,6 +15,7 @@ import PluginAnalysisSettings from "./PluginAnalysisSettings.vue"
 import PluginAnalysisReport from "./PluginAnalysisReport.vue"
 import { useEqFitWindowSelection } from "./useEqFitWindowSelection"
 const { t } = useI18n()
+useHead({ title: () => `${t("pluginAnalysis.title")} · Heron` })
 const { snapshot, error, catalogBusy, command, configure, platform } = usePluginAnalysis()
 const eqFitWindow = useEqFitWindowSelection()
 const locale = computed(() => snapshot.value?.locale ?? "en-US")

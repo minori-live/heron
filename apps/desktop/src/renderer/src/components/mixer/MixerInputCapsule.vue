@@ -213,6 +213,7 @@ function toggleStereo(): void {
     <div class="input-capsule">
       <div class="input-capsule__channel">
         <UiCascadingSelect
+          :placeholder="t('common.choose')"
           :model-value="selectedInput"
           :groups="inputGroups"
           size="compact"

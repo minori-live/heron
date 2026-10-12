@@ -23,6 +23,7 @@ const open = computed({
   <UiDialog
     v-if="active"
     v-model="open"
+    :close-label="t('common.closeDialog')"
     :title="t('operation.eyebrow')"
     size="sm"
     :dismissible="active.state !== 'running'"

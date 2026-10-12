@@ -26,7 +26,7 @@ describe("UiCurveEditor", () => {
 
     expect(wrapper.emitted("moveHandle")?.[0]).toEqual([{ id: "middle", x: 0.5, y: 0.51 }])
     expect(wrapper.emitted("moveHandle")?.[1]).toEqual([{ id: "middle", x: 0.499, y: 0.5 }])
-    expect(handle.attributes("aria-valuetext")).toContain("Input 0.500, output 0.500")
+    expect(handle.attributes("aria-valuetext")).toContain("Input 0.500, Output 0.500")
   })
 
   it("converts pointer positions to normalized values and clamps handle constraints", async () => {

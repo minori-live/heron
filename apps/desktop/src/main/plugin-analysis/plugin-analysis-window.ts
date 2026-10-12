@@ -1,3 +1,4 @@
+import { t } from "../settings"
 import { app, BrowserWindow, nativeTheme } from "electron"
 import type { IpcMainInvokeEvent } from "electron"
 import { mainWindowPlatformOptions, secureWebPreferences } from "../app/windows"
@@ -72,7 +73,7 @@ export class PluginAnalysisWindow {
     this.service = service
     try {
       const window = new BrowserWindow({
-        title: "Plugin Analysis",
+        title: t("pluginAnalysis.title"),
         icon: applicationIconPath,
         width: 1320,
         height: 850,

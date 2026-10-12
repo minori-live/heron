@@ -56,7 +56,10 @@
     "changesSaved": "Changes saved",
     "backToStudio": "Back to studio",
     "backToLive": "Back to Live",
-    "backToWelcome": "Back to welcome"
+    "backToWelcome": "Back to welcome",
+    "closeDialog": "Close dialog",
+    "choose": "Choose…",
+    "noCommands": "No commands available."
   },
   "chrome": {
     "unsavedChanges": "Unsaved changes",
@@ -1040,6 +1043,40 @@
         "signal": "Signal: {width}",
         "latencySensitive": "Low-latency monitoring path",
         "lowLatencyBypassed": "Temporarily bypassed by Low Latency Mode"
+      },
+      "kinds": {
+        "hardware-input": "Hardware input",
+        "application-input": "Application input",
+        "bus-input": "BUS input",
+        "timeline-input": "Timeline input",
+        "instrument-input": "Instrument input",
+        "channel": "Channel",
+        "effect": "Effect",
+        "send": "Send",
+        "master": "Master",
+        "hardware-output": "Hardware output",
+        "width-adapter": "Channel adapter",
+        "pdc-delay": "PDC delay"
+      },
+      "labels": {
+        "mainPdc": "Main-input PDC",
+        "channelPdc": "Channel PDC",
+        "sendPdc": "Send PDC",
+        "bypassPdc": "Bypass compensation",
+        "pluginLatency": "Plug-in latency",
+        "toMono": "Stereo → Mono",
+        "toStereo": "Mono → Stereo",
+        "instrument": "Instrument",
+        "insert": "Insert effect",
+        "sendPre": "Send (Pre)",
+        "sendPost": "Send (Post)",
+        "sendPostPan": "Send (PostPan)",
+        "sidechainPdc": "Side-chain PDC · {port}"
+      },
+      "pluginStates": {
+        "active": "active",
+        "bypassed": "bypassed",
+        "unavailable": "unavailable"
       }
     }
   },
@@ -1149,12 +1186,17 @@
           "label": "Direct telemetry read",
           "description": "Synchronous engine snapshot reads through the native addon"
         }
+      },
+      "buildProfile": {
+        "debug": "DEBUG",
+        "release": "RELEASE"
       }
     },
     "footer": {
       "logicalCores": "{count} logical cores · {platform} · {architecture}",
       "measured": "Measured {measuredAt} in {duration} s"
-    }
+    },
+    "unknownProcessor": "Unknown processor"
   },
   "performance": {
     "trigger": {
@@ -1264,7 +1306,13 @@
       "close": "Close bounce dialog",
       "export": "Choose location & bounce",
       "starting": "Starting bounce"
-    }
+    },
+    "encodings": {
+      "pcm16": "16-bit PCM",
+      "pcm24": "24-bit PCM",
+      "float32": "32-bit Float"
+    },
+    "defaultFileName": "Output"
   },
   "mixer": {
     "console": {
@@ -1465,6 +1513,24 @@
       "maximumAria": "{name} latched maximum post-fader level in decibels",
       "maximumTitle": "Maximum post-fader peak: {peak} dB · Click to reset peak and clipping",
       "levelAria": "{name} post-fader level"
+    },
+    "fader": {
+      "value": "{name} volume value in decibels",
+      "edit": "Fader: {value} · Double-click to edit",
+      "volume": "{name} volume"
+    },
+    "controls": {
+      "pan": "{name} pan",
+      "panValue": "{name} pan value",
+      "quickVolume": "{name} quick volume",
+      "quickPan": "{name} quick pan",
+      "quickPanValue": "{name} quick pan value"
+    },
+    "defaultNames": {
+      "audio": "Audio {index}",
+      "instrument": "Instrument {index}",
+      "aux": "Aux {index}",
+      "output": "Output {channels}"
     }
   },
   "plugins": {
@@ -1529,6 +1595,25 @@
         "label": "Dual mono",
         "detail": "2 × (1 → 1)"
       }
+    },
+    "sidechain": {
+      "unavailable": "The plug-in or project is no longer available.",
+      "failed": "Side-chain routing could not be committed.",
+      "degraded": "Route saved, but audio deployment is degraded.",
+      "shutdown": "The application is shutting down."
+    },
+    "compatibility": {
+      "factoryEnumeration": "Native VST3 factory enumeration is required for this module",
+      "initialization": "Plugin initialization failed",
+      "floatProcessing": "Plugin does not support 32-bit floating-point processing",
+      "instrumentEvents": "Instrument requires an event input and a mono or stereo main output",
+      "effectLayout": "Effect requires a supported mono/stereo main input and output layout",
+      "instrumentLayout": "Instrument requires no main audio input and one supported main output",
+      "effectBuses": "Effect requires one supported main input and output; auxiliary inputs are supported",
+      "builtinProbe": "Built-in VST3 probe failed",
+      "missingBuiltin": "Bundled plug-in is absent from the installed suite",
+      "capabilityProbe": "Deep plug-in capability probe failed",
+      "discovery": "AudioPlugin discovery failed"
     }
   },
   "pianoRoll": {
@@ -1591,7 +1676,8 @@
       "1/64T": "1/64 triplet"
     },
     "gridAria": "Piano roll note grid",
-    "keyboardAria": "Piano keyboard"
+    "keyboardAria": "Piano keyboard",
+    "noteLabel": "{pitch}, start {start}, duration {duration}, velocity {velocity}, {clip}"
   },
   "midiImport": {
     "eyebrow": "MIDI import",
@@ -1613,7 +1699,8 @@
     "importMidiTempo": "Import MIDI tempo into project",
     "importMidiTempoDetail": "Start at tick 0 and replace the project Tempo Track with the MIDI tempo map.",
     "import": "Import MIDI",
-    "importing": "Importing MIDI"
+    "importing": "Importing MIDI",
+    "defaultTrackName": "MIDI Track {index}"
   },
   "tutorials": {
     "progress": "{'{{current}}'} of {'{{total}}'}",
@@ -1922,6 +2009,22 @@
       "leftBody": "Sounds and devices will live here.",
       "rightBody": "Clip and track controls will live here.",
       "badge": "PLACEHOLDER"
+    },
+    "clip": {
+      "midiLabel": "{name}, MIDI clip",
+      "recordingLabel": "Recording {name}",
+      "audioLabel": "Audio clip {name}"
+    },
+    "trackResize": "Resize {name} track height; current scale {scale} times",
+    "globalLane": {
+      "label": "{label} global track",
+      "eventEditor": "{label} global track editor. Double-click to add an event.",
+      "pointLabel": "{label} {value} at {position} {unit}",
+      "pointEditor": "{label} global track editor. Double-click to add a point."
+    },
+    "keySignature": {
+      "major": "{tonic} Major",
+      "minor": "{tonic} minor"
     }
   },
   "midiSettings": {
@@ -2117,7 +2220,11 @@
       "outputStart": "Segment {index} output start",
       "outputEnd": "Segment {index} output end",
       "segmentShape": "Segment {index} shape",
-      "segmentAmount": "Segment {index} amount"
+      "segmentAmount": "Segment {index} amount",
+      "label": "Editable response curve",
+      "instructions": "Drag a handle, or focus it and use arrow keys. Hold Shift for fine adjustment. Home and End set the minimum and maximum output.",
+      "hint": "Drag a handle to shape the response curve.",
+      "valueText": "Input {input}, output {output}"
     },
     "navigation": {
       "inputDescription": "Ports, timing and MIDI Clock",
@@ -2149,7 +2256,8 @@
     "stalePlugin": "Plugin handle is stale.",
     "effectMode": "Choose a {width}-input effect mode for this insert position.",
     "validEffectMode": "Choose a valid input effect mode for this insert position.",
-    "waveformDescription": "Waveform, {channels} channels, {frames} frames"
+    "waveformDescription": "Waveform, {channels} channels, {frames} frames",
+    "unsupportedSavedLayout": "The saved {mode} layout is no longer supported by this VST3."
   },
   "pluginAnalysis": {
     "eqFit": {
@@ -2185,7 +2293,11 @@
       "flat": "Overall Gain is sufficient; no EQ sections are needed.",
       "residual": "Residual (measured − fitted)",
       "convention": "Magnitude only at the report sample rate. Q uses RBJ alpha = sin(ω) / (2Q), including shelves (Q is not shelf slope S). Errors are equally weighted at measured frequency bins. Narrow resonances may be unresolved; phase, delay and nonlinearity are not reproduced. The bounded search is an approximation, not a guaranteed global optimum.",
-      "types": { "Bell": "Bell", "LowShelf": "Low Shelf", "HighShelf": "High Shelf" },
+      "types": {
+        "Bell": "Bell",
+        "LowShelf": "Low Shelf",
+        "HighShelf": "High Shelf"
+      },
       "unavailable": {
         "difference": "Choose a chain display to fit a measured response. Difference curves cannot be fitted.",
         "stale": "The chain or measurement settings have changed. Run analysis again before fitting.",
@@ -2409,5 +2521,10 @@
     "retry": "Retry",
     "saveError": "Your choices could not be saved. Please try again.",
     "loadError": "Your settings could not be loaded. Please retry."
+  },
+  "recording": {
+    "defaultName": "Recording {name}",
+    "assetName": "Recording {name} {date}.bwf",
+    "instrument": "Instrument"
   }
 }

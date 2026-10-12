@@ -1,7 +1,20 @@
-import { describe, expect, it, vi } from "vitest"
+import { setMainLocale, t } from "../settings"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { StartupProgress } from "./startup-progress"
 
+afterEach(() => setMainLocale("en-US"))
+
 describe("StartupProgress", () => {
+  it("publishes the locale used to translate startup messages", () => {
+    setMainLocale("zh-cmn-Hans-CN")
+    const startup = new StartupProgress()
+    expect(startup.snapshot()).toMatchObject({
+      locale: "zh-cmn-Hans-CN",
+      label: t("startup.starting")
+    })
+    expect(startup.complete("").locale).toBe("zh-cmn-Hans-CN")
+  })
+
   it("publishes cloned snapshots and keeps progress monotonic", () => {
     const startup = new StartupProgress()
     const listener = vi.fn()

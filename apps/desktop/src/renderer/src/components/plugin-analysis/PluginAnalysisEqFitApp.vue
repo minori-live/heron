@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useHead } from "@unhead/vue"
 import { shallowRef, computed, watch } from "vue"
 import type { AppLocale } from "@heron/contracts"
 import { useI18n } from "vue-i18n"
@@ -11,6 +12,7 @@ import PluginAnalysisEqFit from "./PluginAnalysisEqFit.vue"
 import { useEqFitWindow } from "./useEqFitWindow"
 
 const { t } = useI18n()
+useHead({ title: () => `${t("pluginAnalysis.eqFit.open")} · Heron` })
 const { snapshot, error, windowError, platform, windowCommand, refresh } = useEqFitWindow()
 const locale = shallowRef<AppLocale>("en-US")
 const theme = shallowRef<"light" | "dark">("dark")

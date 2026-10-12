@@ -1,3 +1,4 @@
+import { t } from "../settings"
 import { randomUUID } from "node:crypto"
 import { IPC_CHANNELS, IPC_PROTOCOL_VERSION } from "@heron/contracts"
 import type { PluginRuntimeFailure } from "@heron/contracts"
@@ -116,7 +117,7 @@ export class AudioHostApplicationEventBridge {
           request.requestId,
           request.instanceId,
           false,
-          "The plug-in or project is no longer available."
+          t("plugins.sidechain.unavailable")
         )
         return
       }
@@ -159,7 +160,7 @@ export class AudioHostApplicationEventBridge {
             request.requestId,
             request.instanceId,
             false,
-            "Side-chain routing could not be committed."
+            t("plugins.sidechain.failed")
           )
           return
         }
@@ -183,7 +184,7 @@ export class AudioHostApplicationEventBridge {
           request.requestId,
           request.instanceId,
           true,
-          degraded ? "Route saved, but audio deployment is degraded." : undefined
+          degraded ? t("plugins.sidechain.degraded") : undefined
         )
       } finally {
         // This main-process caller owns the result; renderer notifications carry
@@ -204,7 +205,7 @@ export class AudioHostApplicationEventBridge {
       request.requestId,
       request.instanceId,
       false,
-      "The application is shutting down."
+      t("plugins.sidechain.shutdown")
     )
   }
 

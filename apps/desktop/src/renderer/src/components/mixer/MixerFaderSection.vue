@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
+const { t } = useI18n()
 import type { MixerStripChannel } from "./mixer-surface-context"
 import { computed } from "vue"
 import type { MixerChannelMeter, MixerChannelPatch, MixerParameterPreview } from "@heron/contracts"
@@ -72,8 +74,8 @@ function commitGainInputValue(raw: string): void {
         :value="String(channel.gainDb)"
         density="compact"
         input-type="number"
-        :label="`${channel.name} volume value in decibels`"
-        :title="`Fader: ${gainLabel} · Double-click to edit`"
+        :label="t('mixer.fader.value', { name: channel.name })"
+        :title="t('mixer.fader.edit', { value: gainLabel })"
         @commit="commitGainInputValue"
         >{{ gainReadoutLabel }}</UiInlineTextEdit
       >
@@ -85,7 +87,7 @@ function commitGainInputValue(raw: string): void {
         :step="0.1"
         :default-value="0"
         :marks="FADER_SCALE_MARKS"
-        :label="`${channel.name} volume`"
+        :label="t('mixer.fader.volume', { name: channel.name })"
         :value-text="formatGainLabel"
         @preview="preview('gainDb', $event)"
         @commit="emit('updateChannel', { gainDb: $event })"

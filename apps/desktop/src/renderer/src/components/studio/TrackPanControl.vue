@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
+const { t } = useI18n()
 import { computed } from "vue"
 import { UiRotaryControl } from "@heron/ui"
 import {
@@ -18,8 +20,8 @@ const panUnits = computed(() => normalizedToPanUnits(props.value))
     :max="63"
     :step="1"
     :default-value="0"
-    :label="`${channelName} quick pan`"
-    :value-label="`${channelName} quick pan value`"
+    :label="t('mixer.controls.quickPan', { name: channelName })"
+    :value-label="t('mixer.controls.quickPanValue', { name: channelName })"
     :value-text="(value) => panLabelFromNormalized(panUnitsToNormalized(value))"
     :bipolar-center="0"
     size="track"

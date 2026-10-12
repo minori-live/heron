@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { HeronLogo } from "@heron/ui"
 import { useLocaleFonts } from "@heron/ui"
-import { computed, onMounted } from "vue"
-import { DEFAULT_LOCALE } from "../../../shared/i18n"
+import { computed, onMounted, watch } from "vue"
+import { useHead } from "@unhead/vue"
+import { useI18n } from "vue-i18n"
+import { setAppLocale } from "../i18n"
 import { useStartupStore } from "../stores/startup"
 
 const startup = useStartupStore()
@@ -10,7 +12,11 @@ const projectUrl = "https://github.com/minori-live/heron"
 const appVersion = __APP_VERSION__
 const percentage = computed(() => Math.round(startup.progress.progress * 100))
 
-useLocaleFonts(DEFAULT_LOCALE)
+const { t } = useI18n()
+const locale = computed(() => startup.progress.locale)
+watch(locale, setAppLocale, { immediate: true })
+useLocaleFonts(locale)
+useHead({ title: () => t("startup.starting") })
 
 onMounted(() => void startup.load())
 </script>

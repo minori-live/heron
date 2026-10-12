@@ -106,6 +106,11 @@ Choose:
 Display and language changes apply immediately and are remembered on the
 device.
 
+The chosen language also applies to key names, control descriptions, dialogs,
+and the startup screen on the next launch. New track, channel, and recording
+names use the language selected when they are created. Existing names stay as
+saved, including names you have edited.
+
 ## Project settings
 
 Open **File → Project Settings** to edit settings stored with the project,

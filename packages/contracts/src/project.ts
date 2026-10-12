@@ -17,6 +17,7 @@ export type StartupPhase =
   | "failed"
 
 export interface StartupProgressSnapshot {
+  locale: AppLocale
   phase: StartupPhase
   progress: number
   label: string

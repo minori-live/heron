@@ -3,6 +3,7 @@ import { resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 import { baseParse, NodeTypes, type TemplateChildNode, type RootNode } from "@vue/compiler-dom"
 import { parse } from "@vue/compiler-sfc"
+import ts from "typescript"
 import { APPLICATION_COMMAND_IDS } from "@heron/contracts"
 import { APP_LOCALES, type MessageTree } from "./i18n"
 
@@ -33,6 +34,7 @@ const literalExceptions = new Set([
   "ARA",
   "Hz",
   "0 dB",
+  "dB",
   "Rust · CPAL",
   "lead-synth",
   "vst3:1234",
@@ -69,7 +71,7 @@ describe("desktop locale catalogs", () => {
     }
   })
 
-  it("keeps user-facing static Vue text and labels in the catalogs", () => {
+  it("keeps static and bound user-facing Vue text and labels in the catalogs", () => {
     const untranslated: string[] = []
     for (const file of sourceFiles.filter((file) => file.endsWith(".vue"))) {
       const template = parse(readFileSync(resolve(sourceRoot, file), "utf8")).descriptor.template
@@ -80,10 +82,66 @@ describe("desktop locale catalogs", () => {
           untranslated.push(`${file}: ${value}`)
         }
       }
+      const checkExpression = (expression: string) => {
+        const source = ts.createSourceFile(
+          "expression.ts",
+          `(${expression})`,
+          ts.ScriptTarget.Latest,
+          true
+        )
+        const visitExpression = (node: ts.Node): void => {
+          // Translation keys and parameters are supplied data, not UI literals.
+          if (ts.isCallExpression(node)) return
+          if (
+            (ts.isStringLiteral(node) || ts.isTemplateLiteralToken(node)) &&
+            /(?:[a-z]{2,}\s|\s[a-z]{2,})/iu.test(node.text)
+          )
+            check(node.text)
+          ts.forEachChild(node, visitExpression)
+        }
+        visitExpression(source)
+      }
       const visit = (node: RootNode | TemplateChildNode): void => {
         if (node.type === NodeTypes.TEXT) check(node.content)
+        if (
+          node.type === NodeTypes.INTERPOLATION &&
+          node.content.type === NodeTypes.SIMPLE_EXPRESSION
+        )
+          checkExpression(node.content.content)
         if (node.type === NodeTypes.ELEMENT) {
+          const hasProp = (name: string) =>
+            node.props.some((prop) =>
+              prop.type === NodeTypes.ATTRIBUTE
+                ? prop.name === name
+                : prop.name === "bind" &&
+                  prop.arg?.type === NodeTypes.SIMPLE_EXPRESSION &&
+                  prop.arg.content === name
+            )
+          const requireProp = (name: string) => {
+            if (!hasProp(name)) untranslated.push(`${file}: ${node.tag} requires localized ${name}`)
+          }
+          if (node.tag === "UiDialog") requireProp("close-label")
+          if (node.tag === "UiButton" && hasProp("loading")) requireProp("loading-label")
+          if (node.tag === "UiCurveEditor") {
+            for (const name of [
+              "label",
+              "instructions",
+              "hint",
+              "value-text",
+              "x-label",
+              "y-label"
+            ])
+              requireProp(name)
+          }
           for (const prop of node.props) {
+            if (
+              prop.type === NodeTypes.DIRECTIVE &&
+              prop.name === "bind" &&
+              prop.arg?.type === NodeTypes.SIMPLE_EXPRESSION &&
+              /(?:label|title|description|placeholder|valuetext)$/u.test(prop.arg.content) &&
+              prop.exp?.type === NodeTypes.SIMPLE_EXPRESSION
+            )
+              checkExpression(prop.exp.content)
             if (
               prop.type === NodeTypes.ATTRIBUTE &&
               /(?:label|title|description|placeholder|eyebrow|category|page)$/u.test(prop.name) &&

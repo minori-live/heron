@@ -1,3 +1,4 @@
+import { pluginCompatibilityMessage } from "../utils/pluginCompatibility"
 import { i18n } from "../i18n"
 import { acceptHMRUpdate, defineStore } from "pinia"
 import { computed, onScopeDispose, shallowRef, watch } from "vue"
@@ -111,7 +112,7 @@ export const usePluginStore = defineStore("plugins", () => {
           editorOpen: false,
           latencySamples: 0,
           tailSamples: 0,
-          error: descriptor.compatibilityReason
+          error: pluginCompatibilityMessage(descriptor.compatibilityReason)
         }
         nextCatalogFailureIds.add(instance.id)
       } else if (!pluginSupportsHostedAudioMode(descriptor, instance.audioMode)) {
@@ -121,7 +122,9 @@ export const usePluginStore = defineStore("plugins", () => {
           editorOpen: false,
           latencySamples: 0,
           tailSamples: 0,
-          error: `The saved ${instance.audioMode} layout is no longer supported by this VST3.`
+          error: i18n.global.t("rendererErrors.unsupportedSavedLayout", {
+            mode: instance.audioMode
+          })
         }
         nextCatalogFailureIds.add(instance.id)
       } else if (

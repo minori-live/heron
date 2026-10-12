@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
+const { t } = useI18n()
 import { computed, shallowRef } from "vue"
 import { UiResizeHandle, type UiGestureIntent } from "@heron/ui"
 const props = defineProps<{ baseHeight: number; scale: number; trackName: string }>()
 const emit = defineEmits<{ setScale: [scale: number]; reset: [] }>()
 const startScale = shallowRef(props.scale)
-const resizeLabel = computed(
-  () => `Resize ${props.trackName} track height; current scale ${props.scale.toFixed(2)} times`
+const resizeLabel = computed(() =>
+  t("studio.trackResize", { name: props.trackName, scale: props.scale.toFixed(2) })
 )
 function resize(intent: UiGestureIntent): void {
   if (intent.phase === "start") startScale.value = props.scale

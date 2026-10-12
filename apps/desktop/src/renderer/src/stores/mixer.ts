@@ -1,3 +1,4 @@
+import { t } from "../i18n"
 import { acceptHMRUpdate, defineStore, storeToRefs } from "pinia"
 import { computed, shallowRef } from "vue"
 import type {
@@ -180,7 +181,7 @@ export const useMixerStore = defineStore("mixer", () => {
       id: crypto.randomUUID(),
       kind: "audio",
       systemRole: null,
-      name: `Audio ${index + 1}`,
+      name: t("mixer.defaultNames.audio", { index: index + 1 }),
       color: DEFAULT_CHANNEL_COLORS.audio,
       sortOrder: index,
       inputSource: "hardware",
@@ -211,7 +212,7 @@ export const useMixerStore = defineStore("mixer", () => {
       id: crypto.randomUUID(),
       kind: "instrument",
       systemRole: null,
-      name: `Instrument ${index + 1}`,
+      name: t("mixer.defaultNames.instrument", { index: index + 1 }),
       color: DEFAULT_CHANNEL_COLORS.instrument,
       sortOrder: index,
       inputSource: null,
@@ -243,7 +244,7 @@ export const useMixerStore = defineStore("mixer", () => {
       id: crypto.randomUUID(),
       kind: "aux",
       systemRole: null,
-      name: `Aux ${index + 1}`,
+      name: t("mixer.defaultNames.aux", { index: index + 1 }),
       color: DEFAULT_CHANNEL_COLORS.aux,
       sortOrder: index,
       inputSource: "bus",
@@ -276,14 +277,16 @@ export const useMixerStore = defineStore("mixer", () => {
       firstHardwareChannel += 2
     }
     if (firstHardwareChannel > 31) {
-      error.value = "All 16 hardware output pairs are already in use."
+      error.value = t("live.outputLimit")
       return Promise.resolve(false)
     }
     const channel: MixerChannelState = {
       id: crypto.randomUUID(),
       kind: "output",
       systemRole: null,
-      name: `Output ${firstHardwareChannel}–${firstHardwareChannel + 1}`,
+      name: t("mixer.defaultNames.output", {
+        channels: `${firstHardwareChannel}–${firstHardwareChannel + 1}`
+      }),
       color: DEFAULT_CHANNEL_COLORS.output,
       sortOrder: index,
       inputSource: null,

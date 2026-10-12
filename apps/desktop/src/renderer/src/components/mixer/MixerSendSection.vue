@@ -214,6 +214,7 @@ function createSend(value: string): void {
             <label>
               <span>{{ t("mixer.sendSection.destination") }}</span>
               <UiCascadingSelect
+                :placeholder="t('common.choose')"
                 :disabled="structureEnabled === false"
                 :model-value="sendTargetValue(send)"
                 :groups="destinationTargetGroups.get(send.id) ?? []"

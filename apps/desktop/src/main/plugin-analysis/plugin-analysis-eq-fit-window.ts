@@ -1,3 +1,4 @@
+import { t } from "../settings"
 import { app, BrowserWindow } from "electron"
 import type { IpcMainInvokeEvent } from "electron"
 import { randomUUID } from "node:crypto"
@@ -241,7 +242,7 @@ export class PluginAnalysisEqFitWindow {
     let window: BrowserWindow
     try {
       window = new BrowserWindow({
-        title: "EQ Fit",
+        title: t("pluginAnalysis.eqFit.open"),
         icon: applicationIconPath,
         width: 900,
         height: 740,

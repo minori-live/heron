@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
+const { t } = useI18n()
 defineProps<{
   label: string
   eyebrow: string
@@ -14,7 +16,7 @@ defineSlots<{
   <section
     class="global-event-lane-header"
     :style="{ '--lane-color': color }"
-    :aria-label="`${label} global track`"
+    :aria-label="t('studio.globalLane.label', { label })"
   >
     <div class="lane-copy">
       <span>{{ eyebrow }}</span>

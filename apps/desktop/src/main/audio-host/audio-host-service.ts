@@ -1,3 +1,4 @@
+import { t } from "../settings"
 import { randomUUID } from "node:crypto"
 import { IPC_PROTOCOL_VERSION } from "@heron/contracts"
 import { AudioHostDiagnostics } from "./audio-host-diagnostics"
@@ -139,7 +140,7 @@ export class AudioHostService {
         request.requestId,
         request.instanceId,
         false,
-        "Side-chain routing could not be committed."
+        t("plugins.sidechain.failed")
       )
   })
   private readonly diagnostics = new AudioHostDiagnostics(

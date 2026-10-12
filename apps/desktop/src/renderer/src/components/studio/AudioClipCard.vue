@@ -233,6 +233,7 @@ function editGesture(action: string, intent: UiGestureIntent): void {
 
 <template>
   <UiContextMenu
+    :empty-message="t('common.noCommands')"
     :entries="menuEntries"
     :menu-label="t('studio.arrangement.audioClipMenu', { name: clip.name })"
     @open-context="!selected && emit('select', clip.id)"
@@ -249,7 +250,11 @@ function editGesture(action: string, intent: UiGestureIntent): void {
         selected,
         signalColor: trackColor
       }"
-      :label="`${recording ? 'Recording' : 'Audio clip'} ${clip.name}`"
+      :label="
+        recording
+          ? t('studio.clip.recordingLabel', { name: clip.name })
+          : t('studio.clip.audioLabel', { name: clip.name })
+      "
       :recording="recording"
       :dragging="dragging"
       :editing="active"

@@ -7,6 +7,7 @@ import { stubApi } from "../test/ipc"
 
 function progress(overrides: Partial<StartupProgressSnapshot> = {}): StartupProgressSnapshot {
   return {
+    locale: "en-US",
     phase: "loading-catalog",
     progress: 25,
     label: "Loading catalog",

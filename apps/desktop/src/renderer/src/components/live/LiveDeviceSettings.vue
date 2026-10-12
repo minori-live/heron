@@ -127,6 +127,7 @@ function configure(): void {
       <div class="flex justify-end">
         <UiButton
           :disabled="pending || !dirty || !valid"
+          :loading-label="t('common.loading')"
           :loading="pending"
           variant="primary"
           @click="configure"

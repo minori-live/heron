@@ -21,6 +21,7 @@ const open = computed({
   <UiDialog
     v-if="isOpen"
     v-model="open"
+    :close-label="t('common.closeDialog')"
     :title="t('effectGraph.title')"
     :description="t('effectGraph.description')"
     size="lg"

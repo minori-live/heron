@@ -1,3 +1,4 @@
+import { t } from "../settings"
 import { createHash, randomUUID } from "node:crypto"
 import type {
   MidiClipState,
@@ -81,12 +82,12 @@ export async function commitMidiRecordingTakes(
     }))
     const rawBytes = encodeTakeBytes(notes, events)
     const contentHash = createHash("sha256").update(rawBytes).digest("hex")
-    const trackName = trackNames.get(take.trackId) ?? "Instrument"
+    const trackName = trackNames.get(take.trackId) ?? t("recording.instrument")
     const clip: MidiClipState = {
       id: take.clipId,
       sourceId: take.sourceId,
       trackId: take.trackId,
-      name: `Recording ${trackName}`,
+      name: t("recording.defaultName", { name: trackName }),
       startTick,
       lengthTicks: Math.max(1, recovered.lengthTicks),
       sourceOffsetTicks: 0,
@@ -112,7 +113,7 @@ export async function commitMidiRecordingTakes(
       meta,
       {
         id: take.sourceId,
-        name: `Recording ${trackName}.midijournal`,
+        name: `${t("recording.defaultName", { name: trackName })}.midijournal`,
         contentHash,
         rawBytes
       },

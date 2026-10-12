@@ -1,3 +1,4 @@
+import { t } from "../../i18n"
 import { computed, inject, watch, type ComputedRef, type InjectionKey, type Ref } from "vue"
 import type { CSSProperties } from "vue"
 import { storeToRefs } from "pinia"
@@ -210,7 +211,13 @@ export function createPianoRollEditor(): PianoRollEditor {
 
   function noteAriaLabel(clip: MidiClipState, note: MidiNoteState): string {
     const value = displayedNoteValues(clip, note)
-    return `${formatMidiNoteName(value.key)}, start ${value.globalStartTick}, duration ${value.durationTicks}, velocity ${note.velocity}, ${clip.name}`
+    return t("pianoRoll.noteLabel", {
+      pitch: formatMidiNoteName(value.key),
+      start: value.globalStartTick,
+      duration: value.durationTicks,
+      velocity: note.velocity,
+      clip: clip.name
+    })
   }
 
   function keyStyle(key: number): CSSProperties {

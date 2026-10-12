@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
+const { t } = useI18n()
 import { computed, shallowRef } from "vue"
 import {
   UiAutomationLane,
@@ -110,7 +112,12 @@ const uiPoints = computed<UiAutomationLanePoint[]>(() =>
     id: point.id,
     x: point.left,
     y: 0,
-    label: `${props.valueLabel} ${point.label} at ${point.position.toFixed(2)} ${props.positionLabel}`,
+    label: t("studio.globalLane.pointLabel", {
+      label: props.valueLabel,
+      value: point.label,
+      position: point.position.toFixed(2),
+      unit: props.positionLabel
+    }),
     selected: point.id === props.selectedId,
     segmentWidth: point.width,
     segmentLabel: point.label,
@@ -122,7 +129,7 @@ const uiPoints = computed<UiAutomationLanePoint[]>(() =>
 <template>
   <UiAutomationLane
     mode="marker"
-    :label="`${valueLabel} global track editor. Double-click to add an event.`"
+    :label="t('studio.globalLane.eventEditor', { label: valueLabel })"
     :width="contentWidth"
     :height="height"
     :color="color"

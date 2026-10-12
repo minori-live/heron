@@ -1,3 +1,4 @@
+import { t } from "../i18n"
 import type { KeySignatureEventState, KeySignatureMode } from "@heron/contracts"
 
 export interface KeySignatureChoice {
@@ -64,10 +65,13 @@ export function parseKeySignatureValue(
 }
 
 export function keySignatureLabel(fifths: number, mode: KeySignatureMode): string {
-  return (
-    KEY_SIGNATURE_CHOICES.find((choice) => choice.fifths === fifths && choice.mode === mode)
-      ?.label ?? (mode === "minor" ? "A minor" : "C Major")
+  const choice = KEY_SIGNATURE_CHOICES.find(
+    (choice) => choice.fifths === fifths && choice.mode === mode
   )
+  const tonic = choice?.label.split(" ")[0] ?? (mode === "minor" ? "A" : "C")
+  return mode === "minor"
+    ? t("studio.keySignature.minor", { tonic })
+    : t("studio.keySignature.major", { tonic })
 }
 
 export function keySignatureAtTick(

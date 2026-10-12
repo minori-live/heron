@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
+const { t } = useI18n()
 import { toRef } from "vue"
 import { UiHorizontalFader } from "@heron/ui"
 import {
@@ -38,7 +40,7 @@ const meterDisplay = usePeakMeterDisplay({
     :max="FADER_MAX_DB"
     :step="0.1"
     :default-value="0"
-    :label="`${channelName} quick volume`"
+    :label="t('mixer.controls.quickVolume', { name: channelName })"
     :value-text="valueText"
     :meter-level-percent="meterDisplay.meterLevelPercent.value"
     :disabled="disabled"

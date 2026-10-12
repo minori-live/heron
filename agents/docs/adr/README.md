@@ -46,6 +46,8 @@ evidence belong in their owning documents rather than being copied into each ADR
 | [0035 — Explicit route formats](0035-explicit-route-formats.md) | Accepted | Independent mono/stereo main and Send routes, BUS pairs, persistence and native mixing |
 | [0036 — Selective Vue Vapor rendering](0036-selective-vue-vapor.md) | Accepted | Vapor compilation with explicit Reka VDOM boundaries and browser validation |
 
+| [0036 — Startup progress locale](0036-startup-progress-locale.md) | Accepted | Explicit language for splash text, fonts, and document metadata |
+
 Accepted means the architecture is chosen, not that every feature or release
 acceptance test is complete. Each record states its implementation scope; the
 [roadmap](../roadmap.md) owns delivery and evidence status. A proposal cannot be

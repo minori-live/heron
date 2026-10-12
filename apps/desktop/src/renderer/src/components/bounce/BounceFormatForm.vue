@@ -107,9 +107,9 @@ const mp3Mode = computed({
           :options="
             settings.format === 'wav'
               ? [
-                  { value: 'pcm16', label: '16-bit PCM' },
-                  { value: 'pcm24', label: '24-bit PCM' },
-                  { value: 'float32', label: '32-bit Float' }
+                  { value: 'pcm16', label: t('bounce.encodings.pcm16') },
+                  { value: 'pcm24', label: t('bounce.encodings.pcm24') },
+                  { value: 'float32', label: t('bounce.encodings.float32') }
                 ]
               : [
                   { value: 'pcm16', label: '16-bit' },

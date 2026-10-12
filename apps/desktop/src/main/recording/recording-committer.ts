@@ -3,7 +3,8 @@ import { basename } from "node:path"
 import { repairRecordingHeader } from "@heron/dsp-node"
 import type { OperationService } from "../kernel"
 import type { ProjectCommandService, ProjectGraphService, ProjectService } from "../project"
-import { t } from "../settings"
+import { intlLocale } from "../../shared/i18n"
+import { t, getMainLocale } from "../settings"
 import { commitMidiRecordingTakes } from "./midi-recording-commit"
 import { RecordingFinalizer } from "./recording-finalizer"
 import { RecordingRecoveryRepository } from "./recording-recovery-repository"
@@ -181,7 +182,10 @@ export class RecordingCommitter {
             operationId,
             {
               id: track.assetId,
-              name: `Recording ${track.trackName} ${new Date(recording.startedAt).toLocaleString()}.bwf`,
+              name: t("recording.assetName", {
+                name: track.trackName,
+                date: new Date(recording.startedAt).toLocaleString(intlLocale(getMainLocale()))
+              }),
               mimeType: "audio/x-bwf",
               contentHash: finalized.contentHash,
               sampleRate: finalized.sampleRate,
@@ -247,7 +251,7 @@ export class RecordingCommitter {
           const channel = workspace.graph.channels.find(
             (candidate) => candidate.id === track.channelId
           )
-          return [track.id, channel?.name ?? "Instrument"] as const
+          return [track.id, channel?.name ?? t("recording.instrument")] as const
         })
       )
       await commitMidiRecordingTakes(

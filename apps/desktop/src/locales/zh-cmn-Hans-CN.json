@@ -56,7 +56,10 @@
     "changesSaved": "更改已保存",
     "backToStudio": "返回编排界面",
     "backToLive": "返回 Live",
-    "backToWelcome": "返回欢迎页"
+    "backToWelcome": "返回欢迎页",
+    "closeDialog": "关闭对话框",
+    "choose": "请选择…",
+    "noCommands": "没有可用命令。"
   },
   "chrome": {
     "unsavedChanges": "未保存的更改",
@@ -114,7 +117,7 @@
     "audioBenchmark": "音频性能基准测试…",
     "effectChainGraph": "效果链图…",
     "studioBasics": "Studio 基础教程…",
-    "pluginAnalysis": "Plugin Analysis…"
+    "pluginAnalysis": "插件分析…"
   },
   "dialog": {
     "createLive": {
@@ -1040,6 +1043,40 @@
         "signal": "信号：{width}",
         "latencySensitive": "低延迟监听路径",
         "lowLatencyBypassed": "由低延迟模式临时旁路"
+      },
+      "kinds": {
+        "hardware-input": "硬件输入",
+        "application-input": "应用输入",
+        "bus-input": "总线输入",
+        "timeline-input": "时间线输入",
+        "instrument-input": "乐器输入",
+        "channel": "通道",
+        "effect": "效果器",
+        "send": "发送",
+        "master": "主输出",
+        "hardware-output": "硬件输出",
+        "width-adapter": "声道转换",
+        "pdc-delay": "延迟补偿"
+      },
+      "labels": {
+        "mainPdc": "主输入延迟补偿",
+        "channelPdc": "通道延迟补偿",
+        "sendPdc": "发送延迟补偿",
+        "bypassPdc": "旁通延迟补偿",
+        "pluginLatency": "插件延迟",
+        "toMono": "立体声 → 单声道",
+        "toStereo": "单声道 → 立体声",
+        "instrument": "乐器",
+        "insert": "插入效果器",
+        "sendPre": "发送（推子前）",
+        "sendPost": "发送（推子后）",
+        "sendPostPan": "发送（声像后）",
+        "sidechainPdc": "侧链延迟补偿 · {port}"
+      },
+      "pluginStates": {
+        "active": "启用",
+        "bypassed": "旁通",
+        "unavailable": "不可用"
       }
     }
   },
@@ -1149,12 +1186,17 @@
           "label": "直接读取遥测",
           "description": "通过原生扩展同步读取引擎快照"
         }
+      },
+      "buildProfile": {
+        "debug": "调试构建",
+        "release": "发行构建"
       }
     },
     "footer": {
       "logicalCores": "{count} 逻辑核心 · {platform} · {architecture}",
       "measured": "于 {measuredAt} 测量，耗时 {duration} 秒"
-    }
+    },
+    "unknownProcessor": "未知处理器"
   },
   "performance": {
     "trigger": {
@@ -1522,6 +1564,22 @@
       "leftBody": "声音与设备将显示在此处。",
       "rightBody": "片段与轨道控制将显示在此处。",
       "badge": "占位"
+    },
+    "clip": {
+      "midiLabel": "{name}，MIDI 片段",
+      "recordingLabel": "录制 {name}",
+      "audioLabel": "音频片段 {name}"
+    },
+    "trackResize": "调整 {name} 轨道高度；当前缩放 {scale} 倍",
+    "globalLane": {
+      "label": "{label} 全局轨道",
+      "eventEditor": "{label} 全局轨道编辑器。双击添加事件。",
+      "pointLabel": "{label} {value}，位置 {position} {unit}",
+      "pointEditor": "{label} 全局轨道编辑器。双击添加控制点。"
+    },
+    "keySignature": {
+      "major": "{tonic} 大调",
+      "minor": "{tonic} 小调"
     }
   },
   "bounce": {
@@ -1573,7 +1631,13 @@
       "close": "关闭导出弹框",
       "export": "选择位置并导出",
       "starting": "正在启动导出"
-    }
+    },
+    "encodings": {
+      "pcm16": "16 位 PCM",
+      "pcm24": "24 位 PCM",
+      "float32": "32 位浮点"
+    },
+    "defaultFileName": "输出"
   },
   "mixer": {
     "console": {
@@ -1655,8 +1719,8 @@
       "ariaLabel": "通道发送",
       "missingOutput": "缺少输出",
       "missingBus": "缺少总线",
-      "tapPre": "前置",
-      "tapPost": "后置",
+      "tapPre": "推子前",
+      "tapPost": "推子后",
       "tapPan": "声像后",
       "editSend": "编辑发送至 {target}",
       "header": "发送",
@@ -1774,6 +1838,24 @@
       "maximumAria": "{name} 锁存的推子后最大电平（分贝）",
       "maximumTitle": "推子后最大峰值：{peak} dB · 点击重置峰值和削波指示",
       "levelAria": "{name} 推子后电平"
+    },
+    "fader": {
+      "value": "{name} 音量值（分贝）",
+      "edit": "推子：{value} · 双击编辑",
+      "volume": "{name} 音量"
+    },
+    "controls": {
+      "pan": "{name} 声像",
+      "panValue": "{name} 声像值",
+      "quickVolume": "{name} 快速音量",
+      "quickPan": "{name} 快速声像",
+      "quickPanValue": "{name} 快速声像值"
+    },
+    "defaultNames": {
+      "audio": "音频 {index}",
+      "instrument": "乐器 {index}",
+      "aux": "辅助 {index}",
+      "output": "输出 {channels}"
     }
   },
   "plugins": {
@@ -1838,6 +1920,25 @@
         "label": "双单声道",
         "detail": "2 × (1 → 1)"
       }
+    },
+    "sidechain": {
+      "unavailable": "插件或工程已不可用。",
+      "failed": "无法提交侧链路由。",
+      "degraded": "路由已保存，但音频部署处于降级状态。",
+      "shutdown": "应用程序正在退出。"
+    },
+    "compatibility": {
+      "factoryEnumeration": "此模块需要原生 VST3 工厂枚举。",
+      "initialization": "插件初始化失败。",
+      "floatProcessing": "插件不支持 32 位浮点处理。",
+      "instrumentEvents": "乐器需要事件输入及单声道或立体声主输出。",
+      "effectLayout": "效果器需要受支持的单声道或立体声主输入和输出布局。",
+      "instrumentLayout": "乐器不能有主音频输入，且需要一个受支持的主输出。",
+      "effectBuses": "效果器需要各一个受支持的主输入和主输出；支持辅助输入。",
+      "builtinProbe": "内置 VST3 探测失败。",
+      "missingBuiltin": "已安装的套件中缺少内置插件。",
+      "capabilityProbe": "插件能力深度探测失败。",
+      "discovery": "音频插件扫描失败。"
     }
   },
   "pianoRoll": {
@@ -1900,7 +2001,8 @@
       "1/64T": "1/64 三连音"
     },
     "gridAria": "钢琴卷帘音符网格",
-    "keyboardAria": "钢琴键盘"
+    "keyboardAria": "钢琴键盘",
+    "noteLabel": "{pitch}，起点 {start}，时长 {duration}，力度 {velocity}，{clip}"
   },
   "midiImport": {
     "eyebrow": "MIDI 导入",
@@ -1922,7 +2024,8 @@
     "importMidiTempo": "将 MIDI 速度导入工程",
     "importMidiTempoDetail": "从 tick 0 开始，并用 MIDI 速度映射替换工程速度轨。",
     "import": "导入 MIDI",
-    "importing": "正在导入 MIDI"
+    "importing": "正在导入 MIDI",
+    "defaultTrackName": "MIDI 轨道 {index}"
   },
   "midiSettings": {
     "input": {
@@ -2117,7 +2220,11 @@
       "outputStart": "第 {index} 段输出起点",
       "outputEnd": "第 {index} 段输出终点",
       "segmentShape": "第 {index} 段形状",
-      "segmentAmount": "第 {index} 段强度"
+      "segmentAmount": "第 {index} 段强度",
+      "label": "可编辑响应曲线",
+      "instructions": "拖动控制点，或聚焦后使用方向键。按住 Shift 进行微调。Home 和 End 将输出设为最小值和最大值。",
+      "hint": "拖动控制点以调整响应曲线。",
+      "valueText": "输入 {input}，输出 {output}"
     },
     "navigation": {
       "inputDescription": "端口、时序和 MIDI 时钟",
@@ -2149,14 +2256,15 @@
     "stalePlugin": "插件句柄已失效。",
     "effectMode": "请为此插入位置选择 {width} 输入的效果器模式。",
     "validEffectMode": "请为此插入位置选择有效的输入效果器模式。",
-    "waveformDescription": "波形，{channels} 个声道，{frames} 帧"
+    "waveformDescription": "波形，{channels} 个声道，{frames} 帧",
+    "unsupportedSavedLayout": "此 VST3 已不再支持保存的 {mode} 布局。"
   },
   "pluginAnalysis": {
     "eqFit": {
       "title": "参数均衡器拟合",
       "open": "EQ 拟合",
       "openFailed": "无法更新 EQ 拟合窗口。请重新选择路径或重试打开。",
-      "contextUnavailable": "请在 Linear 幅度视图中选择单一路径，再打开 EQ 拟合。若报告已过期，请重新分析。",
+      "contextUnavailable": "请在 线性幅度视图中选择单一路径，再打开 EQ 拟合。若报告已过期，请重新分析。",
       "windowUnavailable": "分析数据源不可用，拟合已停止。请重试连接。",
       "windowActionFailed": "未能完成窗口操作，请重试。",
       "retry": "重试",
@@ -2185,7 +2293,11 @@
       "flat": "仅整体增益已足够，无需 EQ 滤波器。",
       "residual": "残差（测量值 − 拟合值）",
       "convention": "仅拟合报告采样率下的幅度。Q 使用 RBJ alpha = sin(ω) / (2Q)，搁架滤波器也相同（Q 不是搁架斜率 S）。误差对各测量频点等权计算。窄共振峰可能无法分辨；不会重现相位、延迟和非线性。有界搜索得到近似解，不保证全局最优。",
-      "types": { "Bell": "Bell", "LowShelf": "低搁架", "HighShelf": "高搁架" },
+      "types": {
+        "Bell": "钟形",
+        "LowShelf": "低搁架",
+        "HighShelf": "高搁架"
+      },
       "unavailable": {
         "difference": "请选择链路视图以拟合测得的响应。差值曲线不支持拟合。",
         "stale": "链路或测量设置已更改。请重新分析后再拟合。",
@@ -2282,7 +2394,7 @@
       "state-changed": "效果器已修改，将重新分析。",
       "catalog-unavailable": "无法刷新插件列表，请重新扫描。"
     },
-    "title": "Plugin Analysis",
+    "title": "插件分析",
     "thd": "THD (H2–H8)",
     "percentiles": "P95 / P99 / 最高",
     "latencyValue": "{samples} 个采样 · {ms} ms",
@@ -2292,7 +2404,7 @@
       "dbfs": "dBFS",
       "mib": "MiB"
     },
-    "inserts": "Audio FX",
+    "inserts": "音频效果",
     "rescan": "重新扫描",
     "samples": "采样",
     "conditions": "{rate} kHz · {block} {samples}",
@@ -2409,5 +2521,10 @@
     "retry": "重试",
     "saveError": "未能保存你的选择，请重试。",
     "loadError": "未能加载设置，请重试。"
+  },
+  "recording": {
+    "defaultName": "录音 {name}",
+    "assetName": "录音 {name} {date}.bwf",
+    "instrument": "乐器"
   }
 }
