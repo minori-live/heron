@@ -5,6 +5,8 @@ description: 测量独立效果链的频响、泛音、模型和性能。
 
 # Plugin Analysis
 
+功能概览请参阅 [Plugin Analysis 介绍](../daw/plugin-analysis.md)。
+
 选择 **帮助 → Plugin Analysis…**，打开独立分析窗口，无需先打开工程。
 左侧使用与 Mixer 相同的插件选择器和槽位，可添加、排序、旁路、移除插件，
 并打开原生或通用参数编辑器。实验链静音，修改不会影响工程。

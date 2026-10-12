@@ -5,6 +5,8 @@ description: Measure an independent effect chain's response, distortion, model a
 
 # Plugin Analysis
 
+For a feature overview, see the [Plugin Analysis introduction](../daw/plugin-analysis.md).
+
 Choose **Help → Plugin Analysis…** to open an independent analysis window. You do
 not need a project. Add effects using the Mixer plug-in picker and slots, then
 open their native or parameter editors. The silent experiment chains do not

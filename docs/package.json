@@ -21,6 +21,7 @@
     "@fontsource-variable/inter": "catalog:",
     "@fontsource-variable/noto-sans-sc": "catalog:",
     "@fontsource/barlow-condensed": "catalog:",
+    "@fortawesome/free-brands-svg-icons": "^7.3.1",
     "@heron/contracts": "workspace:*",
     "@heron/ui": "workspace:*",
     "pinia": "catalog:",

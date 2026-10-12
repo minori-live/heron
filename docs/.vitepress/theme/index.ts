@@ -5,6 +5,10 @@ import BlogIndex from "./components/BlogIndex.vue"
 import DocsLayout from "./components/DocsLayout.vue"
 import HomePage from "./components/HomePage.vue"
 import MermaidDiagram from "./components/MermaidDiagram.vue"
+import HeronEqPage from "./components/plugins/HeronEqPage.vue"
+import HeronStudioIncluded from "./components/plugins/HeronStudioIncluded.vue"
+import PluginCompatibility from "./components/plugins/PluginCompatibility.vue"
+import PluginAnalysisPage from "./components/daw/PluginAnalysisPage.vue"
 import AudioBackendSupportFigure from "./components/manual/AudioBackendSupportFigure.vue"
 import RoutingPlayground from "./components/manual/RoutingPlayground.vue"
 import { createMixerDemoI18n } from "./mixer-demo-i18n"
@@ -23,7 +27,11 @@ export default {
     app.component("AudioBackendSupportFigure", AudioBackendSupportFigure)
     app.component("BlogIndex", BlogIndex)
     app.component("HomePage", HomePage)
+    app.component("HeronEqPage", HeronEqPage)
+    app.component("HeronStudioIncluded", HeronStudioIncluded)
     app.component("MermaidDiagram", MermaidDiagram)
+    app.component("PluginCompatibility", PluginCompatibility)
+    app.component("PluginAnalysisPage", PluginAnalysisPage)
     app.component("RoutingPlayground", RoutingPlayground)
   }
 } satisfies Theme

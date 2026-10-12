@@ -132,11 +132,43 @@ export default defineConfig({
       description: defaultDescriptionEn,
       themeConfig: {
         nav: [
-          { text: "Manual", link: "/manual/" },
-          { text: "Blog", link: "/blog/" },
-          { text: "Releases", link: "https://github.com/minori-live/heron/releases" }
+          {
+            text: "DAW",
+            activeMatch: "^/(daw/|manual/|$)",
+            items: [
+              { text: "Plugin Analysis", link: "/daw/plugin-analysis" },
+              { text: "Manual", link: "/manual/" },
+              { text: "Releases", link: "https://github.com/minori-live/heron/releases" }
+            ]
+          },
+          {
+            text: "Plugins",
+            activeMatch: "^/plugins/",
+            items: [
+              { text: "Heron EQ", link: "/plugins/heron-eq" },
+              { text: "Manual", link: "/plugins/manual/" },
+              { text: "Releases", link: "/plugins/releases" }
+            ]
+          },
+          { text: "Blog", link: "/blog/" }
         ],
         sidebar: {
+          "/plugins/": [
+            {
+              text: "Plugins",
+              items: [
+                { text: "Heron EQ", link: "/plugins/heron-eq" },
+                { text: "Releases", link: "/plugins/releases" }
+              ]
+            },
+            {
+              text: "Manual",
+              items: [
+                { text: "Overview", link: "/plugins/manual/" },
+                { text: "Heron EQ", link: "/plugins/manual/heron-eq" }
+              ]
+            }
+          ],
           "/blog/": [
             {
               text: "Development log",
@@ -210,11 +242,43 @@ export default defineConfig({
       description: defaultDescriptionZh,
       themeConfig: {
         nav: [
-          { text: "手册", link: "/zh/manual/" },
-          { text: "博客", link: "/blog/" },
-          { text: "下载", link: "https://github.com/minori-live/heron/releases" }
+          {
+            text: "DAW",
+            activeMatch: "^/zh/(daw/|manual/|$)",
+            items: [
+              { text: "Plugin Analysis", link: "/zh/daw/plugin-analysis" },
+              { text: "手册", link: "/zh/manual/" },
+              { text: "发布版本", link: "https://github.com/minori-live/heron/releases" }
+            ]
+          },
+          {
+            text: "插件",
+            activeMatch: "^/zh/plugins/",
+            items: [
+              { text: "Heron EQ", link: "/zh/plugins/heron-eq" },
+              { text: "手册", link: "/zh/plugins/manual/" },
+              { text: "发布版本", link: "/zh/plugins/releases" }
+            ]
+          },
+          { text: "博客", link: "/blog/" }
         ],
         sidebar: {
+          "/zh/plugins/": [
+            {
+              text: "插件",
+              items: [
+                { text: "Heron EQ", link: "/zh/plugins/heron-eq" },
+                { text: "发布版本", link: "/zh/plugins/releases" }
+              ]
+            },
+            {
+              text: "手册",
+              items: [
+                { text: "概览", link: "/zh/plugins/manual/" },
+                { text: "Heron EQ", link: "/zh/plugins/manual/heron-eq" }
+              ]
+            }
+          ],
           "/zh/manual/": [
             {
               text: "从这里开始",

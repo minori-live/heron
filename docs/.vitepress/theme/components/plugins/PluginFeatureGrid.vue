@@ -1,0 +1,93 @@
+<script setup lang="ts">
+import type { EqFeature } from "./heron-eq-copy"
+
+defineProps<{ title: string; image: string; features: EqFeature[] }>()
+</script>
+
+<template>
+  <section class="feature-section" aria-labelledby="features-title">
+    <h2 id="features-title" class="section-title">{{ title }}</h2>
+    <div class="feature-grid">
+      <article v-for="feature in features" :key="feature.title" class="feature">
+        <svg class="feature-image" :viewBox="feature.crop" aria-hidden="true">
+          <image :href="image" width="2080" height="1400" />
+        </svg>
+        <div class="feature-copy">
+          <h3 class="feature-title">{{ feature.title }}</h3>
+          <p class="feature-body">{{ feature.body }}</p>
+        </div>
+      </article>
+    </div>
+  </section>
+</template>
+
+<style scoped>
+.feature-section {
+  padding: 48px 0 88px;
+}
+.section-title {
+  margin: 0 0 38px;
+  font-family: var(--heron-display);
+  font-size: clamp(30px, 3.6vw, 44px);
+  font-weight: 550;
+  letter-spacing: -0.025em;
+  line-height: 1.3;
+}
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+}
+.feature {
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--vp-c-bg-soft);
+}
+.feature-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2;
+  background: #242426;
+}
+.feature-copy {
+  padding: 28px;
+}
+.feature-title {
+  margin: 0 0 18px;
+  color: var(--vp-c-brand-1);
+  font-size: 22px;
+  font-weight: 550;
+  line-height: 1.45;
+}
+.feature-body {
+  margin: 0;
+  color: var(--vp-c-text-2);
+  font-size: 16px;
+  line-height: 1.85;
+}
+@media (max-width: 900px) {
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+  .feature {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    align-items: start;
+  }
+  .feature-image {
+    height: 100%;
+    object-fit: cover;
+  }
+}
+@media (max-width: 540px) {
+  .feature-section {
+    padding: 24px 0 56px;
+  }
+  .feature {
+    display: block;
+  }
+  .feature-copy {
+    padding: 24px;
+  }
+}
+</style>
