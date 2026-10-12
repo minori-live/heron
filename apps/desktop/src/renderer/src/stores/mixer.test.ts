@@ -659,7 +659,7 @@ describe("mixer store", () => {
     expect(mixer.availableSendTargets("master")).toEqual([])
   })
 
-  it("creates new sends enabled at the post-pan tap", async () => {
+  it("creates explicit stereo BUS sends enabled at the post-pan tap", async () => {
     const initial = graph()
     window.heron.executeProjectCommand = vi
       .fn()
@@ -669,7 +669,7 @@ describe("mixer store", () => {
     const mixer = useMixerStore()
     mixer.graph = initial
 
-    await mixer.addSend("audio", { kind: "output", channelId: "output" })
+    await mixer.addSend("audio", { kind: "bus", bus: 1, format: "stereo" })
 
     expect(window.heron.executeProjectCommand).toHaveBeenCalledWith(
       expect.objectContaining({ target: expect.objectContaining({ kind: "project-graph" }) }),
@@ -677,8 +677,9 @@ describe("mixer store", () => {
         type: "create-send",
         send: expect.objectContaining({
           sourceChannelId: "audio",
-          targetChannelId: "output",
-          targetBus: null,
+          targetChannelId: null,
+          targetBus: 1,
+          targetFormat: "stereo",
           enabled: true,
           tap: "post-pan",
           levelDb: -90

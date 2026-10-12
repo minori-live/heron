@@ -48,6 +48,56 @@ const wrappers: ReturnType<typeof mount>[] = []
 afterEach(() => wrappers.splice(0).forEach((wrapper) => wrapper.unmount()))
 
 describe("Live field ownership", () => {
+  it("identifies stereo BUS send overrides by both destination lanes", async () => {
+    const wrapper = mount(LiveLayerFields, {
+      attachTo: document.body,
+      props: {
+        snapshot: {
+          ...snapshot,
+          graph: {
+            ...snapshot.graph,
+            sends: [
+              {
+                id: "send",
+                sourceChannelId: "voice",
+                targetBus: 1,
+                targetFormat: "stereo",
+                enabled: true,
+                levelDb: -6,
+                sortOrder: 0,
+                tap: "post-pan"
+              }
+            ]
+          }
+        },
+        hierarchy,
+        selectedLayerId: "patch",
+        selectedChannelId: "voice",
+        pending: false,
+        error: ""
+      }
+    })
+    wrappers.push(wrapper)
+    await wrapper.get("button").trigger("click")
+    await flushPromises()
+    const label = t("live.layers.sendField", {
+      target: "BUS 1–2",
+      field: t("live.layers.fields.levelDb")
+    })
+    const button = document.querySelector<HTMLButtonElement>(
+      `button[aria-label="${t("live.layers.overrideField", { field: label })}"]`
+    )!
+    expect(button).not.toBeNull()
+    button.click()
+    expect(wrapper.emitted("edit")?.at(-1)).toEqual([
+      {
+        type: "set-live-override",
+        layerId: "patch",
+        override: { type: "send", id: "send", parameter: "levelDb", value: -6 }
+      }
+    ])
+  })
+
   it("shows defining layers and explicitly creates an equal override before offering Revert", async () => {
     const wrapper = mount(LiveLayerFields, {
       attachTo: document.body,

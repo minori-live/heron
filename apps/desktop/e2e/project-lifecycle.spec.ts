@@ -343,14 +343,14 @@ test("records into a Large Object and reopens the PGlite project archive", async
     ).toHaveAttribute("aria-pressed", "true")
     const audioOneStrip = visibleMixer.getByRole("article", { name: "Audio 1 audio channel" })
     await audioOneStrip.getByRole("button", { name: "Audio 1 output" }).click()
-    await page.getByRole("menuitem", { name: "Buses" }).hover()
-    await page.getByRole("menuitemradio", { name: "BUS 3", exact: true }).click()
+    await page.getByRole("menuitem", { name: "Stereo", exact: true }).hover()
+    await page.getByRole("menuitemradio", { name: "BUS 3–4", exact: true }).click()
     await audioOneStrip.getByRole("button", { name: "Add send in empty slot" }).click()
-    await page.getByRole("menuitem", { name: "Buses" }).hover()
-    await page.getByRole("menuitemradio", { name: "BUS 1", exact: true }).click()
-    await audioOneStrip.getByRole("button", { name: "Edit send to BUS 1" }).click()
+    await page.getByRole("menuitem", { name: "Stereo", exact: true }).hover()
+    await page.getByRole("menuitemradio", { name: "BUS 1–2", exact: true }).click()
+    await audioOneStrip.getByRole("button", { name: "Edit send to BUS 1–2" }).click()
     await page.getByRole("button", { name: "Send target" }).click()
-    await page.getByRole("menuitem", { name: "Outputs" }).hover()
+    await page.getByRole("menuitem", { name: "Mono", exact: true }).hover()
     await page.getByRole("menuitemradio", { name: "Output 1–2", exact: true }).click()
     await expect(page.getByRole("button", { name: "Disable send" })).toBeVisible()
     const audioTwoArm = visibleMixer.getByRole("button", { name: "Arm Audio 2" })
@@ -370,13 +370,15 @@ test("records into a Large Object and reopens the PGlite project archive", async
     ).toMatchObject({ id: "metronome", muted: false })
     expect(mixerBeforeSave.channels.find((channel) => channel.name === "Audio 1")).toMatchObject({
       outputChannelId: null,
-      outputBus: 3
+      outputBus: 3,
+      outputFormat: "stereo"
     })
     expect(mixerBeforeSave.sends).toEqual([
       expect.objectContaining({
         sourceChannelId: mixerBeforeSave.channels.find((channel) => channel.name === "Audio 1")?.id,
         targetChannelId: "output-1-2",
         targetBus: null,
+        targetFormat: "mono",
         enabled: true
       })
     ])

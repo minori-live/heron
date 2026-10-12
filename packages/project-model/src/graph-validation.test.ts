@@ -163,6 +163,101 @@ function graph(): ProjectGraphSnapshot {
   }
 }
 
+describe("explicit Mixer route formats", () => {
+  it("rejects imported unknown formats and stereo BUS pairs extending past BUS 256", () => {
+    const value = graph()
+    const source = value.channels[0]!
+    source.outputFormat = "surround" as "mono"
+    expect(() => validateMixerGraph(value)).toThrow("Invalid output route format")
+    source.outputFormat = "stereo"
+    source.outputChannelId = null
+    source.outputBus = 256
+    expect(() => validateMixerGraph(value)).toThrow("Mixer BUS output must fit")
+    source.outputBus = 255
+    expect(() => validateMixerGraph(value)).not.toThrow()
+    source.outputBus = 256
+    source.outputFormat = "mono"
+    expect(() => validateMixerGraph(value)).not.toThrow()
+    value.sends = [
+      {
+        id: "send",
+        sourceChannelId: source.id,
+        targetBus: 256,
+        targetFormat: "stereo",
+        sortOrder: 0,
+        enabled: true,
+        tap: "post-pan",
+        levelDb: 0
+      }
+    ]
+    expect(() => validateMixerGraph(value)).toThrow("Send BUS target must fit")
+    value.sends[0]!.targetBus = 255
+    expect(() => validateMixerGraph(value)).not.toThrow()
+    value.sends[0]!.targetFormat = "surround" as "mono"
+    expect(() => validateMixerGraph(value)).toThrow("Invalid send route format")
+  })
+
+  it("includes the right BUS lane in main and send feedback detection", () => {
+    const value = graph()
+    value.channels.push({
+      ...value.channels[0]!,
+      id: "aux",
+      kind: "aux",
+      inputSource: "bus",
+      inputFormat: "mono",
+      inputChannels: [2],
+      outputChannelId: null,
+      outputBus: 1,
+      outputFormat: "mono"
+    })
+    expect(() => validateMixerGraph(value)).not.toThrow()
+    value.channels.at(-1)!.outputFormat = "stereo"
+    expect(() => validateMixerGraph(value)).toThrow("feedback loop")
+    value.channels.at(-1)!.outputFormat = "mono"
+    value.sends = [
+      {
+        id: "send",
+        sourceChannelId: "aux",
+        targetBus: 1,
+        targetFormat: "stereo",
+        sortOrder: 0,
+        enabled: true,
+        tap: "post-pan",
+        levelDb: 0
+      }
+    ]
+    expect(() => validateMixerGraph(value)).toThrow("feedback loop")
+    value.sends[0]!.targetFormat = "mono"
+    expect(() => validateMixerGraph(value)).not.toThrow()
+  })
+
+  it("distinguishes mono and stereo sends but deduplicates legacy effective formats", () => {
+    const value = graph()
+    value.sends = [
+      {
+        id: "legacy",
+        sourceChannelId: "instrument-1",
+        targetBus: 1,
+        sortOrder: 0,
+        enabled: true,
+        tap: "post-pan",
+        levelDb: 0
+      }
+    ]
+    value.sends.push({ ...value.sends[0]!, id: "explicit", targetFormat: "stereo", sortOrder: 1 })
+    expect(() => validateMixerGraph(value)).not.toThrow()
+    value.sends[1]!.targetFormat = "mono"
+    expect(() => validateMixerGraph(value)).toThrow("each destination once")
+    value.sends.forEach((send) => {
+      send.targetBus = null
+      send.targetChannelId = "output"
+    })
+    expect(() => validateMixerGraph(value)).not.toThrow()
+    value.sends[1]!.targetFormat = "stereo"
+    expect(() => validateMixerGraph(value)).toThrow("each destination once")
+  })
+})
+
 describe("shared Mixer and Studio validation", () => {
   it("routes and previews ordinary channels without constructing a Studio arrangement", () => {
     const studio = graph()

@@ -441,14 +441,47 @@ fn stereo_bus_right_side_participates_in_feedback_and_solo() {
 }
 
 #[test]
-fn mono_output_route_downmixes_before_the_stereo_output_strip() {
-    let mut source = channel("source", ChannelKind::Audio, Some(2));
-    source.output = Some(RouteTarget::MonoOutput(2));
-    let channels = vec![
-        source,
-        channel("master", ChannelKind::Master, None),
-        channel("output", ChannelKind::Output, None),
-    ];
-    let mut graph = MixerGraph::new(48_000, channels, vec![]).unwrap();
-    assert_eq!(rendered(&mut graph, &[[0.25, -0.75]]), [-0.25, -0.25]);
+fn mono_output_routes_downmix_frames_and_blocks_before_the_output_strip() {
+    for tap in [
+        None,
+        Some(SendTap::Pre),
+        Some(SendTap::Post),
+        Some(SendTap::PostPan),
+    ] {
+        let mut source = channel("source", ChannelKind::Audio, Some(2));
+        source.output = Some(if tap.is_none() {
+            RouteTarget::MonoOutput(2)
+        } else {
+            RouteTarget::Bus(9)
+        });
+        let channels = vec![
+            source,
+            channel("master", ChannelKind::Master, None),
+            channel("output", ChannelKind::Output, None),
+        ];
+        let sends = tap
+            .map(|tap| SendSpec {
+                id: "mono".into(),
+                source: 0,
+                target: RouteTarget::MonoOutput(2),
+                enabled: true,
+                tap,
+                level_db: 0.0,
+            })
+            .into_iter()
+            .collect::<Vec<_>>();
+        let mut frames = MixerGraph::new(48_000, channels.clone(), sends.clone()).unwrap();
+        assert_eq!(rendered(&mut frames, &[[0.25, -0.75]]), [-0.25, -0.25]);
+        let mut blocks = MixerGraph::new(48_000, channels, sends).unwrap();
+        blocks.prepare_block_processing(2);
+        let mut sources = vec![[0.0; 2]; 6];
+        sources[0] = [0.25, -0.75];
+        sources[1] = [-0.5, 1.0];
+        let mut output = [[0.0; super::MAX_OUTPUT_CHANNELS]; 2];
+        blocks
+            .process_block_with_sources(&mut sources, &mut output, &mut |_, _, _| {})
+            .unwrap();
+        assert_eq!(&output[0][..2], &[-0.25, -0.25]);
+        assert_eq!(&output[1][..2], &[0.25, 0.25]);
+    }
 }

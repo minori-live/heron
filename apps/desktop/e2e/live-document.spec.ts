@@ -79,10 +79,11 @@ async function expectMixerStripSizing(page: Page): Promise<void> {
       labelTop: volumeLabel.getBoundingClientRect().top
     }
   })
-  expect(expanded.stripHeight).toBe(expanded.viewportHeight)
-  expect(expanded.labelHeight).toBe(expanded.stripHeight)
+  // clientHeight rounds to integer CSS pixels; DOMRects preserve fractional scaling.
+  expect(Math.round(expanded.stripHeight)).toBe(expanded.viewportHeight)
+  expectNear(expanded.labelHeight, expanded.stripHeight)
   expect(expanded.volumeHeight).toBeGreaterThan(282)
-  expect(expanded.volumeTop).toBe(expanded.labelTop)
+  expectNear(expanded.volumeTop, expanded.labelTop)
 
   await page.setViewportSize({ width: 1440, height: 600 })
   const compact = await scroller.evaluate((element) => ({
@@ -223,16 +224,16 @@ test("Live reuses the Studio shell and Mixer through editing, save, reopen and S
     await expect(mixer.locator(".channel-strip")).toHaveCount(5)
 
     await voice.getByRole("button", { name: "Add send in empty slot" }).click()
-    await page.getByRole("menuitem", { name: "Buses", exact: true }).focus()
-    await page.getByRole("menuitem", { name: "Buses", exact: true }).press("ArrowRight")
-    await page.getByRole("menuitemradio", { name: "BUS 1", exact: true }).click()
+    await page.getByRole("menuitem", { name: "Stereo", exact: true }).focus()
+    await page.getByRole("menuitem", { name: "Stereo", exact: true }).press("ArrowRight")
+    await page.getByRole("menuitemradio", { name: "BUS 1–2", exact: true }).click()
     await expect(voice.locator(".send-row:not(.empty):not(.alignment-spacer)")).toHaveCount(1)
     await voice.getByRole("button", { name: "Add send in empty slot" }).click()
-    await page.getByRole("menuitem", { name: "Outputs", exact: true }).focus()
-    await page.getByRole("menuitem", { name: "Outputs", exact: true }).press("ArrowRight")
+    await page.getByRole("menuitem", { name: "Stereo", exact: true }).focus()
+    await page.getByRole("menuitem", { name: "Stereo", exact: true }).press("ArrowRight")
     await page.getByRole("menuitemradio", { name: /Output/ }).click()
     await expect(voice.locator(".send-row:not(.empty):not(.alignment-spacer)")).toHaveCount(2)
-    await voice.getByRole("button", { name: "Edit send to BUS 1", exact: true }).click()
+    await voice.getByRole("button", { name: "Edit send to BUS 1–2", exact: true }).click()
     await page.getByRole("button", { name: "Disable send", exact: true }).click()
     await expect(page.getByRole("button", { name: "Enable send", exact: true })).toBeVisible()
     await page.keyboard.press("Escape")
@@ -304,6 +305,9 @@ test("Live reuses the Studio shell and Mixer through editing, save, reopen and S
     await expect(voice).toBeVisible()
     await expect(voice.locator(".send-row:not(.empty):not(.alignment-spacer)")).toHaveCount(2)
     await expect(voice.locator(".send-row.disabled")).toHaveCount(1)
+    await expect(
+      voice.getByRole("button", { name: "Edit send to BUS 1–2", exact: true })
+    ).toBeVisible()
     await devicesButton.click()
     await expect(sampleRate).toHaveValue("96000")
     await page.keyboard.press("Escape")

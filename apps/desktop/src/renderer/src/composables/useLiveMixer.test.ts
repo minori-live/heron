@@ -189,10 +189,11 @@ describe("Live Mixer adapter", () => {
     mixer.preview({ target: "channel", id: "audio", parameter: "gainDb", value: -9 })
     expect(edit).not.toHaveBeenCalled()
     expect(live.workspace).toEqual(initial)
-    await mixer.addSend("audio", { kind: "bus", bus: 2 })
+    await mixer.addSend("audio", { kind: "bus", bus: 2, format: "stereo" })
     const send = mixer.sendsFor("audio")[0]!
     expect(send).toMatchObject({
       targetBus: 2,
+      targetFormat: "stereo",
       targetChannelId: null,
       enabled: true,
       tap: "post-pan",

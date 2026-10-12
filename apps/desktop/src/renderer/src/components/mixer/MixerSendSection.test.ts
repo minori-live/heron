@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { DOMWrapper, enableAutoUnmount, flushPromises, mount } from "@vue/test-utils"
 import type { MixerBusState, MixerChannelState, MixerSendState } from "@heron/contracts"
-import { UiRotaryControl } from "@heron/ui"
+import { UiCascadingSelect, UiRotaryControl } from "@heron/ui"
 import MixerSendSection from "./MixerSendSection.vue"
 
 const channel: MixerChannelState = {
@@ -124,6 +124,39 @@ describe("MixerSendSection", () => {
       "send",
       { targetChannelId: "output", targetBus: null, targetFormat: "stereo" }
     ])
+  })
+
+  it("shows both BUS lanes and retains the format when retargeting an existing send", async () => {
+    const wrapper = mount(MixerSendSection, {
+      attachTo: document.body,
+      props: {
+        channel,
+        sends: [{ ...send, targetFormat: "stereo" }],
+        buses: [bus],
+        outputs: [output],
+        sendTargets: [{ kind: "bus", bus: 9, format: "stereo" }],
+        slotRows: 1
+      }
+    })
+    await wrapper.get('button[aria-label="Edit send to BUS 7–8"]').trigger("click")
+    await flushPromises()
+    const menu = wrapper
+      .findAllComponents(UiCascadingSelect)
+      .find((candidate) => candidate.props("modelValue") === "stereo:bus:7")!
+    expect(menu.props("groups")![1]!.options).toContainEqual({
+      value: "stereo:bus:7",
+      label: "BUS 7–8"
+    })
+    menu.vm.$emit("update:modelValue", "stereo:bus:9")
+    expect(wrapper.emitted("updateSend")?.at(-1)).toEqual([
+      "send",
+      { targetChannelId: null, targetBus: 9, targetFormat: "stereo" }
+    ])
+    await wrapper.setProps({
+      sends: [{ ...send, targetBus: null, targetChannelId: "output", targetFormat: "mono" }]
+    })
+    expect(wrapper.get('button[aria-label="Edit send to Output 1–2"]').text()).toBe("Output 1–2")
+    expect(menu.props("modelValue")).toBe("mono:output:output")
   })
 
   it("uses Logic position and a stronger ring without redundant row labels", async () => {
