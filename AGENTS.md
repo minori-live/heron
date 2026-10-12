@@ -107,7 +107,7 @@ Use package-level scripts for narrower validation when appropriate:
 pnpm --filter @heron/desktop test:unit
 pnpm --filter @heron/project-db test:integration
 mise run test:e2e
-cargo xtask test
+mise run rust:test
 pnpm format:check
 pnpm lint
 ```

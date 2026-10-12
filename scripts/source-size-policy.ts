@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url"
 export const REVIEW_LINE_LIMIT = 800
 export const HARD_LINE_LIMIT = 1200
 
-const SOURCE_ROOTS = ["apps", "packages", "crates", "scripts", "xtask"] as const
+const SOURCE_ROOTS = ["apps", "packages", "crates", "scripts"] as const
 const SOURCE_EXTENSIONS = new Set([".rs", ".ts", ".tsx", ".vue"])
 const EXCLUDED_DIRECTORIES = new Set([
   ".git",

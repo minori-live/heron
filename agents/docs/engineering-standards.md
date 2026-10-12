@@ -180,7 +180,7 @@ must still demonstrate cohesive ownership or split the file further.
 
 The audit also finds review-trigger files between 801 and 1200 lines, including
 audio bounce, project graph validation, macOS capture, embedded runtime,
-VST3/CLAP host modules, recording, the main audio-host service, and `xtask`.
+VST3/CLAP host modules, recording, and the main audio-host service.
 The generated audit output, rather than this prose snapshot, is authoritative
 for current counts.
 

@@ -46,7 +46,7 @@ fi
 
 mise run native:bindings:debug
 
-target="$(cargo xtask host-target)"
+target="$(node scripts/rust-target.ts)"
 cargo build --target "$target" -p heron-vst3-host --bin heron-vst3-probe
 
 fixture="$(

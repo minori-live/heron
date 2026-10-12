@@ -61,11 +61,11 @@ run = "pnpm design:build"
 
 [tasks."rust:format"]
 hide = true
-run = "cargo xtask fmt"
+run = "cargo fmt --all"
 
 [tasks."rust:format:check"]
 hide = true
-run = "cargo xtask fmt --check"
+run = "cargo fmt --all --check"
 
 [tasks."rust:shear"]
 hide = true
@@ -73,11 +73,19 @@ run = "cargo shear"
 
 [tasks."rust:clippy"]
 hide = true
-run = "cargo xtask clippy"
+# Order Cargo work sharing a target directory only when both tasks are scheduled.
+wait_for = ["native:bindings:debug", "codegen:wire-types:check"]
+run = "node scripts/cargo-host.ts clippy --workspace --all-targets --features heron-dsp-node/bench-internals -- -D warnings"
+
+[tasks."rust:test"]
+description = "Run Rust workspace tests without installing JavaScript dependencies"
+wait_for = ["native:bindings:debug", "codegen:wire-types:check", "rust:clippy"]
+run = "node scripts/cargo-host.ts test --workspace --features heron-dsp-node/bench-internals"
 
 [tasks."rust:bench:check"]
 hide = true
-run = "cargo xtask bench check"
+wait_for = ["native:bindings:debug", "codegen:wire-types:check", "rust:clippy", "rust:test"]
+run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench media_streaming --bench recording --features heron-dsp-node/bench-internals --no-run"
 
 [tasks."native:bindings:debug"]
 hide = true
@@ -92,12 +100,12 @@ run = "pnpm --filter @heron/dsp-node build"
 [tasks."native:staged:debug"]
 hide = true
 depends = ["native:bindings:debug"]
-run = "cargo xtask native build --profile debug"
+run = "node scripts/native-build.ts build --profile debug"
 
 [tasks."native:staged:release"]
 hide = true
 depends = ["native:bindings:release"]
-run = "cargo xtask native build --profile release"
+run = "node scripts/native-build.ts build --profile release"
 
 [tasks."native:debug"]
 hide = true
@@ -129,27 +137,32 @@ run = "pnpm docs:build"
 
 [tasks."codegen:wire-types:check"]
 hide = true
-# Regenerating is deterministic, so a diff means the committed declarations no
-# longer match the Rust protocol they are generated from.
-depends = ["check:prepare"]
-run = [
-  "mise run codegen:wire-types",
-  "git diff --exit-code -- apps/desktop/src/main/audio-host/wire/generated packages/contracts/src/generated",
-]
+# The Rust protocol owns these declarations; regenerate before checking the diff.
+depends = ["codegen:wire-types"]
+run = "git diff --exit-code -- apps/desktop/src/main/audio-host/wire/generated packages/contracts/src/generated"
+
+[tasks."check:js-lint"]
+hide = true
+# Type-aware Oxlint needs the generated napi declarations and wire types.
+depends = ["check:prepare", "codegen:wire-types:check"]
+run = "pnpm lint"
+
+[tasks."check:packages"]
+hide = true
+depends = ["check:prepare", "codegen:wire-types:check"]
+run = "pnpm check:packages"
 
 [tasks."check:static"]
 hide = true
-# Oxlint runs type-aware rules, so the generated napi declarations must exist
-# before it can resolve imports from the addon.
-depends = ["check:prepare", "codegen:wire-types:check"]
-run = [
-  "pnpm format:check",
-  "cargo xtask fmt --check",
-  "cargo shear",
-  "cargo xtask clippy",
-  "pnpm lint",
-  "pnpm check:configs",
-  "pnpm check:packages",
+depends = [
+  "version:check",
+  "js:format-check",
+  "rust:format:check",
+  "rust:shear",
+  "rust:clippy",
+  "check:js-lint",
+  "js:check:configs",
+  "check:packages",
 ]
 
 [tasks."check:js-tests"]
@@ -157,52 +170,21 @@ hide = true
 depends = ["check:prepare"]
 run = "pnpm test:js"
 
-[tasks."check:js-tests:coverage"]
-hide = true
-# CI builds the instrumented addon inside its own coverage shell, so this
-# variant must not depend on the uninstrumented `check:prepare` build.
-depends = ["install"]
-run = [
-  "pnpm test:coverage:js",
-  "pnpm test:native-bindings",
-  "pnpm test:scripts",
-]
-
 [tasks."check:rust-tests"]
 hide = true
-depends = ["check:prepare"]
-run = "cargo xtask test"
-
-[tasks."check:rust-tests:coverage"]
-hide = true
-# CI builds the instrumented addon inside its own coverage shell, so this
-# variant must not depend on the uninstrumented `check:prepare` build.
-depends = ["install"]
-run = "cargo xtask coverage prepare"
+depends = ["version:check", "rust:test"]
 
 [tasks."check:design"]
 hide = true
-depends = ["install"]
-run = [
-  "pnpm design:test",
-  "pnpm design:build",
-]
+depends = ["js:design:test", "js:design:build"]
 
 [tasks."check:bench"]
 hide = true
-# `cargo bench --no-run` compiles Rust benchmark targets only; it never loads
-# the napi-rs addon. Depending on `check:prepare` rebuilt the uninstrumented
-# addon after the Linux coverage leg had already produced an instrumented one.
-depends = ["install", "version:check"]
-run = "cargo xtask bench check"
+depends = ["version:check", "rust:bench:check"]
 
 [tasks."check:prepare"]
 hide = true
-depends = ["install"]
-run = [
-  "node scripts/version.ts check",
-  "pnpm --filter @heron/dsp-node build:debug",
-]
+depends = ["version:check", "native:bindings:debug"]
 
 [tasks.check]
 description = "Run the full JavaScript, Rust, native, and design validation path"
@@ -217,10 +199,10 @@ depends = [
 [tasks."check-fast"]
 description = "Run the fast Rust edit-loop checks without installing JavaScript dependencies"
 run = [
-  "cargo xtask fmt --check",
+  "cargo fmt --all --check",
   "cargo shear",
-  "cargo xtask clippy --fast",
-  "cargo xtask test --fast",
+  "node scripts/cargo-host.ts clippy --workspace --lib --bins --features heron-dsp-node/bench-internals -- -D warnings",
+  "node scripts/cargo-host.ts test --workspace --lib --features heron-dsp-node/bench-internals",
 ]
 
 [tasks.test]
@@ -238,8 +220,7 @@ run = "pnpm test:js"
 
 [tasks."test:rust"]
 hide = true
-depends = ["test:prepare"]
-run = "cargo xtask test"
+depends = ["rust:test"]
 
 [tasks.format]
 description = "Format JavaScript, TypeScript, Vue, configuration, documentation, and Rust"
@@ -260,8 +241,7 @@ run = "pnpm lint"
 
 [tasks."lint:rust"]
 hide = true
-depends = ["lint:prepare"]
-run = "cargo xtask clippy"
+depends = ["rust:clippy"]
 
 [tasks.lint]
 description = "Run JavaScript lint, design audits, and Rust Clippy"
@@ -287,19 +267,19 @@ run = "pnpm --filter @heron/desktop run pack"
 
 [tasks.bench]
 description = "Run Rust performance benchmarks"
-run = "cargo xtask bench run"
+run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench media_streaming --bench recording --features heron-dsp-node/bench-internals"
 
 [tasks."bench:quick"]
 description = "Run shortened Rust performance benchmarks"
-run = "cargo xtask bench quick"
+run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench media_streaming --bench recording --features heron-dsp-node/bench-internals -- --quick"
 
 [tasks."bench:save"]
 description = "Save the main Rust benchmark baseline"
-run = "cargo xtask bench save"
+run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench media_streaming --bench recording --features heron-dsp-node/bench-internals -- --save-baseline main"
 
 [tasks."bench:compare"]
 description = "Compare Rust benchmarks with the saved main baseline"
-run = "cargo xtask bench compare"
+run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench media_streaming --bench recording --features heron-dsp-node/bench-internals -- --baseline main"
 
 [tasks."soak:device-recovery"]
 description = "Cycle mock audio device loss, return, keep, and replacement decisions"
@@ -314,6 +294,25 @@ description = "Synchronize VERSION across manifests and rebuild N-API bindings"
 depends = ["install"]
 depends_post = ["native:bindings:debug"]
 run = "node scripts/version.ts sync"
+
+[tasks.coverage]
+description = "Collect combined JavaScript and Rust coverage in one test pass"
+depends = ["install"]
+run = "node scripts/rust-coverage.ts local"
+
+[tasks."ci:check:coverage"]
+hide = true
+depends = ["install"]
+run = "node scripts/rust-coverage.ts ci"
+
+[tasks."ci:check:native-coverage"]
+hide = true
+depends = ["install"]
+run = "node scripts/rust-coverage.ts native"
+
+[tasks."ci:check:static"]
+hide = true
+depends = ["check:static", "check:bench", "check:design"]
 
 [tasks."ci:install:playwright"]
 hide = true
@@ -371,7 +370,7 @@ run = [
   "pnpm --filter @heron/dsp-node exec napi build --platform --release --target aarch64-apple-darwin",
   "pnpm --filter @heron/dsp-node exec napi build --platform --release --target x86_64-apple-darwin",
   "pnpm --filter @heron/dsp-node exec napi universalize",
-  "cargo xtask native universal-macos --profile release",
+  "node scripts/native-build.ts universal-macos --profile release",
   "pnpm plugins:prepare --platform macos-universal",
   "mise run ci:verify:macos-universal",
   "pnpm build:desktop",

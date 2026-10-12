@@ -6,5 +6,5 @@ set -euo pipefail
 pnpm --filter @heron/desktop test:builtin-vst3
 
 # This host integration test loads the prepared artifact, without plugin sources.
-cargo test --locked --target "$(cargo xtask host-target)" \
+cargo test --locked --target "$(node scripts/rust-target.ts)" \
   -p heron-audio-host --test builtin_eq_bundle -- --ignored --test-threads=1

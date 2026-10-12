@@ -135,14 +135,25 @@ combined coverage orchestrator in place of the plain Rust and Vitest runs, so
 every test suite executes exactly once with coverage enabled. The static and
 design checks, the benchmark compile, and the Electron end-to-end suite run in
 the sibling `Static checks` and `Electron end-to-end` jobs, so the coverage
-orchestrator no longer waits for linters or a browser launch. The `static` job's
-`check:prepare` step generates the gitignored package loaders and typings that
-type-aware Oxlint needs on a clean checkout. The orchestrator first runs the Rust
+orchestrator no longer waits for linters or a browser launch. In the `static`
+job, formatting and script/configuration type checks can run independently of
+native compilation. Only checks that need generated package loaders, typings,
+or wire declarations depend on their preparation tasks. Cargo checks sharing
+the normal target directory are ordered with mise's `wait_for` when scheduled
+together. The orchestrator first runs the Rust
 tests and builds instrumented napi-rs modules, then runs the JavaScript tests and
 merged report; no test suite or native build is repeated. Cargo doc tests still
 execute as correctness checks, but
 their bodies are not instrumented into the external-test LCOV report. The same
 mise task reproduces the Linux leg locally.
+
+The mise coverage tasks run `scripts/rust-coverage.ts` directly with Node.js.
+The script reads `cargo llvm-cov show-env` output as data and passes the
+instrumentation environment to its Cargo and Node subprocesses. Starting a
+coverage pass therefore needs no compiled Rust task driver, including under
+the instrumented target directory. The `local`, `ci`, and `native` modes retain
+their respective test suites; `native` runs the desktop and project-database
+tests with the original environment after exporting Rust coverage.
 
 The workspace and `heron-dsp-node/bench-internals` feature selectors apply when
 Cargo creates the instrumented test binaries and napi-rs modules. Linux also
@@ -170,7 +181,7 @@ objects to `target-coverage/` so they stay out of the shared `target/` cache,
 and keeps the sccache wrapper so repeat runs reuse cached builds. Each coverage
 run clears only the raw `*.profraw` counters (`cargo llvm-cov clean
 --profraw-only`), keeping the instrumented artifacts so local runs stay
-incremental and Windows never tries to delete the running `heron_xtask` binary.
+incremental.
 `cargo llvm-cov report` re-merges the fresh profiles into `*.profdata`, so a
 retained profile merge cannot serve a stale report. LCOV source
 paths are rewritten relative to the repository before upload so reports from

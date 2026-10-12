@@ -34,7 +34,8 @@ mise run install
 
 JavaScript, N-API, Electron, and documentation tasks depend on `install` when
 they need workspace packages. Rust-only tasks such as `check-fast` and the
-`rust:*` task family do not install pnpm dependencies.
+`rust:*` task family do not install pnpm dependencies. Their TypeScript helpers
+run directly with the locked Node.js 26 runtime and use only built-in modules.
 
 Windows native builds always include cpal's ASIO backend. Windows development
 hosts therefore require Visual Studio's Desktop development with C++ workload
@@ -122,12 +123,22 @@ pnpm --filter @heron/project-db test:integration
 pnpm --filter @heron/dsp-node build
 pnpm format:check
 pnpm lint
-cargo xtask test
+mise run rust:test
 ```
 
-pnpm scripts are JavaScript ecosystem leaf tasks. Use `cargo xtask` for direct
-Rust workspace work and root mise tasks whenever JavaScript, Rust, N-API, or
-packaging steps must be composed.
+mise owns repository task dependencies and shared prerequisites. Use the
+`rust:*` mise tasks for Rust workspace work and root mise tasks whenever
+JavaScript, Rust, N-API, or packaging steps must be composed. pnpm scripts are
+JavaScript ecosystem leaf tasks; Cargo owns crate dependencies and incremental
+compilation. TypeScript scripts handle host-target discovery, native artifact
+staging, and the coverage subprocess environment without compiling a Rust task
+driver first. Keep task dependencies in mise rather than recreating a scheduler
+inside those scripts.
+
+Run hand-authored TypeScript scripts directly as `node scripts/<name>.ts`.
+Use erasable TypeScript syntax and check it with the existing
+`tsconfig.config.json` through `pnpm check:configs`; Node's type stripping does
+not perform type checking.
 
 Prefer the root `mise run check` task before handing off a completed change
 because it is the repository's full validation path.
@@ -136,14 +147,16 @@ because it is the repository's full validation path.
 Clippy, and library tests. It deliberately skips NAPI builds, integration tests,
 examples, and benchmark compilation; `mise run check` remains the merge gate.
 
-The Rust xtask discovers `rustc -vV`'s host triple and builds into
-`target/<host-triple>/<profile>`. The `native:*` mise tasks combine the
-package-local `@heron/dsp-node` napi-rs build with xtask's VST3 and CLAP probes
-and `plugins:prepare`. xtask stages the probes into `target/debug` or
-`target/release`; the preparation task downloads the version-locked producer
-release into `target/bundles`. The macOS universal CI task builds both Apple
-target triples and merges the probes with `lipo`, then verifies the downloaded
-universal plug-ins before Electron packaging. See
+`scripts/cargo-host.ts` discovers `rustc -vV`'s host triple through
+`scripts/rust-target.ts` and passes an explicit `--target` to Cargo, preserving
+build output under `target/<host-triple>/<profile>`. The `native:*` mise tasks
+combine the package-local `@heron/dsp-node` napi-rs build with VST3 and CLAP
+probe builds and `plugins:prepare`. `scripts/native-build.ts` stages the probes
+into `target/debug` or `target/release`; the preparation task downloads the
+version-locked producer release into `target/bundles`. The macOS universal CI
+task builds both Apple target triples and uses the same native-build script to
+merge the probes with `lipo`, then verifies the downloaded universal plug-ins
+before Electron packaging. See
 [built-in plug-in distribution](builtin-plugin-distribution.md).
 
 VST3 SDK bindings are generated into Cargo's `OUT_DIR` by
@@ -162,6 +175,12 @@ lockfile updates, as in [PR #180](https://github.com/minori-live/heron/pull/180)
 N-API bindings before type-aware Oxlint, residual Vue ESLint, package
 TypeScript checks, and tests that resolve `@heron/dsp-node`, so the gitignored
 loaders and typings exist in CI and clean checkouts.
+
+Within `check:static`, formatting and script/configuration type checks have no
+native-build prerequisite. Checks that resolve native declarations depend on
+their generation explicitly. Cargo tasks sharing the normal target directory
+use mise's `wait_for` ordering when scheduled together, without making a
+standalone `rust:*` task install JavaScript dependencies or build the addon.
 
 Oxfmt formats the tracked TypeScript, JavaScript, Vue, JSON, YAML, Markdown,
 and CSS sources. Oxlint performs the primary type-aware TypeScript and Vue

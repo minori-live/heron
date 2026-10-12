@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import test from "node:test"
+import test, { type TestContext } from "node:test"
 import { stripVTControlCharacters } from "node:util"
 import { summarizeSccache } from "./ci-sccache-report.ts"
 
@@ -46,7 +46,7 @@ await test("macOS packaging has a single task definition and builds each artifac
     assert.equal(commands.match(/napi build --platform --release --target /gu)?.length, 2)
     assert.equal(commands.match(/napi universalize/gu)?.length, 1)
     assert.equal(
-      commands.match(/cargo xtask native universal-macos --profile release/gu)?.length,
+      commands.match(/node scripts\/native-build\.ts universal-macos --profile release/gu)?.length,
       1
     )
     assert.equal(commands.match(/pnpm build:desktop/gu)?.length, 1)
@@ -122,7 +122,7 @@ const packageManifests = [
 await test("pnpm scripts remain JavaScript ecosystem leaf tasks", async () => {
   const violations: string[] = []
   const forbidden =
-    /\b(?:cargo|rustc|rustup|mise)\b|scripts\/(?:cargo-host|native-build|rust-target|test-coverage)\.ts/u
+    /\b(?:cargo|rustc|rustup|mise)\b|scripts\/(?:cargo-host|native-build|rust-target|rust-coverage)\.ts/u
 
   for (const manifest of packageManifests) {
     const source = await readFile(resolve(workspaceRoot, manifest), "utf8")
@@ -133,12 +133,6 @@ await test("pnpm scripts remain JavaScript ecosystem leaf tasks", async () => {
   }
 
   assert.deepEqual(violations, [])
-})
-
-await test("xtask does not invoke JavaScript ecosystem tools", async () => {
-  const source = await readFile(resolve(workspaceRoot, "xtask/src/lib.rs"), "utf8")
-  assert.doesNotMatch(source, /Command::new\([^\n]*(?:node|pnpm)/u)
-  assert.doesNotMatch(source, /CommandSpec[^\n]*(?:node|pnpm)/u)
 })
 
 await test("GitHub workflows use mise for repository task execution", async () => {
@@ -167,17 +161,6 @@ await test("GitHub workflows use mise for repository task execution", async () =
   assert.deepEqual(violations, [])
 })
 
-await test("Windows native coverage exposes the mise cargo-llvm-cov binary", async () => {
-  const task = await readFile(
-    resolve(workspaceRoot, ".mise/tasks/ci/check/native-coverage"),
-    "utf8"
-  )
-
-  assert.match(task, /RUNNER_OS:-.*Windows/u)
-  assert.match(task, /mise which cargo-llvm-cov/u)
-  assert.match(task, /cygpath -u/u)
-})
-
 await test("large environment caches save only from main and tag refs", async () => {
   const source = await readFile(
     resolve(workspaceRoot, ".github/actions/setup-build/action.yml"),
@@ -203,20 +186,67 @@ await test("large environment caches save only from main and tag refs", async ()
   assert.match(toolchain, /cache_save: \$\{\{ .*github\.ref == 'refs\/heads\/main'/u)
 })
 
-await test("Linux coverage, static checks, and Electron e2e run in separate jobs", async () => {
-  const [workflow, coverageTask, staticTask] = await Promise.all([
-    readFile(resolve(workspaceRoot, ".github/workflows/test.yml"), "utf8"),
-    readFile(resolve(workspaceRoot, ".mise/tasks/ci/check/coverage"), "utf8"),
-    readFile(resolve(workspaceRoot, ".mise/tasks/ci/check/static"), "utf8")
-  ])
+function previewTask(context: TestContext, task: string): string {
+  const scratch = mkdtempSync(join(tmpdir(), "heron-task-graph-"))
+  context.after(() => rmSync(scratch, { recursive: true, force: true }))
+  const preview = spawnSync("mise", ["run", "--dry-run", "--force", task], {
+    cwd: workspaceRoot,
+    env: {
+      ...process.env,
+      MISE_STATE_DIR: join(scratch, "state"),
+      MISE_CACHE_DIR: join(scratch, "cache"),
+      MISE_TRUSTED_CONFIG_PATHS: workspaceRoot,
+      COLUMNS: "500"
+    },
+    encoding: "utf8"
+  })
+  assert.equal(preview.status, 0, preview.stderr)
+  return stripVTControlCharacters(`${preview.stdout}\n${preview.stderr}`)
+}
+
+await test("format and script checks do not build native artifacts; Rust checks do not install JS", (context) => {
+  for (const task of [
+    "format-check",
+    "js:check:configs",
+    "check-fast",
+    "rust:test",
+    "check:bench"
+  ]) {
+    const commands = previewTask(context, task)
+    assert.doesNotMatch(commands, /napi build|dsp-node build|native-build\.ts/u, task)
+    if (["check-fast", "rust:test", "check:bench"].includes(task)) {
+      assert.doesNotMatch(commands, /pnpm install/u, task)
+    }
+  }
+})
+
+await test("full checks share one addon build and order Cargo work", (context) => {
+  const commands = previewTask(context, "check")
+  assert.equal(commands.match(/pnpm --filter @heron\/dsp-node build:debug/gu)?.length, 1)
+  const position = (command: string) => {
+    const index = commands.indexOf(command)
+    assert.notEqual(index, -1, `Missing ${command}`)
+    return index
+  }
+  assert.ok(position("pnpm format:check") < position("[codegen:wire-types]"))
+  assert.ok(position("[codegen:wire-types:check]") < position("cargo-host.ts clippy"))
+  assert.ok(position("cargo-host.ts clippy") < position("cargo-host.ts test"))
+  assert.ok(position("cargo-host.ts test") < position("cargo-host.ts bench"))
+})
+
+await test("Linux coverage, static checks, and Electron e2e keep separate build graphs", async (context) => {
+  const workflow = await readFile(resolve(workspaceRoot, ".github/workflows/test.yml"), "utf8")
   assert.match(workflow, /^ {2}static:/mu)
   assert.match(workflow, /^ {2}e2e:/mu)
-  // The coverage task must not rebuild the uninstrumented checks; the parallel
-  // static job owns them so a coverage rebuild never serializes them again.
-  for (const task of ["check:static", "check:bench", "check:design"]) {
-    assert.doesNotMatch(coverageTask, new RegExp(`mise run ${task}(\\s|$)`, "u"))
-    assert.match(staticTask, new RegExp(`mise run ${task}(\\s|$)`, "u"))
-  }
+  const coverage = previewTask(context, "ci:check:coverage")
+  assert.match(coverage, /rust-coverage\.ts ci/u)
+  assert.doesNotMatch(coverage, /dsp-node build|cargo-host\.ts|pnpm lint|pnpm design:/u)
+  const checks = previewTask(context, "ci:check:static")
+  assert.equal(checks.match(/pnpm --filter @heron\/dsp-node build:debug/gu)?.length, 1)
+  assert.match(checks, /cargo-host\.ts clippy/u)
+  assert.match(checks, /cargo-host\.ts bench[^\n]*--no-run/u)
+  assert.match(checks, /pnpm design:test/u)
+  assert.match(checks, /pnpm design:build/u)
 })
 
 await test("universal macOS packaging includes only the universal DSP binding", async () => {

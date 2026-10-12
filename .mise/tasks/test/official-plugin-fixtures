@@ -17,7 +17,7 @@ VST3_AGAIN_FIXTURE="$(realpath "$VST3_AGAIN_FIXTURE")"
 VST3_SYNTH_FIXTURE="$(realpath "$VST3_SYNTH_FIXTURE")"
 CLAP_PLUGIN_FIXTURE="$(realpath "$CLAP_PLUGIN_FIXTURE")"
 
-target="$(cargo xtask host-target)"
+target="$(node scripts/rust-target.ts)"
 cargo build --target "$target" -p heron-vst3-host --bin heron-vst3-probe
 cargo build --target "$target" -p heron-clap-host --bin heron-clap-probe
 
