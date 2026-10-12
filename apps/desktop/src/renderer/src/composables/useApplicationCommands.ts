@@ -373,16 +373,20 @@ export function useApplicationCommands() {
         break
       case "transport.toggle-playback":
         if (isEditableTarget(document.activeElement)) break
+        if (router.currentRoute.value.name !== "studio") break
         if (
-          router.currentRoute.value.name === "studio" &&
           workspaceStore.mediaBrowserOpen &&
-          (await mediaBrowserStore.toggleSelectedAudition())
+          document.activeElement?.closest("[data-media-browser]")
         ) {
+          await mediaBrowserStore.toggleSelectedAudition()
           break
         }
-        if (router.currentRoute.value.name === "studio" && !activeRecording.value) {
-          await transportStore.toggle()
+        if (recordingBusy.value) break
+        if (activeRecording.value) {
+          await toggleRecording()
+          break
         }
+        await transportStore.toggle()
         break
       case "transport.toggle-loop":
         if (

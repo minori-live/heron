@@ -178,9 +178,15 @@ The accepted baseline is a project asset library, not a disk-wide media manager.
 - Audio may be auditioned after import. Pre-import audition and BPM-synchronized
   preview are deferred.
 - Only one audio asset is auditioned at a time. The play button and Space while
-  an audio asset row is selected toggle audition through the current stereo
-  Output without moving transport, creating a clip, dirtying the project, or
+  the Media Browser has focus and an audio asset is selected toggle audition
+  through the current stereo Output without moving transport, creating a clip, dirtying the project, or
   adding Undo history. Audition remains available during playback.
+- During recording, outside the Media Browser, the playback shortcut (Space by
+  default) stops and finalizes the take through the same workflow as the recording
+  shortcut (R by default). Space inside the Media
+  Browser controls audition, and does nothing if no audio asset is selected.
+  Recording transitions block transport and recording commands until completion;
+  editable fields retain normal text input.
 - Audio dropped on an Audio track creates a clip there; audio dropped on blank
   arrangement space creates an Audio track and then a clip.
 - MIDI dropped on an empty arrangement area creates an appropriate Instrument

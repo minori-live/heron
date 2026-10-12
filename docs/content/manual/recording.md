@@ -86,7 +86,10 @@ Cycle is a playback aid and never loops a recording. If Cycle is enabled while
 you record, capture continues past the loop end and the saved Cycle range is
 used again the next time you play.
 
-Select **Record** again to stop. Heron closes the recording, repairs audio
+Select **Record** again or press <kbd>R</kbd> to stop. <kbd>Space</kbd> also stops
+recording when focus is outside the Media Browser and text fields. Inside the
+Media Browser, Space controls audition of the selected audio asset.
+Heron closes the recording, repairs audio
 headers when needed, processes audio into project assets, converts MIDI journals
 into clips, and updates the arrangement. Keep the application open while the
 finalization dialog is active.

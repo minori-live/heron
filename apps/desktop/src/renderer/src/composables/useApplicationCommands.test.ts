@@ -18,6 +18,7 @@ import { useProjectStore } from "../stores/project"
 import { useMixerStore } from "../stores/mixer"
 import { usePianoRollStore } from "../stores/pianoRoll"
 import { useTransportStore } from "../stores/transport"
+import { useRecordingStore } from "../stores/recording"
 import { useAudioBenchmarkStore } from "../stores/audioBenchmark"
 import { useCompiledEffectGraphStore } from "../stores/compiledEffectGraph"
 import { useStudioWorkflowStore } from "../stores/studioWorkflow"
@@ -133,7 +134,7 @@ function closedBootstrap(): ApplicationBootstrapSnapshot {
   }
 }
 
-function createHarness() {
+function createHarness(attachToBody = false) {
   const pinia = createPinia()
   useApplicationSettingsStore(pinia).settings = testSettings()
   const router = createRouter({
@@ -170,6 +171,7 @@ function createHarness() {
     }
   })
   const wrapper = mount(Harness, {
+    ...(attachToBody ? { attachTo: document.body } : {}),
     global: { plugins: [pinia, router] }
   })
   useAudioRuntimeStore(pinia).applyResources({
@@ -449,8 +451,75 @@ describe("useApplicationCommands", () => {
     expect(window.heron.executeApplicationWindowCommand).not.toHaveBeenCalled()
   })
 
-  it("routes Space to the selected Media Browser audio instead of transport", async () => {
-    const { pinia, router, wrapper } = createHarness()
+  it.each([
+    { command: "recording.toggle", browserFocused: false, auditionAvailable: true },
+    { command: "recording.toggle", browserFocused: true, auditionAvailable: true },
+    { command: "transport.toggle-playback", browserFocused: false, auditionAvailable: true },
+    { command: "transport.toggle-playback", browserFocused: true, auditionAvailable: true },
+    { command: "transport.toggle-playback", browserFocused: true, auditionAvailable: false }
+  ] as const)(
+    "$command during recording respects browser focus=$browserFocused and audition availability=$auditionAvailable",
+    async ({ command, browserFocused, auditionAvailable }) => {
+      const { pinia, router, wrapper } = createHarness(true)
+      const projectWorkspace = workspace(session)
+      useProjectStore(pinia).applyWorkspace(projectWorkspace)
+      const recording = useRecordingStore(pinia)
+      const recordingSession = {
+        id: "take-1",
+        startedAt: 1_000,
+        swapPath: "/swap/take-1.bwf",
+        startFrame: 0,
+        trackIds: ["audio-1"]
+      }
+      recording.applyResource({
+        recording: { kind: "recording-session", id: "take-1", epoch: "main-epoch", generation: 1 },
+        project: projectWorkspace.project,
+        projectGraph: projectWorkspace.projectGraph,
+        audioEngine: useAudioRuntimeStore(pinia).audioEngineRef!,
+        revision: 1,
+        session: recordingSession
+      })
+      recording.applyLifecycleState({ status: "recording", session: recordingSession, error: null })
+      const finish = vi
+        .spyOn(useStudioWorkflowStore(pinia), "toggleRecording")
+        .mockResolvedValue({ id: "recorded-clip" } as never)
+      useStudioWorkspaceStore(pinia).toggleMediaBrowser()
+      const audition = vi
+        .spyOn(useMediaBrowserStore(pinia), "toggleSelectedAudition")
+        .mockResolvedValue(auditionAvailable)
+      const transport = useTransportStore(pinia)
+      const playback = vi.spyOn(transport, "toggle").mockResolvedValue(undefined)
+      await router.push({ name: "studio" })
+      wrapper
+        .get<HTMLElement>(browserFocused ? "[data-media-browser] button" : "button")
+        .element.focus()
+      const routesToBrowser = command === "transport.toggle-playback" && browserFocused
+
+      nativeCommandListener?.(rpcEvent(command))
+      await flushPromises()
+
+      expect(finish).toHaveBeenCalledTimes(routesToBrowser ? 0 : 1)
+      expect(transport.selectedClipId).toBe(routesToBrowser ? null : "recorded-clip")
+      expect(audition).toHaveBeenCalledTimes(routesToBrowser ? 1 : 0)
+      expect(playback).not.toHaveBeenCalled()
+
+      recording.applyLifecycleState({
+        status: "finalizing",
+        session: recordingSession,
+        error: null
+      })
+      nativeCommandListener?.(rpcEvent(command))
+      await flushPromises()
+
+      expect(finish).toHaveBeenCalledTimes(routesToBrowser ? 0 : 1)
+      expect(audition).toHaveBeenCalledTimes(routesToBrowser ? 2 : 0)
+      expect(playback).not.toHaveBeenCalled()
+      wrapper.unmount()
+    }
+  )
+
+  it("routes Space to audition only while the Media Browser has focus", async () => {
+    const { pinia, router, wrapper } = createHarness(true)
     const projectWorkspace = workspace(session)
     projectWorkspace.assets = [
       {
@@ -488,7 +557,15 @@ describe("useApplicationCommands", () => {
 
     expect(window.heron.startAssetAudition).toHaveBeenCalledWith(expect.any(Object), "asset-1")
     expect(window.heron.transportCommand).not.toHaveBeenCalled()
+    wrapper.get<HTMLElement>("button").element.focus()
+    nativeCommandListener?.(rpcEvent("transport.toggle-playback"))
+    await flushPromises()
+
+    expect(window.heron.startAssetAudition).toHaveBeenCalledTimes(1)
+    expect(window.heron.stopAssetAudition).not.toHaveBeenCalled()
+    expect(window.heron.transportCommand).toHaveBeenCalledTimes(1)
     await mediaBrowserStore.reset()
+    wrapper.unmount()
   })
 
   it.each(["window.close", "application.quit"] as const)(

@@ -55,6 +55,12 @@ unavailable when the current selection does not support it.
 | Create a MIDI clip on a focused instrument lane | <kbd>Enter</kbd>                           |
 | Move a focused track up or down                 | <kbd>Alt</kbd> + <kbd>↑</kbd>/<kbd>↓</kbd> |
 
+During recording, <kbd>R</kbd> stops and finalizes the take. <kbd>Space</kbd>
+does the same when focus is outside the Media Browser. Inside the Media Browser,
+<kbd>Space</kbd> toggles audition of the selected audio asset; without an audio
+selection it does nothing. Text fields keep normal text input. If you customize
+shortcuts, use the keys assigned to **Start or stop recording** or **Play or pause**.
+
 ## View
 
 | Action                                 | Shortcut                                        |
