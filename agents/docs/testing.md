@@ -80,7 +80,7 @@ every gesture already tested in the shared component.
 
 Component unit suites intentionally compile SFCs to VDOM for Vue Test Utils.
 The desktop renderer and Storybook share the selective Vapor compilation policy
-from [ADR-0036](adr/0036-selective-vue-vapor.md). Browser interaction and desktop
+in [`scripts/vue-rendering.ts`](../../scripts/vue-rendering.ts). Browser interaction and desktop
 end-to-end tests must exercise those builds to prove shipped rendering behavior;
 passing VDOM unit tests does not establish Vapor slot, focus or gesture
 compatibility. Keep unit assertions on Heron behavior and use browser evidence

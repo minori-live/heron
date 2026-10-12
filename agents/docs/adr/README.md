@@ -44,7 +44,6 @@ evidence belong in their owning documents rather than being copied into each ADR
 | [0034 — Runtime-only plug-in artifacts](0034-runtime-only-plugin-artifacts.md) | Accepted | Runtime-only dependency locks; application Sentry retained |
 
 | [0035 — Explicit route formats](0035-explicit-route-formats.md) | Accepted | Independent mono/stereo main and Send routes, BUS pairs, persistence and native mixing |
-| [0036 — Selective Vue Vapor rendering](0036-selective-vue-vapor.md) | Accepted | Vapor compilation with explicit Reka VDOM boundaries and browser validation |
 
 | [0036 — Startup progress locale](0036-startup-progress-locale.md) | Accepted | Explicit language for splash text, fonts, and document metadata |
 
@@ -124,7 +123,7 @@ Prefer one cohesive decision over a record for each implementation step.
 
 ## Lifecycle and review
 
-Use four digits and a short kebab-case title, starting the next record at **0037**.
+Use four digits and a short kebab-case title, starting the next record at **0036**.
 Copy [the template](template.md). Status is Proposed, Accepted, Superseded by
 ADR-NNNN, or Rejected. Accepted records change only for editorial corrections,
 links and explicit implementation-scope clarification; changing a decision
