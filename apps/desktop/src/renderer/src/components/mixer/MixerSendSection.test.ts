@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { DOMWrapper, enableAutoUnmount, flushPromises, mount } from "@vue/test-utils"
 import type { MixerBusState, MixerChannelState, MixerSendState } from "@heron/contracts"
 import { UiCascadingSelect, UiRotaryControl } from "@heron/ui"
+import { setAppLocale } from "../../i18n"
 import MixerSendSection from "./MixerSendSection.vue"
 
 const channel: MixerChannelState = {
@@ -53,6 +54,7 @@ const send: MixerSendState = {
 
 // Send menus teleport into `document.body`, so wrappers must unmount between tests.
 enableAutoUnmount(afterEach)
+afterEach(() => setAppLocale("en-US"))
 
 describe("MixerSendSection", () => {
   it("edits all three send positions and parameter gestures from the compact row", async () => {
@@ -94,8 +96,18 @@ describe("MixerSendSection", () => {
     )
     expect(enabledToggle?.getAttribute("aria-pressed")).toBe("true")
     expect(tapButtons.map((button) => button.textContent?.trim())).toEqual(["PRE", "POST", "PAN"])
+    setAppLocale("zh-cmn-Hans-CN")
+    await flushPromises()
+    expect(tapButtons.map((button) => button.textContent?.trim())).toEqual([
+      "推子前",
+      "推子后",
+      "声像后"
+    ])
+    expect(wrapper.get("button.send-config").attributes("title")).toBe("BUS 7 · 推子后 · -12.0 dB")
     await new DOMWrapper(tapButtons[2]).trigger("click")
     expect(wrapper.emitted("updateSend")?.at(-1)).toEqual(["send", { tap: "post-pan" }])
+    setAppLocale("en-US")
+    await flushPromises()
 
     expect(document.body.querySelector('[aria-label="Send pan"]')).toBeNull()
     expect(document.body.querySelector('[aria-label="Send level"]')).toBeNull()
