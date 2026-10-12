@@ -5,10 +5,9 @@ owns the native EQ source, DSP, editor and their tests. Its
 [EQ notes](https://github.com/minori-live/heron-plugins/blob/main/agents/docs/heron-eq.md)
 maintain the feature, filter, preview-worker and editor acceptance contracts.
 This document owns Heron's integration and fitting/export requirements.
-[ADR-0029](adr/0029-native-heron-eq.md) and
-[ADR-0030](adr/0030-eq-graph-and-floating-controls.md) retain the original
-decisions; [ADR-0031](adr/0031-artifact-delivered-built-in-plugins.md) records the
-source and release ownership change.
+[ADR-0031](adr/0031-artifact-delivered-built-in-plugins.md) explains the source and
+release ownership choice. The [ADR index](adr/README.md#2026-10-12-consolidation)
+links the original EQ records for historical rationale.
 
 ## Ownership
 
@@ -112,3 +111,84 @@ and cancellation. Rendered plugin screenshots do not prove browser behavior,
 live native-window coordinate routing or hardware audio. Heron's integration
 checks complement the producer's DSP, editor, real-time and release-format
 checks; neither suite substitutes for the other.
+
+## EQ Fit window and computation
+
+Main owns one independent top-level EQ Fit window per Analysis owner. Entry is
+available only for one measured Linear Magnitude input/output path, excluding
+L+R, M+S, difference and other views. Overlaid comparison requires explicit chain
+selection inside the fit window. Reopening the same target focuses it and retains
+controls; close discards fitting state, and a later open starts at quota three.
+
+The fit renderer receives its own narrow preload, authenticated by owner, main
+frame and entrypoint. Main resolves report ID/revision and semantic path from its
+authoritative report; opener-supplied arrays never become the target. The window
+can inspect context and control itself, but cannot mutate projects, chains or
+native instances. Typed outcomes handle failures without ambient report state.
+
+Selection requests carry Analysis handle, revision, mutation identity, monotonic
+sequence, nullable selection and explicit open intent. Main validates before
+acceptance, replays duplicates without reopening/refocusing, rejects older
+sequences and exposes the last sequence for reload reconciliation. Manual child
+close retains that receipt/sequence; a new owner resets it. Child snapshots carry
+source/selection revisions and omit known report bodies. Window commands use
+explicit maximize state and bounded acknowledged receipts.
+
+A dedicated renderer Web Worker receives immutable raw frequencies, magnitudes,
+sample rate and settings. One worker per fit window is terminated on cancellation,
+replacement or disposal. It has no native/project authority. Generation and target
+identity include report ID/revision, experiment revision, comparison, path, chain
+and quota. Any relevant change terminates work and clears results. Late callbacks
+cannot publish. A new measurement invalidates fits even at the same experiment
+revision; unchanged snapshot identity does not. Invalid context leaves the window
+open with a request for a current single magnitude path. Worker failure permits
+retry while preserving the measurement report.
+
+Owner disposal closes the child before Analysis cleanup. Failed loads destroy
+candidates; late load/context completion cannot resurrect an owner. Child close
+terminates fitting without closing Analysis. The only fit commit is publication
+of a current result; portable export remains read-only with respect to the host.
+
+Quota is 1–24 sections, default three, with independent overall gain outside it.
+Bounded multi-start nonlinear least squares chooses Bell/LowShelf/HighShelf types
+and finite frequency/gain/Q bounds. Evaluate digital RBJ response at the report's
+sample rate and original bins; reject invalid/unstable candidates. All three use
+`alpha = sin(2*pi*f/Fs)/(2*Q)`. Shelf Q is damping, not a universal shelf-slope
+setting. Fit measured magnitude, not inverse correction or smoothed plot pixels.
+
+Reject malformed/insufficient input, unusable floors and clearly unreliable
+measurements; surface weaker diagnostics as warnings. No per-bin confidence mask
+exists, so a successful fit cannot certify measurement confidence. Accept/reject
+the whole input rather than silently dropping bins. Equal-weight raw-bin residual
+is measured minus fitted dB; display RMS, maximum absolute residual, elapsed time
+and the bounded gain-only baseline (mean measured dB clamped to gain limits).
+The current report has 384 log-frequency samples per path; inter-bin narrow
+features remain unresolved. Search is reproducible for an identical input but
+makes no global optimum claim. It models neither phase/delay/nonlinearity nor a
+stereo transfer matrix. A cross-path fit cannot create routing in an ordinary EQ.
+
+## Producer compatibility boundary
+
+The producer owns current DSP, native UI, preview/preparation workers, telemetry
+and toolkit patches. Heron does not carry a second copy of that specification.
+Preserve 24 stable parameter slots and separate processing order: deleting a band
+cannot renumber automation. Presence differs from bypass. Retired dynamic offsets
+and Character global ID 6 remain reserved; static IDs and saved state retain their
+meaning. Host multichannel support is not implied by stereo M/S controls.
+
+Portable v1 static presets reject nonfinite values, duplicate/out-of-range IDs,
+more than 24 bands and unsupported combinations before replacement. Explicit
+output defaults apply; the retired top-level `character` field is ignored and
+omitted on export, while other envelope validation remains strict. Legacy dynamic
+fields cannot re-enable retired processing. Band paste failure preserves settings.
+Heron has no live-instance directory or cross-editor bridge; clipboard transfers
+explicit settings only. Host history/presets are not implemented by reintroducing
+local native history or whole-preset controls.
+
+Native Pre/Post and sidechain spectra must describe actual instance audio, never
+a response curve substituted for measured Post. EQ Match uses the instance's
+sidechain; other live instances are not reference/control targets. Host latency
+must describe the active processor; pending/failed preparation keeps prior audio
+until a valid replacement, with off-callback publication/retirement. The producer
+owns detailed DSP/editor validation; Heron verifies retained state, automation,
+latency, editor lifecycle and fitted-preset behavior at its integration boundary.

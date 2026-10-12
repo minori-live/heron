@@ -1,100 +1,42 @@
-# ADR-0031: Artifact-delivered built-in plug-ins
+# ADR-0031: Consume independently released built-in plug-ins
 
 - Status: Accepted
 - Date: 2026-10-10
 - Owners: project maintainers
-- Scope: independent plug-in production and Heron's pinned binary dependency
-- Plug-in symbol distribution is superseded by [ADR-0034](0034-runtime-only-plugin-artifacts.md).
+- Current specification: [owning document](../builtin-plugin-distribution.md)
+- Editorial consolidation: 2026-10-12; preserves the existing decision/status
+- Historical text: [before consolidation](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0031-artifact-delivered-built-in-plugins.md)
 
 ## Context
 
-Built-in plug-ins change more frequently than the desktop application. Building
-them inside Heron couples release pipelines and makes the host responsible for
-format packaging, identities and plug-in symbols. Existing projects already
-persist stable built-in IDs, VST3 Class IDs, parameters and opaque state.
+Compiling built-ins inside Heron coupled source ownership, packaging and release
+cadence. Saved projects already depend on stable built-in identities, parameters
+and opaque state, so extracting their producer must preserve those commitments.
 
 ## Decision
 
-`minori-live/heron-plugins` owns Gain, Sine, Metronome, EQ, their shared Iced UI,
-source tests, format exports and independent suite releases. Heron retains the
-embedded native runtime, host, probes and metronome scheduling. The EQ DSP
-module and its pure tests move into the producer's `heron-plugin-dsp` crate;
-EQ tests that exercise Heron's host stay here and load the prepared artifact.
-Vendored Truce UI fixes follow the editor code into the producer. No process,
-thread, IPC or real-time boundary changes.
+`heron-plugins` owns plug-in sources, DSP/editor/toolkit code, format exports and
+suite releases. Heron owns host/probes, metronome scheduling and artifact integration.
+Consume validated pinned runtime VST3 bundles; source compilation is not a fallback.
+Inventory comes from the installed manifest and actual capabilities from probes.
+Plug-in upgrades enter through reviewed application dependency updates.
 
-Heron consumes only complete VST3 artifacts from a GitHub release pinned by
-version, source commit and asset filenames in `heron-plugins.lock.json`. Its build tools
-validate the archive, manifest, required identities and architecture before
-replacing the staging directory. The unzipper dependency is build tooling only;
-it is not shipped in the renderer or native runtime. The build-only pinned
-`fs-native-extensions` dependency supplies precompiled OS file locking for all
-supported hosts; installation does not compile another native component.
-Recovery and publication share a permanent gate file locked exclusively by its
-open descriptor. The gate is never replaced or removed, and process exit
-releases the kernel lock. PID records and time-based lock deletion are not
-authority: a delayed recovery caller must never remove a successor's lock.
-Downloads and extraction remain outside the gate. Verified cached archives
-support offline builds. A missing or corrupt dependency fails the build; source
-compilation is not a fallback. An uninitialized lock explicitly blocks cutover.
+## Alternatives and consequences
 
-The producer initially distributes VST3 for Heron's four platforms and AUv2
-for macOS universal. AAX Native is an explicitly disabled release capability
-until the SDK, PACE signing and real host validation are configured. Adding a
-format creates a new suite release rather than replacing published assets.
+Git/submodule builds preserve compilation coupling instead of consuming validated
+producer output. Independent runtime binary updates require additional replacement,
+recovery and compatibility protocols. Release dependencies require producer assets
+before consumer builds and explicit signing/synchronization configuration. Missing
+inventory cannot erase saved identity or state.
 
-The installed manifest owns the built-in inventory. Probes own actual buses,
-parameters and editor capabilities. Invalid inventory produces unavailable
-entries for the four migrated IDs, never valid cached entries. A saved built-in
-that leaves the inventory remains unavailable with its state retained. Native
-Class IDs, parameter IDs and state semantics remain compatibility commitments;
-no project database migration is required.
-
-Plug-in updates arrive through Heron application updates. The producer owns
-opening dependency upgrade PRs and is the only repository configured with the
-scoped PAT. It checks out Heron's trusted main and executes the consumer-owned
-lock and artifact validation commands before pushing the upgrade branch; Heron
-needs no notification receiver. Merge remains a maintainer action. Release
-selection rejects downgrades and changes to the same published version,
-including unmerged upgrades. The first release is pinned and validated manually
-before the consumer commands become available on Heron main.
-
-The producer publishes symbols and source bundles without configuring Sentry
-in this migration. Heron uploads the pinned VST3 symbols to its existing project.
-Each symbol file must match the shipped module, including both universal slices.
-The plug-in repository's independent Sentry project and runtime error capture
-are future work.
-
-## Alternatives rejected
-
-### Git dependency or submodule builds
-
-These preserve the original compilation coupling and do not make the producer's
-validated, signed output the dependency boundary.
-
-### Runtime binary updates
-
-Independent installation introduces live module replacement, recovery and
-compatibility protocols. Application updates provide the chosen commit point.
-
-## Consequences
-
-Heron release builds depend on a previously published plug-in release. First
-cutover requires the producer's published, signed assets. Producer signing
-credentials and the cross-repository PAT need explicit configuration. Release
-identity and version-based caching are recorded in [ADR-0032](0032-release-artifact-identity.md).
-
-## Verification
-
-Historical non-default state fixtures and producer tests preserve plug-in
-behavior. A project archive generated by the original database code verifies
-identity and opaque state preservation through reopen and save. Consumer tests
-cover cached archive validation, extraction, staging and upgrade policy. Runtime catalog tests cover manifest ownership and unavailable saved
-plug-ins. Real host smoke tests, architecture checks, signature verification and
-Debug ID matching validate the actual distributed bundles.
+The later artifact-identity and runtime-only amendments are maintained in the
+current distribution contract: version/source/runtime filenames define the lock;
+Heron does not consume plug-in symbols. Application crash reporting remains
+separate. EQ processing/editor rules are owned by the producer; Heron's integration
+notes retain fitted-preset and project compatibility, avoiding a second evolving
+plug-in specification in host ADRs.
 
 ## Reconsider when
 
-Plug-ins need an update cadence that cannot use application updates, new formats
-become internal host dependencies, or runtime telemetry requires a separate
-privacy and real-time design.
+Plug-ins need independent runtime updates, new internal formats or telemetry with
+a new privacy/real-time contract.

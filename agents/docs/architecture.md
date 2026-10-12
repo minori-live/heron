@@ -37,7 +37,7 @@ main/native boundary is N-API within one process.
 `heron-plugins` owns the Gain, Sine, Metronome and EQ sources, native UI,
 EQ DSP and format exports. Heron retains its runtime, host, metronome scheduling
 and tests that exercise the host against prepared VST3 bundles. Builds prepare
-an immutable producer release pinned by commit and per-platform SHA256, while
+an immutable producer release pinned by suite version, source commit and runtime asset filenames, while
 the installed manifest supplies the inventory and probes establish capabilities.
 A missing bundle remains unavailable with its saved state intact. See
 [ADR-0031](adr/0031-artifact-delivered-built-in-plugins.md) and
@@ -69,30 +69,15 @@ native adapter -> @heron/dsp-node -> embedded runtime -> audio callback
 - `@heron/project-db` is the only project persistence implementation.
 - `@heron/ui` owns shared visual behavior and accessibility, never product state.
 
-Studio and Live use separate document sessions and PGlite workers. The shared
-Mixer graph contract contains Channels, Sends, plug-ins, and side-chain routes;
-Studio composes tracks, clips, media, and recording on top. Live root Channels
-have no placeholder Studio Track. The Live Edit document path currently owns
-create/open/save, recovery, revisioned edits, the device/MIDI configuration
-record, sparse Set/Patch scalar overrides and complete plug-in state overrides.
-The pure layer model resolves each
-editing selection from Project through Set and Patch and identifies each field's
-defining layer. Root and hierarchy edits share one worker transaction, document
-revision and Undo entry; every descendant is validated before commit. See
-[ADR-0013](adr/0013-live-layer-editing.md) for the staged field policy and Live
-format-2 upgrade. Live performance uses a separate controller and runtime adapter
-with generation-specific native plug-in IDs. It prepares a complete resolved
-Project/Patch, restores state and parameters, and publishes the active layer only
-after native graph activation is confirmed. Capture freezes sampled values and
-writes selected scalars to their defining layers in one document transaction.
-Complete state Capture explicitly targets its defining layer or the active
-Patch. State headers and binary chunks preserve independent ownership and empty
-envelopes; effective parameter overrides apply after state restoration. See
-[ADR-0015](adr/0015-live-layer-plugin-state.md) for Live format 3 and Capture scope.
-The explicit cut transition and IPC ownership are recorded in
-[ADR-0014](adr/0014-live-runtime-activation.md). Edit is silent; entering Perform
-owns exact audio devices, while Patch changes retain the running streams. Native
-build, hardware and soak validation remain delivery gates.
+Studio and Live use separate document sessions and PGlite workers over a shared
+Mixer independent of Studio tracks/clips/media. Live currently owns revisioned
+Project, Set/Patch scalar and complete-state editing, recovery, Perform activation
+and selective Capture. Editing selection is independent from audio activation;
+Edit is silent. Native instance generations, graph receipts and a bounded cut
+transition govern activation. [Live documents](live-documents.md) owns the full
+current contract and distinguishes implemented scope from accepted future design.
+[The roadmap](roadmap.md#current--live-project-delivery) owns outstanding delivery
+and native/hardware/soak evidence.
 
 Both document views compose the presenters in `components/workspace`:
 `DocumentWorkspaceShell`, `WorkspaceTopbar`, `WorkspaceControlGroup`,
@@ -127,8 +112,8 @@ result and a documented recoverable or quarantined state.
 
 Completion order is not authority. When automatic recovery competes with a
 newer user mutation, an explicit generation determines which result may commit.
-The implemented device-recovery precedence is recorded in
-[ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
+See [device recovery](product-live.md#device-recovery-concurrency) for user-choice
+precedence and [command admission](#project-command-receipts-and-admission) for receipts.
 
 Every workflow with these properties includes state-machine or state-table
 tests. A timeout must not manufacture a failure response when a dispatched
@@ -138,14 +123,14 @@ Project commands read their result inside the SQL transaction. Their retained
 response transfers from the database worker to main, then is released after
 renderer acknowledgement; results are not indefinitely retained per edit.
 Unknown commit outcomes quarantine the graph until an authoritative workspace
-is re-established. See [ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
+is re-established. See [command receipts](#project-command-receipts-and-admission).
 
 ## Native control and UI events
 
-Plugin Analysis owns a secure auxiliary renderer and independent volatile effect
-chain. Original and measurement instances share the embedded host, with a bounded
+Plugin Analysis owns a secure auxiliary renderer and two independent volatile effect
+chains. Original and measurement instances share the embedded host, with a bounded
 analysis worker and revision-guarded report publication. It does not claim an
-audio device. See [ADR-0016](adr/0016-plugin-analysis.md) for lifetime and measurement
+audio device. See [Plugin Analysis](plugin-analysis.md) for session lifetime and measurement
 limits.
 
 Plugin Analysis plots use the shared `@heron/ui` ECharts adapter, loaded when a
@@ -174,7 +159,7 @@ native view below that toolbar and returns resize/state requests through a
 bounded queue drained by Electron main. Windows uses a borderless owned native
 popup so plug-in OpenGL rendering remains independent of Chromium composition;
 native owner notifications synchronize its position and visibility. See
-[ADR-0033](adr/0033-windows-native-editor-surfaces.md).
+[editor surfaces](native-call-boundary.md#editor-windows-and-platform-surfaces).
 
 ## Audio plug-in formats
 
@@ -196,13 +181,13 @@ provide the same host mode through an explicit format-neutral post-process
 adapter that copies left output to right without callback allocation. Native
 layout probing remains isolated; the embedded runtime never retries a layout
 that the probe did not validate. See
-[ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
+[containment](#graph-publication-and-plug-in-containment).
 
 Before runtime loading, isolated capability probes target the selected native
 identity, and main caches results by the complete plug-in locator. Other classes
 in the same artifact do not participate in that selection's deep inspection.
 Catalog enumeration retains its full-artifact scope. See
-[ADR-0023](adr/0023-plugin-scoped-runtime-probes.md).
+[selected capability probes](native-call-boundary.md#selected-capability-probes).
 
 `heron-clap-host` is the only owner of CLAP unsafe FFI and depends directly on
 the pinned `clap-sys` version. It separates a main-thread, `!Send + !Sync`
@@ -261,6 +246,107 @@ signal; it does not recover in place.
 - Never hold a callback-visible lock across N-API, Electron, device, plug-in,
   or filesystem calls.
 - Overflow and stale-generation outcomes must be explicit and observable.
+
+## Project command receipts and admission
+
+SQL mutation and resulting snapshot decoding share one database transaction;
+snapshot failure rolls back the write. A retained prepared token therefore means
+no commit and permits abort. The worker retains committed results for token replay.
+Main retains its terminal response before acknowledging the worker; a failed
+acknowledgement is retried by the next command and cannot make a known commit
+unknown. A replaced project handle discards old tokens. Renderer adopts/rejects
+a known result before acknowledging main; later graph interactions retry failed
+acknowledgements. Main-originated sidechain edits acknowledge their own results.
+
+Unknown results remain retained and the graph quarantined until an authoritative
+workspace is re-established; reopening creates a fresh workspace. Given mutation
+identity and a complete target generation, replay lookup precedes fresh-work
+body/revision/lifecycle checks. Operation-ID reuse requires the same idempotency
+key and target. A target-scoped key can replay the original under a different
+operation ID; one operation ID cannot cross resource generations.
+
+Saving retains the workspace and allows project-backed work. Closing owns teardown
+synchronously and closes main-side admission; renderer admission is only a UX gate.
+Close drains already admitted work before state synchronization and teardown.
+Low-latency configure reserves its graph queue in admission order before revision
+and asynchronous preflight checks, retaining ownership through publication,
+resource advancement and terminal response retention. Rejected fresh work during
+close creates no operation record.
+
+Acknowledgement ends replay eligibility. Terminal/quarantined records remain for
+acknowledgement or reconciliation within bounded retention. Timers, arbitrary
+eviction and larger limits cannot replace ownership transfer. Typed domain errors,
+not message wording, select retry/outcome semantics. Other domains define their
+own receipt lifetime, such as [updates](application-updates.md#receipts-and-recovery).
+
+## Graph publication and plug-in containment
+
+One prepare/activate/abort protocol owns document graphs. Candidate processors
+remain separate from the active registry, retain compilation ownership until
+commit/abort, and respect outstanding processor leases during destruction.
+Known not-committed activation failure aborts the candidate; cleanup failure logs
+both errors without replacing the activation outcome. Unknown activation is
+reconciled, never speculatively aborted or reported as still prepared after its
+instances have been consumed.
+
+Internal refresh coalesces to one latest pending snapshot and cannot supersede
+a document candidate or block the UI mailbox/engine actor while awaiting ownership.
+One off-callback compilation path serves both. The background actor continues
+serving device queries. With stopped audio, parking the graph in pending state
+commits publication; running audio additionally requires callback acknowledgement.
+Retry creates a replacement generation from committed state. Old parameter,
+editor, ARA, latency, tail and graph results cannot publish into that generation.
+
+Containment covers returned failures and safely validatable data in initialization,
+bus activation, restore/save, processing, bounded output, parameters, editor/ARA
+lifecycle, queue pressure and stale generations. It cannot contain access
+violations, memory corruption, aborts, deadlocks or non-returning calls. Never
+catch panics in the audio callback or promise audio continuity after a fatal crash.
+
+Failed instances retain project slot, identity, routing, alias, creative bypass
+and committed bytes. Effects emit delay-aligned dry audio; instruments emit
+silence while loading, bypassed, failed or quarantined. Only successful processing
+and bounded output validation make output audible. Callback failure emits at
+most one bounded signal per transition.
+
+Runtime states are unloaded, loading, active, bypassed, failed and quarantined.
+Typed failures carry category, stage, outcome, retry eligibility, generation,
+graph revision and diagnostic ID. Explicit Retry/Keep Bypassed replaces automatic
+re-enabling. Repeated failures quarantine the artifact fingerprint/native ID;
+a changed fingerprint is eligible for explicit retry. Load/restore publishes only
+validated replacements; state-save failure preserves committed bytes; uncertain
+editor detach or ARA ownership quarantines the affected resource.
+
+Device loss immediately presents recovery choices while bounded reconnects
+continue. A committed explicit choice owns the authoritative generation. The
+original device may resume first, but the dialog remains available and the later
+choice wins. Candidate refresh preserves focus and draft selection. See
+[the performance contract](product-live.md#device-recovery-concurrency).
+
+## Native wire model ownership
+
+`dsp-runtime::protocol` owns native wire shapes and serialization. Resolved engine
+state owns indices, tokens, processor handles and generations; real-time state
+owns fixed arrays, atomics and rings. Do not duplicate serialized fields in a
+parallel engine DTO or add serde to `audio-engine`. Resolved state must represent
+an actual runtime distinction. `Native*` is reserved for napi DTOs in `dsp-node`.
+This native boundary does not replace Drizzle's ownership of database schemas.
+
+Generate and commit TypeScript declarations with `mise run codegen:wire-types`;
+`mise run codegen:wire-types:check` checks drift. Do not hand-edit generated files.
+Handwritten binary/telemetry adapters own behavior or tuple interpretation rather
+than a second wire schema. [ADR-0011](adr/0011-protocol-owns-the-wire-shape.md)
+retains the rationale for generation and distinct resolved state.
+
+## Media audition
+
+One control-plane audition can coexist with playback. Main validates/materializes
+the project BWF and routes it to the graph's first stereo Output. Decode and
+allocate off the callback; swap owned buffers through the command ring, mix into
+prepared hardware outputs, and retire through a bounded ring for control-thread
+destruction. Replacement, explicit/bounded-duration stop and engine destruction
+release ownership. Audition does not move the playhead, change playback/recording,
+create Undo, persist state or dirty the document.
 
 ## Decision governance
 

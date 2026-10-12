@@ -30,7 +30,7 @@ by command ID or runtime state.
   well as axis labels. Loading buttons and dialogs must override English default
   spinner and close-button labels.
 - The splash receives the saved locale in startup progress snapshots; see
-  [ADR-0036](adr/0036-startup-progress-locale.md). Independent analysis windows
+  [startup language](#startup-progress-language). Independent analysis windows
   localize both their visible title and their document/window title.
 - Compiled effect graphs translate known native labels, node kinds, plug-in states,
   and signal widths while retaining channel and port identifiers.
@@ -57,3 +57,15 @@ The static scan skips call expressions and does not prove that arbitrary TypeScr
 externally supplied data are localized. Review those separately, and test
 language switching for computed labels and options. Locale-changing tests must
 restore English afterward.
+
+## Startup progress language
+
+`StartupProgressSnapshot` carries the required `AppLocale` used to translate its
+labels. Main reads saved language before the initial snapshot and retains it in
+every update. Splash applies that locale to document language, fonts and window
+title; before its first snapshot it uses the existing English default. Its narrow
+preload remains a read-only progress subscription, with current snapshot replay
+on reload. It does not read application settings, infer language from copy or
+change trusted URL policy. Main/preload/splash ship together, without mixed-version
+process support. Producers and fixtures must keep language and translated copy
+aligned. [Application preferences](application-preferences.md) owns persisted locale.

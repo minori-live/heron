@@ -25,7 +25,7 @@ Large feature blocks do not enter Current merely because work has already
 started. [The Live performance contract](product-live.md) defines the accepted
 performance baseline. Current scope is Live project delivery below, including
 the work carried forward from v0.5.0, with its architecture defined by
-[ADR-0004](adr/0004-layered-live-documents.md).
+[Live documents](live-documents.md).
 
 ## Definition of done
 
@@ -158,7 +158,7 @@ for at least two hours without reading source or developer documentation.
       failure bypasses or disables only the affected instance without
       invalidating the rest of the graph. The supported boundary and required
       recovery guarantees are defined in
-      [ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
+      [runtime containment](architecture.md#graph-publication-and-plug-in-containment).
       Manual containment check confirmed by the maintainer on 2026-09-06 for
       initialization, state restore/save, processing, and editor failures:
       the affected slot exposes failure and recovery, unrelated paths continue,
@@ -245,22 +245,22 @@ This successor milestone owns all unfinished work from the v0.5.0 closure as
 well as the standalone Live-document outcome below.
 
 The root-only bootstrap is a staged subset of this milestone
-([ADR-0008](adr/0008-root-live-bootstrap-and-capture.md)). Its independent
+([Live documents](live-documents.md)). Its independent
 `.hrl` storage, Studio/Live dispatch, and revisioned Edit document are in the
 development build. Live reuses Studio's workspace chrome and original Mixer
 components, with the Mixer in the right column and the center reserved for
 custom performance layouts. The production Perform/Patch activation path and
 selective Capture are connected in source, including fresh native instances and
-a bounded cut transition ([ADR-0014](adr/0014-live-runtime-activation.md)). This is
+a bounded cut transition ([Live activation](live-documents.md#perform-and-activation)). This is
 implementation progress: native build, runtime failure-path validation and real
 hardware/soak evidence remain open. Edit audition is not connected.
 Set/Patch authoring now supports creating, renaming, copying and deleting layers,
 scalar and complete plug-in state inheritance, explicit override/Revert, and shared revisioned
-Undo/Redo, Save and recovery ([ADR-0013](adr/0013-live-layer-editing.md)). Selecting
+Undo/Redo, Save and recovery ([Live layer editing](live-documents.md#layers-and-editing)). Selecting
 a layer edits its resolved Mixer without activating audio. All entities remain
 Project-owned in this stage. Complete state Capture can update its defining layer
 or create an active Patch override in the same transaction
-([ADR-0015](adr/0015-live-layer-plugin-state.md)). Scoped Channels/bindings, routing
+([Live Capture](live-documents.md#save-capture-and-exit)). Scoped Channels/bindings, routing
 overrides, document MIDI control execution, plug-in editors, complete recursive
 entity deletion and Studio import remain open. Completing this editing stage does not close Live project
 delivery.
@@ -310,7 +310,7 @@ create or import Live project -> configure exact audio and MIDI devices
 ```
 
 The architecture and ownership contract is defined by
-[ADR-0004](adr/0004-layered-live-documents.md). The milestone includes:
+[Live documents](live-documents.md). The milestone includes:
 
 - `.hrs` as the default extension for new Studio documents while `.heron`
   remains an equally supported Studio extension;

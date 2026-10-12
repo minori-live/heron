@@ -1,114 +1,95 @@
 # Architecture decision records
 
-ADRs record durable choices, their rationale, and the alternatives not selected.
-Current architecture details, product behavior, implementation progress and test
-evidence belong in their owning documents rather than being copied into each ADR.
+Current specifications live in the owning architecture and feature documents.
+The records retained here explain durable choices and realistic alternatives.
+Read the specification for current behavior and the roadmap for delivery evidence.
 
-## Current records
+## Retained decisions and proposals
 
-| Record                                                                                                 | Status                             | Scope                                                                                                       |
-| ------------------------------------------------------------------------------------------------------ | ---------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| [0001 — Runtime ownership and transactions](0001-runtime-ownership-and-transactions.md)                | Accepted                           | Embedded audio, graph/plug-in lifetime, failure containment, receipts, device recovery                      |
-| [0002 — Project persistence and media](0002-project-persistence-and-media.md)                          | Accepted                           | PGlite worker, build templates, canonical assets, independent audition                                      |
-| [0003 — MIDI control and observation](0003-midi-control-and-observation.md)                            | Accepted                           | Studio addressing, event delivery, overlays, active-note snapshots                                          |
-| [0004 — Layered Live documents](0004-layered-live-documents.md)                                        | Accepted design; delivery pending  | Shared Mixer, separate documents, Project/Set/Patch, activation, bindings and performance UI                |
-| [0005 — UI boundary and application preferences](0005-ui-boundary-and-application-preferences.md)      | Accepted                           | Storybook interaction ownership, UnoCSS, versioned tutorials, validation boundaries                         |
-| [0006 — Tagged release updates](0006-tagged-release-updates.md)                                        | Accepted                           | Release eligibility, channels, explicit installation and shutdown safety                                    |
-| [0007 — Linux editor compatibility](0007-linux-editor-compatibility.md)                                | Proposed                           | X11/XWayland, potential native Wayland hosting, generic fallback                                            |
-| [0008 — Root Live bootstrap and Capture](0008-root-live-bootstrap-and-capture.md)                      | Accepted; runtime delivery pending | Independent Live documents, mode exit, instance generations and selective Capture                           |
-| [0009 — PGlite binary transfer and bounded project reads](0009-pglite-data-transfer-and-read-reuse.md) | Accepted                           | Binary media transfer, cache commit boundaries, bounded MIDI and asset metadata queries                     |
-| [0010 — Dependency toolchain compatibility](0010-dependency-toolchain-compatibility.md)                | Accepted                           | Native TypeScript with compiler API compatibility, scoped Storybook runner, coupled dependency APIs         |
-| [0011 — Protocol owns the wire shape](0011-protocol-owns-the-wire-shape.md)                            | Accepted                           | Wire, resolved and real-time layers; one model per concept; generated TypeScript declarations               |
-| [0012 — Homebrew distribution](0012-homebrew-distribution.md)                                          | Accepted                           | Published-release authority, scoped Tap automation and utility validation                                   |
-| [0013 — Live layer editing](0013-live-layer-editing.md)                                                | Accepted                           | Sparse Set/Patch overrides, editing scope, revisioned hierarchy persistence and version-1 upgrade           |
-| [0014 — Live runtime activation](0014-live-runtime-activation.md)                                      | Accepted                           | Embedded Live activation, bounded cut, volatile performance and layered Capture                             |
-| [0015 — Live layer plug-in state](0015-live-layer-plugin-state.md)                                     | Accepted                           | Binary layer state, independent parameter precedence and explicit complete-state Capture destinations       |
-| [0016 — Plugin Analysis measurement sessions](0016-plugin-analysis.md)                                 | Accepted                           | Independent experiment chain, floating point excitation, measurement worker and revisioned reports          |
-| [0017 — Plugin Analysis comparison](0017-plugin-analysis-comparison.md)                                | Accepted                           | Atomic two-chain reports, sample-domain difference, independent order FIRs and bounded measurement controls |
-| [0018 — Independent plug-in editor windows](0018-independent-plugin-editor-windows.md)                 | Accepted                           | Top-level plug-in windows with per-instance focus and cleanup                                               |
-| [0019 — Plugin Analysis waveform sample coordinates](0019-plugin-analysis-waveform-sampling.md)        | Accepted                           | Explicit sample spacing for time and latency-aligned plots                                                  |
-| [0020 — Plugin Analysis axis scales](0020-plugin-analysis-axis-scales.md)                              | Accepted                           | Explicit units, minimum grid steps and bounded display zoom                                                 |
-| [0021 — VST3 result contracts](0021-vst3-result-contracts.md)                                          | Accepted                           | Method-specific SDK results, operation commit outcomes and contained failure domains                        |
-| [0022 — Optional VST3 interface denials](0022-vst3-optional-interface-denials.md)                      | Accepted                           | False-with-null compatibility for optional queries; required interfaces remain strict                       |
-| [0023 — Plug-in scoped runtime probes](0023-plugin-scoped-runtime-probes.md)                           | Accepted                           | Selected native identity, isolated capability inspection and independent runtime probe caching              |
-| [0025 — Plugin Analysis parametric EQ fitting](0025-plugin-analysis-eq-fitting.md)                     | Accepted                           | Independent secure fit window, authoritative measured paths and cancellable digital EQ fitting              |
-| [0026 — Welcome setup and diagnostics consent](0026-welcome-setup-and-diagnostics-consent.md)          | Accepted                           | First-run appearance/language draft and explicit persisted reporting consent                                |
-| [0027 — Sentry crash reporting](0027-sentry-crash-reporting.md)                                        | Proposed                           | Consent-gated Electron and embedded native crashes, cache epochs and release symbols                        |
-| [0028 — Diagnostics consent restart and isolation](0028-diagnostics-consent-restart-and-isolation.md)  | Proposed                           | Legacy consent migration, safe first-run restart, production-only reporting and profile isolation           |
-| [0029 — Native Heron EQ](0029-native-heron-eq.md)                                                      | Accepted                           | 24 stable native EQ slots, actual audio spectra, bounded preparation and fitted-preset interchange          |
-| [0030 — EQ graph and fixed band controls](0030-eq-graph-and-floating-controls.md)                      | Accepted                           | Graph-first editor, fixed lower-center controls, contextual settings and host parameter gestures            |
+| Record                                                                                                 | Status   | Current specification                                           |
+| ------------------------------------------------------------------------------------------------------ | -------- | --------------------------------------------------------------- |
+| [0001 — Embedded runtime and explicit commits](0001-runtime-ownership-and-transactions.md)             | Accepted | [Specification](../architecture.md)                             |
+| [0002 — Self-contained projects and canonical media](0002-project-persistence-and-media.md)            | Accepted | [Specification](../project-database.md)                         |
+| [0003 — Separate MIDI control from observation](0003-midi-control-and-observation.md)                  | Accepted | [Specification](../midi-control.md)                             |
+| [0004 — Standalone layered Live documents on the shared Mixer](0004-layered-live-documents.md)         | Accepted | [Specification](../live-documents.md)                           |
+| [0005 — Shared interaction ownership](0005-ui-boundary-and-application-preferences.md)                 | Accepted | [Specification](../design-system.md)                            |
+| [0006 — Explicit installation from published releases](0006-tagged-release-updates.md)                 | Accepted | [Specification](../application-updates.md)                      |
+| [0007 — Linux native editor compatibility tiers](0007-linux-editor-compatibility.md)                   | Proposed | [Specification](../native-call-boundary.md)                     |
+| [0011 — One owner for the native wire shape](0011-protocol-owns-the-wire-shape.md)                     | Accepted | [Specification](../architecture.md#native-wire-model-ownership) |
+| [0016 — Independent volatile plug-in measurement sessions](0016-plugin-analysis.md)                    | Accepted | [Specification](../plugin-analysis.md)                          |
+| [0027 — Consent-gated crash reporting in Electron main](0027-sentry-crash-reporting.md)                | Proposed | [Specification](../crash-reporting.md)                          |
+| [0031 — Consume independently released built-in plug-ins](0031-artifact-delivered-built-in-plugins.md) | Accepted | [Specification](../builtin-plugin-distribution.md)              |
 
-| [0031 — Artifact-delivered built-in plug-ins](0031-artifact-delivered-built-in-plugins.md) | Accepted | Independent producer releases, pinned VST3 consumption, inventory and native symbols |
-| [0032 — Release artifact identity](0032-release-artifact-identity.md) | Accepted | Version-based plug-in caching and distribution-owned integrity metadata |
-| [0033 — Windows native editor presentation surfaces](0033-windows-native-editor-surfaces.md) | Accepted | Owned native rendering surfaces, owner geometry and visibility, keyboard focus and cleanup |
-| [0034 — Runtime-only plug-in artifacts](0034-runtime-only-plugin-artifacts.md) | Accepted | Runtime-only dependency locks; application Sentry retained |
+Accepted records preserve earlier choices; they do not certify feature delivery
+or validation. The native Wayland and crash-reporting proposals remain Proposed.
+Source implementation and a historical status label are separate facts.
 
-| [0035 — Explicit route formats](0035-explicit-route-formats.md) | Accepted | Independent mono/stereo main and Send routes, BUS pairs, persistence and native mixing |
+## 2026-10-12 consolidation
 
-| [0036 — Startup progress locale](0036-startup-progress-locale.md) | Accepted | Explicit language for splash text, fonts, and document metadata |
+The maintainer explicitly requested this complete retrospective restructuring
+after the governance change. All 35 records were reviewed. Eleven retain their
+original identities (nine Accepted, two Proposed); 24 implementation/staging
+records are incorporated into owning documents. Numbers are not reused or reset.
+No new architecture or acceptance is introduced by this editorial change.
 
-Accepted means the architecture is chosen, not that every feature or release
-acceptance test is complete. Each record states its implementation scope; the
-[roadmap](../roadmap.md) owns delivery and evidence status. A proposal cannot be
-used as permission to implement or claim an accepted compatibility commitment.
+The table below maps every identity in the reviewed series. Original text remains
+available at [the pre-consolidation revision](https://github.com/minori-live/heron/tree/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr).
+Removed files are not duplicated as an archive or redirect collection. Repository
+links now point to current owners; historical external links should use the pinned
+revision. The original series has no 0024, which is not a newly available number.
 
-## 2026-09-06 baseline reset
+Obsolete root-only/scalar-only Live restrictions, strict single-FIR analysis,
+plug-in symbol staging and old toolchain repairs remain history. Their replacements
+are stated in the current documents. The roadmap retains outstanding Live scope
+and evidence. Producer-owned EQ DSP/editor requirements remain in `heron-plugins`;
+Heron's EQ notes own host integration and compatibility.
 
-The numbers in this section's mapping table belong to a **superseded series**.
-Current records are 0001–0023 and 0025–0036; 0009 in the table below refers to the retired
-record, not to any record in this series.
+| Original record                                                                    | Treatment                                              | Current owner                                                                                        | Historical source                                                                                                                                                |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0001 — Own the embedded runtime and commit state explicitly                        | Retained rationale                                     | [Runtime ownership, commits and containment](../architecture.md)                                     | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0001-runtime-ownership-and-transactions.md)        |
+| 0002 — Persist self-contained projects with canonical media                        | Retained rationale                                     | [Persistence, media and templates](../project-database.md)                                           | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0002-project-persistence-and-media.md)             |
+| 0003 — Separate MIDI control delivery from state observation                       | Retained rationale                                     | [MIDI control and observation](../midi-control.md)                                                   | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0003-midi-control-and-observation.md)              |
+| 0004 — Build standalone layered Live documents on the shared Mixer                 | Retained rationale                                     | [Live documents](../live-documents.md)                                                               | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0004-layered-live-documents.md)                    |
+| 0005 — Own interactions in Storybook and preferences in main                       | Retained rationale                                     | [Shared UI; application preferences](../design-system.md)                                            | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0005-ui-boundary-and-application-preferences.md)   |
+| 0006 — Update installed tagged releases through Pages metadata and GitHub Releases | Retained rationale                                     | [Application updates](../application-updates.md)                                                     | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0006-tagged-release-updates.md)                    |
+| 0007 — Tier Linux native plug-in editor compatibility                              | Retained rationale                                     | [Current Linux support; retained proposal](../native-call-boundary.md)                               | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0007-linux-editor-compatibility.md)                |
+| 0008 — Bootstrap root Live performance with frozen selective Capture               | Incorporated into specification                        | [Live Save, Capture and activation](../live-documents.md)                                            | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0008-root-live-bootstrap-and-capture.md)           |
+| 0009 — PGlite binary transfer and bounded project reads                            | Incorporated into specification                        | [Binary transfer and cache rules](../project-database.md)                                            | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0009-pglite-data-transfer-and-read-reuse.md)       |
+| 0010 — Dependency toolchain compatibility                                          | Incorporated into specification                        | [Current toolchain compatibility](../environment.md#coupled-toolchain-dependencies)                  | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0010-dependency-toolchain-compatibility.md)        |
+| 0011 — Let the protocol crate own the wire shape                                   | Retained rationale                                     | [Native wire ownership](../architecture.md#native-wire-model-ownership)                              | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0011-protocol-owns-the-wire-shape.md)              |
+| 0012 — Homebrew distribution                                                       | Incorporated into specification                        | [Homebrew publication and recovery](../homebrew-distribution.md)                                     | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0012-homebrew-distribution.md)                     |
+| 0013 — Persist sparse Live Set and Patch edits                                     | Incorporated into specification                        | [Live layer editing](../live-documents.md#layers-and-editing)                                        | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0013-live-layer-editing.md)                        |
+| 0014 — Connect layered Live performance to the embedded runtime                    | Incorporated into specification                        | [Live activation and recovery](../live-documents.md#perform-and-activation)                          | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0014-live-runtime-activation.md)                   |
+| 0015 — Persist and capture complete plug-in state in Live layers                   | Incorporated into specification                        | [Live complete state and Capture](../live-documents.md#save-capture-and-exit)                        | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0015-live-layer-plugin-state.md)                   |
+| 0016 — Plugin Analysis measurement sessions                                        | Retained rationale                                     | [Plugin Analysis](../plugin-analysis.md)                                                             | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0016-plugin-analysis.md)                           |
+| 0017 — Plugin Analysis comparison and independent order identification             | Incorporated into specification                        | [Comparison and measurement models](../plugin-analysis.md#measurements)                              | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0017-plugin-analysis-comparison.md)                |
+| 0018 — Independent plug-in editor windows                                          | Incorporated into specification                        | [Editor window lifetime](../native-call-boundary.md#editor-windows-and-platform-surfaces)            | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0018-independent-plugin-editor-windows.md)         |
+| 0019 — Plugin Analysis waveform sample coordinates                                 | Incorporated into specification                        | [Waveform coordinates](../plugin-analysis.md#coordinates-and-presentation)                           | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0019-plugin-analysis-waveform-sampling.md)         |
+| 0020 — Plugin Analysis axis units and scale floors                                 | Incorporated into specification                        | [Plot units and limits](../plugin-analysis.md#coordinates-and-presentation)                          | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0020-plugin-analysis-axis-scales.md)               |
+| 0021 — Interpret VST3 results by method and effect                                 | Incorporated into specification                        | [VST3 result and recovery contracts](../vst3-hosting.md)                                             | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0021-vst3-result-contracts.md)                     |
+| 0022 — Tolerate declined optional VST3 interface queries                           | Incorporated into specification                        | [Optional VST3 interface denials](../vst3-hosting.md#result-interpretation)                          | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0022-vst3-optional-interface-denials.md)           |
+| 0023 — Probe the selected plug-in before runtime loading                           | Incorporated into specification                        | [Selected capability probes](../native-call-boundary.md#selected-capability-probes)                  | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0023-plugin-scoped-runtime-probes.md)              |
+| 0025 — Plugin Analysis parametric EQ fitting                                       | Incorporated into specification                        | [EQ fitting and export](../heron-eq.md#eq-fit-window-and-computation)                                | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0025-plugin-analysis-eq-fitting.md)                |
+| 0026 — Welcome setup and diagnostics consent                                       | Incorporated into specification                        | [Welcome and consent preferences](../application-preferences.md#welcome-setup)                       | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0026-welcome-setup-and-diagnostics-consent.md)     |
+| 0027 — Consent-gated Electron and embedded native crash reporting                  | Retained rationale                                     | [Reporting operations; retained proposal](../crash-reporting.md)                                     | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0027-sentry-crash-reporting.md)                    |
+| 0028 — Diagnostics consent restart and environment isolation                       | Proposal rationale in 0027; source behavior documented | [Consent migration, restart and isolation](../crash-reporting.md#runtime-authority-and-consent)      | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0028-diagnostics-consent-restart-and-isolation.md) |
+| 0029 — Native Heron EQ and fitted-preset interchange                               | Incorporated into specification                        | [EQ integration; producer-owned DSP/editor](../heron-eq.md)                                          | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0029-native-heron-eq.md)                           |
+| 0030 — EQ graph and fixed band controls                                            | Incorporated into specification                        | [EQ host gestures; producer-owned UI](../heron-eq.md#producer-compatibility-boundary)                | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0030-eq-graph-and-floating-controls.md)            |
+| 0031 — Artifact-delivered built-in plug-ins                                        | Retained rationale                                     | [Producer/consumer release ownership](../builtin-plugin-distribution.md)                             | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0031-artifact-delivered-built-in-plugins.md)       |
+| 0032 — Release artifact identity                                                   | Incorporated into specification                        | [Artifact identity and caching](../builtin-plugin-distribution.md#artifact-identity-and-publication) | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0032-release-artifact-identity.md)                 |
+| 0033 — Windows native editor presentation surfaces                                 | Incorporated into specification                        | [Windows native presentation](../native-call-boundary.md#editor-windows-and-platform-surfaces)       | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0033-windows-native-editor-surfaces.md)            |
+| 0034 — Runtime-only plug-in artifacts                                              | Incorporated into specification                        | [Runtime-only plug-in artifacts](../builtin-plugin-distribution.md#symbols)                          | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0034-runtime-only-plugin-artifacts.md)             |
+| 0035 — Explicit mono and stereo output routes                                      | Incorporated into specification                        | [Output route formats](../interaction-design.md#output-route-formats)                                | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0035-explicit-route-formats.md)                    |
+| 0036 — Startup progress locale                                                     | Incorporated into specification                        | [Startup locale](../localization.md#startup-progress-language)                                       | [Original](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/0036-startup-progress-locale.md)                   |
 
-At the maintainer's request, the previous 16 records were consolidated into this
-seven-record baseline. Numbers restart at 0001. **Old numbers in earlier commits,
-issues or discussions refer to the pre-reset series**; use the mapping below.
-Repository links now address this baseline. Previously committed records remain
-in Git history; the uncommitted transaction audit is incorporated into this
-baseline. No duplicate archive, redirect ADRs, or superseded bodies remain here.
+## Earlier numbering
 
-This editorial reset preserves accepted product and ownership decisions. It
-incorporates the transaction audit, removes obsolete implementation narratives,
-corrects roadmap phase references, and retains Linux native-editor work as a
-proposal. It does not accept that proposal or mark Live documents delivered.
-
-| Pre-reset record                                   | Current owner                                                    |
-| -------------------------------------------------- | ---------------------------------------------------------------- |
-| 0001 — Embedded audio runtime                      | 0001                                                             |
-| 0002 — Live MIDI control addressing                | 0003 for Studio; 0004 for Live bindings                          |
-| 0003 — Device recovery precedence                  | 0001                                                             |
-| 0004 — Project media assets                        | 0002; panel details remain in interaction design                 |
-| 0005 — Host-owned channel adapters                 | 0001                                                             |
-| 0006 — Linux editor compatibility (Proposed)       | 0007 (still Proposed)                                            |
-| 0007 — Project database template                   | 0002                                                             |
-| 0008 — Active MIDI notes                           | 0003                                                             |
-| 0009 — Event-driven MIDI control                   | 0003                                                             |
-| 0010 — Versioned tutorial preferences              | 0005, with the later UI adapter boundary                         |
-| 0011 — In-process plug-in containment              | 0001                                                             |
-| 0012 — Separate layered Live documents             | 0004; updated to the Current roadmap phase                       |
-| 0013 — Constrained UnoCSS                          | 0005                                                             |
-| 0014 — Storybook interaction boundary              | 0005                                                             |
-| 0015 — Tagged updates                              | 0006; dependency versions remain in manifests/locks              |
-| 0016 — Project and graph transaction consolidation | 0001 transactions; 0002 persistence; 0004 Mixer; 0005 validation |
-
-## 2026-09-30 review
-
-The refactor in pull request #176 was checked against every record. The set was
-reviewed for consolidation and kept as it stands, with one addition:
-
-- 0004 and 0008 decide different things — the eventual Project/Set/Patch
-  hierarchy, and the root-only bootstrap subset with its Perform and Capture
-  semantics. They are sequential stages of one milestone, not competing accounts
-  of it, and merging them would produce a record doing two jobs.
-- The thirteen type pairs the refactor merged, and the `audio-plugin` identity
-  set it deleted, were duplication rather than recorded decisions: no record
-  argued for them, and `architecture.md` named the protocol crate as the owner
-  already.
-- Everything else the records decide — runtimes, receipts, persistence, MIDI,
-  updates, editor compatibility — was unaffected. The branch is behaviour
-  preserving for all of it.
-
-The new record from that review is 0011, Protocol owns the wire shape. Records
-0001–0010 keep their identities and existing links. Homebrew distribution is
-recorded separately in 0012.
+The 2026-09-06 maintainer-requested reset replaced an older 16-record series with
+seven records and restarted numbering. Numbers in discussions before that reset
+refer to that retired series. Its complete mapping remains in the
+[pinned historical index](https://github.com/minori-live/heron/blob/4924b0eba3e8800c1a8ec4495a0b5e7fc99831ee/agents/docs/adr/README.md#2026-09-06-baseline-reset).
+The 2026-09-30 review and subsequent additions are also retained there. This
+consolidation preserves the later identities instead of starting a third series.
 
 ## Documentation defaults
 
@@ -181,8 +162,9 @@ to block work.
 
 ## Lifecycle and review
 
-When requested, use the next unused four-digit number and a short kebab-case
-title, and copy [the template](template.md). Status is Proposed, Accepted,
+When requested, use a four-digit number above the highest historical number
+(0036 in the reviewed series), never fill gaps or reuse retired identities, and
+choose a short kebab-case title. Copy [the template](template.md). Status is Proposed, Accepted,
 Superseded by ADR-NNNN, or Rejected. Start at Proposed unless the maintainer has
 explicitly accepted the decision. Record the request and acceptance references
 when available; an agent's status label is not evidence of maintainer acceptance.
@@ -194,7 +176,7 @@ catalogs, implementation plans, test checklists, or temporary repair details.
 When a replacement is requested and accepted, link both records and identify
 which decision it supersedes. Normal repository review is sufficient.
 
-The authorized baseline reset above is a one-time consolidation. Existing
-record identities, statuses, and history remain in place; these rules do not
-authorize retrospective cleanup, deletion, or renumbering. Consolidating the
-existing collection requires a separate maintainer request.
+The historical resets and the 2026-10-12 consolidation were explicitly requested
+by the maintainer. They are not a routine renumbering or cleanup policy. Remaining
+record identities and statuses stay stable; further retrospective consolidation
+requires a separate maintainer request.

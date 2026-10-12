@@ -44,7 +44,7 @@ The normalized project model has one truth source for each value:
   columns must not be duplicated in `project`.
 - A new project seeds its initial project row, 120 BPM tempo event, tick-zero
   time signature, Master, Output 1-2, and Audio 1 in one transaction after
-  migrations complete.
+  the matching schema template loads.
 
 ## Migration Workflow
 
@@ -144,11 +144,13 @@ database work:
   SQL transaction. A snapshot failure must roll back the write, so a retained
   prepared token always means the command has not committed. Main acknowledges
   the worker's committed result only after retaining its own terminal response;
-  see ADR-0001 for delivery reconciliation and acknowledgement ownership.
+  see [command receipts](architecture.md#project-command-receipts-and-admission)
+  for reconciliation and acknowledgement ownership.
 - Reuse unchanged MIDI content and plug-in state rows only within their owning
   database instance. Metadata and descriptor decoding remain inside the command
   transaction. Serialize cache reads/writes, invalidate affected payloads, and
-  publish tentative cache content only after commit. See ADR-0009.
+  publish tentative cache content only after commit. See
+  [cache details](#templates-media-and-cache-details).
 - Bound MIDI parameter batches inside one transaction. Adjacent equal note
   patches may be grouped; preserve different patches' order and failure behavior.
 - Asset summaries must not fetch MIDI source bytes to compute their length.
@@ -190,7 +192,7 @@ and the enclosing asset transaction. Temporary files are cleaned up on success
 and failure; cache seeding after a known import commit is best-effort and cannot
 change the database outcome. Remaining bytea columns use the validated Node
 Buffer codecs. No private serializer casts or raw-wire transaction bypasses are
-permitted. See [ADR-0009](adr/0009-pglite-data-transfer-and-read-reuse.md).
+permitted; see [cache details](#templates-media-and-cache-details).
 
 Waveform slicing SQL must be parameterized, isolated to the documented module,
 and preserve the typed `StoredWaveformWindow` interface. Ordinary waveform
@@ -270,3 +272,37 @@ Reject a database change if any answer below is no:
 - Is any unavoidable SQL isolated to the documented allowlist?
 - Are transaction rollback, constraints, packaging, and process boundaries
   tested?
+
+## Templates, media and cache details
+
+Build templates atomically from committed migrations with the runtime migrator.
+They contain schema/journal only, no runtime project identity or host architecture.
+Package each compressed template beside its migrations/worker; watch builds may
+reuse it until inputs change. Missing/invalid templates are invariant failures,
+not permission to silently initialize an empty database. Seed runtime configuration,
+musical defaults, Mixer, metronome and plug-in state in one creation transaction.
+Existing archives and working copies use their supported migrator path.
+
+Audio imports hash source bytes, decode WAV/BWF/MP3/FLAC off the callback, reject
+layouts beyond mono/stereo, and produce canonical float32 BWF/waveforms before
+import. Equal source hashes reuse the first asset identity/name; equal decoded
+PCM from differently encoded sources does not imply equal assets. MIDI retains
+original bytes with the same source-identity policy. Import, placement and MIDI
+mapping have separate commits: failed placement must retain and report a
+successfully imported asset. [Interaction design](interaction-design.md#project-asset-library)
+owns browser placement/gesture behavior.
+
+Payload caches belong to one ProjectDatabase instance. Always reread metadata
+and decode descriptors inside command transactions, invalidate affected payloads
+before the result read and publish tentative content only after commit. Closing/
+reopening starts empty. Returned bytes cannot mutate cache state. Serialize reads
+and mutations even for direct callers so an old read cannot publish after a new
+write. MIDI edits reread affected clips; cascades/oversized ID sets may use a full
+read. This reduces materialization, not every IPC graph copy.
+
+Keep all bounded parameter chunks in the same transaction, below PostgreSQL's
+bind limit. Group only adjacent equal note patches, preserving different-patch
+order. Large-object temporary paths remain outside PGDATA, parameterized and
+cleaned on success, failure or cancellation. A temporary file is never the durable
+commit. No private serializer, custom PostgreSQL wire executor or transaction-mutex
+bypass is permitted.

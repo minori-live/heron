@@ -73,7 +73,7 @@ explain Project ownership and provide navigation to Project. Layer deletion
 previews the subtree and override counts, requires confirmation and remains
 undoable. Copy preserves explicit overrides; inherited values follow the copy's
 containing Set. These staged semantics are recorded in
-[ADR-0013](adr/0013-live-layer-editing.md).
+[Live layer editing](live-documents.md#layers-and-editing).
 
 **Perform** activates Project. Project and Patch rows expose an explicit
 **Activate** action and the committed active layer is indicated separately from
@@ -85,13 +85,13 @@ fields. Complete plug-in state offers its defining layer or an explicit new
 override in the active Patch. The preview identifies the destination and explains
 that complete state includes embedded parameters, while separately stored
 parameter overrides still apply afterward. See
-[ADR-0015](adr/0015-live-layer-plugin-state.md).
+[Live Capture](live-documents.md#save-capture-and-exit).
 Switching Patch, leaving Perform or closing the document offers Capture,
 discard or cancel when sampled changes exist. Capture completes separately and
 the performer retries the transition. Returning to Edit stops Live audio.
 A failed activation retains the committed selection; an ambiguous result locks
 mutations and provides the recovery-preserving close path. See
-[ADR-0014](adr/0014-live-runtime-activation.md).
+[Live activation](live-documents.md#perform-and-activation).
 
 ## Parameter gestures
 
@@ -150,7 +150,7 @@ not open the configuration surface. A newly created Send starts enabled, and
 the destination editor uses the same format-first cascading menu as the empty
 Add Send slot and channel Output. Select Mono or Stereo first, then a BUS or
 Output. Stereo BUS choices identify both lanes (for example, BUS 1–2), independently
-of the source input format. See [ADR-0035](adr/0035-explicit-route-formats.md).
+of the source input format. See [output route formats](#output-route-formats).
 
 ### Plug-in slots
 
@@ -236,7 +236,7 @@ The dialog remains stable while device results refresh. A device appearing,
 disappearing, or reconnecting must not move the focused action or silently
 commit a choice. The concurrent state and generation rules live in
 [the Live product contract](product-live.md) and
-[ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
+[architecture](architecture.md#graph-publication-and-plug-in-containment).
 
 ## Review checklist
 
@@ -249,3 +249,29 @@ commit a choice. The concurrent state and generation rules live in
 - A failure names the consequence, data safety, and recovery.
 - The full journey has a beginning, an observable successful end, and a way out
   of every unavailable or failed state.
+
+## Output route formats
+
+Main outputs and Sends independently own `mono`/`stereo` format (`outputFormat`/
+`targetFormat`); input format does not select route width. Format and destination
+commit together through the existing project command/revision transaction and
+Undo restores both. Live routes remain Project structure locked during Perform.
+
+BUS lanes retain individual mono identities. Mono writes `(L + R) / 2` to one
+lane; stereo writes L/R to adjacent lanes without summing. Mono starts span
+1–256; stereo starts span 1–255. Pairs may overlap. Mono to Output feeds the
+average equally to both sides; stereo preserves L/R and the physical Output's
+hardware pair. Existing upstream mono pan law still applies.
+
+Missing/null format defaults to mono for BUS and stereo for Output, including
+Undo of the first explicit edit. New choices always supply a format. Send
+identity includes format: mono BUS 1 and stereo BUS 1–2 may coexist, exact
+duplicates cannot. Both lanes participate in cycles, target filtering, Solo,
+scheduling, delay compensation, low-latency planning and diagnostics, even if
+only the right lane has a consumer.
+
+Studio/Live nullable columns and checks are generated from Drizzle; uniqueness
+uses effective defaults. Invalid routes roll back. Native preparation resolves
+route variants before publication, retaining graph abort/reconciliation rules.
+The callback only mixes into prepared buffers. Historical migration-generation
+repairs are PR history, not a new exception to the migration workflow.

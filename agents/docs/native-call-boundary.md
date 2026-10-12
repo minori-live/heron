@@ -66,10 +66,9 @@ operations. Required lifecycle, complete state and DSP operations still need
 successful postconditions, and unknown result codes remain operation failures.
 Recognize the explicitly supported SDK-native and COM-compatible encodings;
 keep host-originated validation, queue and temporary availability failures
-separate from raw SDK results. See
-[ADR-0021](adr/0021-vst3-result-contracts.md) for the method policies and
-[ADR-0022](adr/0022-vst3-optional-interface-denials.md) for the bounded
-False-with-null compatibility allowance in optional interface queries.
+separate from raw SDK results. [VST3 hosting contracts](vst3-hosting.md) owns the
+method table, optional False-with-null allowance, mutation recovery and parameter
+flush rules.
 
 VST3 parameter changes reach the audio processor through its bounded parameter
 queue and `IAudioProcessor::process`. Enqueue commits the parameter request;
@@ -89,7 +88,7 @@ state was accepted, and an existing nonempty controller state cannot silently be
 discarded. A temporary control-thread processing pause produces a typed unavailable
 block and permits later processing; it does not mark the instance permanently
 failed. These rules retain the ownership and failure containment states in
-[ADR-0001](adr/0001-runtime-ownership-and-transactions.md).
+[architecture](architecture.md#graph-publication-and-plug-in-containment).
 
 Rejected plug-in construction retains the component handler until both the
 processor and controller have finished termination and interface release. A
@@ -111,7 +110,7 @@ Rust creates the native container and plug-in view below it. On Windows the
 container is an owned borderless popup, avoiding Chromium composition conflicts
 with OpenGL plug-in editors. Owner notifications keep its position and visibility
 synchronized without adding another event loop; see
-[ADR-0033](adr/0033-windows-native-editor-surfaces.md). Toolbar
+[editor surfaces](native-call-boundary.md#editor-windows-and-platform-surfaces). Toolbar
 A/B, clipboard, undo/redo, and zoom actions use typed asynchronous control
 requests. Tokio routes them through the same bounded UI mailbox, so Electron's
 request caller never waits synchronously for plug-in state save or restore
@@ -134,3 +133,59 @@ Do not:
 - add OS IPC/shared-memory descriptors to native requests;
 - call N-API, Electron, or blocking services from an audio callback;
 - turn native failures into free-form cross-process protocol errors.
+
+## Selected capability probes
+
+Runtime capability probes use the full `{ format, artifactPath, nativeId }`
+locator. Pass `--plugin-id <nativeId>` separately from the artifact path. Reject
+invalid arguments and missing identities rather than selecting a sibling.
+Enumerate metadata, then deep-inspect only the selected class and matching ARA
+factory; do not instantiate unrelated classes or infer layouts from names.
+Unselected catalog discovery retains full-artifact enumeration and output shape.
+
+Main coalesces/caches by the complete locator and updates only that descriptor.
+Failure clears that selection's pending cache and marks it unavailable through
+the existing load-error path; later preparation can retry. Sibling results remain
+independent. Explicit rescan invalidates results. Probes establish capabilities
+before loading but commit neither project state nor an audio graph.
+
+## Editor windows and platform surfaces
+
+Each plug-in instance has an independent top-level BaseWindow. Opening/focusing
+it must not raise the main project editor. AudioHostService owns it by instance
+ID; Analysis editors survive main-window minimize/close while their instances
+and application remain alive. Remove, Analysis close, runtime replacement and
+shutdown explicitly close editors before unload. Late opens cannot reactivate
+closing or retired hosts; OS parent destruction is not the cleanup mechanism.
+
+On Windows the native content container is a borderless owned tool popup below
+the separate toolbar, not a globally topmost or independent taskbar window.
+The plug-in attaches its child HWND to that container. Rust synchronizes owner
+move, resize, hide, minimize, restore and DPI notifications without relying on
+unchanged Electron layout calls. Focus belongs to the child; native close invokes
+the existing owner close workflow. Detach the view before removing callbacks and
+destroying the container, then unregister/destroy the Electron owner. All of this
+uses the existing UI thread and message loop.
+
+A successful attachment does not prove visible rendering. The owned popup avoids
+Chromium/OpenGL composition conflicts observed with Pro-Q 4. Private compositor
+HWND discovery, global acceleration changes and vendor-global settings are not
+supported host contracts. Evidence must capture the visible desktop region;
+owner-only captures can omit separately composed native content/toolbar.
+
+Native-scaled editors keep mouse client coordinates through resize. Forced-size
+coordinate remapping belongs only to platform-scaling fallback. Unchanged extent
+or replacement child windows cannot retain stale transforms. Announced content
+scale combines display DPI and host zoom, governing size, rendering and pointer
+conversion together; later DPI events cannot overwrite it. Host owns accepted
+physical extent; embedded editor applies queued logical resize at that scale.
+Standalone/unannounced-scale windows retain system DPI behavior. Producer toolkit
+patches and host attachment tests own their respective sides of this contract.
+
+## CLAP candidate parameter baseline
+
+Before saving an unpublished CLAP candidate's initial state/parameters, flush
+queued values while the registry holds its sole processor lease. The owning main
+thread deactivates, flushes and reactivates the instance. Prepared, active or
+retiring graph leases prohibit this path. Do not render a candidate to establish
+its baseline or introduce callback work.

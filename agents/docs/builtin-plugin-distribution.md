@@ -42,7 +42,7 @@ are standalone producer assets. Heron never downloads them for its application.
 Plug-in Sentry integration is deferred. The producer publishes runtime bundles
 and installers; Heron does not download, validate or upload plug-in symbols.
 Heron's application source maps and native addon symbol uploads continue.
-See [ADR-0034](adr/0034-runtime-only-plugin-artifacts.md).
+See [crash reporting](crash-reporting.md#release-symbol-uploads) for application symbols.
 
 ## Automatic upgrade PRs
 
@@ -74,3 +74,28 @@ The producer's release operations document lists Apple, validation and
 AAX configuration. AAX remains disabled until its signed bundles pass the
 required validator and formal Pro Tools smoke. Published assets are immutable;
 enabling AAX creates a new producer version.
+
+## Artifact identity and publication
+
+Pin suite version, source commit and runtime asset filenames. Cache by version,
+platform and filename; there is no separate Heron checksum catalog or plug-in
+symbol identity. Signing, notarization and distribution attestations remain
+release-tool responsibilities. Updater metadata and Homebrew digests keep their
+own distribution-specific integrity fields. Normalize old symbol-bearing locks
+without changing runtime identity; same-version comparisons use normalized runtime
+fields on both sides. Invalid cached archives are removed and downloaded again
+on a later online preparation. Validated caches permit offline builds.
+
+Validate manifests, identities and architecture before replacing staging.
+Recovery/publication share a permanent gate file locked exclusively by an open
+OS descriptor. Never delete or replace the gate; process exit releases its lock.
+PID records, timeouts and stale-lock deletion are not ownership authority.
+Download/extraction stays outside the gate. Build-only `fs-native-extensions`
+provides precompiled locking and `unzipper` extraction; neither enters runtime
+or renderer. Failure preserves the previously published staging state.
+
+Probes own actual buses, parameters and editor capabilities. Saved built-ins
+removed from inventory remain unavailable with state retained. Native Class IDs,
+parameter IDs and state semantics stay compatible across the source/release split;
+no project migration is implied. Plug-in upgrades arrive through application
+updates, with a maintainer merge as the consumer version-change point.

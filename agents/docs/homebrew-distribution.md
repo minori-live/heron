@@ -2,8 +2,8 @@
 
 Heron's macOS Cask is maintained in
 [`minori-live/homebrew-tap`](https://github.com/minori-live/homebrew-tap).
-Application versions and build artifacts remain owned here. See
-[ADR-0012](adr/0012-homebrew-distribution.md) for the publication contract.
+Application versions and build artifacts remain owned here. This document owns
+the publication contract, setup and recovery.
 
 ## Release flow
 
@@ -12,7 +12,7 @@ Application versions and build artifacts remain owned here. See
    notarizes, and uploads installers to a draft Release.
 3. Publish the reviewed Release. `notify-homebrew-tap.yml` notifies the Tap for
    non-prerelease v-prefixed releases independently of update-manifest promotion.
-4. The Tap re-reads the latest stable Release, verifies the downloaded DMG,
+4. The Tap re-reads the latest stable Release, validates its asset metadata,
    and updates its single release PR. The required Tap utility check gates auto-merge.
 
 Preparing an unreleased development version does not update the Cask. Drafts
@@ -50,3 +50,18 @@ Both retries reconcile the latest stable Release without a tag input.
 Notification failure does not unpublish the Release or block application update
 manifests. The Tap preserves its previous Cask until successful synchronization
 and merge. There is no scheduled compensation.
+
+## Publication authority and validation
+
+The published stable GitHub Release, not the development VERSION or dispatch
+payload, selects the Cask version. Install the existing signed/notarized universal
+DMG; the Tap does not rebuild Heron. Validate the API asset size/digest and required
+assets before advancing the fixed PR. Synchronization does not need to download
+the installer to obtain its SHA256. Reject drafts, prereleases, incomplete assets,
+downgrades and same-version replacements. Failure leaves the previous Cask intact.
+
+Heron owns builds, signing and notarization; Tap CI owns utility formatting/types
+and Cask Ruby syntax. Installed upgrades and device behavior still require macOS
+evidence. Publication has no atomic commit across repositories: notifications may
+lag, credentials expire and manual dispatch reconciles the latest state. Renew
+the scoped PAT and preserve required checks. Scheduled polling remains omitted.

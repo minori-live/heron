@@ -251,7 +251,7 @@ root findings.
 
 ## Implementation follow-up
 
-[ADR-0009](adr/0009-pglite-data-transfer-and-read-reuse.md) records the chosen
+[Database rules](project-database.md) describe the current
 boundaries. The changes keep worker ownership, Drizzle transactions, project
 format, and command delivery reconciliation:
 

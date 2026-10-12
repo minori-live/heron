@@ -207,3 +207,24 @@ those mirrored version fields by hand.
 JavaScript dependency versions belong in the applicable `package.json`, with
 resolved dependency changes committed in `pnpm-lock.yaml`. Use the
 repository-managed pnpm rather than another package manager.
+
+## Coupled toolchain dependencies
+
+Dependency manifests, catalogs and locks own exact versions. Plain `tsc` consumers
+use the `@typescript/native` alias; programmatic compiler API consumers, Vue
+checking and typed ESLint use the `typescript` compatibility alias. Declare the
+native compiler in each workspace invoking it directly. Do not replace type checks
+with transpilation to bypass API incompatibility.
+
+Application/shared tests use the default Vitest catalog; Storybook's Vitest and
+Playwright provider stay together in the named `storybook` catalog while its
+stable addon requires the older family. Move them together when compatibility is
+established. Keep `windows-core` compatible with `windows` because COM derive
+expansions use its traits. The minimatch 3 override retains a callable CommonJS
+brace-expansion export. Renovate's scoped constraints protect these edges.
+
+Earlier dependency records described a temporary Bindgen/syn/prettyplease lock
+repair. The current configuration instead disables prettyplease and uses rustfmt,
+as described above. Preserve process cleanup when updating pnpm: the historical
+12.6 child-process-group behavior could leave Storybook pipes open after tests
+finished. Current versions remain in mise and workspace locks, not this prose.

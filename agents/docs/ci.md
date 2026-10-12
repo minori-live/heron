@@ -194,6 +194,14 @@ Rust coverage ignores vendored `third_party/` sources (also listed under
 not dilute first-party coverage totals. C and C++ SDK sources are not included
 in the Rust LCOV report.
 
+## Application distribution
+
+[Application updates](application-updates.md) owns installed eligibility, channel
+metadata, scheduling, installation admission and shutdown/recovery.
+[Homebrew distribution](homebrew-distribution.md) owns Tap synchronization.
+[Built-in plug-in distribution](builtin-plugin-distribution.md) owns the separately
+released runtime dependency and its upgrade PRs.
+
 ## Creating a release
 
 `VERSION`, the root package, all workspace packages, and the Cargo workspace

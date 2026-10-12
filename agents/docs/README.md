@@ -22,6 +22,12 @@ local in each repository so either can be developed independently.
 - [Architecture and real-time constraints](architecture.md)
 - [Architecture decision records](adr/README.md)
 - [Product roadmap](roadmap.md)
+- [Live document design and implementation scope](live-documents.md)
+- [MIDI control and observation](midi-control.md)
+- [Application preferences and onboarding](application-preferences.md)
+- [Application updates](application-updates.md)
+- [Plugin Analysis](plugin-analysis.md)
+- [VST3 hosting contracts](vst3-hosting.md)
 - [Live performance product contract](product-live.md)
 - [Engineering standards](engineering-standards.md)
 - [Testing policy](testing.md)
@@ -37,7 +43,7 @@ local in each repository so either can be developed independently.
 - [Desktop localization](localization.md)
 - [Development environment](environment.md)
 - [Native call boundary](native-call-boundary.md)
-- [Runtime ownership, transactions, and plug-in failure containment](adr/0001-runtime-ownership-and-transactions.md)
+- [Transactions and plug-in containment](architecture.md#project-command-receipts-and-admission)
 - [Project database development rules](project-database.md)
 
 ## Authority
@@ -48,8 +54,9 @@ contract defines the v0.5.0 performance baseline; architecture and feature
 documents define current ownership and design; engineering standards govern
 code and tests; interaction design governs workflow behavior; and the design
 system governs visual primitives and accessibility. ADRs preserve the rationale
-for durable choices, including the Live design in ADR-0004. Creation, acceptance,
-and revisions follow [ADR governance](adr/README.md).
+for durable choices. The [ADR index](adr/README.md#2026-10-12-consolidation) maps
+historical records to current owners. Creation, acceptance and revisions follow
+[ADR governance](adr/README.md).
 
 The public `docs/` workspace describes behavior that is already available to
 users. Do not use public documentation to announce unimplemented roadmap scope.
