@@ -40,7 +40,8 @@ evidence belong in their owning documents rather than being copied into each ADR
 
 | [0031 — Artifact-delivered built-in plug-ins](0031-artifact-delivered-built-in-plugins.md) | Accepted | Independent producer releases, pinned VST3 consumption, inventory and native symbols |
 | [0032 — Release artifact identity](0032-release-artifact-identity.md) | Accepted | Version-based plug-in caching and distribution-owned integrity metadata |
-| [0033 — Runtime-only plug-in artifacts](0033-runtime-only-plugin-artifacts.md) | Accepted | Runtime-only dependency locks; application Sentry retained |
+| [0033 — Windows native editor presentation surfaces](0033-windows-native-editor-surfaces.md) | Accepted | Owned native rendering surfaces, owner geometry and visibility, keyboard focus and cleanup |
+| [0034 — Runtime-only plug-in artifacts](0034-runtime-only-plugin-artifacts.md) | Accepted | Runtime-only dependency locks; application Sentry retained |
 
 Accepted means the architecture is chosen, not that every feature or release
 acceptance test is complete. Each record states its implementation scope; the
@@ -50,7 +51,7 @@ used as permission to implement or claim an accepted compatibility commitment.
 ## 2026-09-06 baseline reset
 
 The numbers in this section's mapping table belong to a **superseded series**.
-Current records are 0001–0023 and 0025–0033; 0009 in the table below refers to the retired
+Current records are 0001–0023 and 0025–0034; 0009 in the table below refers to the retired
 record, not to any record in this series.
 
 At the maintainer's request, the previous 16 records were consolidated into this
@@ -118,7 +119,7 @@ Prefer one cohesive decision over a record for each implementation step.
 
 ## Lifecycle and review
 
-Use four digits and a short kebab-case title, starting the next record at **0034**.
+Use four digits and a short kebab-case title, starting the next record at **0035**.
 Copy [the template](template.md). Status is Proposed, Accepted, Superseded by
 ADR-NNNN, or Rejected. Accepted records change only for editorial corrections,
 links and explicit implementation-scope clarification; changing a decision

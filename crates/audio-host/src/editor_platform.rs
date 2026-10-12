@@ -34,9 +34,9 @@ unsafe extern "system" {
     fn SetCurrentProcessExplicitAppUserModelID(application_id: *const u16) -> i32;
 }
 
-/// A native child owned by an Electron editor window. The VST3 view is attached
-/// below the sandboxed web toolbar without giving the plug-in ownership of the
-/// host window.
+/// A native presentation surface owned by an Electron editor window. The plug-in
+/// view is attached below the sandboxed web toolbar without giving the plug-in
+/// ownership of the host window.
 pub struct NativeContainer {
     inner: platform::Container,
 }
@@ -48,7 +48,7 @@ impl NativeParentHandle {
     /// # Safety
     ///
     /// `value` must identify a live Electron content view/window for the current
-    /// platform. The caller must keep that parent alive until every child
+    /// platform. The caller must keep that parent alive until every associated
     /// [`NativeContainer`] has been dropped, and all operations must occur on
     /// the platform UI thread that owns the parent.
     pub unsafe fn from_raw(value: usize) -> Option<Self> {

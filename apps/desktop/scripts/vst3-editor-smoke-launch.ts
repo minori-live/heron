@@ -11,7 +11,7 @@ const electronArguments = [
   ...(process.platform === "linux" ? ["--ozone-platform=x11", "--disable-gpu"] : []),
   ...(process.env.HERON_EDITOR_SMOKE_NO_SANDBOX === "1" ? ["--no-sandbox"] : []),
   resolve(import.meta.dirname, "vst3-editor-smoke-app"),
-  "heron-editor-smoke-arguments:",
+  "heron-editor-smoke-arguments",
   ...process.argv.slice(2)
 ]
 

@@ -22,7 +22,7 @@ when all three Sentry environment variables are available.
 
 Uploads cover Heron's application source maps and native addon symbols.
 Plug-in Sentry integration is deferred; plug-in symbols are not downloaded or
-uploaded. See [ADR-0033](adr/0033-runtime-only-plugin-artifacts.md).
+uploaded. See [ADR-0034](adr/0034-runtime-only-plugin-artifacts.md).
 
 To upload a retained artifact manually with the locked CLI, extract it and run
 `sentry-cli debug-files upload --include-sources --wait <artifact>/native`, followed

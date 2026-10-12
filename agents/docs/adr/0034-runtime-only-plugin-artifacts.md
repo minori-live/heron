@@ -1,4 +1,4 @@
-# ADR-0033: Runtime-only plug-in artifacts
+# ADR-0034: Runtime-only plug-in artifacts
 
 - Status: Accepted
 - Date: 2026-10-12

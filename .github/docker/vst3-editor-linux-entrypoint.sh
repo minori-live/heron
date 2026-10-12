@@ -119,7 +119,7 @@ for ((iteration = 1; iteration <= repeat_count; iteration += 1)); do
             --disable-gpu \
             --no-sandbox \
             "$app_path" \
-            heron-editor-smoke-arguments: \
+            heron-editor-smoke-arguments \
             "$fixture" \
             "$class_id" \
             instrument

@@ -42,7 +42,7 @@ are standalone producer assets. Heron never downloads them for its application.
 Plug-in Sentry integration is deferred. The producer publishes runtime bundles
 and installers; Heron does not download, validate or upload plug-in symbols.
 Heron's application source maps and native addon symbol uploads continue.
-See [ADR-0033](adr/0033-runtime-only-plugin-artifacts.md).
+See [ADR-0034](adr/0034-runtime-only-plugin-artifacts.md).
 
 ## Automatic upgrade PRs
 
