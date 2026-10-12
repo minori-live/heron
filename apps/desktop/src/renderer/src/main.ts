@@ -1,5 +1,5 @@
 import { createHead } from "@unhead/vue/client"
-import { createApp } from "vue"
+import { createApp, vaporInteropPlugin } from "vue"
 import { createPinia } from "pinia"
 import App from "./App.vue"
 import { i18n, setAppLocale } from "./i18n"
@@ -15,6 +15,7 @@ async function bootstrap(): Promise<void> {
   const pinia = createPinia()
   const head = createHead()
 
+  app.use(vaporInteropPlugin)
   app.use(pinia)
   app.use(router)
   app.use(i18n)

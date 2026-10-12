@@ -2,6 +2,7 @@ import vue from "@vitejs/plugin-vue"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
+  // VTU requires VDOM instances; Storybook exercises the production Vapor selection.
   plugins: [vue()],
   test: {
     // Node 26 exposes its own file-backed Web Storage globals. Disable them in

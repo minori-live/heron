@@ -78,6 +78,14 @@ particular classes implementing it. Storybook owns component interaction evidenc
 Desktop tests own domain mapping and orchestration. A broad test must not repeat
 every gesture already tested in the shared component.
 
+Component unit suites intentionally compile SFCs to VDOM for Vue Test Utils.
+The desktop renderer and Storybook share the selective Vapor compilation policy
+from [ADR-0036](adr/0036-selective-vue-vapor.md). Browser interaction and desktop
+end-to-end tests must exercise those builds to prove shipped rendering behavior;
+passing VDOM unit tests does not establish Vapor slot, focus or gesture
+compatibility. Keep unit assertions on Heron behavior and use browser evidence
+for the distinct rendering boundary.
+
 ### Integration and end-to-end
 
 Use real process, storage or product integration for risks absent at a narrower

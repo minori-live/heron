@@ -8,6 +8,7 @@ const isConstrainedWindowsCi = process.platform === "win32" && process.env.CI ==
 
 export default defineConfig({
   plugins: [
+    // VTU requires VDOM instances; Electron E2E exercises the production Vapor build.
     vue(),
     VueI18nPlugin({
       strictMessage: false,

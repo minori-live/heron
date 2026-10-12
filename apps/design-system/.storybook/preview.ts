@@ -2,7 +2,7 @@ import type { Decorator, Preview } from "@storybook/vue3-vite"
 import { setup } from "@storybook/vue3"
 import { createHead } from "@unhead/vue/client"
 import { createPinia, setActivePinia } from "pinia"
-import { onScopeDispose, watchEffect } from "vue"
+import { onScopeDispose, vaporInteropPlugin, watchEffect } from "vue"
 import { withThemeByDataAttribute } from "@storybook/addon-themes"
 
 import { UiProvider } from "@heron/ui"
@@ -13,6 +13,7 @@ import "virtual:uno.css"
 import "./preview.css"
 
 setup((app) => {
+  app.use(vaporInteropPlugin)
   app.use(createHead())
 })
 

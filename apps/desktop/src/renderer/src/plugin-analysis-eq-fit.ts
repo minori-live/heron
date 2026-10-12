@@ -1,4 +1,4 @@
-import { createApp } from "vue"
+import { createApp, vaporInteropPlugin } from "vue"
 import { createPinia } from "pinia"
 import { createHead } from "@unhead/vue/client"
 import { i18n } from "./i18n"
@@ -8,4 +8,9 @@ import "@heron/ui/styles.css"
 import "./uno"
 import "./styles.css"
 
-createApp(PluginAnalysisEqFitApp).use(createPinia()).use(createHead()).use(i18n).mount("#root")
+createApp(PluginAnalysisEqFitApp)
+  .use(vaporInteropPlugin)
+  .use(createPinia())
+  .use(createHead())
+  .use(i18n)
+  .mount("#root")

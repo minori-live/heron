@@ -1,6 +1,6 @@
 import { createHead, renderDOMHead } from "@unhead/vue/client"
 import { mount } from "@vue/test-utils"
-import { defineComponent, nextTick, ref } from "vue"
+import { createApp, defineComponent, effectScope, nextTick, ref } from "vue"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { useLocaleFonts } from "./useLocaleFonts"
 
@@ -26,7 +26,7 @@ describe("useLocaleFonts", () => {
         return () => null
       }
     })
-    mount(Host, {
+    const wrapper = mount(Host, {
       global: {
         plugins: [head]
       }
@@ -44,5 +44,21 @@ describe("useLocaleFonts", () => {
     await vi.waitFor(() => {
       expect(loadHansFonts).toHaveBeenCalled()
     })
+    wrapper.unmount()
+  })
+
+  it("removes the document locale when its owning effect scope stops", () => {
+    const head = createHead()
+    const app = createApp({})
+    app.use(head)
+    const scope = effectScope()
+
+    app.runWithContext(() => scope.run(() => useLocaleFonts("en-US")))
+    renderDOMHead(head)
+    expect(document.documentElement.lang).toBe("en-US")
+
+    scope.stop()
+    renderDOMHead(head)
+    expect(document.documentElement.hasAttribute("lang")).toBe(false)
   })
 })

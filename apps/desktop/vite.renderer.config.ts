@@ -5,6 +5,7 @@ import { heronFontsOptions } from "@heron/ui/fonts"
 import Unfonts from "unplugin-fonts/vite"
 import UnoCSS from "unocss/vite"
 import { defineConfig } from "vite"
+import { vaporVueOptions, vdomVueOptions } from "../../scripts/vue-rendering.ts"
 import { appVersionDefine } from "./build/app-version.ts"
 import { injectRendererContentSecurityPolicy } from "./src/shared/renderer-csp.ts"
 
@@ -20,7 +21,8 @@ export default defineConfig(({ command }) => ({
       }
     },
     UnoCSS({ configFile: resolve(import.meta.dirname, "../../uno.config.ts") }),
-    vue(),
+    vue(vaporVueOptions),
+    vue(vdomVueOptions),
     Unfonts(heronFontsOptions),
     VueI18nPlugin({
       // Locale JSON is imported explicitly so the main process can share the same

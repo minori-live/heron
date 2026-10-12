@@ -1,5 +1,5 @@
 import { createHead } from "@unhead/vue/client"
-import { createApp } from "vue"
+import { createApp, vaporInteropPlugin } from "vue"
 import type { DefineComponent } from "vue"
 import { createPinia } from "pinia"
 import SplashApp from "./SplashApp.vue"
@@ -8,6 +8,7 @@ import "@heron/ui/styles.css"
 import "../uno"
 
 const app = createApp(SplashApp as DefineComponent)
+app.use(vaporInteropPlugin)
 app.use(createPinia())
 app.use(createHead())
 app.mount("#splash-root")

@@ -1,5 +1,5 @@
 import { useHead } from "@unhead/vue"
-import { computed, toValue, watch, type MaybeRefOrGetter } from "vue"
+import { computed, onScopeDispose, toValue, watch, type MaybeRefOrGetter } from "vue"
 import { htmlLangForFontLocale } from "../../fonts"
 
 let hansFontsPromise: Promise<unknown> | null = null
@@ -17,11 +17,13 @@ function ensureHansFonts(): Promise<unknown> {
 export function useLocaleFonts(locale: MaybeRefOrGetter<string>): void {
   const documentLang = computed(() => htmlLangForFontLocale(toValue(locale)))
 
-  useHead({
+  const localeHead = useHead({
     htmlAttrs: {
       lang: documentLang
     }
   })
+  // Unhead's component-instance cleanup does not run for Vapor components.
+  onScopeDispose(() => localeHead.dispose())
 
   watch(
     documentLang,
