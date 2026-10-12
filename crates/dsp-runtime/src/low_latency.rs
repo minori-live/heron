@@ -7,6 +7,7 @@ pub struct LowLatencyChannel {
     pub output: Option<usize>,
     pub input_buses: Vec<u32>,
     pub output_bus: Option<u32>,
+    pub output_format: Option<crate::protocol::CompiledGraphSignalWidth>,
     pub monitored: bool,
 }
 
@@ -48,7 +49,11 @@ pub fn plan_low_latency(
         }
         if let Some(bus) = channel.output_bus {
             for (consumer, candidate) in channels.iter().enumerate() {
-                if candidate.input_buses.contains(&bus) {
+                if candidate.input_buses.contains(&bus)
+                    || (channel.output_format
+                        == Some(crate::protocol::CompiledGraphSignalWidth::Stereo)
+                        && candidate.input_buses.contains(&bus.saturating_add(1)))
+                {
                     adjacency[source].push(consumer);
                 }
             }
@@ -177,24 +182,28 @@ mod tests {
                 output: Some(2),
                 input_buses: vec![],
                 output_bus: None,
+                output_format: None,
                 monitored: true,
             },
             LowLatencyChannel {
                 output: Some(3),
                 input_buses: vec![],
                 output_bus: None,
+                output_format: None,
                 monitored: true,
             },
             LowLatencyChannel {
                 output: None,
                 input_buses: vec![],
                 output_bus: None,
+                output_format: None,
                 monitored: false,
             },
             LowLatencyChannel {
                 output: None,
                 input_buses: vec![],
                 output_bus: None,
+                output_format: None,
                 monitored: false,
             },
         ];
@@ -233,12 +242,14 @@ mod tests {
                 output: Some(1),
                 input_buses: vec![],
                 output_bus: None,
+                output_format: None,
                 monitored: true,
             },
             LowLatencyChannel {
                 output: None,
                 input_buses: vec![],
                 output_bus: None,
+                output_format: None,
                 monitored: false,
             },
         ];
@@ -262,24 +273,28 @@ mod tests {
                 output: None,
                 input_buses: vec![],
                 output_bus: Some(7),
+                output_format: None,
                 monitored: true,
             },
             LowLatencyChannel {
                 output: None,
                 input_buses: vec![],
                 output_bus: Some(8),
+                output_format: None,
                 monitored: false,
             },
             LowLatencyChannel {
                 output: Some(3),
                 input_buses: vec![7],
                 output_bus: None,
+                output_format: None,
                 monitored: false,
             },
             LowLatencyChannel {
                 output: None,
                 input_buses: vec![],
                 output_bus: None,
+                output_format: None,
                 monitored: false,
             },
         ];

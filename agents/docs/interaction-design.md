@@ -145,8 +145,10 @@ Direct manipulation adjusts level. The secondary menu or popover changes
 destination, Pre/Post/Post Pan behavior, enablement, and deletion. Changing tap
 or destination remains explicit and undoable; dragging the level control must
 not open the configuration surface. A newly created Send starts enabled, and
-the destination editor uses the same BUS/Output cascading menu as the empty
-Add Send slot.
+the destination editor uses the same format-first cascading menu as the empty
+Add Send slot and channel Output. Select Mono or Stereo first, then a BUS or
+Output. Stereo BUS choices identify both lanes (for example, BUS 1–2), independently
+of the source input format. See [ADR-0035](adr/0035-explicit-route-formats.md).
 
 ### Plug-in slots
 

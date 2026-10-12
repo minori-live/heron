@@ -51,12 +51,8 @@ pub(super) fn build_routing(
                 muted: channel.muted,
                 soloed: channel.soloed,
                 output: match (channel.output_index, channel.output_bus) {
-                    (Some(index), None) => Some(RouteTarget::Output(index as usize)),
-                    (None, Some(bus)) => Some(RouteTarget::Bus(
-                        bus.checked_sub(1)
-                            .ok_or_else(|| invalid_config("BUS channels are one-based"))?
-                            as usize,
-                    )),
+                    (Some(index), None) => Some(output_route(index, channel.output_format)),
+                    (None, Some(bus)) => Some(bus_route(bus, channel.output_format)?),
                     (None, None) => None,
                     (Some(_), Some(_)) => {
                         return Err(invalid_config(
@@ -92,12 +88,8 @@ pub(super) fn build_routing(
                 id: send.id.clone(),
                 source: send.source_index as usize,
                 target: match (send.target_output_index, send.target_bus) {
-                    (Some(index), None) => RouteTarget::Output(index as usize),
-                    (None, Some(bus)) => RouteTarget::Bus(
-                        bus.checked_sub(1)
-                            .ok_or_else(|| invalid_config("BUS channels are one-based"))?
-                            as usize,
-                    ),
+                    (Some(index), None) => output_route(index, send.target_format),
+                    (None, Some(bus)) => bus_route(bus, send.target_format)?,
                     _ => {
                         return Err(invalid_config("send must target either a BUS or an Output"));
                     }
@@ -117,5 +109,31 @@ pub(super) fn build_routing(
         live_midi_routes,
         channels,
         sends,
+    })
+}
+
+fn output_route(
+    index: u32,
+    format: Option<heron_dsp_runtime::protocol::CompiledGraphSignalWidth>,
+) -> RouteTarget {
+    if format == Some(heron_dsp_runtime::protocol::CompiledGraphSignalWidth::Mono) {
+        RouteTarget::MonoOutput(index as usize)
+    } else {
+        RouteTarget::Output(index as usize)
+    }
+}
+
+fn bus_route(
+    bus: u32,
+    format: Option<heron_dsp_runtime::protocol::CompiledGraphSignalWidth>,
+) -> Result<RouteTarget> {
+    let stereo = format == Some(heron_dsp_runtime::protocol::CompiledGraphSignalWidth::Stereo);
+    if bus == 0 || bus > if stereo { 255 } else { 256 } {
+        return Err(invalid_config("BUS route exceeds the available channels"));
+    }
+    Ok(if stereo {
+        RouteTarget::StereoBus((bus - 1) as usize)
+    } else {
+        RouteTarget::Bus((bus - 1) as usize)
     })
 }

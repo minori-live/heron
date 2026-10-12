@@ -7,6 +7,7 @@ import type {
   MixerRuntimeSnapshot,
   MixerSendState
 } from "@heron/contracts"
+import { busRouteContains, routeFormat } from "./route-format"
 import { MIXER_BUS_COUNT } from "@heron/contracts"
 
 export const MIXER_BUSES: readonly MixerBusState[] = Array.from(
@@ -150,6 +151,7 @@ export function availableOutputTargets(
     if (!candidateSource) return false
     candidateSource.outputChannelId = target.kind === "output" ? target.channelId : null
     candidateSource.outputBus = target.kind === "bus" ? target.bus : null
+    candidateSource.outputFormat = target.format
     return isAcyclic(candidate)
   })
 }
@@ -166,12 +168,13 @@ export function availableSendTargets(
     return []
   }
   const existing = new Set(
-    sendsFor(graph, channelId).map((send) =>
-      send.targetChannelId ? `output:${send.targetChannelId}` : `bus:${send.targetBus}`
+    sendsFor(graph, channelId).map(
+      (send) =>
+        `${routeFormat(send.targetFormat, send.targetBus)}:${send.targetChannelId ? `output:${send.targetChannelId}` : `bus:${send.targetBus}`}`
     )
   )
   return routeTargets(graph).filter((target) => {
-    const key = target.kind === "output" ? `output:${target.channelId}` : `bus:${target.bus}`
+    const key = `${target.format}:${target.kind === "output" ? `output:${target.channelId}` : `bus:${target.bus}`}`
     if (existing.has(key)) return false
     const candidate = structuredClone(graph)
     candidate.sends.push({
@@ -179,6 +182,7 @@ export function availableSendTargets(
       sourceChannelId: channelId,
       targetChannelId: target.kind === "output" ? target.channelId : null,
       targetBus: target.kind === "bus" ? target.bus : null,
+      targetFormat: target.format,
       sortOrder: 0,
       enabled: false,
       tap: "post-pan",
@@ -190,10 +194,21 @@ export function availableSendTargets(
 
 function routeTargets(graph: MixerGraphSnapshot): MixerRouteTarget[] {
   return [
-    ...MIXER_BUSES.map((bus) => ({ kind: "bus" as const, bus: bus.channel })),
+    ...MIXER_BUSES.flatMap((bus): MixerRouteTarget[] => [
+      { kind: "bus", bus: bus.channel, format: "mono" },
+      ...(bus.channel < MIXER_BUS_COUNT
+        ? [{ kind: "bus" as const, bus: bus.channel, format: "stereo" as const }]
+        : [])
+    ]),
     ...graph.channels
       .filter((channel) => channel.kind === "output")
-      .map((output) => ({ kind: "output" as const, channelId: output.id }))
+      .flatMap((output) =>
+        (["mono", "stereo"] as const).map((format) => ({
+          kind: "output" as const,
+          channelId: output.id,
+          format
+        }))
+      )
   ]
 }
 
@@ -203,7 +218,10 @@ function isAcyclic(graph: MixerGraphSnapshot): boolean {
     if (channel.outputChannelId) edges.get(channel.id)?.push(channel.outputChannelId)
     if (channel.outputBus != null) {
       for (const consumer of graph.channels) {
-        if (consumer.inputSource === "bus" && consumer.inputChannels.includes(channel.outputBus)) {
+        if (
+          consumer.inputSource === "bus" &&
+          busRouteContains(channel.outputBus, channel.outputFormat, consumer.inputChannels)
+        ) {
           edges.get(channel.id)?.push(consumer.id)
         }
       }
@@ -213,7 +231,10 @@ function isAcyclic(graph: MixerGraphSnapshot): boolean {
     if (send.targetChannelId) edges.get(send.sourceChannelId)?.push(send.targetChannelId)
     if (send.targetBus === null) continue
     for (const consumer of graph.channels) {
-      if (consumer.inputSource === "bus" && consumer.inputChannels.includes(send.targetBus)) {
+      if (
+        consumer.inputSource === "bus" &&
+        busRouteContains(send.targetBus, send.targetFormat, consumer.inputChannels)
+      ) {
         edges.get(send.sourceChannelId)?.push(consumer.id)
       }
     }

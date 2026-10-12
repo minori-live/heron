@@ -7,6 +7,7 @@ import type { LiveHierarchy, LiveRuntimeSnapshot } from "@heron/contracts"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { LiveDatabase } from "../live-node"
 import { LIVE_FORMAT_VERSION } from "../live-schema"
+import { dumpDataDirectory } from "../internal/archive"
 import { buildLiveTemplateArchive } from "../live-template"
 
 const migrations = fileURLToPath(new URL("../../drizzle-live", import.meta.url))
@@ -182,11 +183,42 @@ describe("Live Set and Patch persistence", () => {
     const legacyTemplate = join(directory, "legacy-template.pglite.gz")
     await buildLiveTemplateArchive(legacyTemplate, legacyMigrations)
     const legacyPath = join(directory, "legacy")
-    const legacy = await LiveDatabase.create("memory://", configuration, legacyTemplate)
-    const root = await baseline(legacy)
+    const current = await LiveDatabase.create("memory://", configuration, template)
+    const root = await baseline(current)
+    await current.close()
+    // Seed the historical schema directly: current ORM columns do not exist yet.
+    const legacy = await PGlite.create({ loadDataDir: new Blob([await readFile(legacyTemplate)]) })
     const legacyArchive = join(directory, "legacy.hrl")
-    await legacy.dump(legacyArchive)
-    await legacy.close()
+    try {
+      await legacy.query(
+        "insert into live_document (id, name, sample_rate) values ('document', $1, $2)",
+        [configuration.name, configuration.sampleRate]
+      )
+      for (const channel of [...root.graph.channels].sort(
+        (a, b) => Number(a.outputChannelId != null) - Number(b.outputChannelId != null)
+      )) {
+        await legacy.query(
+          `insert into mixer_channels (id, kind, name, color, sort_order, input_source, input_format, output_channel_id, input_monitoring, input_channels, hardware_output_channels)
+          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          [
+            channel.id,
+            channel.kind,
+            channel.name,
+            channel.color,
+            channel.sortOrder,
+            channel.inputSource,
+            channel.inputFormat,
+            channel.outputChannelId,
+            channel.inputMonitoring,
+            channel.inputChannels,
+            channel.hardwareOutputChannels
+          ]
+        )
+      }
+      await dumpDataDirectory(legacy, legacyArchive)
+    } finally {
+      await legacy.close()
+    }
     const upgraded = await LiveDatabase.open(legacyPath, legacyArchive)
     try {
       expect(await upgraded.hierarchy()).toEqual({ sets: [], patches: [] })

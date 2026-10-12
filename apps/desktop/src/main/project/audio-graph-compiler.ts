@@ -86,13 +86,15 @@ export class AudioGraphCompiler {
           : null,
         hardware_output_channels: channel.hardwareOutputChannels,
         output_channel_id: channel.outputChannelId ?? null,
-        output_bus: channel.outputBus ?? null
+        output_bus: channel.outputBus ?? null,
+        output_format: channel.outputFormat ?? null
       })),
       sends: graph.sends.map((send) => ({
         id: send.id,
         source_channel_id: send.sourceChannelId,
         target_channel_id: send.targetChannelId ?? null,
         target_bus: send.targetBus ?? null,
+        target_format: send.targetFormat ?? null,
         enabled: send.enabled,
         tap: send.tap,
         level_db: send.levelDb

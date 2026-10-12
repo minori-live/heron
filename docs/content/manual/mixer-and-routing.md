@@ -37,7 +37,11 @@ Auxes normally receive audio through a bus or sends.
 
 ## Route to an output
 
-Use the **Output** section to choose the next bus or a hardware-output channel.
+In **Output**, first choose **Mono** or **Stereo**, then the destination bus or
+hardware-output channel. **Stereo → BUS 1–2** sends left to BUS 1 and right to
+BUS 2; a receiver with stereo BUS input 1–2 receives both sides. **Mono → BUS 1**
+mixes left and right into BUS 1. The route format is independent of the track
+input format. A mono route to an Output feeds the same mix to both sides.
 Hardware outputs map their left and right sides to channels exposed by the
 active output device.
 
@@ -46,7 +50,8 @@ audio graph legal and rejects invalid topology.
 
 ## Add a send
 
-Select an empty send slot and choose a destination bus or output. Adjust the
+Select an empty send slot, choose **Mono** or **Stereo**, then a destination bus
+or output. Existing Sends use the same two-level destination menu. Adjust the
 Send level directly with the knob beside its destination on the channel strip.
 
 Click the destination name to open the Send configuration. From there you can

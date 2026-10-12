@@ -794,3 +794,36 @@ describe("additional project graph commands", () => {
     expect(applyToGraph(withoutClip, inverseFor(before, deleteClip))).toEqual(before)
   })
 })
+
+it("undo restores the implicit main and send route formats", () => {
+  const snapshot = graph()
+  const channel = snapshot.channels[0]!
+  const change: ProjectCommand = {
+    type: "update-channel",
+    channelId: channel.id,
+    patch: { outputFormat: "mono" }
+  }
+  const inverse = inverseFor(snapshot, change)
+  const restored = applyToGraph(applyToGraph(snapshot, change), inverse)
+  expect(
+    restored.channels.find((candidate) => candidate.id === channel.id)?.outputFormat
+  ).toBeNull()
+  snapshot.sends.push({
+    id: "format-send",
+    sourceChannelId: channel.id,
+    targetChannelId: null,
+    targetBus: 1,
+    sortOrder: 0,
+    enabled: true,
+    tap: "pre",
+    levelDb: 0
+  })
+  const sendChange: ProjectCommand = {
+    type: "update-send",
+    sendId: "format-send",
+    patch: { targetFormat: "stereo" }
+  }
+  const sendInverse = inverseFor(snapshot, sendChange)
+  const restoredSend = applyToGraph(applyToGraph(snapshot, sendChange), sendInverse)
+  expect(restoredSend.sends.find((send) => send.id === "format-send")?.targetFormat).toBeNull()
+})

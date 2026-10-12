@@ -322,6 +322,7 @@ export const useMixerStore = defineStore("mixer", () => {
       sourceChannelId,
       targetChannelId: target.kind === "output" ? target.channelId : null,
       targetBus: target.kind === "bus" ? target.bus : null,
+      targetFormat: target.format ?? (target.kind === "bus" ? "mono" : "stereo"),
       sortOrder: graph.value.sends.filter(
         (candidate) => candidate.sourceChannelId === sourceChannelId
       ).length,

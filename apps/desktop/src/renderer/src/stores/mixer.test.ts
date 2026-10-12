@@ -637,14 +637,24 @@ describe("mixer store", () => {
 
     expect(mixer.availableOutputTargets("aux-b")).toContainEqual({
       kind: "output",
-      channelId: "output"
+      channelId: "output",
+      format: "stereo"
     })
-    expect(mixer.availableOutputTargets("aux-b")).not.toContainEqual({ kind: "bus", bus: 1 })
+    expect(mixer.availableOutputTargets("aux-b")).not.toContainEqual({
+      kind: "bus",
+      bus: 1,
+      format: "mono"
+    })
     expect(mixer.availableSendTargets("aux-b")).toContainEqual({
       kind: "output",
-      channelId: "output"
+      channelId: "output",
+      format: "stereo"
     })
-    expect(mixer.availableSendTargets("aux-b")).not.toContainEqual({ kind: "bus", bus: 1 })
+    expect(mixer.availableSendTargets("aux-b")).not.toContainEqual({
+      kind: "bus",
+      bus: 1,
+      format: "mono"
+    })
     expect(mixer.availableOutputTargets("master")).toEqual([])
     expect(mixer.availableSendTargets("master")).toEqual([])
   })

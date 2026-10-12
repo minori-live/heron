@@ -100,8 +100,12 @@ export const mixerChannels = pgTable(
       )`
     ),
     check(
+      "mixer_channels_output_format_check",
+      sql`${table.outputFormat} is null or ${table.outputFormat} in ('mono', 'stereo')`
+    ),
+    check(
       "mixer_channels_output_bus_check",
-      sql`${table.outputBus} is null or ${table.outputBus} between 1 and 256`
+      sql`${table.outputBus} is null or ${table.outputBus} between 1 and (case when ${table.outputFormat} = 'stereo' then 255 else 256 end)`
     ),
     check(
       "mixer_channels_input_check",
@@ -172,6 +176,7 @@ export const mixerSends = pgTable(
       onDelete: "cascade"
     }),
     targetBus: smallint("target_bus"),
+    targetFormat: text("target_format").$type<"mono" | "stereo">(),
     sortOrder: integer("sort_order").notNull(),
     enabled: boolean("enabled").notNull().default(false),
     tap: text("tap").$type<"pre" | "post" | "post-pan">().notNull().default("post-pan"),
@@ -179,19 +184,27 @@ export const mixerSends = pgTable(
   },
   (table) => [
     uniqueIndex("mixer_sends_source_bus_unique")
-      .on(table.sourceChannelId, table.targetBus)
+      .on(table.sourceChannelId, table.targetBus, sql`coalesce(${table.targetFormat}, 'mono')`)
       .where(sql`${table.targetBus} is not null`),
     uniqueIndex("mixer_sends_source_output_unique")
-      .on(table.sourceChannelId, table.targetChannelId)
+      .on(
+        table.sourceChannelId,
+        table.targetChannelId,
+        sql`coalesce(${table.targetFormat}, 'stereo')`
+      )
       .where(sql`${table.targetChannelId} is not null`),
     index("mixer_sends_source_order").on(table.sourceChannelId, table.sortOrder),
+    check(
+      "mixer_sends_target_format_check",
+      sql`${table.targetFormat} is null or ${table.targetFormat} in ('mono', 'stereo')`
+    ),
     check("mixer_sends_sort_order_check", sql`${table.sortOrder} >= 0`),
     check("mixer_sends_tap_check", sql`${table.tap} in ('pre', 'post', 'post-pan')`),
     check("mixer_sends_level_db_check", sql`${table.levelDb} between -90 and 12`),
     check(
       "mixer_sends_target_check",
       sql`num_nonnulls(${table.targetChannelId}, ${table.targetBus}) = 1
-        and (${table.targetBus} is null or ${table.targetBus} between 1 and 256)`
+        and (${table.targetBus} is null or ${table.targetBus} between 1 and (case when ${table.targetFormat} = 'stereo' then 255 else 256 end))`
     )
   ]
 )

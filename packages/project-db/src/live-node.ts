@@ -340,6 +340,7 @@ export class LiveDatabase {
           soloed: channel.soloed,
           outputChannelId: channel.outputChannelId,
           outputBus: channel.outputBus ?? null,
+          outputFormat: channel.outputFormat ?? null,
           inputMonitoring: channel.inputMonitoring,
           inputChannels: channel.inputChannels,
           hardwareOutputChannels: channel.hardwareOutputChannels
@@ -352,6 +353,7 @@ export class LiveDatabase {
             sourceChannelId: send.sourceChannelId,
             targetChannelId: send.targetChannelId ?? null,
             targetBus: send.targetBus,
+            targetFormat: send.targetFormat ?? null,
             sortOrder: send.sortOrder,
             enabled: send.enabled,
             tap: send.tap,
@@ -474,6 +476,7 @@ export class LiveDatabase {
         soloed: channel.soloed,
         outputChannelId: channel.outputChannelId,
         outputBus: channel.outputBus,
+        outputFormat: channel.outputFormat,
         inputMonitoring: channel.inputMonitoring,
         inputChannels: channel.inputChannels,
         hardwareOutputChannels: channel.hardwareOutputChannels

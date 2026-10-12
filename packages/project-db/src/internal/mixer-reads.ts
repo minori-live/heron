@@ -106,6 +106,7 @@ export async function readMixerGraphSnapshot(
       soloed: channel.soloed,
       outputChannelId: channel.outputChannelId,
       outputBus: channel.outputBus,
+      outputFormat: channel.outputFormat,
       recordArmed: channel.recordArmed,
       inputMonitoring: channel.inputMonitoring,
       inputChannels: channel.inputChannels,

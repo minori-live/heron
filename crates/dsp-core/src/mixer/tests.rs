@@ -361,3 +361,94 @@ fn block_processing_matches_frame_processing_and_visits_each_channel_once() {
     assert_eq!(actual, expected);
     assert_eq!(channel_visits, block_graph.channel_count() - 1);
 }
+
+#[test]
+fn stereo_bus_routes_preserve_left_and_right_in_frames_and_blocks() {
+    for tap in [
+        None,
+        Some(SendTap::Pre),
+        Some(SendTap::Post),
+        Some(SendTap::PostPan),
+    ] {
+        let mut source = channel("source", ChannelKind::Audio, Some(3));
+        source.output = Some(if tap.is_none() {
+            RouteTarget::StereoBus(0)
+        } else {
+            RouteTarget::Bus(9)
+        });
+        let mut receiver = channel("receiver", ChannelKind::Aux, Some(3));
+        receiver.input_bus = Some([0, 1]);
+        let channels = vec![
+            source,
+            receiver,
+            channel("master", ChannelKind::Master, None),
+            channel("output", ChannelKind::Output, None),
+        ];
+        let sends = tap
+            .map(|tap| SendSpec {
+                id: "stereo".into(),
+                source: 0,
+                target: RouteTarget::StereoBus(0),
+                enabled: true,
+                tap,
+                level_db: 0.0,
+            })
+            .into_iter()
+            .collect::<Vec<_>>();
+        let mut frames = MixerGraph::new(48_000, channels.clone(), sends.clone()).unwrap();
+        assert_eq!(rendered(&mut frames, &[[0.25, -0.75]]), [0.25, -0.75]);
+        let mut blocks = MixerGraph::new(48_000, channels, sends).unwrap();
+        blocks.prepare_block_processing(2);
+        let mut sources = vec![[0.0; 2]; 8];
+        sources[0] = [0.25, -0.75];
+        sources[1] = [-0.5, 1.0];
+        let mut output = [[0.0; super::MAX_OUTPUT_CHANNELS]; 2];
+        blocks
+            .process_block_with_sources(&mut sources, &mut output, &mut |_, _, _| {})
+            .unwrap();
+        assert_eq!(&output[0][..2], &[0.25, -0.75]);
+        assert_eq!(&output[1][..2], &[-0.5, 1.0]);
+    }
+}
+
+#[test]
+fn stereo_bus_right_side_participates_in_feedback_and_solo() {
+    let mut source = channel("source", ChannelKind::Audio, Some(3));
+    source.output = Some(RouteTarget::StereoBus(0));
+    let mut receiver = channel("right", ChannelKind::Aux, Some(3));
+    receiver.input_bus = Some([1, 1]);
+    let channels = vec![
+        source,
+        receiver,
+        channel("master", ChannelKind::Master, None),
+        channel("output", ChannelKind::Output, None),
+    ];
+    let mut graph = MixerGraph::new(48_000, channels.clone(), vec![]).unwrap();
+    graph.set_channel_soloed(1, true).unwrap();
+    assert_eq!(rendered(&mut graph, &[[0.25, -0.75]]), [-0.75, -0.75]);
+    let mut cyclic = channels.clone();
+    cyclic[1].output = Some(RouteTarget::StereoBus(0));
+    assert!(matches!(
+        MixerGraph::new(48_000, cyclic, vec![]),
+        Err(GraphError::RoutingCycle)
+    ));
+    let mut invalid = channels;
+    invalid[0].output = Some(RouteTarget::StereoBus(255));
+    assert!(matches!(
+        MixerGraph::new(48_000, invalid, vec![]),
+        Err(GraphError::InvalidOutput)
+    ));
+}
+
+#[test]
+fn mono_output_route_downmixes_before_the_stereo_output_strip() {
+    let mut source = channel("source", ChannelKind::Audio, Some(2));
+    source.output = Some(RouteTarget::MonoOutput(2));
+    let channels = vec![
+        source,
+        channel("master", ChannelKind::Master, None),
+        channel("output", ChannelKind::Output, None),
+    ];
+    let mut graph = MixerGraph::new(48_000, channels, vec![]).unwrap();
+    assert_eq!(rendered(&mut graph, &[[0.25, -0.75]]), [-0.25, -0.25]);
+}

@@ -19,7 +19,7 @@ import type {
   MixerSendState,
   MixerSendTap
 } from "@heron/contracts"
-import { mixerRouteGroups } from "./mixer-route-groups"
+import { mixerRouteGroups, targetValue, parseTarget } from "./mixer-route-groups"
 
 const props = withDefaults(
   defineProps<{
@@ -79,41 +79,31 @@ function targetName(send: MixerSendState): string {
       t("mixer.sendSection.missingOutput")
     )
   }
+  if (send.targetFormat === "stereo" && send.targetBus != null)
+    return `BUS ${send.targetBus}–${send.targetBus + 1}`
   return (
     props.buses.find((bus) => bus.channel === send.targetBus)?.name ??
     t("mixer.sendSection.missingBus")
   )
 }
 
-function targetValue(target: MixerRouteTarget): string {
-  return target.kind === "output" ? `output:${target.channelId}` : `bus:${target.bus}`
-}
-
 function sendTargetValue(send: MixerSendState): string {
-  return send.targetChannelId ? `output:${send.targetChannelId}` : `bus:${send.targetBus}`
+  const target = targetForSend(send)
+  return target ? targetValue(target) : ""
 }
 
 function targetForSend(send: MixerSendState): MixerRouteTarget | null {
-  if (send.targetChannelId) return { kind: "output", channelId: send.targetChannelId }
-  return send.targetBus === null || send.targetBus === undefined
-    ? null
-    : { kind: "bus", bus: send.targetBus }
-}
-
-function parseTarget(value: string): MixerRouteTarget {
-  const separator = value.indexOf(":")
-  const kind = value.slice(0, separator)
-  const target = value.slice(separator + 1)
-  return kind === "output"
-    ? { kind: "output", channelId: target }
-    : { kind: "bus", bus: Number(target) }
+  const format = send.targetFormat ?? undefined
+  if (send.targetChannelId) return { kind: "output", channelId: send.targetChannelId, format }
+  return send.targetBus == null ? null : { kind: "bus", bus: send.targetBus, format }
 }
 
 function targetPatch(value: string): MixerSendPatch {
   const target = parseTarget(value)
   return {
     targetChannelId: target.kind === "output" ? target.channelId : null,
-    targetBus: target.kind === "bus" ? target.bus : null
+    targetBus: target.kind === "bus" ? target.bus : null,
+    targetFormat: target.format
   }
 }
 

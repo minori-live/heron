@@ -258,6 +258,7 @@ mod tests {
             soloed: false,
             output_channel_id: None,
             output_bus: None,
+            output_format: None,
             record_armed: false,
             input_monitoring: false,
             input_source: None,

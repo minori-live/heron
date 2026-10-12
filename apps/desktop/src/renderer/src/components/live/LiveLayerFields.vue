@@ -63,7 +63,10 @@ const rows = computed(() => {
   )) {
     const target =
       props.snapshot.graph.channels.find((candidate) => candidate.id === send.targetChannelId)
-        ?.name ?? `BUS ${send.targetBus}`
+        ?.name ??
+      (send.targetFormat === "stereo" && send.targetBus != null
+        ? `BUS ${send.targetBus}–${send.targetBus + 1}`
+        : `BUS ${send.targetBus}`)
     for (const parameter of ["levelDb", "enabled"] as const) {
       entries.push({
         label: t("live.layers.sendField", { target, field: t(`live.layers.fields.${parameter}`) }),

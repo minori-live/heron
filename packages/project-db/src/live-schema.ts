@@ -80,8 +80,12 @@ export const mixerChannels = pgTable("mixer_channels", mixerChannelCoreColumns()
     )`
   ),
   check(
+    "mixer_channels_output_format_check",
+    sql`${table.outputFormat} is null or ${table.outputFormat} in ('mono', 'stereo')`
+  ),
+  check(
     "mixer_channels_output_bus_check",
-    sql`${table.outputBus} is null or ${table.outputBus} between 1 and 256`
+    sql`${table.outputBus} is null or ${table.outputBus} between 1 and (case when ${table.outputFormat} = 'stereo' then 255 else 256 end)`
   ),
   check(
     "mixer_channels_input_check",

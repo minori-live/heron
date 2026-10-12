@@ -30,6 +30,8 @@ pub struct LiveMixerChannel {
     pub soloed: bool,
     pub output_channel_id: Option<String>,
     pub output_bus: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_format: Option<crate::protocol::CompiledGraphSignalWidth>,
     pub record_armed: bool,
     #[serde(default)]
     pub input_monitoring: bool,
@@ -62,6 +64,8 @@ pub struct LiveMixerSend {
     pub source_channel_id: String,
     pub target_channel_id: Option<String>,
     pub target_bus: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_format: Option<crate::protocol::CompiledGraphSignalWidth>,
     pub enabled: bool,
     pub tap: LiveMixerSendTap,
     pub level_db: f64,

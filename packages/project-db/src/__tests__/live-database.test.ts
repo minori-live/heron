@@ -422,3 +422,41 @@ describe("Live rig persistence", () => {
     }
   })
 })
+
+it("saves and reopens stereo BUS routes in Live archives", async () => {
+  const { root, template } = await fixture()
+  const database = await LiveDatabase.create(
+    "memory://",
+    { name: "Routes", sampleRate: 48_000, audio: null, enabledMidiDeviceIds: [] },
+    template
+  )
+  const graph = await database.mixerSnapshot()
+  Object.assign(
+    graph.channels.find((channel) => channel.id === "audio-1")!,
+    { outputChannelId: null, outputBus: 1, outputFormat: "stereo" }
+  )
+  graph.sends.push({
+    id: "stereo",
+    sourceChannelId: "audio-1",
+    targetChannelId: null,
+    targetBus: 3,
+    targetFormat: "stereo",
+    sortOrder: 0,
+    enabled: true,
+    tap: "post-pan",
+    levelDb: -6
+  })
+  const archive = join(root, "routes.hrl")
+  try {
+    await database.replaceBaseline({ graph, parameterValues: [] }, [], 0)
+    await database.dump(archive)
+  } finally {
+    await database.close()
+  }
+  const reopened = await LiveDatabase.open(join(root, "reopened"), archive)
+  try {
+    expect(await reopened.mixerSnapshot()).toEqual(graph)
+  } finally {
+    await reopened.close()
+  }
+})

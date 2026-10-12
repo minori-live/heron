@@ -111,8 +111,8 @@ describe("MixerSendSection", () => {
       document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
     )
     expect(destinationGroups.map((button) => button.textContent?.trim())).toEqual([
-      "Buses",
-      "Outputs"
+      "Mono",
+      "Stereo"
     ])
     await new DOMWrapper(destinationGroups[1]).trigger("keydown", { key: "ArrowRight" })
     await flushPromises()
@@ -122,7 +122,7 @@ describe("MixerSendSection", () => {
     await new DOMWrapper(outputOption).trigger("click")
     expect(wrapper.emitted("updateSend")?.at(-1)).toEqual([
       "send",
-      { targetChannelId: "output", targetBus: null }
+      { targetChannelId: "output", targetBus: null, targetFormat: "stereo" }
     ])
   })
 
@@ -170,7 +170,7 @@ describe("MixerSendSection", () => {
     const routeGroups = Array.from(
       document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
     )
-    expect(routeGroups.map((button) => button.textContent?.trim())).toEqual(["Buses", "Outputs"])
+    expect(routeGroups.map((button) => button.textContent?.trim())).toEqual(["Mono", "Stereo"])
 
     await new DOMWrapper(routeGroups[0]).trigger("keydown", { key: "ArrowRight" })
     await flushPromises()
@@ -178,19 +178,21 @@ describe("MixerSendSection", () => {
       document.body.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')
     ).find((button) => button.textContent?.trim() === "BUS 7")
     await new DOMWrapper(busOption).trigger("click")
-    expect(wrapper.emitted("addSend")?.at(-1)).toEqual([{ kind: "bus", bus: 7 }])
+    expect(wrapper.emitted("addSend")?.at(-1)).toEqual([{ kind: "bus", bus: 7, format: "mono" }])
 
     await wrapper.get('button[aria-label="Add send in empty slot"]').trigger("click")
     await flushPromises()
     const outputGroup = Array.from(
       document.body.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
-    ).find((button) => button.textContent?.trim() === "Outputs")
+    ).find((button) => button.textContent?.trim() === "Stereo")
     await new DOMWrapper(outputGroup).trigger("keydown", { key: "ArrowRight" })
     await flushPromises()
     const outputOption = Array.from(
       document.body.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')
     ).find((button) => button.textContent?.trim() === "Output 1–2")
     await new DOMWrapper(outputOption).trigger("click")
-    expect(wrapper.emitted("addSend")?.at(-1)).toEqual([{ kind: "output", channelId: "output" }])
+    expect(wrapper.emitted("addSend")?.at(-1)).toEqual([
+      { kind: "output", channelId: "output", format: "stereo" }
+    ])
   })
 })

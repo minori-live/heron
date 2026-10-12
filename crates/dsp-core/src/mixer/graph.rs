@@ -50,22 +50,27 @@ pub(super) fn graph_edges(
             (ChannelKind::Master | ChannelKind::Output, Some(_)) | (_, None) => {
                 return Err(GraphError::InvalidOutput);
             }
-            (_, Some(RouteTarget::Output(output)))
+            (_, Some(RouteTarget::Output(output) | RouteTarget::MonoOutput(output)))
                 if output >= channels.len()
                     || output == index
                     || channels[output].kind != ChannelKind::Output =>
             {
                 return Err(GraphError::InvalidOutput);
             }
-            (_, Some(RouteTarget::Output(output))) => edges[index].push(output),
+            (_, Some(RouteTarget::Output(output) | RouteTarget::MonoOutput(output))) => {
+                edges[index].push(output)
+            }
+            (_, Some(RouteTarget::StereoBus(bus))) if bus >= MAX_BUS_CHANNELS - 1 => {
+                return Err(GraphError::InvalidOutput);
+            }
             (_, Some(RouteTarget::Bus(bus))) if bus >= MAX_BUS_CHANNELS => {
                 return Err(GraphError::InvalidOutput);
             }
-            (_, Some(RouteTarget::Bus(bus))) => {
+            (_, Some(route @ (RouteTarget::Bus(_) | RouteTarget::StereoBus(_)))) => {
                 for (target, candidate) in channels.iter().enumerate() {
                     if candidate
                         .input_bus
-                        .is_some_and(|inputs| inputs.contains(&bus))
+                        .is_some_and(|inputs| route.bus_contains(&inputs))
                     {
                         edges[index].push(target);
                     }
@@ -81,27 +86,32 @@ pub(super) fn graph_edges(
             return Err(GraphError::InvalidSend);
         }
         match send.target {
+            RouteTarget::StereoBus(bus) if bus >= MAX_BUS_CHANNELS - 1 => {
+                return Err(GraphError::InvalidSend);
+            }
             RouteTarget::Bus(bus) if bus >= MAX_BUS_CHANNELS => {
                 return Err(GraphError::InvalidSend);
             }
-            RouteTarget::Bus(bus) => {
+            route @ (RouteTarget::Bus(_) | RouteTarget::StereoBus(_)) => {
                 for (target, channel) in channels.iter().enumerate() {
                     if channel
                         .input_bus
-                        .is_some_and(|inputs| inputs.contains(&bus))
+                        .is_some_and(|inputs| route.bus_contains(&inputs))
                     {
                         edges[send.source].push(target);
                     }
                 }
             }
-            RouteTarget::Output(output)
+            RouteTarget::Output(output) | RouteTarget::MonoOutput(output)
                 if output >= channels.len()
                     || output == send.source
                     || channels[output].kind != ChannelKind::Output =>
             {
                 return Err(GraphError::InvalidSend);
             }
-            RouteTarget::Output(output) => edges[send.source].push(output),
+            RouteTarget::Output(output) | RouteTarget::MonoOutput(output) => {
+                edges[send.source].push(output)
+            }
         }
     }
     for &(source, target) in dependencies {
@@ -197,13 +207,17 @@ pub(super) fn solo_audibility(
         .map(|(upstream, downstream)| *upstream || *downstream)
         .collect();
     let route_is_audible = |source: usize, route: RouteTarget| match route {
-        RouteTarget::Output(target) => edge_is_audible(source, target),
-        RouteTarget::Bus(bus) => channels.iter().enumerate().any(|(target, channel)| {
-            channel
-                .input_bus
-                .is_some_and(|inputs| inputs.contains(&bus))
-                && edge_is_audible(source, target)
-        }),
+        RouteTarget::Output(target) | RouteTarget::MonoOutput(target) => {
+            edge_is_audible(source, target)
+        }
+        route @ (RouteTarget::Bus(_) | RouteTarget::StereoBus(_)) => {
+            channels.iter().enumerate().any(|(target, channel)| {
+                channel
+                    .input_bus
+                    .is_some_and(|inputs| route.bus_contains(&inputs))
+                    && edge_is_audible(source, target)
+            })
+        }
     };
     let output_audible = channels
         .iter()

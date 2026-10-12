@@ -136,6 +136,7 @@ fn running_dispatch_preserves_session_clock_loop_fields_and_channel_meter_identi
             soloed: false,
             output_channel_id: None,
             output_bus: None,
+            output_format: None,
             record_armed: false,
             input_monitoring: false,
             midi_input_port_id: None,

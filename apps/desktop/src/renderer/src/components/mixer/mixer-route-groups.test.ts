@@ -9,6 +9,7 @@ describe("mixerRouteGroups", () => {
     const targets: MixerRouteTarget[] = [
       { kind: "bus", bus: 1 },
       { kind: "bus", bus: 3 },
+      { kind: "bus", bus: 1, format: "stereo" },
       { kind: "output", channelId: "output-a" },
       { kind: "output", channelId: "missing" }
     ]
@@ -38,17 +39,18 @@ describe("mixerRouteGroups", () => {
 
     expect(mixerRouteGroups(targets, buses, outputs, t)).toEqual([
       {
-        label: "mixer.routeGroups.buses",
+        label: "mixer.routeGroups.mono",
         options: [
-          { value: "bus:1", label: "Reverb" },
-          { value: "bus:3", label: "BUS 3" }
+          { value: "mono:bus:1", label: "Reverb" },
+          { value: "mono:bus:3", label: "BUS 3" }
         ]
       },
       {
-        label: "mixer.routeGroups.outputs",
+        label: "mixer.routeGroups.stereo",
         options: [
-          { value: "output:output-a", label: "Main Out" },
-          { value: "output:missing", label: "mixer.routeGroups.missingOutput" }
+          { value: "stereo:bus:1", label: "BUS 1–2" },
+          { value: "stereo:output:output-a", label: "Main Out" },
+          { value: "stereo:output:missing", label: "mixer.routeGroups.missingOutput" }
         ]
       }
     ])

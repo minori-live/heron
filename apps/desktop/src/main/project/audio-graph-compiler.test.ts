@@ -348,6 +348,7 @@ describe("AudioGraphCompiler", () => {
       "muted",
       "name",
       "output_bus",
+      "output_format",
       "output_channel_id",
       "pan",
       "record_armed",
@@ -368,6 +369,7 @@ describe("AudioGraphCompiler", () => {
       "source_channel_id",
       "tap",
       "target_bus",
+      "target_format",
       "target_channel_id"
     ]
     const clips = [
@@ -428,6 +430,7 @@ describe("AudioGraphCompiler", () => {
           "kind",
           "muted",
           "output_bus",
+          "output_format",
           "output_channel_id",
           "pan",
           "record_armed",
@@ -582,4 +585,28 @@ describe("AudioGraphCompiler", () => {
       "Project track 'track:missing' was not found"
     )
   })
+})
+
+it("compiles main and Send formats independently of the source input format", () => {
+  const graph = snapshot()
+  const channel = graph.channels.find((channel) => channel.id === "audio-1")!
+  Object.assign(channel, {
+    inputFormat: "mono",
+    inputChannels: [1],
+    outputChannelId: null,
+    outputBus: 1,
+    outputFormat: "stereo"
+  })
+  Object.assign(graph.sends[0]!, { targetChannelId: null, targetBus: 3, targetFormat: "stereo" })
+  const compiled = new AudioGraphCompiler().compile(
+    graph,
+    new Map([["asset-1", "/assets/take.wav"]]),
+    true
+  )
+  expect(compiled.channels.find((channel) => channel.id === "audio-1")).toMatchObject({
+    input_channels: [1],
+    output_bus: 1,
+    output_format: "stereo"
+  })
+  expect(compiled.sends[0]).toMatchObject({ target_bus: 3, target_format: "stereo" })
 })

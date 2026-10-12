@@ -1764,6 +1764,8 @@
       "unavailable": "插件不可用"
     },
     "routeGroups": {
+      "mono": "单声道",
+      "stereo": "立体声",
       "buses": "总线",
       "outputs": "输出",
       "missingOutput": "缺少输出"

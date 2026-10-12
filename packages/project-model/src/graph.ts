@@ -235,6 +235,8 @@ export function inverseFor(graph: ProjectGraphSnapshot, command: ProjectCommand)
     case "update-channel": {
       const channel = channelById(graph, command.channelId)
       const patch = patchFromKeys(channel, command.patch)
+      if (command.patch.outputFormat !== undefined)
+        patch.outputFormat = channel.outputFormat ?? null
       // Application identities are only meaningful while the channel remains
       // application-backed. Keep the implicit cleanup invertible so undo can
       // restore a previous application route even when the UI sends only the
@@ -261,7 +263,12 @@ export function inverseFor(graph: ProjectGraphSnapshot, command: ProjectCommand)
       return {
         type: "update-send",
         sendId: command.sendId,
-        patch: patchFromKeys(send, command.patch)
+        patch: {
+          ...patchFromKeys(send, command.patch),
+          ...(command.patch.targetFormat !== undefined
+            ? { targetFormat: send.targetFormat ?? null }
+            : {})
+        }
       }
     }
     case "create-audio-clip":

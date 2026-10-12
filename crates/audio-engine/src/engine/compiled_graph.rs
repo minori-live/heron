@@ -69,7 +69,9 @@ pub(super) fn compiled_graph_snapshot(
         } else if let Some(bus) = channel.output_bus {
             for (target, consumer) in native.channels.iter().enumerate() {
                 if consumer.input_source.as_deref() == Some("bus")
-                    && consumer.input_channels.contains(&bus)
+                    && (consumer.input_channels.contains(&bus)
+                        || (channel.output_format == Some(CompiledGraphSignalWidth::Stereo)
+                            && consumer.input_channels.contains(&bus.saturating_add(1))))
                 {
                     input_edges[target].push(DiagnosticInputEdge::Main(source));
                 }
@@ -87,7 +89,9 @@ pub(super) fn compiled_graph_snapshot(
         } else if let Some(bus) = send.target_bus {
             for (target, consumer) in native.channels.iter().enumerate() {
                 if consumer.input_source.as_deref() == Some("bus")
-                    && consumer.input_channels.contains(&bus)
+                    && (consumer.input_channels.contains(&bus)
+                        || (send.target_format == Some(CompiledGraphSignalWidth::Stereo)
+                            && consumer.input_channels.contains(&bus.saturating_add(1))))
                 {
                     input_edges[target].push(DiagnosticInputEdge::Send(send_index));
                 }
@@ -490,19 +494,33 @@ pub(super) fn compiled_graph_snapshot(
                 } else {
                     CompiledGraphEdgeKind::MainRoute
                 },
-                CompiledGraphSignalWidth::Stereo,
+                channel
+                    .output_format
+                    .unwrap_or(if channel.output_bus.is_some() {
+                        CompiledGraphSignalWidth::Mono
+                    } else {
+                        CompiledGraphSignalWidth::Stereo
+                    }),
             );
         } else if let Some(bus) = channel.output_bus {
             for target in native.channels.iter().filter(|target| {
                 target.input_source.as_deref() == Some("bus")
-                    && target.input_channels.contains(&bus)
+                    && (target.input_channels.contains(&bus)
+                        || (channel.output_format == Some(CompiledGraphSignalWidth::Stereo)
+                            && target.input_channels.contains(&bus.saturating_add(1))))
             }) {
                 edge(
                     &mut edges,
                     &route_source,
                     &format!("source:{}", target.id),
                     CompiledGraphEdgeKind::MainRoute,
-                    CompiledGraphSignalWidth::Stereo,
+                    channel
+                        .output_format
+                        .unwrap_or(if channel.output_bus.is_some() {
+                            CompiledGraphSignalWidth::Mono
+                        } else {
+                            CompiledGraphSignalWidth::Stereo
+                        }),
                 );
             }
         }
@@ -570,19 +588,29 @@ pub(super) fn compiled_graph_snapshot(
                 &route_source,
                 &format!("channel:{}", target.id),
                 CompiledGraphEdgeKind::SendRoute,
-                CompiledGraphSignalWidth::Stereo,
+                send.target_format.unwrap_or(if send.target_bus.is_some() {
+                    CompiledGraphSignalWidth::Mono
+                } else {
+                    CompiledGraphSignalWidth::Stereo
+                }),
             );
         } else if let Some(bus) = send.target_bus {
             for target in native.channels.iter().filter(|target| {
                 target.input_source.as_deref() == Some("bus")
-                    && target.input_channels.contains(&bus)
+                    && (target.input_channels.contains(&bus)
+                        || (send.target_format == Some(CompiledGraphSignalWidth::Stereo)
+                            && target.input_channels.contains(&bus.saturating_add(1))))
             }) {
                 edge(
                     &mut edges,
                     &route_source,
                     &format!("source:{}", target.id),
                     CompiledGraphEdgeKind::SendRoute,
-                    CompiledGraphSignalWidth::Stereo,
+                    send.target_format.unwrap_or(if send.target_bus.is_some() {
+                        CompiledGraphSignalWidth::Mono
+                    } else {
+                        CompiledGraphSignalWidth::Stereo
+                    }),
                 );
             }
         }

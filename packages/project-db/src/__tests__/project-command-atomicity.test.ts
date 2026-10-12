@@ -610,3 +610,77 @@ describe("project command and snapshot atomicity", () => {
     ).toEqual([{ key: "component", bytes: new Uint8Array([1, 2, 3]) }])
   })
 })
+
+it("persists independent main and send formats and rolls back invalid stereo pairs", async () => {
+  const { database } = await createDatabase()
+  await database.applyCommand(
+    {
+      type: "batch",
+      commands: [
+        {
+          type: "update-channel",
+          channelId: "audio-1",
+          patch: { outputChannelId: null, outputBus: 1, outputFormat: "stereo" }
+        },
+        {
+          type: "create-send",
+          send: {
+            id: "stereo",
+            sourceChannelId: "audio-1",
+            targetChannelId: null,
+            targetBus: 1,
+            targetFormat: "stereo",
+            sortOrder: 0,
+            enabled: true,
+            tap: "post-pan",
+            levelDb: -6
+          }
+        },
+        {
+          type: "create-send",
+          send: {
+            id: "mono",
+            sourceChannelId: "audio-1",
+            targetChannelId: null,
+            targetBus: 1,
+            targetFormat: "mono",
+            sortOrder: 1,
+            enabled: true,
+            tap: "pre",
+            levelDb: -12
+          }
+        }
+      ]
+    },
+    "output-1-2"
+  )
+  const saved = await database.mixerSnapshot()
+  expect(saved.channels.find((channel) => channel.id === "audio-1")).toMatchObject({
+    outputBus: 1,
+    outputFormat: "stereo"
+  })
+  expect(saved.sends).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ id: "stereo", targetBus: 1, targetFormat: "stereo" }),
+      expect.objectContaining({ id: "mono", targetBus: 1, targetFormat: "mono" })
+    ])
+  )
+  await expect(
+    database.applyCommand(
+      { type: "update-send", sendId: "stereo", patch: { targetBus: 256 } },
+      "output-1-2"
+    )
+  ).rejects.toThrow()
+  expect(await database.mixerSnapshot()).toEqual(saved)
+  await database.applyCommand(
+    {
+      type: "update-send",
+      sendId: "stereo",
+      patch: { targetBus: null, targetChannelId: "output-1-2", targetFormat: "mono" }
+    },
+    "output-1-2"
+  )
+  expect((await database.mixerSnapshot()).sends.find((send) => send.id === "stereo")).toMatchObject(
+    { targetBus: null, targetChannelId: "output-1-2", targetFormat: "mono" }
+  )
+})

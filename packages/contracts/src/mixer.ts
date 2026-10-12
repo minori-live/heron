@@ -43,6 +43,8 @@ export interface MixerChannelState {
   soloed: boolean
   outputChannelId: string | null
   outputBus?: number | null
+  /** Route width; omitted/null retains mono BUS or stereo Output semantics. */
+  outputFormat?: MixerInputFormat | null
   recordArmed: boolean
   inputMonitoring: boolean
   inputChannels: number[]
@@ -76,7 +78,9 @@ export interface MixerBusState {
   name: string
 }
 
-export type MixerRouteTarget = { kind: "bus"; bus: number } | { kind: "output"; channelId: string }
+export type MixerRouteTarget =
+  | { kind: "bus"; bus: number; format?: MixerInputFormat }
+  | { kind: "output"; channelId: string; format?: MixerInputFormat }
 
 export interface TrackState {
   id: string
@@ -114,6 +118,7 @@ export interface MixerSendState {
   sourceChannelId: string
   targetChannelId?: string | null
   targetBus: number | null
+  targetFormat?: MixerInputFormat | null
   sortOrder: number
   enabled: boolean
   tap: MixerSendTap
@@ -154,6 +159,7 @@ export type MixerChannelPatch = Partial<
     | "soloed"
     | "outputChannelId"
     | "outputBus"
+    | "outputFormat"
     | "recordArmed"
     | "inputMonitoring"
     | "inputChannels"
@@ -236,7 +242,7 @@ export interface LowLatencyModeConfiguration {
 export type MixerSendPatch = Partial<
   Pick<
     MixerSendState,
-    "targetChannelId" | "targetBus" | "sortOrder" | "enabled" | "tap" | "levelDb"
+    "targetChannelId" | "targetBus" | "targetFormat" | "sortOrder" | "enabled" | "tap" | "levelDb"
   >
 >
 

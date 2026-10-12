@@ -5,7 +5,7 @@ import { useI18n } from "vue-i18n"
 import { UiButton, UiCascadingSelect, UiIconButton, UiPopover, UiSelect } from "@heron/ui"
 import { Zap } from "@lucide/vue"
 import type { MixerBusState, MixerChannelPatch, MixerRouteTarget } from "@heron/contracts"
-import { mixerRouteGroups } from "./mixer-route-groups"
+import { mixerRouteGroups, targetValue, parseTarget } from "./mixer-route-groups"
 
 const props = withDefaults(
   defineProps<{
@@ -35,21 +35,21 @@ const hardwareSummary = computed(
   () => `HW ${props.channel.hardwareOutputChannels.join("–") || "—"}`
 )
 const routeGroups = computed(() => mixerRouteGroups(props.targets, props.buses, props.outputs, t))
-const routeValue = computed(() =>
-  props.channel.outputChannelId
-    ? `output:${props.channel.outputChannelId}`
+const routeValue = computed(() => {
+  const format = props.channel.outputFormat ?? undefined
+  return props.channel.outputChannelId
+    ? targetValue({ kind: "output", channelId: props.channel.outputChannelId, format })
     : props.channel.outputBus
-      ? `bus:${props.channel.outputBus}`
+      ? targetValue({ kind: "bus", bus: props.channel.outputBus, format })
       : ""
-)
+})
 
 function updateRoute(value: string): void {
-  const separator = value.indexOf(":")
-  const kind = value.slice(0, separator)
-  const target = value.slice(separator + 1)
+  const target = parseTarget(value)
   emit("updateChannel", {
-    outputChannelId: kind === "output" ? target : null,
-    outputBus: kind === "bus" ? Number(target) : null
+    outputChannelId: target.kind === "output" ? target.channelId : null,
+    outputBus: target.kind === "bus" ? target.bus : null,
+    outputFormat: target.format
   })
 }
 

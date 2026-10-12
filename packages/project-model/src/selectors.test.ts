@@ -336,14 +336,24 @@ describe("available routing targets", () => {
 
     expect(availableOutputTargets(value, "aux-b")).toContainEqual({
       kind: "output",
-      channelId: "output"
+      channelId: "output",
+      format: "stereo"
     })
-    expect(availableOutputTargets(value, "aux-b")).not.toContainEqual({ kind: "bus", bus: 1 })
+    expect(availableOutputTargets(value, "aux-b")).not.toContainEqual({
+      kind: "bus",
+      bus: 1,
+      format: "mono"
+    })
     expect(availableSendTargets(value, "aux-b")).toContainEqual({
       kind: "output",
-      channelId: "output"
+      channelId: "output",
+      format: "stereo"
     })
-    expect(availableSendTargets(value, "aux-b")).not.toContainEqual({ kind: "bus", bus: 1 })
+    expect(availableSendTargets(value, "aux-b")).not.toContainEqual({
+      kind: "bus",
+      bus: 1,
+      format: "mono"
+    })
   })
 
   it("filters send targets that already exist for the source channel", () => {
@@ -351,9 +361,42 @@ describe("available routing targets", () => {
 
     expect(availableSendTargets(value, "audio")).not.toContainEqual({
       kind: "output",
-      channelId: "output"
+      channelId: "output",
+      format: "stereo"
     })
-    expect(availableSendTargets(value, "audio")).toContainEqual({ kind: "bus", bus: 1 })
-    expect(availableSendTargets(value, "audio")).toContainEqual({ kind: "bus", bus: 3 })
+    expect(availableSendTargets(value, "audio")).toContainEqual({
+      kind: "bus",
+      bus: 1,
+      format: "mono"
+    })
+    expect(availableSendTargets(value, "audio")).toContainEqual({
+      kind: "bus",
+      bus: 3,
+      format: "mono"
+    })
+  })
+})
+
+it("offers stereo BUS pairs and rejects feedback through the right BUS", () => {
+  const snapshot = graph({ sends: [] })
+  expect(availableOutputTargets(snapshot, "audio")).toContainEqual({
+    kind: "bus",
+    bus: 1,
+    format: "stereo"
+  })
+  expect(availableSendTargets(snapshot, "audio")).toContainEqual({
+    kind: "bus",
+    bus: 1,
+    format: "stereo"
+  })
+  expect(availableOutputTargets(snapshot, "aux-b")).not.toContainEqual({
+    kind: "bus",
+    bus: 1,
+    format: "stereo"
+  })
+  expect(availableSendTargets(snapshot, "aux-b")).not.toContainEqual({
+    kind: "bus",
+    bus: 1,
+    format: "stereo"
   })
 })

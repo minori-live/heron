@@ -1455,6 +1455,8 @@
       "unavailable": "Plug-in unavailable"
     },
     "routeGroups": {
+      "mono": "Mono",
+      "stereo": "Stereo",
       "buses": "Buses",
       "outputs": "Outputs",
       "missingOutput": "Missing output"

@@ -276,6 +276,7 @@ fn mixer_channel(
         soloed: false,
         output_index,
         output_bus,
+        output_format: None,
         record_armed: false,
         input_monitoring: false,
         input_source: input_source.map(str::to_owned),

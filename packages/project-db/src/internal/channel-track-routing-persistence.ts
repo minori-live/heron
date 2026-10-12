@@ -55,6 +55,7 @@ function channelPatch(patch: MixerChannelPatch): Partial<typeof mixerChannels.$i
   if (patch.muted !== undefined) result.muted = patch.muted
   if (patch.soloed !== undefined) result.soloed = patch.soloed
   if (patch.outputChannelId !== undefined) result.outputChannelId = patch.outputChannelId
+  if (patch.outputFormat !== undefined) result.outputFormat = patch.outputFormat
   if (patch.outputBus !== undefined) result.outputBus = patch.outputBus
   if (patch.recordArmed !== undefined) result.recordArmed = patch.recordArmed
   if (patch.inputMonitoring !== undefined) result.inputMonitoring = patch.inputMonitoring
@@ -87,6 +88,7 @@ function channelValue(
     soloed: channel.soloed,
     outputChannelId: channel.outputChannelId,
     outputBus: channel.outputBus ?? null,
+    outputFormat: channel.outputFormat ?? null,
     recordArmed: channel.recordArmed,
     inputMonitoring: channel.inputMonitoring,
     inputChannels: channel.inputChannels,
@@ -97,6 +99,7 @@ function channelValue(
 function sendPatch(patch: MixerSendPatch): Partial<typeof mixerSends.$inferInsert> {
   const result: Partial<typeof mixerSends.$inferInsert> = {}
   if (patch.targetChannelId !== undefined) result.targetChannelId = patch.targetChannelId
+  if (patch.targetFormat !== undefined) result.targetFormat = patch.targetFormat
   if (patch.targetBus !== undefined) result.targetBus = patch.targetBus
   if (patch.sortOrder !== undefined) result.sortOrder = patch.sortOrder
   if (patch.enabled !== undefined) result.enabled = patch.enabled
@@ -113,6 +116,7 @@ function sendValue(
     sourceChannelId: send.sourceChannelId,
     targetChannelId: send.targetChannelId ?? null,
     targetBus: send.targetBus,
+    targetFormat: send.targetFormat ?? null,
     sortOrder: send.sortOrder,
     enabled: send.enabled,
     tap: send.tap,

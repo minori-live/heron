@@ -23,8 +23,28 @@ pub enum SendTap {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RouteTarget {
+    /// One zero-based BUS lane, receiving the L/R average.
     Bus(usize),
+    /// Adjacent zero-based BUS lanes, receiving L and R separately.
+    StereoBus(usize),
     Output(usize),
+    /// The L/R average duplicated into an Output channel.
+    MonoOutput(usize),
+}
+
+impl RouteTarget {
+    pub fn bus_contains(self, inputs: &[usize]) -> bool {
+        match self {
+            Self::Bus(bus) => inputs.contains(&bus),
+            Self::StereoBus(bus) => {
+                inputs.contains(&bus)
+                    || bus
+                        .checked_add(1)
+                        .is_some_and(|right| inputs.contains(&right))
+            }
+            Self::Output(_) | Self::MonoOutput(_) => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

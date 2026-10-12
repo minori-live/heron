@@ -105,7 +105,9 @@ function label(field: LiveCaptureField, snapshot: LiveRuntimeSnapshot): string {
       graph.channels.find((channel) => channel.id === send?.sourceChannelId)?.name ?? ""
     const target =
       graph.channels.find((channel) => channel.id === send?.targetChannelId)?.name ??
-      `BUS ${send?.targetBus}`
+      (send?.targetFormat === "stereo" && send.targetBus != null
+        ? `BUS ${send.targetBus}–${send.targetBus + 1}`
+        : `BUS ${send?.targetBus}`)
     return `${source} · ${t("live.layers.sendField", { target, field: t(`live.layers.fields.${field.parameter}`) })}`
   }
   const name = graph.plugins.find((plugin) => plugin.id === field.id)?.descriptor.name ?? field.id

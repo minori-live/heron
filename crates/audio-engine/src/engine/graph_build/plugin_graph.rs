@@ -146,14 +146,14 @@ pub(super) fn build_plugin_graph(input: PluginGraphInput<'_>) -> Result<PluginGr
         .collect::<Vec<Vec<InputEdge>>>();
     for (source, channel) in channels.iter().enumerate() {
         match channel.output {
-            Some(RouteTarget::Output(target)) => {
+            Some(RouteTarget::Output(target) | RouteTarget::MonoOutput(target)) => {
                 input_edges[target].push(InputEdge::Main(source));
             }
-            Some(RouteTarget::Bus(bus)) => {
+            Some(route @ (RouteTarget::Bus(_) | RouteTarget::StereoBus(_))) => {
                 for (target, consumer) in channels.iter().enumerate() {
                     if consumer
                         .input_bus
-                        .is_some_and(|inputs| inputs.contains(&bus))
+                        .is_some_and(|inputs| route.bus_contains(&inputs))
                     {
                         input_edges[target].push(InputEdge::Main(source));
                     }
@@ -171,10 +171,14 @@ pub(super) fn build_plugin_graph(input: PluginGraphInput<'_>) -> Result<PluginGr
                 (None, Some(bus)) => {
                     let bus = bus.saturating_sub(1) as usize;
                     for (target, channel) in channels.iter().enumerate() {
-                        if channel
-                            .input_bus
-                            .is_some_and(|inputs| inputs.contains(&bus))
-                        {
+                        if channel.input_bus.is_some_and(|inputs| {
+                            inputs.contains(&bus)
+                                || (send.target_format
+                                    == Some(
+                                        heron_dsp_runtime::protocol::CompiledGraphSignalWidth::Stereo,
+                                    )
+                                    && inputs.contains(&(bus + 1)))
+                        }) {
                             input_edges[target].push(InputEdge::Send(send_index));
                         }
                     }

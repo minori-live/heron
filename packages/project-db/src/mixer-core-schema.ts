@@ -22,6 +22,7 @@ export function mixerChannelCoreColumns() {
     soloed: boolean("soloed").notNull().default(false),
     outputChannelId: text("output_channel_id"),
     outputBus: smallint("output_bus"),
+    outputFormat: text("output_format").$type<"mono" | "stereo">(),
     inputMonitoring: boolean("input_monitoring").notNull().default(false),
     inputChannels: smallint("input_channels")
       .array()

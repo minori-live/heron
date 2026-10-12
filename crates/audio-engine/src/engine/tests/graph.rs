@@ -157,6 +157,7 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
             soloed: false,
             output_index,
             output_bus: None,
+            output_format: None,
             record_armed: false,
             input_monitoring: false,
             input_source: (id != "output").then(|| "hardware".to_owned()),
@@ -183,6 +184,7 @@ fn compiled_snapshot_exposes_adapters_plugin_states_and_route_pdc() {
             source_index: 1,
             target_output_index: Some(3),
             target_bus: None,
+            target_format: None,
             enabled: true,
             tap: LiveMixerSendTap::PostPan,
             level_db: 0.0,
@@ -796,6 +798,7 @@ fn build_mixer_runtime_routes_bus_sends_and_metronome_channels() {
             source_index: 0,
             target_output_index: None,
             target_bus: Some(1),
+            target_format: None,
             enabled: true,
             tap: LiveMixerSendTap::Pre,
             level_db: -6.0,
@@ -869,6 +872,7 @@ fn compiled_snapshot_covers_instrument_bus_master_and_active_plugin_paths() {
             source_index: 0,
             target_output_index: None,
             target_bus: Some(1),
+            target_format: None,
             enabled: false,
             tap: LiveMixerSendTap::Post,
             level_db: -3.0,
@@ -927,4 +931,71 @@ fn compiled_snapshot_covers_instrument_bus_master_and_active_plugin_paths() {
             .iter()
             .any(|node| node.kind == CompiledGraphNodeKind::Send && node.label.contains("Post"))
     );
+}
+
+#[test]
+fn explicit_stereo_routes_reach_right_bus_consumers_in_runtime_and_diagnostics() {
+    for send_route in [false, true] {
+        let mut native = simple_native_graph();
+        native.channels[0].output_index = None;
+        native.channels[0].output_bus = Some(if send_route { 9 } else { 1 });
+        native.channels[0].output_format = Some(CompiledGraphSignalWidth::Stereo);
+        native.channels[0].input_monitoring = true;
+        native.channels.push(mixer_channel(
+            "right-bus",
+            "aux",
+            Some(2),
+            None,
+            Some("bus"),
+            vec![2],
+            Vec::new(),
+        ));
+        if send_route {
+            native.sends.push(ResolvedMixerSend {
+                id: "stereo".into(),
+                source_index: 0,
+                target_output_index: None,
+                target_bus: Some(1),
+                target_format: Some(CompiledGraphSignalWidth::Stereo),
+                enabled: true,
+                tap: LiveMixerSendTap::PostPan,
+                level_db: 0.0,
+            });
+        }
+        native.latency_policy = ResolvedLatencyPolicy::LowLatency {
+            target_output_index: 2,
+            plugin_budget_samples: 64,
+        };
+        let snapshot = compiled_graph_snapshot(&native, 1, &HashMap::new());
+        assert!(
+            snapshot
+                .edges
+                .iter()
+                .any(|edge| edge.target == "source:right-bus"
+                    && edge.signal_width == CompiledGraphSignalWidth::Stereo)
+        );
+        if !send_route {
+            assert!(snapshot.has_low_latency_monitoring_path);
+            assert!(
+                snapshot
+                    .nodes
+                    .iter()
+                    .any(|node| node.channel_id.as_deref() == Some("right-bus")
+                        && node.latency_sensitive)
+            );
+        }
+        let mut runtime = build_mixer_runtime(
+            native,
+            1,
+            test_transport(48_000),
+            Arc::new(InputPeakBank::new()),
+            &HashMap::new(),
+        )
+        .unwrap();
+        let output = runtime.graph.process_channel_sources(
+            &[[0.25, -0.75], [0.0; 2], [0.0; 2], [0.0; 2]],
+            &mut |_, frame| frame,
+        );
+        assert_eq!(&output[..2], &[-0.75, -0.75]);
+    }
 }

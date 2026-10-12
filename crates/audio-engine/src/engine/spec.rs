@@ -22,6 +22,7 @@ pub struct ResolvedMixerChannel {
     pub soloed: bool,
     pub output_index: Option<u32>,
     pub output_bus: Option<u32>,
+    pub output_format: Option<heron_dsp_runtime::protocol::CompiledGraphSignalWidth>,
     pub record_armed: bool,
     pub input_monitoring: bool,
     pub input_source: Option<String>,
@@ -47,6 +48,7 @@ pub struct ResolvedMixerSend {
     pub source_index: u32,
     pub target_output_index: Option<u32>,
     pub target_bus: Option<u32>,
+    pub target_format: Option<heron_dsp_runtime::protocol::CompiledGraphSignalWidth>,
     pub enabled: bool,
     pub tap: LiveMixerSendTap,
     pub level_db: f64,
@@ -165,6 +167,7 @@ pub(super) fn plan_native_low_latency(native: &ResolvedMixerGraph) -> LowLatency
                     Vec::new()
                 },
                 output_bus: channel.output_bus,
+                output_format: channel.output_format,
                 monitored: channel.input_monitoring
                     && (channel.kind == "instrument"
                         || channel.input_source.as_deref() == Some("hardware")

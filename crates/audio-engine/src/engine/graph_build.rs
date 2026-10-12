@@ -61,6 +61,7 @@ pub(super) fn build_mixer_runtime(
                         Vec::new()
                     },
                     output_bus: channel.output_bus,
+                    output_format: channel.output_format,
                     monitored: channel.input_monitoring
                         && (channel.kind == "instrument"
                             || channel.input_source.as_deref() == Some("hardware")

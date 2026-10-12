@@ -1129,6 +1129,7 @@ mod tests {
             soloed: false,
             output_channel_id: output.map(str::to_owned),
             output_bus: None,
+            output_format: None,
             record_armed: false,
             input_monitoring: false,
             application_capture: None,

@@ -94,11 +94,13 @@ impl MixerGraph {
             .filter_map(|channel| channel.input_bus.map(|[left, right]| left.max(right)))
             .chain(channels.iter().filter_map(|channel| match channel.output {
                 Some(RouteTarget::Bus(bus)) => Some(bus),
-                Some(RouteTarget::Output(_)) | None => None,
+                Some(RouteTarget::StereoBus(bus)) => Some(bus + 1),
+                Some(RouteTarget::Output(_) | RouteTarget::MonoOutput(_)) | None => None,
             }))
             .chain(sends.iter().filter_map(|send| match send.target {
                 RouteTarget::Bus(bus) => Some(bus),
-                RouteTarget::Output(_) => None,
+                RouteTarget::StereoBus(bus) => Some(bus + 1),
+                RouteTarget::Output(_) | RouteTarget::MonoOutput(_) => None,
             }))
             .max()
             .map_or(0, |maximum| maximum + 1);
@@ -234,13 +236,15 @@ impl MixerGraph {
             (upstream[source] && upstream[target]) || (downstream[source] && downstream[target])
         };
         let route = |source: usize, target: RouteTarget| match target {
-            RouteTarget::Output(target) => edge(source, target),
-            RouteTarget::Bus(bus) => self.channels.iter().enumerate().any(|(target, channel)| {
-                channel
-                    .input_bus
-                    .is_some_and(|inputs| inputs.contains(&bus))
-                    && edge(source, target)
-            }),
+            RouteTarget::Output(target) | RouteTarget::MonoOutput(target) => edge(source, target),
+            route @ (RouteTarget::Bus(_) | RouteTarget::StereoBus(_)) => {
+                self.channels.iter().enumerate().any(|(target, channel)| {
+                    channel
+                        .input_bus
+                        .is_some_and(|inputs| route.bus_contains(&inputs))
+                        && edge(source, target)
+                })
+            }
         };
         for (index, channel) in self.channels.iter().enumerate() {
             self.audible[index] = upstream[index] || downstream[index];
@@ -418,6 +422,16 @@ impl MixerGraph {
                             self.block_bus_accumulation[bus * frame_count + frame] +=
                                 (sent[0] + sent[1]) * 0.5;
                         }
+                        RouteTarget::StereoBus(bus) => {
+                            self.block_bus_accumulation[bus * frame_count + frame] += sent[0];
+                            self.block_bus_accumulation[(bus + 1) * frame_count + frame] += sent[1];
+                        }
+                        RouteTarget::MonoOutput(target) => {
+                            add(
+                                &mut channel_sources[target * frame_count + frame],
+                                [(sent[0] + sent[1]) * 0.5; 2],
+                            );
+                        }
                         RouteTarget::Output(target) => {
                             let target_index = target * frame_count + frame;
                             add(&mut channel_sources[target_index], sent);
@@ -435,6 +449,17 @@ impl MixerGraph {
                         RouteTarget::Bus(bus) => {
                             self.block_bus_accumulation[bus * frame_count + frame] +=
                                 (routed[0] + routed[1]) * 0.5;
+                        }
+                        RouteTarget::StereoBus(bus) => {
+                            self.block_bus_accumulation[bus * frame_count + frame] += routed[0];
+                            self.block_bus_accumulation[(bus + 1) * frame_count + frame] +=
+                                routed[1];
+                        }
+                        RouteTarget::MonoOutput(target) => {
+                            add(
+                                &mut channel_sources[target * frame_count + frame],
+                                [(routed[0] + routed[1]) * 0.5; 2],
+                            );
                         }
                         RouteTarget::Output(target) => {
                             let target_index = target * frame_count + frame;
@@ -517,6 +542,14 @@ impl MixerGraph {
                     RouteTarget::Bus(bus) => {
                         self.bus_accumulation[bus] += (sent[0] + sent[1]) * 0.5;
                     }
+                    RouteTarget::StereoBus(bus) => {
+                        self.bus_accumulation[bus] += sent[0];
+                        self.bus_accumulation[bus + 1] += sent[1];
+                    }
+                    RouteTarget::MonoOutput(output) => add(
+                        &mut self.accumulation[output],
+                        [(sent[0] + sent[1]) * 0.5; 2],
+                    ),
                     RouteTarget::Output(output) => add(&mut self.accumulation[output], sent),
                 }
             }
@@ -531,6 +564,14 @@ impl MixerGraph {
                     RouteTarget::Bus(bus) => {
                         self.bus_accumulation[bus] += (routed[0] + routed[1]) * 0.5;
                     }
+                    RouteTarget::StereoBus(bus) => {
+                        self.bus_accumulation[bus] += routed[0];
+                        self.bus_accumulation[bus + 1] += routed[1];
+                    }
+                    RouteTarget::MonoOutput(output) => add(
+                        &mut self.accumulation[output],
+                        [(routed[0] + routed[1]) * 0.5; 2],
+                    ),
                     RouteTarget::Output(output) => add(&mut self.accumulation[output], routed),
                 }
             }

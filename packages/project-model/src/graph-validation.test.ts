@@ -175,7 +175,8 @@ describe("shared Mixer and Studio validation", () => {
     expect(() => validateMixerGraph(mixer)).not.toThrow()
     expect(availableOutputTargets(mixer, "instrument-1")).toContainEqual({
       kind: "output",
-      channelId: "output"
+      channelId: "output",
+      format: "stereo"
     })
     const preview = patchMixerGraph(mixer, "channel", "instrument-1", { gainDb: -6 })
     expect(preview.channels[0]!.gainDb).toBe(-6)

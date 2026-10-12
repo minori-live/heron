@@ -5,6 +5,7 @@ import type {
   ProjectGraphSnapshot
 } from "@heron/contracts"
 import { pluginLocator, pluginSupportsHostedAudioMode } from "@heron/contracts"
+import { busRouteContains, routeFormat } from "./route-format"
 import { MixerValidationError } from "./validation-error"
 
 export function finiteRange(value: number, minimum: number, maximum: number, label: string): void {
@@ -33,6 +34,9 @@ export function validateMixerGraph(graph: MixerGraphSnapshot): void {
     ids.add(channel.id)
     finiteRange(channel.gainDb, -90, 12, "Channel gain")
     finiteRange(channel.pan, -1, 1, "Channel pan")
+    if (channel.outputFormat != null && !["mono", "stereo"].includes(channel.outputFormat)) {
+      throw new MixerValidationError("Invalid output route format")
+    }
     const supportsAudioInput = channel.kind === "audio" || channel.kind === "aux"
     if (
       supportsAudioInput &&
@@ -177,14 +181,16 @@ export function validateMixerGraph(graph: MixerGraphSnapshot): void {
       } else if (
         !Number.isSafeInteger(channel.outputBus) ||
         channel.outputBus! < 1 ||
-        channel.outputBus! > 256
+        channel.outputBus! > (channel.outputFormat === "stereo" ? 255 : 256)
       ) {
-        throw new MixerValidationError("Mixer BUS output targets must be between 1 and 256")
+        throw new MixerValidationError(
+          "Mixer BUS output must fit its route format within channels 1 through 256"
+        )
       } else {
         for (const consumer of graph.channels) {
           if (
             consumer.inputSource === "bus" &&
-            consumer.inputChannels.includes(channel.outputBus!)
+            busRouteContains(channel.outputBus!, channel.outputFormat, consumer.inputChannels)
           ) {
             edges.get(channel.id)!.push(consumer.id)
           }
@@ -205,6 +211,9 @@ export function validateMixerGraph(graph: MixerGraphSnapshot): void {
     if (source.kind === "master" || source.kind === "output") {
       throw new MixerValidationError("Only Audio, Instrument, and Aux channels can source sends")
     }
+    if (send.targetFormat != null && !["mono", "stereo"].includes(send.targetFormat)) {
+      throw new MixerValidationError("Invalid send route format")
+    }
     const targetCount = Number(send.targetChannelId != null) + Number(send.targetBus !== null)
     if (targetCount !== 1) {
       throw new MixerValidationError("A send must target exactly one BUS or Output")
@@ -220,17 +229,23 @@ export function validateMixerGraph(graph: MixerGraphSnapshot): void {
     } else if (
       !Number.isSafeInteger(send.targetBus) ||
       send.targetBus! < 1 ||
-      send.targetBus! > 256
+      send.targetBus! > (send.targetFormat === "stereo" ? 255 : 256)
     ) {
-      throw new MixerValidationError("Send BUS targets must be between 1 and 256")
+      throw new MixerValidationError(
+        "Send BUS target must fit its route format within channels 1 through 256"
+      )
     } else {
       route = `${source.id}:bus:${send.targetBus}`
       for (const consumer of graph.channels) {
-        if (consumer.inputSource === "bus" && consumer.inputChannels.includes(send.targetBus!)) {
+        if (
+          consumer.inputSource === "bus" &&
+          busRouteContains(send.targetBus!, send.targetFormat, consumer.inputChannels)
+        ) {
           edges.get(source.id)!.push(consumer.id)
         }
       }
     }
+    route += `:${routeFormat(send.targetFormat, send.targetBus)}`
     if (sendRoutes.has(route))
       throw new MixerValidationError("A channel can only send to each destination once")
     sendRoutes.add(route)

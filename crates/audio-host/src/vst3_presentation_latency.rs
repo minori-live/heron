@@ -67,6 +67,7 @@ pub(crate) fn calculate_presentation_latencies(
                             Vec::new()
                         },
                         output_bus: channel.output_bus,
+                        output_format: channel.output_format,
                         monitored: channel.input_monitoring
                             && (channel.kind == "instrument"
                                 || channel.input_source.as_deref() == Some("hardware")),
@@ -141,38 +142,46 @@ pub(crate) fn calculate_presentation_latencies(
         .map(|_| Vec::new())
         .collect::<Vec<Vec<PresentationEdge>>>();
 
-    let mut add_route = |source: usize,
-                         target_channel_id: Option<&str>,
-                         target_bus: Option<u32>|
-     -> Result<(), String> {
-        match (target_channel_id, target_bus) {
-            (Some(target), None) => {
-                let Some(&target) = channel_indexes.get(target) else {
-                    return Err(format!(
-                        "presentation latency references missing channel `{target}`"
-                    ));
-                };
-                input_edges[target].push(PresentationEdge { source });
-            }
-            (None, Some(bus)) if bus > 0 => {
-                for (target, channel) in graph.channels.iter().enumerate() {
-                    if channel.input_source.as_deref() == Some("bus")
-                        && channel.input_channels.contains(&bus)
+    let mut add_route =
+        |source: usize,
+         target_channel_id: Option<&str>,
+         target_bus: Option<u32>,
+         target_format: Option<heron_dsp_runtime::protocol::CompiledGraphSignalWidth>|
+         -> Result<(), String> {
+            match (target_channel_id, target_bus) {
+                (Some(target), None) => {
+                    let Some(&target) = channel_indexes.get(target) else {
+                        return Err(format!(
+                            "presentation latency references missing channel `{target}`"
+                        ));
+                    };
+                    input_edges[target].push(PresentationEdge { source });
+                }
+                (None, Some(bus)) if bus > 0 => {
+                    for (target, channel) in graph.channels.iter().enumerate() {
+                        if channel.input_source.as_deref() == Some("bus")
+                        && (channel.input_channels.contains(&bus)
+                            || (target_format
+                                == Some(
+                                    heron_dsp_runtime::protocol::CompiledGraphSignalWidth::Stereo,
+                                )
+                                && channel.input_channels.contains(&bus.saturating_add(1))))
                     {
                         input_edges[target].push(PresentationEdge { source });
                     }
+                    }
                 }
+                (None, None) => {}
+                _ => return Err("presentation latency route target is invalid".to_owned()),
             }
-            (None, None) => {}
-            _ => return Err("presentation latency route target is invalid".to_owned()),
-        }
-        Ok(())
-    };
+            Ok(())
+        };
     for (source, channel) in graph.channels.iter().enumerate() {
         add_route(
             source,
             channel.output_channel_id.as_deref(),
             channel.output_bus,
+            channel.output_format,
         )?;
     }
     for send in graph.sends.iter().filter(|send| send.enabled) {
@@ -182,7 +191,12 @@ pub(crate) fn calculate_presentation_latencies(
                 send.source_channel_id
             ));
         };
-        add_route(source, send.target_channel_id.as_deref(), send.target_bus)?;
+        add_route(
+            source,
+            send.target_channel_id.as_deref(),
+            send.target_bus,
+            send.target_format,
+        )?;
     }
 
     let nodes = input_edges
@@ -332,6 +346,7 @@ mod tests {
             soloed: false,
             output_channel_id: output.map(str::to_owned),
             output_bus: None,
+            output_format: None,
             record_armed: false,
             input_monitoring: input_source == Some("hardware"),
             application_capture: None,
