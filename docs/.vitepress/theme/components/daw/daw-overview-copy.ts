@@ -7,7 +7,7 @@ export interface CapabilityCopy {
   body: string
 }
 
-export interface HomeCopy {
+export interface DawOverviewCopy {
   heroEyebrow: string
   heroTitleTop: string
   heroTitleAccent: string
@@ -32,7 +32,7 @@ export interface HomeCopy {
   ctaButton: string
 }
 
-const en: HomeCopy = {
+const en: DawOverviewCopy = {
   heroEyebrow: "From sketch to stage.",
   heroTitleTop: "Make sound",
   heroTitleAccent: "your own.",
@@ -80,7 +80,7 @@ const en: HomeCopy = {
   ctaButton: "Make your first project →"
 }
 
-const zh: HomeCopy = {
+const zh: DawOverviewCopy = {
   heroEyebrow: "从灵感，到舞台。",
   heroTitleTop: "创造声音，",
   heroTitleAccent: "由你做主。",
@@ -122,17 +122,12 @@ const zh: HomeCopy = {
   ctaButton: "创建你的第一个工程 →"
 }
 
-const homeCopy: Record<string, HomeCopy> = {
+const dawOverviewCopy: Record<string, DawOverviewCopy> = {
   root: en,
   zh
 }
 
-export function useHomeCopy(): ComputedRef<HomeCopy> {
+export function useDawOverviewCopy(): ComputedRef<DawOverviewCopy> {
   const { localeIndex } = useData()
-  return computed(() => homeCopy[localeIndex.value] ?? en)
-}
-
-export function useLocalePrefix(): ComputedRef<string> {
-  const { localeIndex } = useData()
-  return computed(() => (localeIndex.value === "root" ? "" : `/${localeIndex.value}`))
+  return computed(() => dawOverviewCopy[localeIndex.value] ?? en)
 }

@@ -3,11 +3,12 @@ import type { Theme } from "vitepress"
 import { createPinia } from "pinia"
 import BlogIndex from "./components/BlogIndex.vue"
 import DocsLayout from "./components/DocsLayout.vue"
-import HomePage from "./components/HomePage.vue"
+import HomePage from "./components/home/HomePage.vue"
 import MermaidDiagram from "./components/MermaidDiagram.vue"
 import HeronEqPage from "./components/plugins/HeronEqPage.vue"
 import HeronStudioIncluded from "./components/plugins/HeronStudioIncluded.vue"
 import PluginCompatibility from "./components/plugins/PluginCompatibility.vue"
+import DawOverviewPage from "./components/daw/DawOverviewPage.vue"
 import PluginAnalysisPage from "./components/daw/PluginAnalysisPage.vue"
 import AudioBackendSupportFigure from "./components/manual/AudioBackendSupportFigure.vue"
 import RoutingPlayground from "./components/manual/RoutingPlayground.vue"
@@ -26,6 +27,7 @@ export default {
     app.use(createMixerDemoI18n())
     app.component("AudioBackendSupportFigure", AudioBackendSupportFigure)
     app.component("BlogIndex", BlogIndex)
+    app.component("DawOverviewPage", DawOverviewPage)
     app.component("HomePage", HomePage)
     app.component("HeronEqPage", HeronEqPage)
     app.component("HeronStudioIncluded", HeronStudioIncluded)

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { withBase } from "vitepress"
-import { useHomeCopy, useLocalePrefix } from "../i18n"
+import { useLocalePrefix } from "../../locale"
+import { useDawOverviewCopy } from "./daw-overview-copy"
 import SessionPreview from "./SessionPreview.vue"
-import VstTrademarkNotice from "./VstTrademarkNotice.vue"
+import VstTrademarkNotice from "../VstTrademarkNotice.vue"
 
-const t = useHomeCopy()
+const t = useDawOverviewCopy()
 const prefix = useLocalePrefix()
 
 const signalClasses = [

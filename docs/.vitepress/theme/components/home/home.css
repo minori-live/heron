@@ -1,0 +1,143 @@
+/* Landing-page tokens and motion utilities shared by the home components. */
+
+.heron-home {
+  --home-ink: #1b1d23;
+  --home-ink-2: #5d6271;
+  --home-edge: rgb(24 28 40 / 10%);
+  --home-fill: rgb(27 29 35 / 5%);
+  --home-panel: rgb(255 255 255 / 70%);
+  --home-window: rgb(255 255 255 / 80%);
+  --home-window-solid: #fff;
+  --home-shadow: rgb(30 36 60 / 24%);
+  --home-shadow-near: rgb(30 36 60 / 10%);
+  --home-cyan: #3fbfc4;
+  --home-cyan-ink: #1f8a8f;
+  --home-red: #ff6f86;
+  --home-violet: #a98ade;
+  --home-violet-ink: #7353c4;
+  --home-green: #5cc27c;
+  --home-amber: #f2b45a;
+  --home-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  position: relative;
+  isolation: isolate;
+  margin-top: calc(-1 * var(--vp-nav-height));
+  color: var(--home-ink);
+}
+
+.dark .heron-home {
+  --home-ink: #eceae4;
+  --home-ink-2: #a5a8b3;
+  --home-edge: rgb(255 255 255 / 9%);
+  --home-fill: rgb(255 255 255 / 6%);
+  --home-panel: rgb(30 33 42 / 70%);
+  --home-window: rgb(28 31 39 / 82%);
+  --home-window-solid: #1d2029;
+  --home-shadow: rgb(0 0 0 / 60%);
+  --home-shadow-near: rgb(0 0 0 / 32%);
+  --home-cyan: #72c3c7;
+  --home-cyan-ink: #9bdadd;
+  --home-violet-ink: #c2abff;
+}
+
+.heron-home::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    radial-gradient(48% 900px at 18% 260px, rgb(63 191 196 / 13%), transparent 70%),
+    radial-gradient(40% 800px at 88% 620px, rgb(255 111 134 / 10%), transparent 70%),
+    radial-gradient(56% 900px at 42% 1500px, rgb(169 138 222 / 13%), transparent 70%),
+    radial-gradient(50% 900px at 80% 2800px, rgb(63 191 196 / 9%), transparent 70%),
+    radial-gradient(60% 700px at 30% calc(100% - 700px), rgb(169 138 222 / 10%), transparent 70%);
+  content: "";
+  pointer-events: none;
+}
+
+.reveal-line {
+  display: block;
+  opacity: 0;
+  filter: blur(4px);
+  transform: translateY(14px);
+  transition:
+    opacity 0.22s ease,
+    filter 0.22s ease,
+    transform 0s linear 0.22s;
+}
+
+.reveal.is-shown .reveal-line {
+  opacity: 1;
+  filter: none;
+  transform: none;
+  transition:
+    opacity 0.6s var(--home-ease) calc(var(--line, 0) * 70ms),
+    filter 0.6s var(--home-ease) calc(var(--line, 0) * 70ms),
+    transform 0.7s var(--home-ease) calc(var(--line, 0) * 70ms);
+}
+
+.home-kicker {
+  margin: 0 0 12px;
+  color: var(--home-violet-ink);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home-heading {
+  margin: 0;
+  color: var(--home-ink);
+  font-size: clamp(32px, 4.4vw, 48px);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.home-button {
+  display: inline-flex;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 24px;
+  border: 1px solid var(--home-edge);
+  border-radius: 23px;
+  color: var(--home-ink);
+  background: var(--home-panel);
+  font-size: 15px;
+  font-weight: 650;
+  text-decoration: none;
+  backdrop-filter: blur(18px);
+  transition:
+    transform 160ms ease,
+    background 160ms ease;
+}
+
+.home-button:hover {
+  background: color-mix(in srgb, var(--home-ink) 8%, var(--home-panel));
+  transform: translateY(-1px);
+}
+
+.home-button:focus-visible {
+  outline: 2px solid var(--home-violet);
+  outline-offset: 3px;
+}
+
+.home-button--solid {
+  border-color: transparent;
+  color: var(--vp-c-bg);
+  background: var(--home-ink);
+}
+
+.home-button--solid:hover {
+  background: color-mix(in srgb, var(--home-ink) 86%, var(--vp-c-bg));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-line,
+  .reveal.is-shown .reveal-line,
+  .home-button {
+    transition: none;
+  }
+}

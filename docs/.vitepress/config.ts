@@ -134,8 +134,9 @@ export default defineConfig({
         nav: [
           {
             text: "DAW",
-            activeMatch: "^/(daw/|manual/|$)",
+            activeMatch: "^/(daw/|manual/)",
             items: [
+              { text: "Overview", link: "/daw/" },
               { text: "Plugin Analysis", link: "/daw/plugin-analysis" },
               { text: "Manual", link: "/manual/" },
               { text: "Releases", link: "https://github.com/minori-live/heron/releases" }
@@ -244,8 +245,9 @@ export default defineConfig({
         nav: [
           {
             text: "DAW",
-            activeMatch: "^/zh/(daw/|manual/|$)",
+            activeMatch: "^/zh/(daw/|manual/)",
             items: [
+              { text: "概览", link: "/zh/daw/" },
               { text: "Plugin Analysis", link: "/zh/daw/plugin-analysis" },
               { text: "手册", link: "/zh/manual/" },
               { text: "发布版本", link: "https://github.com/minori-live/heron/releases" }

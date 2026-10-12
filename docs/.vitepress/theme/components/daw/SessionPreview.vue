@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useHomeCopy } from "../i18n"
+import { useDawOverviewCopy } from "./daw-overview-copy"
 
-const t = useHomeCopy()
+const t = useDawOverviewCopy()
 </script>
 
 <template>

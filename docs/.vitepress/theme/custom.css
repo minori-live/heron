@@ -143,6 +143,15 @@ body {
   background: var(--vp-c-bg) !important;
 }
 
+.heron-landing .VPNavBar::before {
+  background-color: color-mix(in srgb, var(--vp-c-bg) 62%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4);
+}
+
+.heron-landing .VPNavBar .divider-line {
+  background-color: transparent;
+}
+
 @media (min-width: 960px) {
   .VPNavBar.has-sidebar .title {
     border-bottom-color: transparent !important;
