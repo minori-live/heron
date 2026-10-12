@@ -1,8 +1,8 @@
-version: 0.7.1
+version: 0.7.2
 files:
-  - url: https://github.com/minori-live/heron/releases/download/v0.7.1/Heron-0.7.1-win-x64.exe
-    sha512: sLXTGqRbrmJyVWUNIqu6OPEmU8VIZHb2nOUazvv7VhAymfC7dr/RrpMxVH8bqDP49Y4H/m5V/SYpWpOvNa+kfw==
-    size: 197689159
-path: https://github.com/minori-live/heron/releases/download/v0.7.1/Heron-0.7.1-win-x64.exe
-sha512: sLXTGqRbrmJyVWUNIqu6OPEmU8VIZHb2nOUazvv7VhAymfC7dr/RrpMxVH8bqDP49Y4H/m5V/SYpWpOvNa+kfw==
-releaseDate: 2026-10-12T03:05:57.824Z
+  - url: https://github.com/minori-live/heron/releases/download/v0.7.2/Heron-0.7.2-win-x64.exe
+    sha512: kWEc6KlC+qCpHEyd7qHeTpz0RZDiOXCP9/FpA1RL+p7Yfz1kqXNg72UcmrE2/aXL2wa2tdYkfaB56tFCJuzcTQ==
+    size: 197746004
+path: https://github.com/minori-live/heron/releases/download/v0.7.2/Heron-0.7.2-win-x64.exe
+sha512: kWEc6KlC+qCpHEyd7qHeTpz0RZDiOXCP9/FpA1RL+p7Yfz1kqXNg72UcmrE2/aXL2wa2tdYkfaB56tFCJuzcTQ==
+releaseDate: 2026-10-12T11:51:20.006Z
