@@ -205,7 +205,7 @@ describe("UI controls", () => {
 
     const trigger = wrapper.get("button")
     expect(trigger.text()).toBe("Output 1–2")
-    expect(trigger.attributes("aria-label")).toBe("Vocal output")
+    expect(trigger.attributes("aria-label")).toBe("Vocal output: Output 1–2")
 
     await trigger.trigger("click")
     const subTriggers = document.body.querySelectorAll<HTMLElement>(

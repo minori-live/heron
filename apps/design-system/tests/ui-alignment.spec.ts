@@ -73,6 +73,7 @@ test("compact numeric editing stays inside its readout and pan retains double-cl
   await page.goto(story("components-workspace-mixer-controls--track-parameters"))
   const gain = page.getByRole("button", { name: "Mixer gain" })
   await expect(gain).toBeVisible()
+  await expect(gain).toHaveAccessibleName("Mixer gain −∞")
   const before = (await gain.boundingBox())!
   await gain.dblclick()
   const editor = page.getByRole("spinbutton", { name: "Mixer gain" })
@@ -83,7 +84,7 @@ test("compact numeric editing stays inside its readout and pan retains double-cl
   await editor.fill("-3.5")
   await editor.press("Enter")
   await expect(gain).toBeFocused()
-  await expect(gain).toHaveText("-3.5")
+  await expect(gain).toHaveAccessibleName("Mixer gain -3.5")
   const pan = page.getByRole("slider", { name: "Track pan" })
   await pan.dblclick()
   await expect(page.getByRole("spinbutton", { name: "Track pan value" })).toBeFocused()

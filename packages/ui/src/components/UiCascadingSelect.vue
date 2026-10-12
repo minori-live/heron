@@ -109,6 +109,11 @@ function choose(value: string): void {
   >
     <button
       v-bind="attrs"
+      :aria-label="
+        typeof attrs['aria-label'] === 'string'
+          ? `${attrs['aria-label']}: ${selectedOption?.label ?? props.placeholder}`
+          : undefined
+      "
       type="button"
       class="ui-cascading-select"
       :class="[

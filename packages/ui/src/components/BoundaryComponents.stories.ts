@@ -164,11 +164,11 @@ export const OrdinaryControls: Story = {
   }),
   async play({ canvasElement }) {
     const canvas = within(canvasElement)
-    await userEvent.dblClick(canvas.getByRole("button", { name: "Rename track" }))
+    await userEvent.dblClick(canvas.getByRole("button", { name: "Rename track Bass" }))
     const editor = canvas.getByRole("textbox", { name: "Rename track" })
     await userEvent.clear(editor)
     await userEvent.type(editor, "Bass DI{Enter}")
-    await expect(canvas.getByRole("button", { name: "Rename track" })).toHaveTextContent("Bass DI")
+    await expect(canvas.getByRole("button", { name: "Rename track Bass DI" })).toBeVisible()
     await userEvent.click(canvas.getByRole("button", { name: /Midnight Session/ }))
     await expect(canvas.getByText("Track notes")).toBeVisible()
     const compactPlugin = canvas.getByRole("button", { name: /Alchemy/ })

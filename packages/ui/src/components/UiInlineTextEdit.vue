@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, shallowRef, useTemplateRef, watch } from "vue"
+import { nextTick, shallowRef, useId, useTemplateRef, watch } from "vue"
 
 import UiTextInput from "./UiTextInput.vue"
 
@@ -30,6 +30,8 @@ const editing = shallowRef(false)
 const draft = shallowRef("")
 const input = useTemplateRef<{ focus: () => void; select: () => void }>("input")
 const trigger = useTemplateRef<HTMLButtonElement>("trigger")
+const labelId = useId()
+const valueId = useId()
 
 watch(
   () => props.value,
@@ -95,13 +97,16 @@ function cancel(event?: Event): void {
       ref="trigger"
       class="ui-inline-edit__value"
       type="button"
-      :aria-label="props.label"
+      :aria-labelledby="`${labelId} ${valueId}`"
       :disabled="props.disabled"
       @dblclick.stop.prevent="begin"
       @keydown.f2.stop.prevent="begin"
       @keydown.enter.stop.prevent="begin"
     >
-      <slot :value="props.value">{{ props.value }}</slot>
+      <span :id="labelId" class="ui-visually-hidden">{{ props.label }}</span>
+      <span :id="valueId"
+        ><slot :value="props.value">{{ props.value }}</slot></span
+      >
     </button>
   </span>
 </template>
