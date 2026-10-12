@@ -1,3 +1,4 @@
+import { t } from "../settings"
 import { createHash, randomUUID } from "node:crypto"
 import { readFile } from "node:fs/promises"
 import { basename } from "node:path"
@@ -102,7 +103,7 @@ export class MidiImportService {
       tracks: parsed.tracks.map((track) => ({
         sourceTrack: track.sourceTrack,
         sequence: track.sequence,
-        name: track.name || `MIDI Track ${track.sourceTrack + 1}`,
+        name: track.name || t("midiImport.defaultTrackName", { index: track.sourceTrack + 1 }),
         noteCount: track.notes.length,
         eventCount: track.events.length,
         lengthTicks: track.lengthTicks,
@@ -199,7 +200,9 @@ export class MidiImportService {
           kind: "instrument",
           systemRole: null,
           name:
-            targetPlan.name?.trim() || parsedTrack.name || `Instrument ${nextInstrumentOrder + 1}`,
+            targetPlan.name?.trim() ||
+            parsedTrack.name ||
+            t("mixer.defaultNames.instrument", { index: nextInstrumentOrder + 1 }),
           color: DEFAULT_INSTRUMENT_COLOR,
           sortOrder: nextInstrumentOrder++,
           inputSource: null,
@@ -239,7 +242,9 @@ export class MidiImportService {
         id: randomUUID(),
         sourceId,
         trackId,
-        name: parsedTrack.name || `MIDI Track ${parsedTrack.sourceTrack + 1}`,
+        name:
+          parsedTrack.name ||
+          t("midiImport.defaultTrackName", { index: parsedTrack.sourceTrack + 1 }),
         startTick: plan.importTempoMap ? 0 : plan.insertionTick,
         lengthTicks: Math.max(1, parsedTrack.lengthTicks),
         sourceOffsetTicks: 0,

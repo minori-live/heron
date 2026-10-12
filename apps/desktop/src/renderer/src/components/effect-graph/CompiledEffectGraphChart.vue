@@ -3,6 +3,7 @@ import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import type { CompiledAudioGraphSnapshot } from "@heron/contracts"
 import { UiNodeGraph, type UiGraphEdge, type UiGraphNode } from "@heron/ui"
+import { compiledGraphNodeLabel } from "./compiledGraphLabels"
 import { layoutCompiledEffectGraph } from "./compiledEffectGraphLayout"
 
 const props = defineProps<{ snapshot: CompiledAudioGraphSnapshot; resetToken: number }>()
@@ -11,7 +12,7 @@ const layout = computed(() => layoutCompiledEffectGraph(props.snapshot))
 const nodes = computed<readonly UiGraphNode[]>(() =>
   layout.value.nodes.map((node) => ({
     id: node.id,
-    label: node.label,
+    label: compiledGraphNodeLabel(node),
     x: node.x,
     y: node.y,
     tone:
@@ -24,15 +25,21 @@ const nodes = computed<readonly UiGraphNode[]>(() =>
             : "neutral",
     disabled: node.pluginState === "unavailable",
     detail: [
-      node.label,
-      node.kind.replaceAll("-", " "),
-      node.pluginState ? t("effectGraph.chart.tooltip.state", { state: node.pluginState }) : "",
+      compiledGraphNodeLabel(node),
+      t(`effectGraph.chart.kinds.${node.kind}`),
+      node.pluginState
+        ? t("effectGraph.chart.tooltip.state", {
+            state: t(`effectGraph.chart.pluginStates.${node.pluginState}`)
+          })
+        : "",
       node.latencySensitive ? t("effectGraph.chart.tooltip.latencySensitive") : "",
       node.lowLatencyBypassed ? t("effectGraph.chart.tooltip.lowLatencyBypassed") : "",
       node.latencySamples > 0
         ? t("effectGraph.chart.tooltip.latency", { samples: node.latencySamples })
         : "",
-      t("effectGraph.chart.tooltip.signal", { width: node.signalWidth })
+      t("effectGraph.chart.tooltip.signal", {
+        width: t(`plugins.audioMode.${node.signalWidth}.label`)
+      })
     ]
       .filter(Boolean)
       .join(" · ")

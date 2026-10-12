@@ -5,6 +5,7 @@ import {
   type BrowserWindowConstructorOptions,
   type WebPreferences
 } from "electron"
+import { t } from "../settings"
 import { join } from "node:path"
 import { deferProjectClose } from "./dirty-project-close"
 import type { LiveDocumentService, ProjectService } from "../project"
@@ -91,6 +92,7 @@ export function secureWebPreferences(): WebPreferences {
 
 export function createSplashWindow(): BrowserWindow {
   const window = new BrowserWindow({
+    title: t("startup.starting"),
     icon: applicationIconPath,
     show: false,
     width: 620,

@@ -1,3 +1,4 @@
+import { t } from "../settings"
 import type {
   PendingMidiTake,
   PendingRecording,
@@ -87,7 +88,7 @@ export function toPendingRecording(recording: RecordingSidecar): PendingRecordin
     .map((track) => ({
       assetId: track.assetId,
       trackId: track.trackId,
-      name: `Recording ${track.trackName}`,
+      name: t("recording.defaultName", { name: track.trackName }),
       sampleRate: track.sampleRate!,
       channels: track.channels!,
       frameCount: track.frameCount!

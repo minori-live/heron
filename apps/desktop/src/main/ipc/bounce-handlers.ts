@@ -25,7 +25,7 @@ function safeFilePart(value: string): string {
       .join("")
       .replace(/[<>:"/\\|?*]/g, "-")
       .replace(/[. ]+$/g, "")
-      .trim() || "Output"
+      .trim() || t("bounce.defaultFileName")
   )
 }
 

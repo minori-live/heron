@@ -94,7 +94,10 @@ export const useAudioPreferencesStore = defineStore("audio-preferences", () => {
       const actualBufferSize = runtime.outputBufferSize ?? normalized.bufferSize
       preferences.value = { ...normalized, bufferSize: actualBufferSize }
       if (runtime.bufferFallback) {
-        applyNotice.value = `Buffer ${normalized.bufferSize} was unavailable; the native engine selected ${actualBufferSize} frames.`
+        applyNotice.value = i18n.global.t("warnings.audio.bufferFallback.message", {
+          requested: normalized.bufferSize,
+          actual: actualBufferSize
+        })
       }
       return true
     } catch (error) {

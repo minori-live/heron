@@ -270,14 +270,13 @@ export function useLiveMixer() {
       }
       hardwareOutputChannels.push(first, first + 1)
     }
-    const labels = { audio: "Audio", instrument: "Instrument", aux: "Aux", output: "Output" }
     const channel: MixerChannelCoreState = {
       id: crypto.randomUUID(),
       kind,
       name:
         kind === "output"
-          ? `Output ${hardwareOutputChannels.join("–")}`
-          : `${labels[kind]} ${sortOrder + 1}`,
+          ? t("mixer.defaultNames.output", { channels: hardwareOutputChannels.join("–") })
+          : t(`mixer.defaultNames.${kind}`, { index: sortOrder + 1 }),
       color: CHANNEL_COLORS[kind],
       sortOrder,
       inputSource: kind === "audio" ? "hardware" : kind === "aux" ? "bus" : null,

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
+const { t } = useI18n()
 import { computed, shallowRef } from "vue"
 import {
   UiAutomationLane,
@@ -137,7 +139,12 @@ const uiPoints = computed<UiAutomationLanePoint[]>(() =>
     id: point.id,
     x: positionToX(point.position),
     y: valueToY(point.value),
-    label: `${props.valueLabel} ${point.value.toFixed(2)} at ${point.position.toFixed(2)} ${props.positionLabel}`,
+    label: t("studio.globalLane.pointLabel", {
+      label: props.valueLabel,
+      value: point.value.toFixed(2),
+      position: point.position.toFixed(2),
+      unit: props.positionLabel
+    }),
     selected: point.id === props.selectedId,
     removable: !point.lockRemoval
   }))
@@ -150,7 +157,7 @@ const horizontalGuides = computed(() =>
 <template>
   <UiAutomationLane
     mode="value"
-    :label="`${valueLabel} global track editor. Double-click to add a point.`"
+    :label="t('studio.globalLane.pointEditor', { label: valueLabel })"
     :width="contentWidth"
     :height="height"
     :color="color"

@@ -21,6 +21,11 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
+const cpuModel = computed(() =>
+  props.report?.system.cpuModel === "Unknown processor"
+    ? t("benchmark.unknownProcessor")
+    : props.report?.system.cpuModel
+)
 
 const ratingCopy = computed<Record<AudioBenchmarkRating, { label: string; summary: string }>>(
   () => ({
@@ -91,7 +96,7 @@ function format(value: number, digits = 1): string {
 
       <footer class="report-footer">
         <div>
-          <span>{{ report.system.cpuModel }}</span>
+          <span>{{ cpuModel }}</span>
           <small>{{
             t("benchmark.footer.logicalCores", {
               count: report.system.logicalCores,

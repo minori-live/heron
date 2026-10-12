@@ -1,10 +1,11 @@
 import type { StartupProgressSnapshot } from "@heron/contracts"
-import { t } from "../settings"
+import { getMainLocale, t } from "../settings"
 
 type StartupProgressListener = (snapshot: StartupProgressSnapshot) => void
 
 function initialProgress(): StartupProgressSnapshot {
   return {
+    locale: getMainLocale(),
     phase: "starting",
     progress: 0.02,
     label: t("startup.starting"),

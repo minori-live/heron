@@ -3,6 +3,7 @@ import { onScopeDispose, shallowRef } from "vue"
 import type { RpcEvent, StartupProgressSnapshot } from "@heron/contracts"
 import { i18n } from "../i18n"
 const INITIAL_PROGRESS: StartupProgressSnapshot = {
+  locale: i18n.global.locale.value,
   phase: "starting",
   progress: 0,
   label: i18n.global.t("startup.starting"),

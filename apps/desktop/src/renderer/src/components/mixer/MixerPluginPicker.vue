@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { pluginCompatibilityMessage } from "../../utils/pluginCompatibility"
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { UiDropdownMenu, type UiMenuEntry } from "@heron/ui"
@@ -76,7 +77,7 @@ const pickerMenu = computed(() => {
             pluginSupportsHostedAudioMode(plugin, option.value)
           const unavailableReason =
             plugin.compatibility !== "compatible"
-              ? (plugin.compatibilityReason ?? t("mixer.pluginPicker.unavailable"))
+              ? pluginCompatibilityMessage(plugin.compatibilityReason)
               : t("mixer.pluginPicker.modeNotSupported", { mode: option.label })
           return {
             kind: "item",

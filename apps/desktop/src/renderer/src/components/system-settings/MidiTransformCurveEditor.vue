@@ -151,6 +151,16 @@ function removeLastSegment(): void {
 <template>
   <div class="curve-editor">
     <UiCurveEditor
+      :label="t('midiSettings.curve.label')"
+      :instructions="t('midiSettings.curve.instructions')"
+      :hint="t('midiSettings.curve.hint')"
+      :value-text="
+        (handle) =>
+          t('midiSettings.curve.valueText', {
+            input: handle.x.toFixed(3),
+            output: handle.y.toFixed(3)
+          })
+      "
       :curves="curves"
       :handles="handles"
       :x-label="t('midiSettings.curve.xLabel')"

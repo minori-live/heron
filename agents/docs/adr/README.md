@@ -45,6 +45,8 @@ evidence belong in their owning documents rather than being copied into each ADR
 
 | [0035 — Explicit route formats](0035-explicit-route-formats.md) | Accepted | Independent mono/stereo main and Send routes, BUS pairs, persistence and native mixing |
 
+| [0036 — Startup progress locale](0036-startup-progress-locale.md) | Accepted | Explicit language for splash text, fonts, and document metadata |
+
 Accepted means the architecture is chosen, not that every feature or release
 acceptance test is complete. Each record states its implementation scope; the
 [roadmap](../roadmap.md) owns delivery and evidence status. A proposal cannot be
@@ -53,7 +55,7 @@ used as permission to implement or claim an accepted compatibility commitment.
 ## 2026-09-06 baseline reset
 
 The numbers in this section's mapping table belong to a **superseded series**.
-Current records are 0001–0023 and 0025–0035; 0009 in the table below refers to the retired
+Current records are 0001–0023 and 0025–0036; 0009 in the table below refers to the retired
 record, not to any record in this series.
 
 At the maintainer's request, the previous 16 records were consolidated into this

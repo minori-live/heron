@@ -29,7 +29,7 @@ export const useAudioBenchmarkStore = defineStore("audio-benchmark", () => {
     errorMessage.value = ""
     try {
       const target = audioRuntime.audioHostRef
-      if (!target) throw new Error("Audio host resource is unavailable.")
+      if (!target) throw new Error(i18n.global.t("errors.audioEngineUnavailable"))
       const result = await window.heron.runAudioBenchmark(mutationMeta(target, "audio-benchmark"))
       if (!result.ok) {
         errorMessage.value = rpcErrorMessage(result.error)

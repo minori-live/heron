@@ -8,7 +8,11 @@ import {
   type UiCascadingSelectHoverTreatment,
   type UiSelectSize
 } from "@heron/ui"
-import { MAJOR_KEY_SIGNATURE_CHOICES, MINOR_KEY_SIGNATURE_CHOICES } from "../../utils/keySignatures"
+import {
+  MAJOR_KEY_SIGNATURE_CHOICES,
+  MINOR_KEY_SIGNATURE_CHOICES,
+  keySignatureLabel
+} from "../../utils/keySignatures"
 
 defineOptions({ inheritAttrs: false })
 
@@ -33,11 +37,17 @@ const { t } = useI18n()
 const groups = computed<readonly UiCascadingSelectGroup[]>(() => [
   {
     label: t("studio.arrangement.majorKeys"),
-    options: MAJOR_KEY_SIGNATURE_CHOICES
+    options: MAJOR_KEY_SIGNATURE_CHOICES.map((choice) => ({
+      ...choice,
+      label: keySignatureLabel(choice.fifths, choice.mode)
+    }))
   },
   {
     label: t("studio.arrangement.minorKeys"),
-    options: MINOR_KEY_SIGNATURE_CHOICES
+    options: MINOR_KEY_SIGNATURE_CHOICES.map((choice) => ({
+      ...choice,
+      label: keySignatureLabel(choice.fifths, choice.mode)
+    }))
   }
 ])
 </script>
@@ -45,6 +55,7 @@ const groups = computed<readonly UiCascadingSelectGroup[]>(() => [
 <template>
   <UiCascadingSelect
     v-model="model"
+    :placeholder="t('common.choose')"
     v-bind="attrs"
     :groups="groups"
     :size="props.size"

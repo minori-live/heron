@@ -1,5 +1,7 @@
 import { mount } from "@vue/test-utils"
-import { describe, expect, it, vi } from "vitest"
+import { nextTick } from "vue"
+import { setAppLocale } from "../../i18n"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import type { CompiledAudioGraphSnapshot } from "@heron/contracts"
 import CompiledEffectGraphChart from "./CompiledEffectGraphChart.vue"
 
@@ -51,7 +53,7 @@ vi.mock("./compiledEffectGraphLayout", () => ({
       {
         id: "sensitive",
         label: "Sensitive",
-        kind: "channel-input",
+        kind: "hardware-input",
         pluginState: null,
         latencySensitive: true,
         lowLatencyBypassed: false,
@@ -88,6 +90,8 @@ const snapshot: CompiledAudioGraphSnapshot = {
   edges: []
 }
 
+afterEach(() => setAppLocale("en-US"))
+
 describe("CompiledEffectGraphChart", () => {
   it("maps the compiled graph to the Storybook graph adapter", async () => {
     const wrapper = mount(CompiledEffectGraphChart, {
@@ -113,7 +117,12 @@ describe("CompiledEffectGraphChart", () => {
       { id: "send", from: "active", to: "sensitive", tone: "warning" }
     ])
 
+    setAppLocale("zh-cmn-Hans-CN")
+    await nextTick()
+    expect(graph.props("nodes")[2].detail).toContain("状态：不可用")
+    expect(graph.props("nodes")[2].detail).toContain("单声道")
     await wrapper.setProps({ resetToken: 2 })
     expect(graph.props("resetToken")).toBe(2)
+    wrapper.unmount()
   })
 })

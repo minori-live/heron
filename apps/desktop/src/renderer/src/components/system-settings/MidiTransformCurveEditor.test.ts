@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils"
 import { nextTick } from "vue"
-import { describe, expect, it } from "vitest"
+import { i18n, setAppLocale } from "../../i18n"
+import { afterEach, describe, expect, it } from "vitest"
 import type { MidiAbsoluteTransformProfile } from "@heron/contracts"
 import { UiCurveEditor, UiNumberInput } from "@heron/ui"
 import MidiTransformCurveEditor from "./MidiTransformCurveEditor.vue"
@@ -23,7 +24,29 @@ function profile(discontinuous = false): MidiAbsoluteTransformProfile {
   }
 }
 
+afterEach(() => setAppLocale("en-US"))
+
 describe("MidiTransformCurveEditor", () => {
+  it("updates shared curve instructions, values and hints when the language changes", async () => {
+    const wrapper = mount(MidiTransformCurveEditor, { props: { modelValue: profile() } })
+    try {
+      setAppLocale("zh-cmn-Hans-CN")
+      await nextTick()
+      const curve = wrapper.getComponent(UiCurveEditor)
+      expect(curve.get('[role="group"]').attributes("aria-label")).toBe(
+        i18n.global.t("midiSettings.curve.label")
+      )
+      expect(curve.text()).toContain(i18n.global.t("midiSettings.curve.instructions"))
+      expect(curve.text()).toContain(i18n.global.t("midiSettings.curve.hint"))
+      const handle = curve.get('[role="slider"]')
+      expect(handle.attributes("aria-valuetext")).toBe("输入 0.000，输出 0.000")
+      await handle.trigger("focus")
+      expect(curve.get("output").text()).toContain("输入 0.000，输出 0.000")
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it("moves a continuous segment boundary as one shared handle", async () => {
     const wrapper = mount(MidiTransformCurveEditor, { props: { modelValue: profile() } })
 

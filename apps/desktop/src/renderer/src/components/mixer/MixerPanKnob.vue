@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n"
+const { t } = useI18n()
 import { computed } from "vue"
 import { UiRotaryControl } from "@heron/ui"
 
@@ -34,8 +36,8 @@ function panValueText(value: number): string {
       :step="1"
       :default-value="0"
       :bipolar-center="0"
-      :label="`${channelName} pan`"
-      :value-label="`${channelName} pan value`"
+      :label="t('mixer.controls.pan', { name: channelName })"
+      :value-label="t('mixer.controls.panValue', { name: channelName })"
       :value-text="panValueText"
       double-click-action="edit"
       await-commit

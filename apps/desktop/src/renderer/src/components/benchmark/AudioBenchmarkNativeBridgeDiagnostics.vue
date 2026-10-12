@@ -73,7 +73,7 @@ function ipcRate(scenario: AudioNativeBenchmarkScenario): string {
     </div>
   </div>
   <p class="ipc-diagnostics-note">
-    <b>{{ report.buildProfile.toUpperCase() }}</b>
+    <b>{{ t(`benchmark.nativeBridge.buildProfile.${report.buildProfile}`) }}</b>
     ·
     {{
       t("benchmark.nativeBridge.note.workers", {

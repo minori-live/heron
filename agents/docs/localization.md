@@ -20,6 +20,20 @@ by command ID or runtime state.
 - Keep device names, project and user-defined profile names, plug-in metadata,
   aliases, parameter keys, and protocol identifiers intact. Translate built-in
   transform profile display names by ID through `midiTransformProfileLabel`.
+- Generated track, channel, and recording names use the language at creation time.
+  Once saved they are user data and are not renamed when the language changes.
+- Cached plug-in compatibility reports retain their diagnostics. The renderer maps
+  known Heron fallback reasons to translations and preserves unknown vendor details.
+- Key signature display names translate the complete major/minor phrase while
+  retaining pitch spelling and stable selection values.
+- Shared curve editors receive localized instructions, hints, and value text as
+  well as axis labels. Loading buttons and dialogs must override English default
+  spinner and close-button labels.
+- The splash receives the saved locale in startup progress snapshots; see
+  [ADR-0036](adr/0036-startup-progress-locale.md). Independent analysis windows
+  localize both their visible title and their document/window title.
+- Compiled effect graphs translate known native labels, node kinds, plug-in states,
+  and signal widths while retaining channel and port identifiers.
 - Benchmark views translate known scenario IDs and retain supplied descriptions
   for unknown scenarios. The native report and protocol remain unchanged.
 
@@ -34,11 +48,12 @@ identifier and the separate Reka locale mapping unchanged.
 
 `pnpm --filter @heron/desktop test:unit` includes catalog parity and placeholder
 checks, literal translation-reference checks, dynamic command/state coverage,
-and a scan for untranslated static Vue text and label attributes. Its explicit
+and a scan for untranslated static Vue text, bound label/template literals, and
+missing translation props on shared dialogs, loading buttons, and curve editors. Its explicit
 exceptions cover units, protocol examples, compact control abbreviations,
 product names, and required trademark notices.
 
-The static scan does not prove that arbitrary TypeScript expressions or
+The static scan skips call expressions and does not prove that arbitrary TypeScript expressions or
 externally supplied data are localized. Review those separately, and test
 language switching for computed labels and options. Locale-changing tests must
 restore English afterward.

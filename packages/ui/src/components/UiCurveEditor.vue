@@ -7,11 +7,20 @@ const props = withDefaults(
   defineProps<{
     curves: readonly UiCurveStroke[]
     handles: readonly UiCurveHandle[]
+    label?: string
+    instructions?: string
+    hint?: string
+    valueText?: (handle: UiCurveHandle) => string
     xLabel?: string
     yLabel?: string
     disabled?: boolean
   }>(),
   {
+    label: "Editable response curve",
+    instructions:
+      "Drag a handle, or focus it and use arrow keys. Hold Shift for fine adjustment. Home and End set the minimum and maximum output.",
+    hint: "Drag a handle to shape the response curve.",
+    valueText: undefined,
     xLabel: "Input",
     yLabel: "Output",
     disabled: false
@@ -32,6 +41,13 @@ const instructionsId = `ui-curve-instructions-${useId()}`
 const selectedHandle = computed(() =>
   props.handles.find((handle) => handle.id === selectedHandleId.value)
 )
+
+function handleValueText(handle: UiCurveHandle): string {
+  return (
+    props.valueText?.(handle) ??
+    `${props.xLabel} ${handle.x.toFixed(3)}, ${props.yLabel} ${handle.y.toFixed(3)}`
+  )
+}
 
 function clamp(value: number, minimum = 0, maximum = 1): number {
   return Math.max(minimum, Math.min(maximum, value))
@@ -101,8 +117,7 @@ function handleKeydown(event: KeyboardEvent, handle: UiCurveHandle): void {
 <template>
   <div class="ui-curve-editor" :data-disabled="props.disabled || undefined">
     <span :id="instructionsId" class="ui-visually-hidden">
-      Drag a handle, or focus it and use arrow keys. Hold Shift for fine adjustment. Home and End
-      set the minimum and maximum output.
+      {{ props.instructions }}
     </span>
     <div class="ui-curve-editor__stage">
       <span class="ui-curve-editor__axis ui-curve-editor__axis--y">{{ props.yLabel }}</span>
@@ -111,7 +126,7 @@ function handleKeydown(event: KeyboardEvent, handle: UiCurveHandle): void {
         class="ui-curve-editor__canvas"
         viewBox="0 0 1000 600"
         role="group"
-        aria-label="Editable response curve"
+        :aria-label="props.label"
         preserveAspectRatio="xMidYMid meet"
         @pointermove="drag"
         @pointerup="endDrag"
@@ -141,7 +156,7 @@ function handleKeydown(event: KeyboardEvent, handle: UiCurveHandle): void {
           aria-valuemin="0"
           aria-valuemax="1"
           :aria-valuenow="handle.y"
-          :aria-valuetext="`Input ${handle.x.toFixed(3)}, output ${handle.y.toFixed(3)}`"
+          :aria-valuetext="handleValueText(handle)"
           :aria-label="handle.label"
           :aria-describedby="instructionsId"
           @focus="selectedHandleId = handle.id"
@@ -151,19 +166,16 @@ function handleKeydown(event: KeyboardEvent, handle: UiCurveHandle): void {
           <circle class="ui-curve-editor__hit-area" r="34" />
           <circle class="ui-curve-editor__handle-ring" r="16" />
           <circle class="ui-curve-editor__handle-core" r="8" />
-          <title>
-            {{ handle.label }}: input {{ handle.x.toFixed(3) }}, output {{ handle.y.toFixed(3) }}
-          </title>
+          <title>{{ handle.label }}: {{ handleValueText(handle) }}</title>
         </g>
       </svg>
       <span class="ui-curve-editor__axis ui-curve-editor__axis--x">{{ props.xLabel }}</span>
     </div>
     <output v-if="selectedHandle" class="ui-curve-editor__readout" aria-live="polite">
       <strong>{{ selectedHandle.label }}</strong>
-      <span>Input {{ selectedHandle.x.toFixed(3) }}</span>
-      <span>Output {{ selectedHandle.y.toFixed(3) }}</span>
+      <span>{{ handleValueText(selectedHandle) }}</span>
     </output>
-    <p v-else class="ui-curve-editor__hint">Drag a handle to shape the response curve.</p>
+    <p v-else class="ui-curve-editor__hint">{{ props.hint }}</p>
   </div>
 </template>
 

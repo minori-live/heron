@@ -68,6 +68,7 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
 <template>
   <UiDialog
     v-model="open"
+    :close-label="t('common.closeDialog')"
     :eyebrow="t('midiImport.eyebrow')"
     :title="t('midiImport.title')"
     :description="description"

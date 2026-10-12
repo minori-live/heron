@@ -29,6 +29,7 @@ function submit(): void {
 <template>
   <UiDialog
     v-model="open"
+    :close-label="t('common.closeDialog')"
     :dismissible="false"
     size="md"
     :eyebrow="t('deviceRecovery.eyebrow')"
@@ -92,6 +93,7 @@ function submit(): void {
       <UiButton
         variant="primary"
         :disabled="busy || finalizing || !draft.valid.value"
+        :loading-label="t('common.loading')"
         :loading="busy"
         @click="submit"
       >

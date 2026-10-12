@@ -1,3 +1,4 @@
+import { i18n } from "../i18n"
 import { acceptHMRUpdate, defineStore } from "pinia"
 import type { WaveformPeakWindow, WaveformWindowRequest } from "@heron/contracts"
 import { readMeta, rpcErrorMessage } from "../rpc"
@@ -32,7 +33,7 @@ export const useWaveformStore = defineStore("waveform", () => {
       return cached
     }
     const target = projectStore.projectRef
-    if (!target) throw new Error("Project resource is unavailable.")
+    if (!target) throw new Error(i18n.global.t("errors.projectUnavailable"))
     const result = await window.heron.readAssetWaveform(readMeta(target), request)
     if (!result.ok) throw new Error(rpcErrorMessage(result.error))
     remember(key, result.value)
@@ -42,7 +43,7 @@ export const useWaveformStore = defineStore("waveform", () => {
   async function loadRecording(request: WaveformWindowRequest): Promise<WaveformPeakWindow> {
     const recording = recordingStore.resource
     if (!recording || recording.session.id !== request.id) {
-      throw new Error("Recording resource is unavailable.")
+      throw new Error(i18n.global.t("rendererErrors.recordingDependencies"))
     }
     const result = await window.heron.recordingWaveformSnapshot(
       readMeta(recording.recording),

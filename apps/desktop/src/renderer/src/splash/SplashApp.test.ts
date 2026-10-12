@@ -2,9 +2,12 @@ import { createHead } from "@unhead/vue/client"
 import { flushPromises, mount } from "@vue/test-utils"
 import { createPinia, setActivePinia } from "pinia"
 import type { StartupProgressSnapshot } from "@heron/contracts"
-import { describe, expect, it, vi } from "vitest"
+import { i18n, setAppLocale } from "../i18n"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import SplashApp from "./SplashApp.vue"
 import { rpcEvent } from "../test/ipc"
+
+afterEach(() => setAppLocale("en-US"))
 
 describe("SplashApp", () => {
   it("renders the minimal brand and live startup progress", async () => {
@@ -34,6 +37,7 @@ describe("SplashApp", () => {
     listeners[0]?.(
       rpcEvent(
         {
+          locale: "zh-cmn-Hans-CN",
           phase: "loading-catalog",
           progress: 0.1,
           label: "Loading plug-in catalog",
@@ -47,6 +51,7 @@ describe("SplashApp", () => {
       )
     )
     await wrapper.vm.$nextTick()
+    expect(i18n.global.locale.value).toBe("zh-cmn-Hans-CN")
     expect(wrapper.text()).toContain("https://github.com/minori-live/heron")
     expect(wrapper.text()).toContain(`v${__APP_VERSION__}`)
     expect(wrapper.text()).toContain("Loading plug-in catalog")
@@ -57,6 +62,7 @@ describe("SplashApp", () => {
     listeners[0]?.(
       rpcEvent(
         {
+          locale: "zh-cmn-Hans-CN",
           phase: "scanning-plugins",
           progress: 0.5,
           label: "Scanning VST3 plug-ins",
@@ -76,5 +82,6 @@ describe("SplashApp", () => {
     expect(wrapper.text()).not.toContain("4 / 10")
     expect(wrapper.text()).not.toContain("plug-ins quarantined")
     expect(wrapper.get('[role="progressbar"]').attributes("aria-valuenow")).toBe("50")
+    wrapper.unmount()
   })
 })
