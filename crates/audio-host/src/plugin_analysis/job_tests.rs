@@ -29,7 +29,8 @@ fn settings() -> PluginAnalysisSettings {
 }
 
 fn terminal_status(jobs: &PluginAnalysisJobs, id: &str) -> PluginAnalysisJobStatus {
-    let deadline = Instant::now() + Duration::from_secs(30);
+    // Complete debug/coverage analyses can exceed 30 seconds under parallel load.
+    let deadline = Instant::now() + Duration::from_secs(60);
     loop {
         let status = jobs.status(id, false, false);
         if !matches!(status, PluginAnalysisJobStatus::Running { .. }) {
