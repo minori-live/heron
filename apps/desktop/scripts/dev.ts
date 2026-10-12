@@ -5,6 +5,10 @@ import { resolve } from "node:path"
 import { build, createServer } from "vite"
 import type { ViteDevServer } from "vite"
 
+// Vite's build API defaults NODE_ENV to production even with development mode.
+// Set it before starting either watcher so the dev server uses Vue's dev runtime.
+process.env.NODE_ENV = "development"
+
 const appDirectory = resolve(import.meta.dirname, "..")
 const electronModule: unknown = createRequire(import.meta.url)("electron")
 if (typeof electronModule !== "string") {
