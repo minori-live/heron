@@ -62,7 +62,7 @@ export function coverageSteps(mode: CoverageMode, target: string): CoverageStep[
   if (mode === "ci") {
     steps.push(
       { command: "pnpm", args: ["test:scripts"], instrumented: true },
-      { command: "mise", args: ["run", "test:official-plugin-fixtures"], instrumented: true }
+      { command: "mise", args: ["run", "test:plugin-analysis"], instrumented: true }
     )
   }
   steps.push(

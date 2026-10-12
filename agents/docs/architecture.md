@@ -200,20 +200,24 @@ old endpoint on the audio thread, wait for its lease to return, reactivate on
 the control thread, then publish the replacement endpoint. A failed
 reactivation leaves the committed project intact and the live graph bypassed.
 
-### Official plug-in fixture testing
+### Built-in plug-in integration testing
 
-CI pins and builds Steinberg's AGain and Note Expression Synth VST3 examples
-and the free-audio headless CLAP example module. Heron's own probes must
-enumerate their expected native IDs before the embedded host tests load them.
-The VST3 example build also runs Steinberg's validator against both fixtures.
-The smoke tests then exercise parameters, state, side-chain configuration,
-CLAP note events, graph publication, mock-device processing, and output
-metering; the VST3 fixture also runs its native editor under Xvfb.
+CI uses the pinned released Heron plug-ins for host integration. The
+cross-platform `test:builtin-vst3` task checks the four plug-ins' native
+identities and capabilities, historical state restoration, Gain processing in
+a live graph, and EQ integration. Linux additionally runs instrumented
+`test:plugin-analysis` with Heron Gain to exercise state cloning, parameter
+replay, processing and report mapping. The Linux Electron end-to-end suite
+opens independent native Gain editors.
 
-Upstream plug-in validators complement this flow but do not replace it: a
-validator checks whether a plug-in behaves correctly when driven by its own
-reference host, while these fixtures check whether Heron behaves correctly as
-the host. No upstream fixture binary is checked into the repository.
+CI no longer builds or runs Steinberg VST3 or free-audio CLAP example plug-ins.
+Their local diagnostic scripts remain available. The VST3 SDK remains a
+production host build dependency. Real plug-in tests establish the exercised
+Heron integration, not general plug-in or SDK conformance.
+
+The Heron plug-in suite is the basis for future AU, AAX and CLAP integration
+coverage. Current host CI consumes VST3 bundles only; those additional formats
+need their own released artifacts and host checks before they provide evidence.
 
 ## Failure model
 

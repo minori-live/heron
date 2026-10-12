@@ -94,11 +94,14 @@ PGlite persistence, packaged resources, or critical recording/save/recovery flow
 Assert Heron's bytes, durable state, output or visible result. Plain-object
 `JSON.parse(JSON.stringify(fixture))` equality proves JSON, not our encoder.
 
-Real PGlite rollback tests and official VST3/CLAP fixtures remain justified:
-they test Heron's transactional usage, native layout negotiation, callbacks,
-lease lifetime, state handling and audio output. They do not establish general
-PGlite or plug-in conformance. Cross-language normative wire fixtures protect
-Heron's schema/ABI and are distinct from a library round-trip test.
+Real PGlite rollback tests and integration tests using released Heron plug-ins
+remain justified when they prove Heron's transactional usage, native layout
+negotiation, callbacks, lease lifetime, state handling or audio output. CI uses
+the pinned built-in VST3 suite rather than separately building upstream VST3 or
+CLAP examples. Additional formats need their own artifact and host evidence;
+VST3 results do not establish AU, AAX or CLAP support. Cross-language normative
+wire fixtures protect Heron's schema/ABI and are distinct from a library
+round-trip test. These tests do not establish general dependency conformance.
 
 Keep allocation, queue pressure, publication, concurrency and signal-correctness
 tests at the engine/host boundary. Keep platform hardware and soak evidence where

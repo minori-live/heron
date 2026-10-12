@@ -24,9 +24,12 @@ builds, and tagged releases.
   test suite is repeated. Windows and macOS run
   `mise run ci:check:native-coverage`, which collects Rust coverage from workspace
   tests and instrumented napi-rs calls while running desktop and project-database
-  tests without JavaScript coverage. All reports are uploaded to Codecov and
-  notifications are published only after the complete matrix succeeds. The
-  workflow is reusable through `workflow_call` and can also be started manually.
+  tests without JavaScript coverage. Each platform also runs
+  `mise run test:builtin-vst3` against the pinned Heron plug-in release; the Linux
+  end-to-end suite exercises the bundled Gain's native editors. All reports are
+  uploaded to Codecov and notifications are published only after the complete
+  matrix succeeds. The workflow is reusable through `workflow_call` and can also
+  be started manually.
   Callers must pass `CODECOV_TOKEN` when available (see `CI` and `Publish`).
 - **Build** (`.github/workflows/build.yml`) packages installers for Windows
   x64, Linux x64 and arm64, and universal macOS as a packaging smoke test. It
@@ -71,17 +74,16 @@ those copies previously consumed most of the repository's 10 GB cache quota and
 evicted shared sccache objects. Rust compilation
 uses sccache's shared GitHub Actions backend. Check jobs may restore a Cargo `target`
 cache; packaging jobs leave it disabled because the directory is large and can
-retain stale platform-specific build state. The Linux check leg additionally
-caches the built official VST3/CLAP fixtures as
-`target/official-plug-in-fixtures`, keyed on the pinned fixture commits and the
-CMake/toolchain inputs. Only the finished bundles are archived, and only `main`
-and tag runs save, so pull requests cannot add fixture cache writes. Coverage is
-collected in each Checks test pass. Every platform uses cargo-llvm-cov's external-test environment
+retain stale platform-specific build state. Plug-in integration uses the pinned
+Heron bundles prepared by `plugins:prepare`; CI does not build or cache upstream
+VST3 or CLAP example plug-ins. Coverage is collected in each Checks test pass.
+Every platform uses cargo-llvm-cov's external-test environment
 to run Cargo tests, build the napi-rs module with instrumentation, execute the
 native binding tests, and export merged Rust profiles after Node exits. Linux
-also runs the JavaScript coverage suites and official plug-in fixtures. Each
-test suite runs once. Instrumented artifacts stay in `target-coverage/`, outside
-the shared Checks `target` cache. cargo-llvm-cov chains the sccache
+also runs the JavaScript coverage suites and instrumented plug-in analysis with
+the prepared Heron Gain VST3. Each test suite runs once. Instrumented artifacts
+stay in `target-coverage/`, outside the shared Checks `target` cache.
+cargo-llvm-cov chains the sccache
 `RUSTC_WRAPPER`, and sccache caches the instrumented
 builds and repeat runs reuse them.
 
@@ -157,10 +159,12 @@ tests with the original environment after exporting Rust coverage.
 
 The workspace and `heron-dsp-node/bench-internals` feature selectors apply when
 Cargo creates the instrumented test binaries and napi-rs modules. Linux also
-runs the instrumented official plug-in fixtures; Windows and macOS intentionally
-stop after the native binding tests because those fixtures are Linux-only. The final
-`cargo llvm-cov report` follows cargo-llvm-cov's external-test workflow and
-exports every object and raw profile collected through that environment. It does
+runs `mise run test:plugin-analysis` in the instrumented environment. Its
+`plugins:prepare` dependency supplies Heron Gain, and the analysis smoke exercises
+the passthrough and VST3 paths. Windows and macOS export Rust coverage after the
+native binding tests. The final `cargo llvm-cov report` follows
+cargo-llvm-cov's external-test workflow and exports every object and raw profile
+collected through that environment. It does
 not repeat build selectors; the locked cargo-llvm-cov version rejects them on the
 `report` subcommand.
 

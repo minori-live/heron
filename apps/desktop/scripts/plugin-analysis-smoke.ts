@@ -18,7 +18,10 @@ const fixtures = [
           format: "vst3",
           path: vst3Path,
           nativeId: vst3Id,
-          gainFixture: vst3Id === "41347FD6FED64094AFBB12B7DBA1D441"
+          gainFixture: [
+            "41347FD6FED64094AFBB12B7DBA1D441",
+            "46774F504DF84B4AC1F308AB88DD3677"
+          ].includes(vst3Id ?? "")
         }
       ]
     : []),

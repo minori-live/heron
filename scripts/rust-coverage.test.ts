@@ -25,7 +25,7 @@ await test("coverage environment preserves paths and flags as literal data witho
   assert.throws(() => parseCoverageEnvironment(""))
 })
 
-await test("coverage reports include native bindings and CI fixture runs before export", () => {
+await test("coverage reports include native bindings and CI plug-in analysis before export", () => {
   const target = "x86_64-unknown-linux-gnu"
   for (const mode of ["local", "ci", "native"] as const) {
     const steps = coverageSteps(mode, target)
@@ -49,13 +49,13 @@ await test("coverage reports include native bindings and CI fixture runs before 
     assert.ok(steps[report]?.args.includes("coverage/rust/lcov.info"))
     assert.ok(steps[report + 1]?.args.includes("scripts/rewrite-lcov-paths.ts"))
 
-    const fixtures = steps.findIndex((step) => step.args.includes("test:official-plugin-fixtures"))
+    const analysis = steps.findIndex((step) => step.args.includes("test:plugin-analysis"))
     const javascript = steps.findIndex((step) => step.args.includes("test:coverage:js"))
     if (mode === "ci") {
-      assert.ok(bindings < fixtures && fixtures < report)
+      assert.ok(bindings < analysis && analysis < report)
       assert.ok(steps.some((step) => step.args.includes("test:scripts")))
     } else {
-      assert.equal(fixtures, -1)
+      assert.equal(analysis, -1)
     }
     assert.equal(javascript >= 0, mode !== "native")
   }
