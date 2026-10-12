@@ -44,11 +44,12 @@ local in each repository so either can be developed independently.
 
 `AGENTS.md` is the concise repository entry point. These documents are the
 normative detail behind it. The roadmap orders user outcomes; the Live product
-contract defines the v0.5.0 performance baseline, and ADR-0004 defines Current
-Live project delivery architecture; engineering standards govern code and
-tests; architecture and ADRs govern ownership and durable technical decisions;
-interaction design governs workflow behavior; and the design system governs
-visual primitives and accessibility.
+contract defines the v0.5.0 performance baseline; architecture and feature
+documents define current ownership and design; engineering standards govern
+code and tests; interaction design governs workflow behavior; and the design
+system governs visual primitives and accessibility. ADRs preserve the rationale
+for durable choices, including the Live design in ADR-0004. Creation, acceptance,
+and revisions follow [ADR governance](adr/README.md).
 
 The public `docs/` workspace describes behavior that is already available to
 users. Do not use public documentation to announce unimplemented roadmap scope.
@@ -73,10 +74,14 @@ Apply the documents by responsibility:
    the current architecture or interaction rule exists.
 
 The roadmap decides sequencing but does not waive these rules. A proposed ADR
-is not authority. When an accepted ADR changes a durable decision, update the
-current architecture or interaction document in the same change. If an
-accepted ADR and a current-state document disagree, stop and reconcile the
-documentation before treating either interpretation as permission to ship.
+is not authority. Maintain current rules in the owning documents as part of
+authorized work. Historical implementation details in an ADR do not independently
+freeze the current design; clarify misleading details with a dated amendment
+and a link as described in [ADR governance](adr/README.md). Genuine conflicts
+about durable commitments require resolution within the maintainer's direction;
+neither a documentation edit nor an agent-written status label authorizes a
+change outside the task. Raise unresolved substantive conflicts and continue
+unaffected work. ADR creation is not a routine approval stage.
 
 Mechanical rules belong in `mise run check` or a narrower repository check.
 Judgment-based rules are recorded in the pull-request governance review.

@@ -14,10 +14,12 @@ Logic's branding or visual skin; it preserves the expectations a Logic user
 brings to an equivalent operation.
 
 When Heron deliberately differs, the product specification names the different
-behavior and its reason. A material, lasting departure from the reference that
-affects workflow or project semantics requires an ADR. Product-specific
-constraints such as cross-platform input, accessibility, and real-time safety
-take precedence when documented.
+behavior and its reason. Update this specification or the owning feature
+document for authorized workflow and project-semantics changes. Maintainers
+decide whether a lasting departure warrants an ADR under
+[ADR governance](adr/README.md); the departure alone does not require one.
+Product-specific constraints such as cross-platform input, accessibility, and
+real-time safety take precedence when documented.
 
 ## No-training test
 

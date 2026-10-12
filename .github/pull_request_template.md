@@ -24,14 +24,14 @@ Title: use Conventional Commits, e.g.
 - [ ] [Engineering standards](https://github.com/minori-live/heron/blob/main/agents/docs/engineering-standards.md): ownership, failure states, tests, documentation, and source cohesion are addressed.
 - [ ] [Architecture](https://github.com/minori-live/heron/blob/main/agents/docs/architecture.md): dependency direction, process/thread ownership, protocols, and real-time constraints are preserved or updated.
 - [ ] [Interaction design](https://github.com/minori-live/heron/blob/main/agents/docs/interaction-design.md): affected workflows follow the documented DAW behavior, feedback, accessibility, and recovery rules.
-- [ ] [ADR governance](https://github.com/minori-live/heron/blob/main/agents/docs/adr/README.md): no ADR trigger applies, or the accepted/proposed ADR and its status are linked below.
+- [ ] [ADR governance](https://github.com/minori-live/heron/blob/main/agents/docs/adr/README.md): current documentation is updated where needed; any new ADR or acceptance follows explicit maintainer direction.
 - [ ] Exceptions, TODOs/FIXMEs, and deferred correctness work are absent or linked to a scoped issue.
 
 <!--
 Engineering evidence / N/A reason:
 Architecture impact / N/A reason:
 Interaction impact / N/A reason:
-ADR or exception link:
+Documentation updates; maintainer ADR direction if applicable; exception link:
 -->
 
 ## Test plan

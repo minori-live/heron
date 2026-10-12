@@ -71,7 +71,8 @@ Optimization direction: separate control/arrangement data from plug-in state;
 reuse revision-bound state or return affected data with a validated commit result.
 Preserve the existing rule that snapshot/decoding failure rolls back a mutation,
 along with prepared-token, reconciliation, acknowledgement, and retry semantics.
-Changes to that protocol need an ADR and failure-path tests.
+Changes to that protocol need updated owning documentation and failure-path
+tests. Follow [ADR governance](adr/README.md) for maintainer-directed records.
 
 Excluded false positives: fader preview is separate from commit and already
 coalesced. Not every pointer move writes the database. Main graph reads normally
@@ -220,7 +221,9 @@ and real media import/export. Keep warm read benchmarks but label them accuratel
   reads/imports, archive dumps, and background waveform jobs can delay later
   interactive requests. Queue wait time was not instrumented in this audit.
 
-Changing persistence layout or maintenance policy needs an ADR and recovery tests.
+Changing persistence layout or maintenance policy needs updated owning
+documentation and recovery tests. Follow [ADR governance](adr/README.md) for
+maintainer-directed records.
 These are measured or source-confirmed architectural costs, not evidence that
 every save must use a different format.
 

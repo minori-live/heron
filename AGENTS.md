@@ -56,9 +56,15 @@ under `.agents/skills/`.
 - Tests must prove Heron-owned behavior at the narrowest useful boundary.
   Follow `agents/docs/testing.md` when adding, changing, or auditing tests;
   remove upstream conformance checks and duplicate evidence.
-- Create an ADR for changes to process/thread boundaries, persistence, cross-
-  process protocols, real-time assumptions, foundational dependencies,
-  compatibility commitments, or material interaction semantics.
+- Maintain current design and behavior in the existing owning documents by
+  default. Agents MUST NOT create an ADR or mark one Accepted without an
+  explicit maintainer request for that action; authorization to implement a
+  change does not imply either. Touching persistence, protocols, threads,
+  real-time behavior, dependencies, compatibility, or interactions does not
+  automatically require an ADR. Briefly mention a candidate durable decision
+  in the work summary or PR and continue authorized work; do not interrupt
+  solely to ask whether an ADR is needed. Work beyond the authorized scope
+  still requires maintainer direction. See `agents/docs/adr/README.md`.
 
 ## Common Commands
 

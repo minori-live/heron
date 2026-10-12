@@ -55,7 +55,8 @@ body:
       label: Interaction reference
       description: |
         For user-facing behavior, describe the matching Logic/DAW convention or
-        the deliberate deviation. A material lasting deviation requires an ADR.
+        the deliberate deviation and its reason in the owning specification.
+        Maintainers decide whether a separate ADR is useful under the ADR rules.
         Use N/A with a reason when no interaction changes.
     validations:
       required: true
@@ -65,8 +66,9 @@ body:
     attributes:
       label: Architecture and ADR impact
       description: |
-        Identify affected owners and boundaries. Link a proposed/accepted ADR if
-        a trigger applies, or state why the change stays within current rules.
+        Identify affected owners, boundaries, and current documents to update.
+        Link an ADR when a maintainer has requested one; otherwise describe the
+        design here. An affected technical domain does not require a new ADR.
     validations:
       required: true
 

@@ -222,8 +222,11 @@ Follow [Interaction design](interaction-design.md) for product behavior and
 
 ## Architecture decisions and exceptions
 
-Create an ADR for the triggers listed in [ADR governance](adr/README.md). A
-policy exception MUST link to an issue. An issue link is sufficient at the
+Maintain current design and behavior in the existing owning documents and
+explain implementation choices and validation in the PR. Follow
+[ADR governance](adr/README.md) for maintainer-directed creation, acceptance,
+and amendments; a changed technical domain alone does not require a record.
+A policy exception MUST link to an issue. An issue link is sufficient at the
 current project scale; do not invent a parallel waiver bureaucracy.
 
 Exceptions are narrow: they identify the file, rule, and reason. They MUST NOT

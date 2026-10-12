@@ -28,11 +28,14 @@ applicable to the changed scope:
 - [Agent guide](AGENTS.md) (conventions used by automation and humans alike)
 
 Review every document that applies; a documentation-only or isolated internal
-change need not pretend to affect every domain. Material changes to ownership,
-process/thread boundaries, persistence, protocols, real-time assumptions,
-foundational dependencies, compatibility, or Logic interaction semantics need
-an ADR before implementation assumes the decision is accepted. Policy
-exceptions and deferred correctness work must link to an issue.
+change need not pretend to affect every domain. Update the existing owning
+documents for current design and behavior, and explain the change and its
+validation in the PR. Maintainers decide when a durable choice warrants an ADR;
+changes to architecture, persistence, protocols, compatibility, or interactions
+do not automatically require one. Agents may create an ADR or mark one Accepted
+only when explicitly requested by a maintainer for that action. Follow
+[ADR governance](agents/docs/adr/README.md) for documentation placement and
+revisions. Policy exceptions and deferred correctness work must link to an issue.
 
 ## Pull requests
 

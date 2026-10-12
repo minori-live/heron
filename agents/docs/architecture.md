@@ -264,8 +264,9 @@ signal; it does not recover in place.
 
 ## Decision governance
 
-Changes to process/thread ownership, persistence, cross-process protocols,
-real-time assumptions, foundational dependencies, compatibility commitments,
-or material Logic interaction semantics require an architecture decision record.
-See [ADR governance](adr/README.md). Accepted decisions are reflected back into
-this current-state document; proposed decisions are not current architecture.
+Update this document and the relevant feature documents when authorized work
+changes current architecture. Explain the change and its validation in the PR.
+Maintainers decide when a durable choice warrants a separate record under
+[ADR governance](adr/README.md); touching an architectural boundary does not
+automatically require one. Agents must follow that policy's explicit request
+and acceptance rules. Proposed decisions are not current architecture.

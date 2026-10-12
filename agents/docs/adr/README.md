@@ -110,28 +110,91 @@ The new record from that review is 0011, Protocol owns the wire shape. Records
 0001–0010 keep their identities and existing links. Homebrew distribution is
 recorded separately in 0012.
 
-## When a decision record is required
+## Documentation defaults
 
-Create an ADR before changing process/thread ownership, persistence or project
-compatibility, cross-process/native protocols, real-time safety, foundational
-dependencies, long-term compatibility commitments, or material interaction
-semantics departing from the Logic reference or accepted architecture.
+Update the existing owning documents as part of authorized work. Choose the
+location by the information's purpose:
 
-Small implementation choices, routine dependency patches, reversible refactors
-within one owner, test deduplication and issue triage do not need separate ADRs.
-Prefer one cohesive decision over a record for each implementation step.
+| Information                                                         | Default location                                        |
+| ------------------------------------------------------------------- | ------------------------------------------------------- |
+| Current architecture, behavior, and compatibility policy            | Existing architecture, interaction, or feature document |
+| A bug's cause, the fix, and validation results                      | Pull request description                                |
+| Temporary limitations and tracked follow-up work                    | Issue                                                   |
+| A non-obvious local implementation constraint                       | Comment beside the owning code                          |
+| A durable choice whose rationale deserves independent future review | ADR, when explicitly requested by a maintainer          |
+
+Do not create a new decision document under another name to bypass these rules.
+Update shipped user documentation when user-visible behavior changes, following
+its existing scope. Documentation requirements do not imply an ADR requirement.
+
+## Maintainer direction
+
+Maintainers decide when to create an ADR. Agents MUST NOT create one, including
+a Proposed draft, without an explicit maintainer request to create that record.
+They MUST NOT mark a record Accepted without explicit maintainer acceptance.
+Authorization to implement a feature or fix does not imply either action.
+A request already given in the task or review is sufficient; do not ask again.
+
+Changes involving process/thread ownership, persistence, cross-process/native
+protocols, real-time behavior, foundational dependencies, compatibility, or
+interaction semantics do not automatically require an ADR. Neither does the
+presence of a related accepted record. Routine fixes, protocol fields, schema
+migrations within an existing persistence design, display thresholds, gestures,
+dependency updates, and implementation stages belong in their owning documents
+and PRs unless a maintainer explicitly requests a decision record.
+
+When a choice appears worth recording separately, briefly explain in the work
+summary or PR why future maintainers would need its rationale, which realistic
+alternatives carry meaningful tradeoffs, and what would make reversal costly.
+A choice of embedded versus separate-process audio runtime or a replacement
+project storage model may justify that discussion. These are considerations for
+the maintainer, not automatic triggers or a checklist required for every PR.
+
+Continue work already authorized. Do not pause solely to ask whether to create
+an ADR, and do not add an ADR approval stage to routine development. Changes
+outside the authorized task or to commitments it does not authorize changing
+still require maintainer direction, regardless of documentation format.
+
+## Current rules and historical rationale
+
+Current architecture and product rules belong in their owning documents. ADRs
+preserve important choices and explain their rationale; they are not a second
+copy of the current specification or an implementation log. When an authorized
+change affects current rules, update the owning documents in the same change.
+
+An implementation detail does not become a permanent architectural commitment
+solely because an accepted ADR mentions it. Correcting a field, threshold,
+compatibility edge case, or staged implementation detail does not require a
+replacement record. Update the owning document when applicable; if an existing
+ADR would mislead readers, add a short dated amendment linking the current
+rule and the relevant PR or issue. Preserve the original rationale and identify
+what changed rather than silently rewriting the historical choice.
+
+A genuine reversal of a durable decision may warrant a replacement ADR at the
+maintainer's direction. Do not silently weaken existing product promises,
+ownership boundaries, safety constraints, or compatibility commitments by
+editing current documentation or labeling a substantive change a detail. If
+such a conflict is outside the authorized scope or cannot be resolved from the
+maintainer's direction, raise that specific decision while continuing unaffected
+work. A difference in historical implementation detail alone is not a reason
+to block work.
 
 ## Lifecycle and review
 
-Use four digits and a short kebab-case title, starting the next record at **0036**.
-Copy [the template](template.md). Status is Proposed, Accepted, Superseded by
-ADR-NNNN, or Rejected. Accepted records change only for editorial corrections,
-links and explicit implementation-scope clarification; changing a decision
-requires a new record and a supersession link.
+When requested, use the next unused four-digit number and a short kebab-case
+title, and copy [the template](template.md). Status is Proposed, Accepted,
+Superseded by ADR-NNNN, or Rejected. Start at Proposed unless the maintainer has
+explicitly accepted the decision. Record the request and acceptance references
+when available; an agent's status label is not evidence of maintainer acceptance.
 
-The authorized baseline reset above is a one-time consolidation, not a routine
-renumbering policy. Future history stays stable unless another reset is explicitly
-requested. Record owner, context, testable decision, rejected alternatives,
-consequences, verification requirements and reconsideration triggers. Link an
-issue/PR when available. Normal repository review is sufficient; do not add a
-separate approval bureaucracy.
+Keep each record focused on one durable choice: context, decision, meaningful
+alternatives, consequences, and reconsideration conditions. Link current
+specifications and relevant validation evidence rather than duplicating field
+catalogs, implementation plans, test checklists, or temporary repair details.
+When a replacement is requested and accepted, link both records and identify
+which decision it supersedes. Normal repository review is sufficient.
+
+The authorized baseline reset above is a one-time consolidation. Existing
+record identities, statuses, and history remain in place; these rules do not
+authorize retrospective cleanup, deletion, or renumbering. Consolidating the
+existing collection requires a separate maintainer request.
