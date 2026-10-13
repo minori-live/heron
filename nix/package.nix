@@ -1,105 +1,178 @@
 {
   lib,
   stdenv,
+  rustPlatform,
+  rustfmt,
+  nodejs_26,
+  pnpm_12,
+  fetchPnpmDeps,
+  pnpmConfigHook,
+  electron_44,
+  fetchFromGitHub,
   fetchurl,
-  appimageTools,
+  autoPatchelfHook,
   makeWrapper,
+  wrapGAppsHook3,
+  pkg-config,
+  cmake,
+  alsa-lib,
+  libX11,
+  libXcursor,
+  libXrandr,
+  libXinerama,
+  libXext,
+  libxcb,
+  fontconfig,
+  freetype,
+  cairo,
+  pango,
+  gtk3,
+  libGL,
+  libxkbcommon,
 }:
 
 let
-  release = import ./release.nix;
+  src = lib.cleanSource ../.;
+  version = lib.trim (builtins.readFile ../VERSION);
+  pnpm = pnpm_12.override { nodejs-slim = nodejs_26; };
+  electron = electron_44;
+  arch = if stdenv.hostPlatform.isAarch64 then "arm64" else "x64";
+  pluginLock = builtins.fromJSON (builtins.readFile ../heron-plugins.lock.json);
+  pluginRelease = pluginLock.release;
+  pluginPlatform = "linux-${arch}";
+  pluginFile = pluginRelease.assets.${pluginPlatform}.runtime.file;
+  sources = import ./sources.nix;
+  plugins = fetchurl {
+    url = "https://github.com/${pluginLock.repository}/releases/download/v${pluginRelease.version}/${pluginFile}";
+    hash = sources.plugins.${stdenv.hostPlatform.system};
+  };
+  vst3sdk = fetchFromGitHub {
+    owner = "steinbergmedia";
+    repo = "vst3sdk";
+    inherit (sources.vst3sdk) rev hash;
+    fetchSubmodules = true;
+  };
+  araSdk = fetchFromGitHub {
+    owner = "Celemony";
+    repo = "ARA_SDK";
+    inherit (sources.araSdk) rev hash;
+    fetchSubmodules = true;
+  };
+in
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "heron";
-  inherit (release) version;
+  inherit version src;
 
-  archSuffix =
-    if stdenv.hostPlatform.isx86_64 then
-      "x86_64"
-    else if stdenv.hostPlatform.isAarch64 then
-      "arm64"
-    else
-      throw "Heron Linux AppImages are only published for x86_64 and aarch64";
-
-  system = stdenv.hostPlatform.system;
-  hash = release.hashes.${system} or (throw "No Heron release hash for ${system}");
-
-  src = fetchurl {
-    url = "https://github.com/minori-live/heron/releases/download/v${version}/Heron-${version}-linux-${archSuffix}.AppImage";
-    inherit hash;
+  cargoLock.lockFile = ../Cargo.lock;
+  pnpmDeps = fetchPnpmDeps {
+    pname = "heron";
+    inherit version src pnpm;
+    fetcherVersion = 4;
+    hash = sources.pnpm;
   };
 
-  appimageContents = appimageTools.extract { inherit pname version src; };
-in
-appimageTools.wrapType2 {
-  inherit pname version src;
+  nativeBuildInputs = [
+    nodejs_26
+    pnpm
+    pnpmConfigHook
+    rustfmt
+    rustPlatform.bindgenHook
+    pkg-config
+    cmake
+    autoPatchelfHook
+    makeWrapper
+    wrapGAppsHook3
+  ];
+  buildInputs = [
+    alsa-lib
+    libX11
+    libXcursor
+    libXrandr
+    libXinerama
+    libXext
+    libxcb
+    fontconfig
+    freetype
+    cairo
+    pango
+    gtk3
+    libGL
+    libxkbcommon
+    stdenv.cc.cc.lib
+  ];
 
-  # ALSA / PipeWire / JACK and common desktop libs beyond the default AppImage FHS set.
-  extraPkgs =
-    pkgs: with pkgs; [
-      alsa-lib
-      jack2
-      libpulseaudio
-      pipewire
-      libGL
-      libglvnd
-      mesa
-      vulkan-loader
-      wayland
-      libxkbcommon
-    ];
+  ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
+  HERON_RELEASE_BUILD = "false";
+  CARGO_NET_OFFLINE = "true";
+  dontWrapGApps = true;
+  # Preserve nixpkgs' Electron RPATH, including its dlopen-only dependencies.
+  dontAutoPatchelf = true;
+  dontPatchELF = true;
 
-  extraInstallCommands = ''
-    source ${makeWrapper}/nix-support/setup-hook
+  postPatch = ''
+    mkdir -p third_party/vst3sdk third_party/ARA_SDK
+    cp -r ${vst3sdk}/. third_party/vst3sdk/
+    cp -r ${araSdk}/. third_party/ARA_SDK/
+    chmod -R u+w third_party/vst3sdk third_party/ARA_SDK
+  '';
 
-    # wrapType2 historically installed `$out/bin/<pname>-<version>`; newer
-    # nixpkgs may already expose `$out/bin/<pname>`.
-    if [[ -e "$out/bin/${pname}-${version}" ]]; then
-      mv -f "$out/bin/${pname}-${version}" "$out/bin/${pname}"
-    elif [[ ! -e "$out/bin/${pname}" ]]; then
-      echo "Expected $out/bin/${pname} or $out/bin/${pname}-${version}; found:" >&2
-      ls -la "$out/bin" >&2
-      exit 1
-    fi
+  buildPhase = ''
+    runHook preBuild
+    # pnpm includes native build tools (Rolldown, esbuild, Sentry,
+    # app-builder and fs-native-extensions) which must run in the sandbox.
+    autoPatchelf node_modules
+    pnpm --filter @heron/dsp-node build
+    node scripts/native-build.ts build --profile release
+    mkdir -p target/plugin-artifacts/${pluginRelease.version}/${pluginPlatform}
+    cp ${plugins} target/plugin-artifacts/${pluginRelease.version}/${pluginPlatform}/${pluginFile}
+    pnpm plugins:prepare --offline
+    pnpm build:desktop
+    cp -r ${electron.dist} electron-dist
+    chmod -R u+w electron-dist
+    pnpm --filter @heron/desktop run pack --linux --${arch} \
+      --config.electronDist="$PWD/electron-dist" \
+      --config.electronVersion=${electron.version}
+    pnpm --filter @heron/desktop verify:package-security
+    runHook postBuild
+  '';
 
-    # Prefer the desktop entry and icons shipped inside the AppImage.
-    if [[ -f ${appimageContents}/heron.desktop ]]; then
-      install -Dm644 ${appimageContents}/heron.desktop \
-        "$out/share/applications/heron.desktop"
-      sed -i -e 's/^Exec=.*/Exec=heron/' "$out/share/applications/heron.desktop"
-    else
-      install -Dm644 ${./heron.desktop} "$out/share/applications/heron.desktop"
-    fi
+  # The build verifies both database templates and renderer security;
+  # also exercise the compiled N-API boundary, without audio hardware.
+  checkPhase = ''
+    runHook preCheck
+    node scripts/integration/native-bindings.test.ts
+    runHook postCheck
+  '';
 
-    if [[ -d ${appimageContents}/usr/share/icons ]]; then
-      mkdir -p "$out/share"
-      cp -Lr ${appimageContents}/usr/share/icons "$out/share/"
-    elif [[ -f ${appimageContents}/heron.png ]]; then
-      install -Dm644 ${appimageContents}/heron.png \
-        "$out/share/icons/hicolor/256x256/apps/heron.png"
-    fi
+  installPhase = ''
+    runHook preInstall
+    mkdir -p "$out/lib/heron"
+    cp -r release/linux${lib.optionalString (arch == "arm64") "-arm64"}-unpacked/. "$out/lib/heron/"
+    install -Dm644 ${./heron.desktop} "$out/share/applications/heron.desktop"
+    for icon in apps/desktop/build/icons/*.png; do
+      size=$(basename "$icon" .png)
+      install -Dm644 "$icon" "$out/share/icons/hicolor/$size/apps/heron.png"
+    done
+    runHook postInstall
+  '';
 
-    # Match electron-builder's Linux launch policy (X11 / XWayland editors).
-    wrapProgram "$out/bin/${pname}" \
+  postFixup = ''
+    autoPatchelf "$out/lib/heron/resources"
+    makeWrapper "$out/lib/heron/heron" "$out/bin/heron" \
+      "''${gappsWrapperArgs[@]}" \
       --add-flags "--ozone-platform=x11"
   '';
 
+  passthru = { inherit (finalAttrs) pnpmDeps; };
+
   meta = {
     description = "Experimental cross-platform digital audio workstation";
-    longDescription = ''
-      Heron packages the official Linux AppImage from GitHub Releases so the
-      Nix output matches the binary users get from the website and other
-      channels. Building the Electron renderer plus Rust native addon from
-      source under Nix is intentionally not provided: it would duplicate the
-      mise/pnpm/Cargo release pipeline and diverge from signed release
-      artifacts.
-    '';
     homepage = "https://heron.minori.live/";
-    changelog = "https://github.com/minori-live/heron/releases/tag/v${version}";
     license = lib.licenses.gpl3Only;
-    sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
     platforms = [
       "x86_64-linux"
       "aarch64-linux"
     ];
     mainProgram = "heron";
   };
-}
+})

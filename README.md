@@ -95,6 +95,8 @@ troubleshooting.
 - **Windows / macOS / Linux installers:** download from
   [Releases](https://github.com/minori-live/heron/releases)
 
+The Nix flake builds Heron from the selected source revision on Linux x64 and
+arm64. Use `github:minori-live/heron/vX.Y.Z` to select a release tag.
 NixOS and home-manager module snippets are in the
 [install guide](https://heron.minori.live/manual/install).
 

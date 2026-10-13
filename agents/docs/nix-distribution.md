@@ -1,75 +1,79 @@
 # Nix distribution
 
-Heron's Linux Nix package lives in this repository's root flake. Application
-versions and build artifacts remain owned by the tagged GitHub Release flow.
-This document owns the packaging contract and how the release pin is written.
+Heron's Linux Nix package lives in this repository's root flake and builds the
+selected Heron source revision. This document owns the packaging contract,
+dependency pins, and Nix validation workflow.
 
 ## Package contract
 
-The flake packages the official Linux AppImages
-(`Heron-<version>-linux-x86_64.AppImage` and
-`Heron-<version>-linux-arm64.AppImage`) with `appimageTools.wrapType2`, a
-`.desktop` entry, and icons. The Nix output is intended to match the binary
-users get from GitHub Releases and the website.
+The flake supports `x86_64-linux` and `aarch64-linux`. It uses the source in the
+flake checkout, the checked-in `Cargo.lock` and `pnpm-lock.yaml`, and the
+repository's existing build scripts to produce:
 
-Building the Electron renderer plus Rust `@heron/dsp-node` addon from source
-under Nix is intentionally omitted: it would reimplement the mise/pnpm/Cargo
-release pipeline, take much longer in CI, and diverge from the published
-artifacts other channels ship.
+- the Rust `@heron/dsp-node` addon and native probes;
+- the project database template;
+- the Electron main, preload, and renderer bundles;
+- the application directory assembled by electron-builder, with its desktop
+  entry and icons.
 
-Pinned version and content hashes live in [`nix/release.nix`](../../nix/release.nix).
-The package reads that pin (not the development `VERSION` file) so mid-cycle
-version bumps on `main` do not break `nix run` before the next tag ships.
-`flake.lock` pins nixpkgs only.
+The application version comes from the checkout's `VERSION`. The Nix package
+does not download a Heron AppImage or depend on a corresponding GitHub Release
+already existing. A branch revision can therefore be built before it is tagged.
 
-## Release flow
+`flake.lock` pins nixpkgs. Cargo and pnpm dependencies remain tied to their
+lockfiles; the pnpm dependency store has a fixed content hash. The VST3 and ARA
+SDK sources also have fixed revisions and hashes. Built-in plug-ins retain the
+independent `heron-plugins` release contract: the Nix package fetches the Linux
+runtime assets selected by `heron-plugins.lock.json`, with fixed hashes for
+each architecture. These upstream assets are build inputs, separate from
+Heron's own application output.
 
-AppImage digests exist only after the Publish workflow builds installers. The
-pin therefore cannot live in the maintainer's pre-tag version bump commit.
-Instead, Publish writes it as part of creating the draft release:
+## Revisions and releases
 
-1. Update `VERSION` and synchronize package versions using existing release
-   tooling, then push the matching v-prefixed tag.
-2. Publish validates, tests, and builds installers (including both Linux
-   AppImages).
-3. Before creating or updating the draft GitHub Release, Publish hashes the
-   local AppImages, writes `nix/release.nix`, commits that pin on top of the
-   tagged revision, force-updates the tag to the pin commit (so
-   `github:minori-live/heron/vX.Y.Z` is self-contained), and fast-forwards
-   `main` when the tag still pointed at `main`'s tip.
-4. Publish creates or updates the draft Release for review. Homebrew Tap
-   notification and update-manifest promotion remain separate steps after the
-   Release is published.
+`nix run github:minori-live/heron` builds the selected default-branch revision.
+Use `github:minori-live/heron/vX.Y.Z` for a release tag or an exact commit to
+select a particular source revision. NixOS and home-manager consumers record
+that revision in their own flake lockfiles.
 
-No extra secrets are required; the job uses `GITHUB_TOKEN` with `contents:
-write`. There is no post-release sync PR. Draft rebuilds may rewrite the same
-version's digests; stable downgrades of the pin are rejected.
+The tagged Publish workflow continues to validate, test, and build installers,
+stage update manifests, and create a draft GitHub Release. Nix packaging does
+not write back application hashes, move the version tag, or update `main`.
+Homebrew Tap notification and update-manifest promotion remain separate steps
+after the Release is published.
 
-If `main` moved past the tagged commit before Publish finished, the pin remains
-on the tag and Publish warns; cherry-pick the pin commit onto `main` so
-`nix run github:minori-live/heron` tracks the latest release.
+## Updating dependencies
+
+Keep dependency lockfile changes and their hashes in
+[`nix/sources.nix`](../../nix/sources.nix) in the same change. When updating pnpm
+dependencies, update `pnpm-lock.yaml`, temporarily set `pnpmDeps.hash` to
+`lib.fakeHash` in `nix/package.nix`, and request that fixed-output derivation:
+
+```sh
+nix build .#heron.pnpmDeps --print-build-logs
+```
+
+Copy the reported actual hash into the `pnpm` pin in `nix/sources.nix`, restore
+`pnpmDeps.hash = sources.pnpm`, and build the complete package. A
+dependency-store build alone does not validate
+the native addon or Electron application. When updating VST3, ARA, or the
+built-in plug-ins, update their corresponding fixed hashes as well and validate
+both Linux architectures.
 
 ## Validation
 
-`ci.yml` calls the Nix reusable workflow, which runs `nix flake check` and
-builds `.#heron` on Linux, then smoke-tests the wrapped binary. Locally:
+`ci.yml` calls the Nix reusable workflow. Its native Linux x64 and arm64 jobs
+run `nix flake check` and build `.#heron`, so each supported architecture
+compiles the package rather than only evaluating its derivation. Locally, on
+either supported Linux architecture:
 
 ```sh
-nix flake check
-nix build .#heron
-./result/bin/heron --version
+nix fmt
+nix flake check --print-build-logs
+nix build .#heron --print-build-logs
 ```
 
-To rewrite the pin from local AppImages (as Publish does):
-
-```sh
-mise run nix:pin -- 0.8.0 path/to/release-assets
-```
-
-## Candidate durable decision
-
-Shipping Linux through an in-repo flake that wraps published AppImages (rather
-than a separate binary cache, nixpkgs upstreaming, or a from-source Nix build),
-and writing the pin inside Publish so tagged revisions stay self-contained, is
-a durable distribution choice. Note it in PR descriptions as a candidate ADR;
-do not file or accept an ADR without an explicit maintainer request.
+`nix flake check` builds the checks for the host system; it does not establish
+that the other architecture builds. Use the corresponding CI job or a native
+builder for that evidence. Record the exact commit and successful build jobs
+in the pull request. Evaluation alone is not build evidence, and headless CI
+does not replace interactive audio-device and plug-in-editor validation.

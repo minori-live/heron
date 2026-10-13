@@ -112,12 +112,14 @@ With home-manager:
 }
 ```
 
-The flake wraps the official Linux AppImages from GitHub Releases for
-`x86_64-linux` and `aarch64-linux`, so the binary matches other distribution
-channels. Prefer a release tag (`github:minori-live/heron/vX.Y.Z`) or `main`
-after Publish has written the pin. See
+The flake builds Heron from the selected source revision for `x86_64-linux`
+and `aarch64-linux`. Use a release tag (`github:minori-live/heron/vX.Y.Z`) or
+an exact commit to select a particular version; the default URL uses the
+default branch. The build uses locked dependencies and does not require a
+published Heron AppImage. Update through your Nix profile or by updating the
+Heron input and rebuilding your NixOS or home-manager configuration. See
 [Nix distribution](https://github.com/minori-live/heron/blob/main/agents/docs/nix-distribution.md)
-for how the pin is written during Publish.
+for the source build and dependency pins.
 
 ### AppImage
 

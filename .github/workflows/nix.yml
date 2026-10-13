@@ -13,13 +13,24 @@ concurrency:
 
 jobs:
   flake:
-    name: Flake check and package
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+    name: Source build (${{ matrix.system }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+            plugin-platform: linux-x64
+          - system: aarch64-linux
+            runner: ubuntu-24.04-arm
+            plugin-platform: linux-arm64
     steps:
       - name: Check out source
         uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - name: Install Nix
@@ -28,28 +39,26 @@ jobs:
       - name: Magically cache Nix store paths
         uses: DeterminateSystems/magic-nix-cache-action@v15
 
-      - name: Evaluate and build the flake
+      - name: Check Nix formatting
+        run: nix fmt -- --check flake.nix nix/*.nix
+
+      - name: Build and check the source package
         run: |
           nix flake check --print-build-logs
-          nix build .#heron --print-build-logs
+          nix build .#heron --print-build-logs --out-link result
 
-      - name: Smoke-test the wrapped binary
+      - name: Install headless smoke dependencies
         run: |
-          test -x ./result/bin/heron
-          test -f ./result/share/applications/heron.desktop
-          # Headless start: confirm the FHS wrapper resolves. Bound the wait so a
-          # stuck Electron main process cannot hang the job.
-          set +e
-          output="$(timeout 30 ./result/bin/heron --version 2>&1)"
-          status=$?
-          set -e
-          printf '%s\n' "$output"
-          if printf '%s' "$output" | grep -Eiq 'error while loading shared libraries|cannot open shared object'; then
-            echo "::error::Heron failed to resolve shared libraries under the Nix wrapper."
-            exit 1
-          fi
-          # 0 = clean exit, 124 = timeout after linking/startup, other = post-link failure.
-          if [[ "$status" -eq 0 || "$status" -eq 124 ]]; then
-            exit 0
-          fi
-          echo "Binary launched far enough to exercise dynamic linking (exit $status)."
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends jq xvfb xauth
+
+      - name: Process audio with the installed built-in plug-ins
+        run: xvfb-run --auto-servernum bash nix/smoke.sh ./result ${{ matrix.plugin-platform }}
+
+      - name: Record validated source and package
+        run: |
+          {
+            printf 'Source: `%s`\n\n' "$(git rev-parse HEAD)"
+            printf 'System: `%s`\n\n' '${{ matrix.system }}'
+            printf 'Built and smoke-tested package: `%s`\n' "$(nix path-info ./result)"
+          } >> "$GITHUB_STEP_SUMMARY"
