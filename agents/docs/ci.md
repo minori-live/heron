@@ -40,8 +40,10 @@ builds, and tagged releases.
   pass `full_release_profile: true` to keep the Cargo.toml thin-LTO settings.
   Every packaging leg checks that all plug-in bundle files match the prepared
   release byte for byte, validates Revox's private runtime and notices, and runs
-  its shifted-audio host test from the final packaged resource path. This gate
-  uses the CPU runtime explicitly; it does not claim accelerator coverage.
+  its shifted-audio host test from the final packaged resource path with the
+  release Cargo profile to keep measurement overhead low during real-time
+  inference. This gate uses the CPU runtime explicitly; it does not
+  claim accelerator coverage.
 - **Publish** (`.github/workflows/publish.yml`) runs on a `v*` tag, validates
   that the tag matches `VERSION`, calls the reusable Test and Build workflows
   (Build with `full_release_profile: true`), and creates a draft GitHub Release

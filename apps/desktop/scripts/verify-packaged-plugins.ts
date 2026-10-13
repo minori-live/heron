@@ -83,6 +83,7 @@ await runTask(async () => {
     [
       "test",
       "--locked",
+      "--release",
       "-p",
       "heron-audio-host",
       "--test",

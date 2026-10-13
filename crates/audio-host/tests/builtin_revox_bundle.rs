@@ -40,6 +40,7 @@ fn packaged_revox_applies_coarse_and_fine_pitch_through_the_realtime_host() {
         ])
         .env(CHILD_ENV, "1")
         .env("HERON_REVOX_FORCE_CPU", "1")
+        .env("ORT_LOG", "info")
         .spawn()
         .expect("start isolated Revox host test");
     let started = Instant::now();
@@ -100,11 +101,19 @@ fn verify_hosted_audio() {
     ];
     let mut position = 0_usize;
     let mut stable = 0;
+    let mut max_feed_lateness = Duration::ZERO;
     let started = Instant::now();
     // Model startup runs asynchronously on Revox's worker. Allow bounded
     // warmup, then require two consecutive seconds of actual shifted output.
     // No provider status, parameter readback or nonzero dry audio can pass.
     while started.elapsed() < Duration::from_secs(30) {
+        let block_started = Instant::now();
+        let scheduled_start = Duration::from_secs_f64(position as f64 / SAMPLE_RATE);
+        max_feed_lateness = max_feed_lateness.max(
+            block_started
+                .duration_since(started)
+                .saturating_sub(scheduled_start),
+        );
         for (index, sample) in input_left.iter_mut().enumerate() {
             *sample = input_sample(position + index, INPUT_HZ);
         }
@@ -132,13 +141,18 @@ fn verify_hosted_audio() {
         position += BLOCK_FRAMES;
         if windows[0].len() >= WINDOW_FRAMES {
             if position >= latency + WINDOW_FRAMES * 2 {
+                let oracle_started = Instant::now();
                 let measurements = [
                     measure_pitch(&windows[0][..WINDOW_FRAMES]),
                     measure_pitch(&windows[1][..WINDOW_FRAMES]),
                 ];
+                let measured_at = Instant::now();
                 eprintln!(
-                    "Revox realtime {:.2}s, latency={latency}: left={:?}, right={:?}",
+                    "Revox realtime {:.2}s, latency={latency}, wall={:.6}s, max_feed_lateness_ms={:.3}, oracle_ms={:.3}: left={:?}, right={:?}",
                     position as f64 / SAMPLE_RATE,
+                    measured_at.duration_since(started).as_secs_f64(),
+                    max_feed_lateness.as_secs_f64() * 1000.0,
+                    measured_at.duration_since(oracle_started).as_secs_f64() * 1000.0,
                     measurements[0],
                     measurements[1]
                 );
