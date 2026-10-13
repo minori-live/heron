@@ -28,6 +28,12 @@ runtime assets selected by `heron-plugins.lock.json`, with fixed hashes for
 each architecture. These upstream assets are build inputs, separate from
 Heron's own application output.
 
+The pinned nixpkgs revision supplies the build toolchain and Electron runtime;
+the mise lock continues to govern ordinary development. These pins make the
+inputs fixed and allow offline source compilation. They do not currently
+guarantee byte-identical independent rebuilds: PGlite templates contain database
+initialization metadata and archive timestamps.
+
 ## Revisions and releases
 
 `nix run github:minori-live/heron` builds the selected default-branch revision.

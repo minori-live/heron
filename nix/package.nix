@@ -120,6 +120,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
     runHook preBuild
     # pnpm includes native build tools (Rolldown, esbuild, Sentry,
     # app-builder and fs-native-extensions) which must run in the sandbox.
+    # extract-zip ships both libc variants in one package. These platforms
+    # use glibc; its unused musl bindings must not enter ELF dependency checks.
+    find node_modules -path '*/@electron-internal/extract-zip/*-musl.node' -delete
     autoPatchelf node_modules
     pnpm --filter @heron/dsp-node build
     node scripts/native-build.ts build --profile release
