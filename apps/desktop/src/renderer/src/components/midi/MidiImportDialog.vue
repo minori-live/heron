@@ -242,9 +242,9 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
   align-items: center;
   gap: 8px;
   padding: 8px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 4px;
-  background: var(--ui-color-surface-sunken);
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-fill);
 }
 .mapping-list strong,
 .mapping-list small {
@@ -252,6 +252,7 @@ function updateInstrument(sourceTrack: number, sequence: number, value: string):
 }
 .mapping-list strong {
   font-size: var(--ui-type-size-body-compact);
+  font-weight: var(--ui-type-weight-strong);
 }
 .mapping-list small {
   margin-top: 3px;

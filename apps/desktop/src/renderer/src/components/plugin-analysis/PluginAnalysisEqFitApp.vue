@@ -124,8 +124,9 @@ const available = computed(() => {
   margin: auto;
   max-width: 420px;
   padding: 14px 20px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-md);
   text-align: center;
 }
 </style>

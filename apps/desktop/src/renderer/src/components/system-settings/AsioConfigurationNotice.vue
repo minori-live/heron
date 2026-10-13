@@ -30,11 +30,11 @@ const { t } = useI18n()
   gap: 14px;
   margin-top: 12px;
   padding: 14px;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--ui-color-glass-edge);
   border-left: var(--ui-signal-rail-width) solid var(--ui-signal-audio);
-  border-radius: 7px;
+  border-radius: var(--ui-radius-lg);
   color: var(--ui-color-text);
-  background: var(--ui-color-surface);
+  background: var(--ui-color-fill);
 }
 
 .asio-compatible-logo {
@@ -52,9 +52,8 @@ const { t } = useI18n()
 }
 
 .asio-configuration-title {
-  font: var(--ui-type-weight-semibold) var(--ui-type-size-body-compact) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wide);
-  text-transform: uppercase;
+  font: var(--ui-type-weight-bold) var(--ui-type-size-body-compact) var(--ui-type-family-display);
+  letter-spacing: var(--ui-type-tracking-snug);
 }
 
 .asio-configuration-statement {

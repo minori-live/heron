@@ -86,15 +86,15 @@ const { t } = useI18n()
   min-width: 0;
   margin: 0;
   padding: 13px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-color-canvas-subtle);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-fill);
 }
 :deep(.bounce-fieldset legend) {
   padding: 0 5px;
-  color: var(--ui-signal-mixer-bounce);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 :deep(.bounce-fieldset > label) {

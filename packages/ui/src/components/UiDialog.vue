@@ -54,10 +54,10 @@ const sizeClasses = {
     </DialogTrigger>
     <DialogPortal>
       <DialogOverlay
-        class="fixed inset-0 z-[var(--ui-z-overlay)] bg-ui-overlay [backdrop-filter:blur(3px)]"
+        class="fixed inset-0 z-[var(--ui-z-overlay)] bg-ui-overlay [backdrop-filter:blur(6px)]"
       />
       <DialogContent
-        class="ui-dialog fixed left-1/2 top-1/2 z-[var(--ui-z-dialog)] grid max-h-[min(46rem,calc(100dvh-2rem))] w-[calc(100vw-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden border border-solid border-ui-border rounded-ui-lg bg-ui-surface text-ui-text shadow-ui-lg [transform:translate(-50%,-50%)]"
+        class="ui-dialog fixed left-1/2 top-1/2 z-[var(--ui-z-dialog)] grid max-h-[min(46rem,calc(100dvh-2rem))] w-[calc(100vw-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden border border-solid border-ui-border rounded-ui-xl bg-ui-surface text-ui-text shadow-ui-lg [transform:translate(-50%,-50%)]"
         :class="sizeClasses[props.size]"
         :data-size="props.size"
         @escape-key-down="props.dismissible ? undefined : $event.preventDefault()"
@@ -69,13 +69,10 @@ const sizeClasses = {
         >
           <slot name="header">
             <div class="grid min-w-0 gap-ui-2">
-              <span
-                v-if="props.eyebrow"
-                class="text-ui-xs font-600 text-ui-text-subtle leading-ui-normal [font-family:var(--ui-type-family-data)] [letter-spacing:var(--ui-type-tracking-wider)] uppercase"
-              >
+              <span v-if="props.eyebrow" class="ui-eyebrow text-ui-xs leading-ui-normal">
                 {{ props.eyebrow }}
               </span>
-              <DialogTitle class="m-0 text-ui-xl font-600 leading-ui-tight">
+              <DialogTitle class="ui-display m-0 text-ui-xl">
                 {{ props.title }}
               </DialogTitle>
               <DialogDescription
@@ -93,7 +90,7 @@ const sizeClasses = {
           >
             <DialogClose
               v-if="props.dismissible"
-              class="ui-dialog__close inline-grid h-full w-full cursor-pointer place-items-center border border-solid border-transparent rounded-ui-md bg-transparent p-0 text-ui-xl text-ui-text-muted"
+              class="ui-dialog__close inline-grid h-full w-full cursor-pointer place-items-center border border-solid border-transparent rounded-ui-pill bg-transparent p-0 text-ui-xl text-ui-text-muted"
               :aria-label="props.closeLabel"
             >
               <span aria-hidden="true">×</span>
@@ -120,7 +117,7 @@ const sizeClasses = {
 <style>
 .ui-dialog__close:hover {
   color: var(--ui-color-text);
-  background: var(--ui-color-surface-hover);
+  background: var(--ui-color-fill-hover);
 }
 
 .ui-dialog__body:focus-visible {

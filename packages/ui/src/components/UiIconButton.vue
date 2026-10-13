@@ -88,10 +88,10 @@ const sizeClasses = {
   height: 28px;
   min-height: 28px;
   padding: 0;
-  border: 1px solid var(--ui-domain-face-neutral-border);
+  border: 1px solid transparent;
   border-radius: var(--ui-radius-sm);
-  color: var(--ui-color-text-subtle);
-  background: var(--ui-daw-control);
+  color: var(--ui-color-text-muted);
+  background: var(--ui-color-fill);
 }
 
 .ui-button.ui-icon-button--workspace.ui-icon-button--success {
@@ -99,22 +99,17 @@ const sizeClasses = {
 }
 
 .ui-button.ui-icon-button--workspace:hover:not(:disabled):not([aria-pressed="true"]) {
-  border-color: var(--ui-color-border-strong);
-  background: var(--ui-daw-control-hover);
+  border-color: transparent;
+  color: var(--ui-color-text);
+  background: var(--ui-color-fill-hover);
 }
 
 .ui-button.ui-icon-button--workspace[aria-pressed="true"],
 .ui-button.ui-icon-button--workspace[aria-pressed="true"]:hover:not(:disabled) {
-  border-color: color-mix(
-    in srgb,
-    var(--icon-button-signal) 62%,
-    var(--ui-domain-face-neutral-border)
-  );
+  border-color: color-mix(in srgb, var(--icon-button-signal) 28%, transparent);
   color: var(--icon-button-signal);
-  background: color-mix(in srgb, var(--icon-button-signal) 14%, var(--ui-color-surface-active));
-  box-shadow:
-    0 -2px 0 var(--icon-button-signal) inset,
-    0 0 9px color-mix(in srgb, var(--icon-button-signal) 18%, transparent);
+  background: color-mix(in srgb, var(--icon-button-signal) 20%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--icon-button-signal) 36%, transparent);
 }
 
 .ui-button.ui-icon-button--workspace:disabled {

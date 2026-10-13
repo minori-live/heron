@@ -164,9 +164,10 @@ async function save(): Promise<void> {
 }
 
 .notes-heading span {
-  color: var(--ui-color-action);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-widest);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
 }
 
 .notes-heading strong {
@@ -174,7 +175,8 @@ async function save(): Promise<void> {
   color: var(--ui-color-text);
   font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-panel-title);
-  letter-spacing: var(--ui-type-tracking-wide);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-display);
 }
 
 .close-button {
@@ -184,7 +186,7 @@ async function save(): Promise<void> {
   height: 26px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text-faint);
   background: transparent;
 }
@@ -194,9 +196,9 @@ async function save(): Promise<void> {
   grid-template-columns: 1fr 1fr;
   margin: 0 14px;
   padding: 3px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 7px;
-  background: var(--ui-color-surface-sunken);
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-fill);
 }
 
 .notes-tabs button {
@@ -254,10 +256,10 @@ async function save(): Promise<void> {
 .notes-error {
   margin: 0 14px 12px;
   padding: 8px;
-  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 45%, var(--ui-color-border));
-  border-radius: 5px;
-  color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 8%, transparent);
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-md);
+  color: var(--ui-color-danger);
+  background: color-mix(in srgb, var(--ui-color-danger) 16%, transparent);
   font-size: var(--ui-type-size-caption);
 }
 </style>

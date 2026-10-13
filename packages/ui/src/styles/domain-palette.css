@@ -11,9 +11,11 @@
  * a theme can move the value without the name turning into a lie. A token that
  * only restates its own hex is a bug: name the role, or use a semantic token.
  *
- * These declarations are theme-independent. The mixer is a hardware panel in
- * both themes, and the theme previews must show their own palette regardless of
- * the active one.
+ * The mixer and clip chrome follow the application theme, as the product
+ * website's windows do: graphite in the dark theme, paper in the light theme.
+ * Signal hues (lane identities, record) and the theme-preview
+ * swatches are theme-independent, because they must say the same thing, or
+ * show their own palette, regardless of the active theme.
  *
  * `scripts/design-audit.ts` allows exactly this prefix in renderer styles;
  * `--ui-domain-*` is the only namespace where a literal colour may enter the
@@ -21,14 +23,15 @@
  */
 :root {
   /* Timeline lane identities: the three global tracks, in order. */
-  --ui-domain-lane-tempo: #65a8ff;
-  --ui-domain-lane-meter: #f2a65a;
-  --ui-domain-lane-key: #b894ff;
+  --ui-domain-lane-tempo: #72c3c7;
+  --ui-domain-lane-meter: #f2b45a;
+  --ui-domain-lane-key: #a98ade;
 
   /* Waveform trace. The guide is the quiet lane-centre line; the peak is the
-     amplitude trace drawn over it, and turns red while recording. */
-  --ui-domain-waveform-guide: #87a8b7;
-  --ui-domain-waveform-peak: #b7e9fa;
+     amplitude trace drawn over it, and turns red while recording. The trace
+     inverts with the clip body in the light theme. */
+  --ui-domain-waveform-guide: #8fb6bb;
+  --ui-domain-waveform-peak: #c4ecee;
   --ui-domain-waveform-record-guide: #ffb3be;
   --ui-domain-waveform-record-peak: #ffd2d8;
 
@@ -39,11 +42,11 @@
   --ui-domain-clip-meta: #f0f4f5;
   --ui-domain-clip-meta-record: #ffe0e4;
   --ui-domain-clip-capture-ring: #ffe5e9;
-  --ui-domain-clip-tint-hi: #111111e8;
-  --ui-domain-clip-tint-lo: #111111b8;
-  --ui-domain-clip-body-top: #303436;
-  --ui-domain-clip-body-bottom: #17191a;
-  --ui-domain-clip-body-sheen: #ffffff24;
+  --ui-domain-clip-tint-hi: #14161cd9;
+  --ui-domain-clip-tint-lo: #14161ca8;
+  --ui-domain-clip-body-top: #2a2e38;
+  --ui-domain-clip-body-bottom: #1a1c23;
+  --ui-domain-clip-body-sheen: #ffffff1a;
   --ui-domain-clip-drop-ring: #ffffff7a;
   --ui-domain-clip-outline: #fff;
   --ui-domain-clip-ink-shadow: #000a;
@@ -51,74 +54,74 @@
 
   /* Ink drawn on a saturated signal-coloured control. */
   --ui-domain-signal-ink: #fff;
-  --ui-domain-signal-healthy: #73d6a2;
+  --ui-domain-signal-healthy: #5cc27c;
   --ui-domain-signal-healthy-ink: #08120d;
   --ui-domain-play-ink: #081116;
 
-  /* Mixer chrome. The strip is a panel, not a surface: it keeps its own greys
-     in both themes rather than following the canvas. */
-  --ui-domain-mixer-surface: #4f4f4f;
-  --ui-domain-mixer-section: #575757;
-  --ui-domain-mixer-divider: #444;
-  --ui-domain-mixer-strip-edge: #303030;
-  --ui-domain-mixer-strip-sheen: #ffffff0c;
-  --ui-domain-mixer-strip-aux: #53575a;
-  --ui-domain-mixer-strip-master: #505050;
-  --ui-domain-mixer-strip-master-edge: #2e2e2e;
-  --ui-domain-mixer-strip-master-cast: #0000005c;
-  --ui-domain-mixer-strip-selected: #626262;
-  --ui-domain-mixer-name-base: #484848;
-  --ui-domain-mixer-label-ink: #d0d0d0;
-  --ui-domain-mixer-label-edge: #1f1f1f;
+  /* Mixer chrome. The strip is a panel, not a surface: it keeps its own
+     graphite rather than following the canvas. */
+  --ui-domain-mixer-surface: #1b1d24;
+  --ui-domain-mixer-section: #23262e;
+  --ui-domain-mixer-divider: #2c2f38;
+  --ui-domain-mixer-strip-edge: #121318;
+  --ui-domain-mixer-strip-sheen: #ffffff08;
+  --ui-domain-mixer-strip-aux: #212730;
+  --ui-domain-mixer-strip-master: #24232f;
+  --ui-domain-mixer-strip-master-edge: #121318;
+  --ui-domain-mixer-strip-master-cast: #00000052;
+  --ui-domain-mixer-strip-selected: #263136;
+  --ui-domain-mixer-name-base: #2a2d37;
+  --ui-domain-mixer-label-ink: #d4d5da;
+  --ui-domain-mixer-label-edge: #121318;
   --ui-domain-mixer-label-shadow: #0000002b;
-  --ui-domain-mixer-label-divider: #464646;
-  --ui-domain-mixer-placeholder-border: #6b6b6b;
-  --ui-domain-mixer-placeholder-ink: #bcbcbc;
-  --ui-domain-mixer-placeholder-top: #666;
-  --ui-domain-mixer-placeholder-bottom: #595959;
-  --ui-domain-mixer-automation-ink: #81ed8b;
-  --ui-domain-mixer-automation-glow: #5fe66b5c;
+  --ui-domain-mixer-label-divider: #30333d;
+  --ui-domain-mixer-placeholder-border: #474b57;
+  --ui-domain-mixer-placeholder-ink: #a5a8b3;
+  --ui-domain-mixer-placeholder-top: #2c2f38;
+  --ui-domain-mixer-placeholder-bottom: #262931;
+  --ui-domain-mixer-automation-ink: #7fd798;
+  --ui-domain-mixer-automation-glow: #5cc27c5c;
 
   /* Control faces. A face is a border, an ink, and a vertical gradient; the
      family says what the control carries, the state says what it is doing.
      `sheen` and `inset` are the shared highlight and well shadows. */
-  --ui-domain-face-sheen: #ffffff28;
-  --ui-domain-face-inset: #00000038;
-  --ui-domain-face-audio-border: #2e5d86;
-  --ui-domain-face-audio-top: #3f91d4;
-  --ui-domain-face-audio-bottom: #2871ae;
-  --ui-domain-face-audio-glow: #4e8dbf;
-  --ui-domain-face-instrument-border: #697654;
-  --ui-domain-face-instrument-top: #7e9362;
-  --ui-domain-face-instrument-bottom: #63764d;
-  --ui-domain-face-send-border: #4a6b80;
-  --ui-domain-face-send-top: #4f83a4;
-  --ui-domain-face-send-bottom: #3f6b87;
-  --ui-domain-face-send-ink: #f5f5f5;
-  --ui-domain-face-neutral-border: #747474;
-  --ui-domain-face-neutral-top: #6d6d6d;
-  --ui-domain-face-neutral-bottom: #5d5d5d;
-  --ui-domain-face-neutral-ink: #f2f2f2;
-  --ui-domain-face-neutral-hover-border: #929292;
-  --ui-domain-face-neutral-hover-bottom: #626262;
-  --ui-domain-face-neutral-muted-ink: #b8b8b8;
-  --ui-domain-face-bypassed-border: #505050;
-  --ui-domain-face-bypassed-top: #5b5b5b;
-  --ui-domain-face-bypassed-bottom: #4b4b4b;
-  --ui-domain-face-bypassed-ink: #a7a7a7;
+  --ui-domain-face-sheen: #ffffff14;
+  --ui-domain-face-inset: #00000030;
+  --ui-domain-face-audio-border: #3d8f93;
+  --ui-domain-face-audio-top: #3a9196;
+  --ui-domain-face-audio-bottom: #2f7f84;
+  --ui-domain-face-audio-glow: #72c3c7;
+  --ui-domain-face-instrument-border: #7a64b0;
+  --ui-domain-face-instrument-top: #7a62b6;
+  --ui-domain-face-instrument-bottom: #6a54a3;
+  --ui-domain-face-send-border: #4b6e86;
+  --ui-domain-face-send-top: #42759a;
+  --ui-domain-face-send-bottom: #3a6889;
+  --ui-domain-face-send-ink: #f4f3ef;
+  --ui-domain-face-neutral-border: #3a3e49;
+  --ui-domain-face-neutral-top: #30333d;
+  --ui-domain-face-neutral-bottom: #2a2d36;
+  --ui-domain-face-neutral-ink: #eceae4;
+  --ui-domain-face-neutral-hover-border: #5c616e;
+  --ui-domain-face-neutral-hover-bottom: #30333d;
+  --ui-domain-face-neutral-muted-ink: #a5a8b3;
+  --ui-domain-face-bypassed-border: #30333d;
+  --ui-domain-face-bypassed-top: #262931;
+  --ui-domain-face-bypassed-bottom: #22252d;
+  --ui-domain-face-bypassed-ink: #8f93a0;
   --ui-domain-face-bypassed-sheen: #ffffff12;
-  --ui-domain-face-unloaded-border: #566a78;
-  --ui-domain-face-unloaded-top: #617685;
-  --ui-domain-face-unloaded-bottom: #526573;
-  --ui-domain-face-unloaded-ink: #c5d0d7;
-  --ui-domain-face-failed-border: #8d4a43;
-  --ui-domain-face-failed-top: #884f49;
-  --ui-domain-face-failed-bottom: #6d3e39;
-  --ui-domain-face-failed-ink: #ffd4ce;
+  --ui-domain-face-unloaded-border: #45525e;
+  --ui-domain-face-unloaded-top: #3a4652;
+  --ui-domain-face-unloaded-bottom: #333e49;
+  --ui-domain-face-unloaded-ink: #c3cbd2;
+  --ui-domain-face-failed-border: #8a3f4c;
+  --ui-domain-face-failed-top: #6e3440;
+  --ui-domain-face-failed-bottom: #5c2c37;
+  --ui-domain-face-failed-ink: #ffd2da;
   --ui-domain-face-failed-sheen: #ffffff16;
-  --ui-domain-face-empty-border: #4c4c4c;
-  --ui-domain-face-empty-fill: #4d4d4d;
-  --ui-domain-face-empty-ink: #8f8f8f;
+  --ui-domain-face-empty-border: #2c2f38;
+  --ui-domain-face-empty-fill: #202229;
+  --ui-domain-face-empty-ink: #7d828f;
 
   /* Menus and popovers drawn over the mixer. */
   --ui-domain-popover-shadow: #00000075;
@@ -132,18 +135,90 @@
   --ui-domain-surface-hover-tint: #ffffff22;
 
   /* Modal scrim and the error surface that sits on it. */
-  --ui-domain-overlay-scrim: #05070bbb;
-  --ui-domain-error-surface: #321923;
-  --ui-domain-error-ink: #ff9dab;
+  --ui-domain-overlay-scrim: #08090c9e;
+  --ui-domain-error-surface: #331d26;
+  --ui-domain-error-ink: #ff9fb0;
 
   /* Theme-preview swatches. These mock the two themes inside the settings page,
      so they are fixed values rather than references to the active theme. */
-  --ui-domain-preview-light-canvas: #d8d9db;
-  --ui-domain-preview-light-panel: #c5c7ca;
-  --ui-domain-preview-light-line: #a4a8ae;
-  --ui-domain-preview-light-accent: #657f8d;
-  --ui-domain-preview-dark-canvas: #202020;
-  --ui-domain-preview-dark-panel: #171717;
-  --ui-domain-preview-dark-line: #414141;
-  --ui-domain-preview-dark-accent: #8ba6b4;
+  --ui-domain-preview-light-canvas: #f3f3f4;
+  --ui-domain-preview-light-panel: #ffffff;
+  --ui-domain-preview-light-line: #d0d2d8;
+  --ui-domain-preview-light-accent: #17777c;
+  --ui-domain-preview-dark-canvas: #1d2029;
+  --ui-domain-preview-dark-panel: #121318;
+  --ui-domain-preview-dark-line: #30333d;
+  --ui-domain-preview-dark-accent: #72c3c7;
+}
+
+/* Light-theme chrome: the mixer and clips become paper panels with ink labels,
+   while signal-coloured faces keep their hue and their light ink. The
+   waveform darkens with the clip body so the trace keeps its contrast. */
+[data-theme="light"] {
+  --ui-domain-waveform-guide: #6f9ea3;
+  --ui-domain-waveform-peak: #2d6f74;
+  --ui-domain-waveform-record-guide: #e07a8a;
+  --ui-domain-waveform-record-peak: #a23142;
+  --ui-domain-clip-ink: #1b1d23;
+  --ui-domain-clip-meta: #4d5260;
+  --ui-domain-clip-meta-record: #a23142;
+  --ui-domain-clip-capture-ring: #ffffff;
+  --ui-domain-clip-ink-shadow: #ffffff00;
+  --ui-domain-clip-shade: #1e243c2e;
+  --ui-domain-clip-outline: #1b1d23;
+  --ui-domain-clip-drop-ring: #1b1d2366;
+  --ui-domain-clip-body-top: #ffffff;
+  --ui-domain-clip-body-bottom: #eef0f2;
+  --ui-domain-clip-tint-hi: #ffffffcc;
+  --ui-domain-clip-tint-lo: #ffffff99;
+  --ui-domain-clip-body-sheen: #ffffff;
+
+  --ui-domain-mixer-surface: #eceef1;
+  --ui-domain-mixer-section: #f6f6f8;
+  --ui-domain-mixer-divider: #d8dade;
+  --ui-domain-mixer-strip-edge: #d0d2d8;
+  --ui-domain-mixer-strip-sheen: #ffffff;
+  --ui-domain-mixer-strip-aux: #e6edef;
+  --ui-domain-mixer-strip-master: #ebe8f3;
+  --ui-domain-mixer-strip-master-edge: #c9c6d6;
+  --ui-domain-mixer-strip-master-cast: #1e243c1f;
+  --ui-domain-mixer-strip-selected: #dbe9eb;
+  --ui-domain-mixer-name-base: #ffffff;
+  --ui-domain-mixer-label-ink: #30343d;
+  --ui-domain-mixer-label-edge: #d0d2d8;
+  --ui-domain-mixer-label-shadow: #1e243c14;
+  --ui-domain-mixer-label-divider: #dcdde2;
+  --ui-domain-mixer-placeholder-border: #b4b7bf;
+  --ui-domain-mixer-placeholder-ink: #5d6271;
+  --ui-domain-mixer-placeholder-top: #f7f7f8;
+  --ui-domain-mixer-placeholder-bottom: #eeeff1;
+  --ui-domain-mixer-automation-ink: #2b7a45;
+  --ui-domain-mixer-automation-glow: #5cc27c40;
+
+  --ui-domain-face-sheen: #ffffff40;
+  --ui-domain-face-inset: #1e243c1a;
+  --ui-domain-face-neutral-border: #c9cbd1;
+  --ui-domain-face-neutral-top: #ffffff;
+  --ui-domain-face-neutral-bottom: #f1f2f4;
+  --ui-domain-face-neutral-ink: #1b1d23;
+  --ui-domain-face-neutral-hover-border: #8f939d;
+  --ui-domain-face-neutral-hover-bottom: #e8e9ec;
+  --ui-domain-face-neutral-muted-ink: #5d6271;
+  --ui-domain-face-bypassed-border: #d0d2d8;
+  --ui-domain-face-bypassed-top: #eceef1;
+  --ui-domain-face-bypassed-bottom: #e4e5e9;
+  --ui-domain-face-bypassed-ink: #6b7080;
+  --ui-domain-face-empty-border: #d8dade;
+  --ui-domain-face-empty-fill: #f1f2f4;
+  --ui-domain-face-empty-ink: #6b7080;
+
+  --ui-domain-popover-shadow: #1e243c33;
+  --ui-domain-menu-trigger-border: #1e243c24;
+  --ui-domain-menu-trigger-fill: #ffffffb3;
+  --ui-domain-surface-hairline: #ffffff;
+  --ui-domain-display-hairline: #ffffff;
+  --ui-domain-surface-hover-tint: #1e243c0f;
+  --ui-domain-overlay-scrim: #181c2852;
+  --ui-domain-error-surface: #fbe7ea;
+  --ui-domain-error-ink: #a23142;
 }

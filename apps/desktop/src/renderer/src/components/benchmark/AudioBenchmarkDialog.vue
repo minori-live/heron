@@ -147,9 +147,9 @@ function format(value: number, digits = 1): string {
 }
 
 .kicker {
-  color: var(--ui-signal-audio);
-  font: var(--ui-type-weight-semibold) var(--ui-font-size-xs) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-font-size-xs) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
@@ -165,8 +165,10 @@ function format(value: number, digits = 1): string {
 .running-state h3,
 .error-state h3 {
   margin: var(--ui-space-5) 0 var(--ui-space-2);
+  font-family: var(--ui-type-family-display);
   font-size: var(--ui-font-size-xl);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-display);
   line-height: var(--ui-type-leading-tight);
 }
 
@@ -196,16 +198,16 @@ function format(value: number, digits = 1): string {
   gap: var(--ui-space-1);
   margin: 0;
   padding: var(--ui-space-3) var(--ui-space-4);
-  border: 1px solid color-mix(in srgb, var(--ui-color-warning) 42%, var(--ui-color-border));
-  border-radius: var(--ui-radius-md);
-  background: color-mix(in srgb, var(--ui-color-warning) 8%, var(--ui-color-surface));
+  border: 1px solid color-mix(in srgb, var(--ui-color-warning) 24%, transparent);
+  border-radius: var(--ui-radius-lg);
+  background: color-mix(in srgb, var(--ui-color-warning) 10%, transparent);
   text-align: left;
 }
 
 .intro-guidance strong {
   color: var(--ui-color-warning);
   font-size: var(--ui-font-size-sm);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-strong);
 }
 
 .intro-guidance span {
@@ -234,9 +236,9 @@ function format(value: number, digits = 1): string {
   width: min(430px, 100%);
   margin-bottom: var(--ui-space-8);
   padding: var(--ui-space-5);
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-color-canvas-subtle);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-fill);
   overflow: hidden;
 }
 
@@ -250,7 +252,6 @@ function format(value: number, digits = 1): string {
     transparent 19px 28px,
     var(--ui-color-text-subtle) 29px 32px
   );
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--ui-signal-audio) 52%, transparent));
   animation: scope-flow 1.1s linear infinite;
   animation-delay: calc(var(--lane) * -170ms);
 }
@@ -283,6 +284,7 @@ function format(value: number, digits = 1): string {
   max-width: 430px;
   color: var(--ui-color-text);
   font-size: var(--ui-font-size-sm);
+  font-weight: var(--ui-type-weight-strong);
 }
 
 .report-footer small {

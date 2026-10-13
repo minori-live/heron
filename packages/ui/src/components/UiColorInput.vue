@@ -31,9 +31,9 @@ const attrs = useAttrs()
   width: var(--ui-control-md);
   height: var(--ui-control-md);
   padding: 2px;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-md);
-  background: var(--ui-color-control);
+  background: var(--ui-color-fill);
   cursor: pointer;
 }
 

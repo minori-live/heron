@@ -61,11 +61,10 @@ const classes = computed(() => ["heron-logo", `heron-logo--${props.variant}`])
 
 .heron-logo__wordmark {
   display: var(--heron-logo-wordmark-display, inline);
-  margin-right: -0.16em;
-  font-family: var(--ui-type-family-data);
+  font-family: var(--ui-type-family-interface);
   font-size: var(--heron-logo-wordmark-size);
   font-weight: var(--ui-type-weight-bold);
-  letter-spacing: var(--ui-type-tracking-widest);
+  letter-spacing: var(--ui-type-tracking-snug);
 }
 
 .heron-logo--lockup .heron-logo__wordmark {

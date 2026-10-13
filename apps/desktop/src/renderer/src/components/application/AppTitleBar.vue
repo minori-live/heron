@@ -62,13 +62,9 @@ const { t } = useI18n()
   z-index: var(--ui-z-local-header);
   min-width: 0;
   height: 38px;
-  border-bottom: 1px solid var(--ui-color-border-strong);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--ui-color-surface-raised) 76%, var(--ui-color-surface)),
-    var(--ui-color-surface-sunken)
-  );
-  box-shadow: var(--ui-shadow-highlight-inset);
+  border-bottom: 1px solid var(--ui-color-glass-edge);
+  background: var(--ui-color-glass);
+  backdrop-filter: var(--ui-backdrop-glass);
   user-select: none;
 }
 
@@ -127,8 +123,8 @@ const { t } = useI18n()
   min-width: 0;
   gap: 6px;
   overflow: hidden;
-  color: var(--ui-color-text-subtle);
-  font: var(--ui-type-size-control) var(--ui-type-family-data);
+  color: var(--ui-color-text-muted);
+  font: var(--ui-type-weight-medium) var(--ui-type-size-control) var(--ui-type-family-interface);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

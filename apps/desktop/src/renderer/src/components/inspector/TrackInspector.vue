@@ -74,9 +74,10 @@ function updateTrack(patch: MixerChannelPatch): void {
 }
 
 .panel-heading span {
-  color: var(--ui-color-action);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-widest);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
 }
 
 .panel-heading strong {
@@ -84,7 +85,8 @@ function updateTrack(patch: MixerChannelPatch): void {
   color: var(--ui-color-text);
   font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-panel-title);
-  letter-spacing: var(--ui-type-tracking-wide);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-display);
 }
 
 .panel-heading > svg {
@@ -97,10 +99,10 @@ function updateTrack(patch: MixerChannelPatch): void {
   place-items: center;
   margin-top: 4px;
   padding: 28px 12px;
-  border: 1px dashed var(--ui-color-border-strong);
-  border-radius: 7px;
+  border: 1px dashed var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
   color: var(--ui-color-text-faint);
-  background: var(--ui-color-surface-sunken);
+  background: var(--ui-color-fill);
   text-align: center;
 }
 
@@ -112,6 +114,7 @@ function updateTrack(patch: MixerChannelPatch): void {
   margin-top: 10px;
   color: var(--ui-color-text-muted);
   font-size: var(--ui-type-size-body-compact);
+  font-weight: var(--ui-type-weight-strong);
 }
 
 .empty-state p {

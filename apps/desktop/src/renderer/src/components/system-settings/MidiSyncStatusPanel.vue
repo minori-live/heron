@@ -65,17 +65,18 @@ const stateTone = computed(() => {
   display: grid;
   grid-template-columns: minmax(170px, 0.85fr) minmax(300px, 1.4fr);
   overflow: hidden;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 7px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
   background: var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-sm);
 }
 
 .sync-panel[data-tone="healthy"] {
-  border-color: color-mix(in srgb, var(--ui-color-action) 44%, var(--ui-color-border-strong));
+  border-color: color-mix(in srgb, var(--ui-color-action) 44%, transparent);
 }
 
 .sync-panel[data-tone="warning"] {
-  border-color: color-mix(in srgb, var(--ui-color-warning) 48%, var(--ui-color-border-strong));
+  border-color: color-mix(in srgb, var(--ui-color-warning) 48%, transparent);
 }
 
 .sync-identity {
@@ -83,8 +84,8 @@ const stateTone = computed(() => {
   align-items: center;
   gap: 11px;
   padding: 13px;
-  border-right: 1px solid var(--ui-color-border);
-  background: var(--ui-color-surface-raised);
+  border-right: 1px solid var(--ui-color-glass-edge);
+  background: var(--ui-color-fill);
 }
 
 .sync-mark {
@@ -93,19 +94,23 @@ const stateTone = computed(() => {
   height: 34px;
   flex: none;
   place-items: center;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: 50%;
   color: var(--ui-color-text-faint);
-  background: var(--ui-color-surface-sunken);
+  background: var(--ui-color-fill);
 }
 
 .sync-panel[data-tone="active"] .sync-mark,
 .sync-panel[data-tone="healthy"] .sync-mark {
+  border-color: transparent;
   color: var(--ui-color-action);
+  background: color-mix(in srgb, var(--ui-color-action) 18%, transparent);
 }
 
 .sync-panel[data-tone="warning"] .sync-mark {
+  border-color: transparent;
   color: var(--ui-color-warning);
+  background: color-mix(in srgb, var(--ui-color-warning) 18%, transparent);
 }
 
 .sync-copy {
@@ -122,13 +127,22 @@ const stateTone = computed(() => {
   font-style: normal;
 }
 
+.sync-copy small,
+.sync-metric small {
+  font-family: var(--ui-type-family-interface);
+}
+
 .sync-copy small {
-  letter-spacing: var(--ui-type-tracking-wider);
+  color: var(--ui-color-accent);
+  font-weight: var(--ui-type-weight-strong);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
 .sync-copy strong {
   font-size: var(--ui-type-size-body-compact);
+  font-weight: var(--ui-type-weight-bold);
+  letter-spacing: var(--ui-type-tracking-snug);
 }
 
 .sync-copy span {
@@ -142,7 +156,7 @@ const stateTone = computed(() => {
 .sync-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  background: var(--ui-color-border);
+  background: var(--ui-color-glass-edge);
   gap: 1px;
 }
 
@@ -167,7 +181,7 @@ const stateTone = computed(() => {
 
   .sync-identity {
     border-right: 0;
-    border-bottom: 1px solid var(--ui-color-border);
+    border-bottom: 1px solid var(--ui-color-glass-edge);
   }
 
   .sync-metrics {

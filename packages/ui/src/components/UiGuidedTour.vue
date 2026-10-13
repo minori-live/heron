@@ -44,7 +44,7 @@ async function start(): Promise<void> {
     skipMissingElement: true,
     waitForElement: 1_000,
     stagePadding: 8,
-    stageRadius: 7,
+    stageRadius: 10,
     popoverClass: "heron-tutorial-popover",
     progressText: props.progressLabel,
     nextBtnText: props.nextLabel,

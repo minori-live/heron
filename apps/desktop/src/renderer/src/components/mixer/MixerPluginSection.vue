@@ -282,7 +282,6 @@ function confirmDrop(selection: PluginSelection): void {
   min-width: 0;
   padding: 6px 7px;
   border-bottom: 1px solid var(--ui-domain-mixer-divider);
-  background: var(--ui-domain-mixer-section);
 }
 .plugin-row {
   display: grid;
@@ -291,10 +290,9 @@ function confirmDrop(selection: PluginSelection): void {
   height: 23px;
   overflow: hidden;
   border: 1px solid var(--ui-domain-face-audio-border);
-  border-radius: 4px;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-domain-signal-ink);
   background: linear-gradient(var(--ui-domain-face-audio-top), var(--ui-domain-face-audio-bottom));
-  box-shadow: 0 1px 0 var(--ui-domain-face-sheen) inset;
 }
 .plugin-grip {
   width: 14px;
@@ -315,15 +313,16 @@ function confirmDrop(selection: PluginSelection): void {
 }
 .mode-badge {
   padding: 1px 3px;
-  border: 1px solid var(--ui-domain-face-sheen);
-  border-radius: 3px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-xs);
+  background: var(--ui-domain-face-inset);
   font: var(--ui-type-size-micro) var(--ui-type-family-data);
 }
 .plugin-drop-preview {
   min-width: 0;
   height: 23px;
   border: 1px solid var(--ui-color-focus);
-  border-radius: 4px;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-domain-signal-ink);
   background:
     linear-gradient(90deg, transparent, var(--ui-domain-face-audio-bottom), transparent),
@@ -345,11 +344,11 @@ function confirmDrop(selection: PluginSelection): void {
   left: 4px;
   width: 232px;
   padding: 9px;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 6px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
   color: var(--ui-color-text);
-  background: var(--ui-color-surface);
-  box-shadow: 0 14px 36px var(--ui-domain-popover-shadow);
+  background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-lg);
 }
 .plugin-row.bypassed {
   border-color: var(--ui-domain-face-bypassed-border);
@@ -358,7 +357,6 @@ function confirmDrop(selection: PluginSelection): void {
     var(--ui-domain-face-bypassed-top),
     var(--ui-domain-face-bypassed-bottom)
   );
-  box-shadow: 0 1px 0 var(--ui-domain-face-bypassed-sheen) inset;
 }
 .plugin-row.loading,
 .plugin-row.unloaded {
@@ -378,7 +376,6 @@ function confirmDrop(selection: PluginSelection): void {
     var(--ui-domain-face-failed-top),
     var(--ui-domain-face-failed-bottom)
   );
-  box-shadow: 0 1px 0 var(--ui-domain-face-failed-sheen) inset;
 }
 .plugin-row .plugin-name {
   display: block;
@@ -398,11 +395,11 @@ function confirmDrop(selection: PluginSelection): void {
   border-color: var(--ui-domain-face-empty-border);
   color: var(--ui-domain-face-empty-ink);
   background: var(--ui-domain-face-empty-fill);
-  box-shadow: 0 1px 2px var(--ui-domain-face-inset) inset;
+  box-shadow: inset 0 1px 1px var(--ui-domain-face-inset);
 }
 .plugin-row.empty span {
-  font: var(--ui-type-size-micro) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wide);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-micro) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
 }
 .plugin-row.picker-trigger {
   width: 100%;

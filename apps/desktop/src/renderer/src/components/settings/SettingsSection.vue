@@ -13,7 +13,7 @@ defineSlots<{
 
 <template>
   <section
-    class="settings-section grid grid-cols-[minmax(170px,230px)_minmax(0,1fr)] gap-[48px] border-b border-b-solid py-[25px] [border-bottom-color:var(--ui-color-border)]"
+    class="settings-section grid grid-cols-[minmax(170px,230px)_minmax(0,1fr)] gap-[48px] border-b border-b-solid py-[25px] [border-bottom-color:var(--ui-color-glass-edge)]"
     :class="{ 'settings-section--stacked': layout === 'stacked' }"
   >
     <header class="settings-section-copy">
@@ -36,17 +36,16 @@ defineSlots<{
 .settings-section-copy span {
   display: block;
   margin-bottom: 7px;
-  color: var(--ui-color-action);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
 .settings-section-copy h3 {
   margin: 0 0 6px;
-  font: var(--ui-type-weight-semibold) var(--ui-type-size-section-title)
-    var(--ui-type-family-display);
-  letter-spacing: var(--ui-type-tracking-wide);
+  font: var(--ui-type-weight-bold) var(--ui-type-size-section-title) var(--ui-type-family-display);
+  letter-spacing: var(--ui-type-tracking-snug);
 }
 
 .settings-section-copy p {

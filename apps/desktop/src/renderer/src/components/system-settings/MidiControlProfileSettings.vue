@@ -193,9 +193,9 @@ function removeAccelerationPoint(index: number): void {
   width: 28px;
   height: 28px;
   place-items: center;
-  border-radius: 5px;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-color-action);
-  background: var(--ui-color-surface-sunken);
+  background: var(--ui-color-fill);
 }
 
 .profile-editor-header span:first-child {
@@ -215,20 +215,22 @@ function removeAccelerationPoint(index: number): void {
 .draft-label,
 .acceleration-heading {
   color: var(--ui-color-text-faint);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-size-caption) var(--ui-type-family-interface);
 }
 
 .edit-label {
   color: var(--ui-color-action);
+  font-weight: var(--ui-type-weight-strong);
 }
 
 .profile-editor {
   gap: 16px;
   margin-top: 8px;
   padding: 14px;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 7px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
   background: var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-sm);
 }
 
 .profile-editor-header {
@@ -237,14 +239,17 @@ function removeAccelerationPoint(index: number): void {
   justify-content: space-between;
   gap: 12px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--ui-color-border);
+  border-bottom: 1px solid var(--ui-color-glass-edge);
 }
 
 .draft-label {
   padding: 3px 6px;
-  border: 1px solid color-mix(in srgb, var(--ui-color-action) 36%, var(--ui-color-border));
-  border-radius: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-pill);
   color: var(--ui-color-action);
+  background: color-mix(in srgb, var(--ui-color-action) 16%, transparent);
+  font-weight: var(--ui-type-weight-strong);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 

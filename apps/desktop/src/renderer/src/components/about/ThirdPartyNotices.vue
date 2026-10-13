@@ -15,16 +15,17 @@ const { t } = useI18n()
 <style scoped>
 .third-party-notices {
   padding: var(--ui-space-4);
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
   color: var(--ui-color-text-subtle);
-  background: var(--ui-color-canvas-subtle);
+  background: var(--ui-color-fill);
   font-size: var(--ui-font-size-xs);
 }
 
 .third-party-notices summary {
   color: var(--ui-color-text);
-  font-family: var(--ui-type-family-data);
+  font-family: var(--ui-type-family-interface);
+  font-weight: var(--ui-type-weight-strong);
 }
 
 .third-party-notices pre {
@@ -32,7 +33,7 @@ const { t } = useI18n()
   max-height: 16rem;
   margin: var(--ui-space-3) 0 0;
   padding: var(--ui-space-3);
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text-muted);
   background: var(--ui-color-canvas);

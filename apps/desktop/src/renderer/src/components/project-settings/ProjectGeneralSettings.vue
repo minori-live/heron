@@ -126,14 +126,14 @@ function update(patch: Partial<ProjectConfiguration>): void {
   align-content: start;
   gap: 7px;
   color: var(--ui-color-text-subtle);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wide);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
 .field small {
   color: var(--ui-color-text-faint);
-  font: var(--ui-type-weight-regular) var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-weight-regular) var(--ui-type-size-caption) var(--ui-type-family-interface);
   letter-spacing: var(--ui-type-tracking-normal);
   line-height: var(--ui-type-leading-normal);
   text-transform: none;

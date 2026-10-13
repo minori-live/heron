@@ -58,6 +58,7 @@ export default defineConfig({
       "ui-sm": "var(--ui-radius-sm)",
       "ui-md": "var(--ui-radius-md)",
       "ui-lg": "var(--ui-radius-lg)",
+      "ui-xl": "var(--ui-radius-xl)",
       "ui-pill": "var(--ui-radius-pill)"
     },
     boxShadow: {

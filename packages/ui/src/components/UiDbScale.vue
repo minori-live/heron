@@ -27,12 +27,11 @@ defineProps<{
   width: 0.9375rem;
   min-height: 0;
   color: var(--ui-color-text-subtle);
-  font-family: var(--ui-type-family-display);
+  font-family: var(--ui-type-family-data);
   font-size: var(--ui-type-size-micro);
-  font-stretch: condensed;
   font-weight: var(--ui-type-weight-regular);
   font-variant-numeric: tabular-nums;
-  letter-spacing: var(--ui-type-tracking-wide);
+  letter-spacing: var(--ui-type-tracking-normal);
   pointer-events: none;
   user-select: none;
 }

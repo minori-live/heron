@@ -25,7 +25,10 @@ const props = withDefaults(
   >
     <UiSpinner v-if="props.value === undefined" size="lg" :label="props.title" />
     <div class="grid gap-ui-2">
-      <strong class="text-ui-lg leading-ui-normal">{{ props.title }}</strong>
+      <strong
+        class="text-ui-lg font-ui-display font-750 tracking-[var(--ui-type-tracking-display)] leading-ui-tight"
+        >{{ props.title }}</strong
+      >
       <p
         v-if="props.description"
         class="m-0 max-w-[34rem] text-ui-sm text-ui-text-muted leading-ui-normal"

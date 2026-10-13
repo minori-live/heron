@@ -50,10 +50,14 @@ const emit = defineEmits<{ activate: [] }>()
   align-items: center;
   gap: var(--ui-space-3);
   padding: var(--ui-space-3);
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-md);
   color: var(--ui-color-text);
   background: transparent;
+  transition:
+    border-color var(--ui-motion-fast) var(--ui-ease-standard),
+    background-color var(--ui-motion-fast) var(--ui-ease-standard),
+    box-shadow var(--ui-motion-fast) var(--ui-ease-standard);
   text-align: start;
   cursor: pointer;
   font: var(--ui-type-size-body-compact) / var(--ui-type-leading-compact)
@@ -70,12 +74,13 @@ const emit = defineEmits<{ activate: [] }>()
   flex-wrap: wrap;
   justify-content: end;
   gap: var(--ui-space-3);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-size-caption) var(--ui-type-family-interface);
   color: var(--ui-color-text-muted);
 }
 
 .ui-action-row__copy strong {
   font-size: var(--ui-type-size-body-compact);
+  font-weight: var(--ui-type-weight-strong);
 }
 
 .ui-action-row__copy {
@@ -87,10 +92,8 @@ const emit = defineEmits<{ activate: [] }>()
   outline-offset: 2px;
 }
 
-.ui-action-row:hover:not(:disabled):not([aria-current="true"]),
-.ui-action-row--selected {
-  border-color: var(--ui-color-border-strong);
-  background: var(--ui-color-surface-hover);
+.ui-action-row:hover:not(:disabled):not([aria-current="true"]) {
+  background: var(--ui-color-fill-hover);
 }
 
 .ui-action-row--plain {
@@ -99,6 +102,7 @@ const emit = defineEmits<{ activate: [] }>()
 
 .ui-action-row--selected {
   border-color: var(--ui-color-action);
+  background: var(--ui-color-selection);
   box-shadow: inset 0 0 0 1px var(--ui-color-action);
 }
 
@@ -127,7 +131,8 @@ const emit = defineEmits<{ activate: [] }>()
 
 .ui-action-row--compact .ui-action-row__trailing {
   color: var(--ui-color-action);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-micro) var(--ui-type-family-data);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-micro) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
 }
 
 .ui-action-row:disabled {

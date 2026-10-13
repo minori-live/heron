@@ -165,36 +165,33 @@ function formatLatency(value: number | null): string {
   height: 20px;
   padding: 0 7px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-pill);
   gap: 8px;
   color: var(--ui-color-text-subtle);
   background: transparent;
   letter-spacing: var(--ui-type-tracking-wide);
 }
 .performance-trigger.warning {
-  border-color: color-mix(in srgb, var(--ui-color-warning) 45%, var(--ui-color-border-strong));
+  border-color: transparent;
   color: var(--ui-color-warning);
-  background: color-mix(in srgb, var(--ui-color-warning) 10%, var(--ui-daw-statusbar));
+  background: color-mix(in srgb, var(--ui-color-warning) 16%, transparent);
 }
 .performance-trigger.critical {
-  border-color: color-mix(in srgb, var(--ui-signal-record) 45%, var(--ui-color-border-strong));
-  color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 10%, var(--ui-daw-statusbar));
+  border-color: transparent;
+  color: var(--ui-color-danger);
+  background: color-mix(in srgb, var(--ui-color-danger) 16%, transparent);
 }
 .health-light {
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: var(--ui-signal-audio);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--ui-signal-audio) 60%, transparent);
 }
 .warning .health-light {
   background: var(--ui-color-warning);
-  box-shadow: 0 0 7px color-mix(in srgb, var(--ui-color-warning) 66%, transparent);
 }
 .critical .health-light {
   background: var(--ui-signal-record);
-  box-shadow: 0 0 7px color-mix(in srgb, var(--ui-signal-record) 72%, transparent);
 }
 .performance-popover {
   z-index: var(--ui-z-dropdown);
@@ -204,14 +201,14 @@ function formatLatency(value: number | null): string {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 10px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
   outline: none;
   color: var(--ui-color-text);
-  background: var(--ui-color-surface-sunken);
-  box-shadow: 0 24px 64px var(--ui-color-shadow);
+  background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-lg);
   transform-origin: var(--reka-popover-content-transform-origin);
-  animation: performance-surface-in 120ms ease-out;
+  animation: performance-surface-in var(--ui-motion-fast) var(--ui-ease-emphasized);
 }
 .performance-header {
   position: sticky;
@@ -223,8 +220,8 @@ function formatLatency(value: number | null): string {
   gap: 16px;
   padding: 11px 10px;
   border-bottom: 1px solid var(--ui-color-border);
-  background: color-mix(in srgb, var(--ui-color-surface-raised) 93%, transparent);
-  backdrop-filter: blur(10px);
+  background: var(--ui-color-glass);
+  backdrop-filter: var(--ui-backdrop-glass);
 }
 .performance-popover-shell {
   max-width: none;
@@ -236,21 +233,24 @@ function formatLatency(value: number | null): string {
   box-shadow: none;
 }
 .performance-popover-shell > .ui-popover__arrow {
-  fill: var(--ui-color-border-strong);
+  fill: var(--ui-color-surface-raised);
 }
 .performance-header > div:first-child > span,
 .performance-header > div:first-child > strong {
   display: block;
 }
 .performance-header > div:first-child > span {
-  color: var(--ui-color-action);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
   text-transform: uppercase;
-  letter-spacing: var(--ui-type-tracking-widest);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
 }
 .performance-header > div:first-child > strong {
   margin-top: 4px;
+  font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-section-title);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-tight);
 }
 .performance-header-actions {
   display: flex;
@@ -259,23 +259,21 @@ function formatLatency(value: number | null): string {
 }
 .health-badge {
   padding: 4px 7px;
-  border: 1px solid color-mix(in srgb, var(--ui-signal-audio) 50%, var(--ui-color-border-strong));
-  border-radius: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-pill);
   color: var(--ui-signal-audio);
-  background: color-mix(in srgb, var(--ui-signal-audio) 10%, var(--ui-color-surface-raised));
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  background: color-mix(in srgb, var(--ui-signal-audio) 16%, transparent);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
   text-transform: uppercase;
-  letter-spacing: var(--ui-type-tracking-wide);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
 }
 .health-badge.warning {
-  border-color: color-mix(in srgb, var(--ui-color-warning) 45%, var(--ui-color-border-strong));
   color: var(--ui-color-warning);
-  background: color-mix(in srgb, var(--ui-color-warning) 10%, var(--ui-color-surface-raised));
+  background: color-mix(in srgb, var(--ui-color-warning) 16%, transparent);
 }
 .health-badge.critical {
-  border-color: color-mix(in srgb, var(--ui-signal-record) 45%, var(--ui-color-border-strong));
   color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 10%, var(--ui-color-surface-raised));
+  background: color-mix(in srgb, var(--ui-signal-record) 16%, transparent);
 }
 .refresh-performance {
   display: grid;
@@ -283,13 +281,13 @@ function formatLatency(value: number | null): string {
   width: 24px;
   height: 24px;
   padding: 0;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 5px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text-subtle);
-  background: var(--ui-daw-control);
+  background: var(--ui-color-fill);
 }
 .refresh-performance:disabled {
-  opacity: 0.55;
+  opacity: var(--ui-opacity-disabled);
 }
 .spinning {
   animation: monitor-spin 0.8s linear infinite;
@@ -299,33 +297,32 @@ function formatLatency(value: number | null): string {
   padding: 8px;
   border-bottom: 1px solid var(--ui-color-border);
   gap: 5px;
-  background: var(--ui-color-surface-sunken);
 }
 .alerts-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 1px 1px 3px;
-  color: var(--ui-color-text-faint);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  color: var(--ui-color-text-subtle);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
   text-transform: uppercase;
-  letter-spacing: var(--ui-type-tracking-wide);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
 }
 .performance-alert {
   display: grid;
   grid-template-columns: 15px minmax(0, 1fr);
   align-items: start;
   padding: 7px 8px;
-  border: 1px solid color-mix(in srgb, var(--ui-color-warning) 42%, var(--ui-color-border-strong));
-  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--ui-color-warning) 24%, transparent);
+  border-radius: var(--ui-radius-md);
   gap: 7px;
   color: var(--ui-color-warning);
-  background: color-mix(in srgb, var(--ui-color-warning) 10%, var(--ui-color-surface));
+  background: color-mix(in srgb, var(--ui-color-warning) 10%, transparent);
 }
 .performance-alert.critical {
-  border-color: color-mix(in srgb, var(--ui-signal-record) 45%, var(--ui-color-border-strong));
+  border-color: color-mix(in srgb, var(--ui-signal-record) 24%, transparent);
   color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 10%, var(--ui-color-surface));
+  background: color-mix(in srgb, var(--ui-signal-record) 10%, transparent);
 }
 .performance-alert div {
   min-width: 0;
@@ -336,6 +333,7 @@ function formatLatency(value: number | null): string {
 }
 .performance-alert strong {
   font-size: var(--ui-type-size-control);
+  font-weight: var(--ui-type-weight-strong);
 }
 .performance-alert span {
   margin-top: 3px;

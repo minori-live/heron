@@ -2,27 +2,34 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
+  /* Graphite neutrals and signal hues shared with the product website. The
+     neutrals lean slightly blue so glass panels read as one material with the
+     warm off-white ink, rather than as flat grey boxes. */
   --ui-palette-neutral-0: #ffffff;
-  --ui-palette-neutral-50: #f6f7f9;
-  --ui-palette-neutral-100: #e7e9ed;
-  --ui-palette-neutral-200: #cdd1d8;
-  --ui-palette-neutral-300: #aeb4bf;
-  --ui-palette-neutral-400: #8d95a2;
-  --ui-palette-neutral-500: #6e7785;
-  --ui-palette-neutral-600: #515966;
-  --ui-palette-neutral-700: #383e48;
-  --ui-palette-neutral-800: #252a32;
-  --ui-palette-neutral-850: #1d2128;
-  --ui-palette-neutral-900: #171a20;
-  --ui-palette-neutral-950: #0e1014;
-  --ui-palette-blue-300: #8cc7ff;
-  --ui-palette-blue-400: #5baeff;
-  --ui-palette-blue-500: #258be8;
-  --ui-palette-blue-600: #176fc0;
-  --ui-palette-red-400: #ff6b72;
-  --ui-palette-red-500: #e84b54;
-  --ui-palette-green-400: #59d79a;
-  --ui-palette-amber-400: #f4bd62;
+  --ui-palette-neutral-50: #eceae4;
+  --ui-palette-neutral-100: #dcdbd8;
+  --ui-palette-neutral-200: #c3c5cc;
+  --ui-palette-neutral-300: #a5a8b3;
+  --ui-palette-neutral-400: #8f93a0;
+  --ui-palette-neutral-500: #6f7482;
+  --ui-palette-neutral-600: #5c616e;
+  --ui-palette-neutral-700: #30333d;
+  --ui-palette-neutral-800: #252831;
+  --ui-palette-neutral-850: #1d2029;
+  --ui-palette-neutral-900: #16181e;
+  --ui-palette-neutral-950: #101114;
+  --ui-palette-cyan-300: #9bdadd;
+  --ui-palette-cyan-400: #72c3c7;
+  --ui-palette-cyan-500: #5aaeb2;
+  --ui-palette-cyan-700: #17777c;
+  --ui-palette-cyan-800: #126165;
+  --ui-palette-violet-300: #c2abff;
+  --ui-palette-violet-400: #a98ade;
+  --ui-palette-violet-700: #7353c4;
+  --ui-palette-red-400: #ff6f86;
+  --ui-palette-red-500: #f0506b;
+  --ui-palette-green-400: #5cc27c;
+  --ui-palette-amber-400: #f2b45a;
 
   /* Scientific spectrogram energy map: fixed colors in both application themes. */
   /* Comma syntax also supports ECharts' visualMap color interpolator. */
@@ -39,7 +46,14 @@
   --ui-color-surface-raised: var(--ui-palette-neutral-800);
   --ui-color-surface-hover: var(--ui-palette-neutral-700);
   --ui-color-surface-active: var(--ui-palette-neutral-600);
-  --ui-color-overlay: rgb(4 6 9 / 72%);
+  --ui-color-overlay: rgb(8 9 12 / 62%);
+  /* Translucent panel material for floating chrome: menus, popovers, dialogs,
+     toolbar islands. Always paired with `--ui-backdrop-glass`. */
+  --ui-color-glass: rgb(29 32 41 / 82%);
+  --ui-color-glass-edge: rgb(255 255 255 / 9%);
+  --ui-color-fill: rgb(255 255 255 / 6%);
+  --ui-color-fill-hover: rgb(255 255 255 / 10%);
+  --ui-backdrop-glass: blur(22px) saturate(1.4);
   --ui-color-text: var(--ui-palette-neutral-50);
   --ui-color-text-muted: var(--ui-palette-neutral-300);
   --ui-color-text-subtle: var(--ui-palette-neutral-400);
@@ -48,30 +62,37 @@
   --ui-lane-color: var(--ui-color-action);
   --ui-velocity-color: var(--ui-signal-midi);
   --ui-signal-automation: var(--ui-color-action);
-  --ui-signal-loop: #e4b93f;
-  --ui-signal-loop-ink: #221c08;
+  --ui-signal-loop: #f2b45a;
+  --ui-signal-loop-ink: #241a08;
   --ui-color-text-inverse: var(--ui-palette-neutral-950);
   --ui-color-border: var(--ui-palette-neutral-700);
   --ui-color-border-strong: var(--ui-palette-neutral-600);
-  --ui-color-action: var(--ui-palette-blue-400);
-  --ui-color-action-hover: var(--ui-palette-blue-300);
-  --ui-color-action-pressed: var(--ui-palette-blue-500);
+  /* Wave cyan carries "on", selection, and continuous values. */
+  --ui-color-action: var(--ui-palette-cyan-400);
+  --ui-color-action-hover: var(--ui-palette-cyan-300);
+  --ui-color-action-pressed: var(--ui-palette-cyan-500);
   --ui-color-action-text: var(--ui-palette-neutral-950);
-  --ui-color-focus: var(--ui-palette-blue-300);
+  /* The committing action of a decision area is solid ink, not a hue. */
+  --ui-color-emphasis: var(--ui-palette-neutral-50);
+  --ui-color-emphasis-hover: #f7f6f2;
+  --ui-color-emphasis-text: var(--ui-palette-neutral-950);
+  /* Violet marks wayfinding: focus, eyebrows, and inline links. */
+  --ui-color-accent: var(--ui-palette-violet-300);
+  --ui-color-focus: var(--ui-palette-violet-400);
   --ui-color-control: var(--ui-palette-neutral-800);
   --ui-color-control-hover: var(--ui-palette-neutral-700);
   --ui-color-control-pressed: var(--ui-palette-neutral-900);
-  --ui-color-menu-surface: #303030;
-  --ui-color-menu-control: #262626;
-  --ui-color-menu-control-hover: #3b3b3b;
-  --ui-color-menu-highlight: #454545;
-  --ui-color-menu-text: #f3f3f3;
-  --ui-color-menu-text-muted: #c4c4c4;
-  --ui-color-menu-text-subtle: #9a9a9a;
-  --ui-color-menu-border: #565656;
-  --ui-color-menu-divider: #414141;
-  --ui-color-menu-accent: #8eb9c8;
-  --ui-shadow-menu-highlight: 2px 0 0 var(--ui-color-menu-accent) inset;
+  --ui-color-menu-surface: rgb(34 37 46 / 92%);
+  --ui-color-menu-control: #1b1e26;
+  --ui-color-menu-control-hover: #2c303b;
+  --ui-color-menu-highlight: rgb(255 255 255 / 8%);
+  --ui-color-menu-text: #eceae4;
+  --ui-color-menu-text-muted: #b9bcc5;
+  --ui-color-menu-text-subtle: #9195a1;
+  --ui-color-menu-border: rgb(255 255 255 / 11%);
+  --ui-color-menu-divider: rgb(255 255 255 / 8%);
+  --ui-color-menu-accent: var(--ui-palette-cyan-400);
+  --ui-shadow-menu-highlight: none;
   --ui-shadow-menu-focus-ring: 0 0 0 3px
     color-mix(in srgb, var(--ui-color-menu-accent) 38%, transparent);
   --ui-color-selection: color-mix(in srgb, var(--ui-color-action) 14%, var(--ui-color-surface));
@@ -85,26 +106,27 @@
     var(--ui-color-action) 72%,
     var(--ui-color-border)
   );
-  --ui-color-info: var(--ui-palette-blue-400);
+  --ui-color-info: var(--ui-palette-cyan-400);
   --ui-color-success: var(--ui-palette-green-400);
   --ui-color-warning: var(--ui-palette-amber-400);
   --ui-color-danger: var(--ui-palette-red-400);
   --ui-color-danger-hover: var(--ui-palette-red-500);
   --ui-color-danger-text: var(--ui-palette-neutral-950);
-  --ui-color-shadow: rgb(0 0 0 / 40%);
+  --ui-color-shadow: rgb(0 0 0 / 60%);
+  --ui-color-shadow-near: rgb(0 0 0 / 32%);
 
   --ui-signal-record: var(--ui-palette-red-400);
-  --ui-signal-midi: #ad8cff;
-  --ui-signal-audio: #58c6c2;
+  --ui-signal-midi: var(--ui-palette-violet-400);
+  --ui-signal-audio: var(--ui-palette-cyan-400);
   --ui-signal-meter-safe: var(--ui-palette-green-400);
   --ui-signal-meter-warning: var(--ui-palette-amber-400);
   --ui-signal-meter-clip: var(--ui-palette-red-400);
-  --ui-signal-mixer-mute: #2f9ed0;
-  --ui-signal-mixer-solo: #e4b93f;
-  --ui-signal-mixer-record: #e54b58;
-  --ui-signal-mixer-pan: #69c68b;
-  --ui-signal-mixer-input: #e8892f;
-  --ui-signal-mixer-bounce: #73d6c9;
+  --ui-signal-mixer-mute: #5aa8e0;
+  --ui-signal-mixer-solo: #f2b45a;
+  --ui-signal-mixer-record: #ff6f86;
+  --ui-signal-mixer-pan: #5cc27c;
+  --ui-signal-mixer-input: #f0915a;
+  --ui-signal-mixer-bounce: #72c3c7;
 
   --ui-space-0: 0;
   --ui-space-1: 0.25rem;
@@ -118,10 +140,13 @@
   --ui-space-12: 3rem;
   --ui-space-16: 4rem;
 
-  --ui-radius-xs: 1px;
-  --ui-radius-sm: 0.25rem;
-  --ui-radius-md: 0.5rem;
-  --ui-radius-lg: 0.75rem;
+  /* Radius follows hierarchy: dense DAW controls stay tight, generic controls
+     are soft, floating panels and windows are generously rounded. */
+  --ui-radius-xs: 2px;
+  --ui-radius-sm: 0.375rem;
+  --ui-radius-md: 0.625rem;
+  --ui-radius-lg: 1rem;
+  --ui-radius-xl: 1.375rem;
   --ui-radius-pill: 999px;
 
   --ui-control-compact: 1.5rem;
@@ -134,7 +159,8 @@
 
   /* Typography foundations — families are bundled via unplugin-fonts + Fontsource */
   --ui-type-family-interface: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --ui-type-family-display: "Barlow Condensed", ui-sans-serif, system-ui, sans-serif;
+  /* Display is heavy, tightly tracked Inter: one family, distinguished by weight. */
+  --ui-type-family-display: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --ui-type-family-data: "Cascadia Mono Variable", ui-monospace, monospace;
 
   /* Dense application roles */
@@ -165,7 +191,9 @@
   --ui-type-weight-regular: 400;
   --ui-type-weight-medium: 500;
   --ui-type-weight-semibold: 600;
+  --ui-type-weight-strong: 650;
   --ui-type-weight-bold: 700;
+  --ui-type-weight-heavy: 750;
 
   --ui-type-leading-none: 1;
   --ui-type-leading-tight: 1.2;
@@ -174,15 +202,25 @@
   --ui-type-leading-relaxed: 1.6;
 
   --ui-type-tracking-tighter: -0.08em;
+  --ui-type-tracking-display: -0.03em;
   --ui-type-tracking-tight: -0.02em;
+  --ui-type-tracking-snug: -0.01em;
   --ui-type-tracking-normal: 0;
+  --ui-type-tracking-body: -0.005em;
   --ui-type-tracking-wide: 0.08em;
+  /* Eyebrows: interface type, uppercase, accent ink. */
+  --ui-type-tracking-eyebrow: 0.08em;
   --ui-type-tracking-wider: 0.14em;
   --ui-type-tracking-widest: 0.18em;
 
-  --ui-shadow-sm: 0 1px 2px rgb(0 0 0 / 28%);
-  --ui-shadow-md: 0 8px 24px rgb(0 0 0 / 34%);
-  --ui-shadow-lg: 0 18px 56px rgb(0 0 0 / 46%);
+  --ui-shadow-sm: 0 1px 3px var(--ui-color-shadow-near);
+  --ui-shadow-md:
+    0 14px 30px -14px var(--ui-color-shadow), 0 2px 6px -2px var(--ui-color-shadow-near);
+  --ui-shadow-lg:
+    0 32px 58px -22px var(--ui-color-shadow), 0 4px 13px -3px var(--ui-color-shadow-near);
+  /* A raised segment or thumb inside a recessed track. */
+  --ui-shadow-raised:
+    inset 0 0 0 1px var(--ui-color-glass-edge), 0 1px 3px var(--ui-color-shadow-near);
   --ui-shadow-glow: 0 0 8px color-mix(in srgb, var(--ui-color-action) 42%, transparent);
   --ui-shadow-selected-edge: 2px 0 0 var(--ui-daw-action) inset;
   --ui-shadow-selected-outline: 0 0 0 1px color-mix(in srgb, var(--ui-daw-action) 30%, transparent)
@@ -191,11 +229,14 @@
     inset;
   --ui-shadow-warning-ring: 0 0 0 2px color-mix(in srgb, var(--ui-color-warning) 15%, transparent);
   --ui-focus-width: 2px;
-  --ui-focus-ring: 0 0 0 3px color-mix(in srgb, var(--ui-color-focus) 38%, transparent);
+  --ui-focus-ring: 0 0 0 3px color-mix(in srgb, var(--ui-color-focus) 32%, transparent);
 
-  --ui-motion-fast: 100ms;
-  --ui-motion-normal: 180ms;
+  --ui-motion-fast: 120ms;
+  --ui-motion-normal: 200ms;
+  --ui-motion-slow: 350ms;
   --ui-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  /* Settling ease for indicators and panels that travel. */
+  --ui-ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
 
   --ui-z-popover: 50;
   --ui-z-overlay: 80;
@@ -218,78 +259,86 @@
      application surface, so they keep their own palette in both themes.
      `--ui-daw-<role>` mirrors the semantic role names: a panel that wants the
      DAW palette remaps a role onto it instead of restating every value. */
-  --ui-daw-workspace: #101010;
-  --ui-daw-lane: #141414;
-  --ui-daw-lane-stripe: #1c1c1c;
-  --ui-daw-grid-line: #292929;
-  --ui-daw-ruler: #191919;
-  --ui-daw-track-header: #1c1c1c;
-  --ui-daw-track-header-hover: #232323;
-  --ui-daw-track-header-selected: #292d2f;
-  --ui-daw-meter-well: #0b0b0b;
-  --ui-daw-statusbar: #121212;
-  --ui-daw-resizer: #2a2a2a;
-  --ui-daw-canvas: #151515;
-  --ui-daw-canvas-subtle: #181818;
-  --ui-daw-surface: #1b1b1b;
-  --ui-daw-surface-raised: #202020;
-  --ui-daw-surface-hover: #282828;
-  --ui-daw-surface-panel: #181818;
-  --ui-daw-surface-sunken: #111111;
-  --ui-daw-surface-active: #2a2d2f;
-  --ui-daw-border: #2b2b2b;
-  --ui-daw-border-strong: #3a3a3a;
-  --ui-daw-text: #e8e8e8;
-  --ui-daw-text-muted: #b8b8b8;
-  --ui-daw-text-subtle: #8c8c8c;
-  --ui-daw-text-faint: #686868;
-  --ui-daw-action: #8da8b5;
-  --ui-daw-action-hover: #b6cbd3;
-  --ui-daw-action-pressed: #6f929f;
-  --ui-daw-action-text: #f5fbfc;
-  --ui-daw-focus: #8eb9c8;
-  --ui-daw-control: #292929;
-  --ui-daw-control-hover: #333333;
-  --ui-daw-meter-safe: #50b86d;
-  --ui-daw-meter-warning: #e4b93f;
-  --ui-daw-meter-clip: #e54b58;
+  --ui-daw-workspace: #121318;
+  --ui-daw-lane: #15171c;
+  --ui-daw-lane-stripe: #1a1c22;
+  --ui-daw-grid-line: #272a32;
+  --ui-daw-ruler: #181a20;
+  --ui-daw-track-header: #1b1d24;
+  --ui-daw-track-header-hover: #22252d;
+  --ui-daw-track-header-selected: #252c33;
+  --ui-daw-meter-well: #0c0d10;
+  --ui-daw-statusbar: #131419;
+  --ui-daw-resizer: #2a2d36;
+  --ui-daw-canvas: #16181d;
+  --ui-daw-canvas-subtle: #191b21;
+  --ui-daw-surface: #1d2029;
+  --ui-daw-surface-raised: #22252e;
+  --ui-daw-surface-hover: #2a2d37;
+  --ui-daw-surface-panel: #191b21;
+  --ui-daw-surface-sunken: #111216;
+  --ui-daw-surface-active: #263136;
+  --ui-daw-border: #2a2d36;
+  --ui-daw-border-strong: #3a3e49;
+  --ui-daw-text: #eceae4;
+  --ui-daw-text-muted: #b4b7c0;
+  --ui-daw-text-subtle: #8f93a0;
+  --ui-daw-text-faint: #6b7080;
+  --ui-daw-action: #72c3c7;
+  --ui-daw-action-hover: #9bdadd;
+  --ui-daw-action-pressed: #5aaeb2;
+  --ui-daw-action-text: #101114;
+  --ui-daw-focus: #a98ade;
+  --ui-daw-control: #262932;
+  --ui-daw-control-hover: #30333d;
+  --ui-daw-meter-safe: #5cc27c;
+  --ui-daw-meter-warning: #f2b45a;
+  --ui-daw-meter-clip: #ff6f86;
 }
 
 [data-theme="light"] {
   color-scheme: light;
 
-  --ui-color-canvas: var(--ui-palette-neutral-50);
-  --ui-color-canvas-subtle: var(--ui-palette-neutral-100);
+  --ui-color-canvas: #f3f3f4;
+  --ui-color-canvas-subtle: #eaebed;
   --ui-color-surface: var(--ui-palette-neutral-0);
-  --ui-color-surface-raised: var(--ui-palette-neutral-50);
-  --ui-color-surface-hover: var(--ui-palette-neutral-100);
-  --ui-color-surface-active: var(--ui-palette-neutral-200);
-  --ui-color-overlay: rgb(14 16 20 / 52%);
-  --ui-color-text: var(--ui-palette-neutral-950);
-  --ui-color-text-muted: var(--ui-palette-neutral-600);
-  --ui-color-text-subtle: var(--ui-palette-neutral-600);
-  --ui-color-text-faint: var(--ui-palette-neutral-600);
+  --ui-color-surface-raised: #f7f7f8;
+  --ui-color-surface-hover: #eeeff1;
+  --ui-color-surface-active: #e2e3e7;
+  --ui-color-overlay: rgb(24 28 40 / 32%);
+  --ui-color-glass: rgb(255 255 255 / 80%);
+  --ui-color-glass-edge: rgb(24 28 40 / 10%);
+  --ui-color-fill: rgb(27 29 35 / 5%);
+  --ui-color-fill-hover: rgb(27 29 35 / 9%);
+  --ui-color-text: #1b1d23;
+  --ui-color-text-muted: #5d6271;
+  --ui-color-text-subtle: #5d6271;
+  --ui-color-text-faint: #6b7080;
   --ui-color-text-inverse: var(--ui-palette-neutral-0);
-  --ui-color-border: var(--ui-palette-neutral-200);
-  --ui-color-border-strong: var(--ui-palette-neutral-400);
-  --ui-color-action: var(--ui-palette-blue-600);
-  --ui-color-action-hover: #0f5b9f;
-  --ui-color-action-pressed: #0b4c86;
+  --ui-color-border: #dcdde2;
+  --ui-color-border-strong: #8f939d;
+  --ui-color-action: var(--ui-palette-cyan-700);
+  --ui-color-action-hover: var(--ui-palette-cyan-800);
+  --ui-color-action-pressed: #0f5154;
   --ui-color-action-text: var(--ui-palette-neutral-0);
-  --ui-color-focus: var(--ui-palette-blue-600);
+  --ui-color-emphasis: #1b1d23;
+  --ui-color-emphasis-hover: #34373f;
+  --ui-color-emphasis-text: var(--ui-palette-neutral-0);
+  --ui-color-accent: var(--ui-palette-violet-700);
+  --ui-color-focus: var(--ui-palette-violet-700);
   --ui-color-control: var(--ui-palette-neutral-0);
-  --ui-color-control-hover: var(--ui-palette-neutral-100);
-  --ui-color-control-pressed: var(--ui-palette-neutral-200);
-  --ui-color-menu-surface: #f7f7f7;
-  --ui-color-menu-control: #ffffff;
-  --ui-color-menu-control-hover: #ededed;
-  --ui-color-menu-highlight: #e2e2e2;
-  --ui-color-menu-text: #202020;
-  --ui-color-menu-text-muted: #555555;
-  --ui-color-menu-text-subtle: #6f6f6f;
-  --ui-color-menu-border: #aaaaaa;
-  --ui-color-menu-divider: #d5d5d5;
-  --ui-color-menu-accent: #44636d;
+  --ui-color-control-hover: #f3f4f6;
+  --ui-color-control-pressed: #e6e7ea;
+  --ui-color-menu-surface: rgb(255 255 255 / 90%);
+  --ui-color-menu-control: #f7f7f8;
+  --ui-color-menu-control-hover: #eeeff1;
+  --ui-color-menu-highlight: rgb(27 29 35 / 7%);
+  --ui-color-menu-text: #1b1d23;
+  --ui-color-menu-text-muted: #4d5260;
+  --ui-color-menu-text-subtle: #5d6271;
+  --ui-color-menu-border: rgb(24 28 40 / 12%);
+  --ui-color-menu-divider: rgb(24 28 40 / 9%);
+  --ui-color-menu-accent: var(--ui-palette-cyan-700);
   --ui-color-selection: color-mix(in srgb, var(--ui-color-action) 12%, var(--ui-color-surface));
   --ui-color-selection-hover: color-mix(
     in srgb,
@@ -301,60 +350,59 @@
     var(--ui-color-action) 72%,
     var(--ui-color-border)
   );
-  --ui-color-info: var(--ui-palette-blue-600);
-  --ui-color-success: #16764c;
-  --ui-color-warning: #8a5700;
-  --ui-color-danger: #b4232d;
-  --ui-color-danger-hover: #8d1821;
+  --ui-color-info: var(--ui-palette-cyan-700);
+  --ui-color-success: #2b7a45;
+  --ui-color-warning: #8f5f17;
+  --ui-color-danger: #c13e50;
+  --ui-color-danger-hover: #a23142;
   --ui-color-danger-text: var(--ui-palette-neutral-0);
+  --ui-color-shadow: rgb(30 36 60 / 24%);
+  --ui-color-shadow-near: rgb(30 36 60 / 10%);
 
-  --ui-signal-record: #c52e38;
-  --ui-signal-midi: #704fc0;
-  --ui-signal-audio: #167a77;
-  --ui-signal-meter-safe: #16764c;
-  --ui-signal-meter-warning: #a26800;
-  --ui-signal-meter-clip: #c52e38;
-  --ui-signal-mixer-mute: #176fc0;
-  --ui-signal-mixer-solo: #8a5700;
+  --ui-signal-record: #c13e50;
+  --ui-signal-midi: var(--ui-palette-violet-700);
+  --ui-signal-audio: var(--ui-palette-cyan-700);
+  --ui-signal-meter-safe: #2b7a45;
+  --ui-signal-meter-warning: #9a681d;
+  --ui-signal-meter-clip: #c13e50;
+  --ui-signal-mixer-mute: #2471b3;
+  --ui-signal-mixer-solo: #8f5f17;
   --ui-signal-mixer-input: #9b4f00;
-  --ui-signal-mixer-bounce: #167a77;
+  --ui-signal-mixer-bounce: var(--ui-palette-cyan-700);
 
-  --ui-shadow-sm: 0 1px 2px rgb(14 16 20 / 12%);
-  --ui-shadow-md: 0 8px 24px rgb(14 16 20 / 16%);
-  --ui-shadow-lg: 0 18px 56px rgb(14 16 20 / 24%);
-  --ui-daw-workspace: #c9cbcd;
-  --ui-daw-lane: #d5d6d8;
-  --ui-daw-lane-stripe: #ced0d2;
-  --ui-daw-grid-line: #b5b8bb;
-  --ui-daw-ruler: #d0d1d3;
-  --ui-daw-track-header: #dcdddf;
-  --ui-daw-track-header-hover: #e6e7e8;
-  --ui-daw-track-header-selected: #c6d0d4;
-  --ui-daw-meter-well: #25282a;
-  --ui-daw-statusbar: #c5c7c9;
-  --ui-daw-resizer: #b5b8bb;
-  --ui-daw-canvas: #d8d9db;
-  --ui-daw-canvas-subtle: #d0d1d3;
-  --ui-daw-surface: #e4e5e7;
-  --ui-daw-surface-raised: #ececee;
-  --ui-daw-surface-hover: #f3f3f4;
-  --ui-daw-surface-panel: #d0d1d3;
-  --ui-daw-surface-sunken: #c7c9cc;
-  --ui-daw-surface-active: #c8d0d4;
-  --ui-daw-border: #c4c5c7;
-  --ui-daw-border-strong: #aaadb0;
-  --ui-daw-text: #202224;
-  --ui-daw-text-muted: #45494c;
-  --ui-daw-text-subtle: #676c70;
-  --ui-daw-text-faint: #858a8e;
-  --ui-daw-action: #456d7a;
-  --ui-daw-action-hover: #355d6b;
-  --ui-daw-action-pressed: #365e6b;
+  --ui-daw-workspace: #e9eaed;
+  --ui-daw-lane: #f1f2f4;
+  --ui-daw-lane-stripe: #eaebee;
+  --ui-daw-grid-line: #d5d7dc;
+  --ui-daw-ruler: #eceef1;
+  --ui-daw-track-header: #f6f6f8;
+  --ui-daw-track-header-hover: #ffffff;
+  --ui-daw-track-header-selected: #dfedee;
+  --ui-daw-meter-well: #dcdee3;
+  --ui-daw-statusbar: #e4e5e9;
+  --ui-daw-resizer: #d0d2d8;
+  --ui-daw-canvas: #eceef1;
+  --ui-daw-canvas-subtle: #e6e7ea;
+  --ui-daw-surface: #f6f6f8;
+  --ui-daw-surface-raised: #ffffff;
+  --ui-daw-surface-hover: #ffffff;
+  --ui-daw-surface-panel: #e9eaed;
+  --ui-daw-surface-sunken: #e1e2e6;
+  --ui-daw-surface-active: #dbe9eb;
+  --ui-daw-border: #d8dade;
+  --ui-daw-border-strong: #babdc4;
+  --ui-daw-text: #1b1d23;
+  --ui-daw-text-muted: #4d5260;
+  --ui-daw-text-subtle: #5d6271;
+  --ui-daw-text-faint: #7d828f;
+  --ui-daw-action: #17777c;
+  --ui-daw-action-hover: #126165;
+  --ui-daw-action-pressed: #0f5154;
   --ui-daw-action-text: #ffffff;
-  --ui-daw-focus: #2f758b;
-  --ui-daw-control: #e8e8e9;
-  --ui-daw-control-hover: #f2f2f3;
+  --ui-daw-focus: #7353c4;
+  --ui-daw-control: #ffffff;
+  --ui-daw-control-hover: #f3f4f6;
   --ui-daw-meter-safe: #33804b;
-  --ui-daw-meter-warning: #a77818;
-  --ui-daw-meter-clip: #bd3d4b;
+  --ui-daw-meter-warning: #9a681d;
+  --ui-daw-meter-clip: #c13e50;
 }

@@ -106,7 +106,7 @@ function surfaceGesture(intent: UiGestureIntent): void {
   position: relative;
   min-width: 100%;
   overflow: hidden;
-  border-bottom: 1px solid var(--ui-color-border-strong);
+  border-bottom: 1px solid var(--ui-color-border);
   background: var(--ui-color-surface-sunken);
   cursor: crosshair;
   user-select: none;
@@ -145,7 +145,7 @@ function surfaceGesture(intent: UiGestureIntent): void {
 }
 .ui-automation-lane__shadow {
   fill: none;
-  stroke: var(--ui-color-overlay);
+  stroke: var(--ui-color-surface-sunken);
   stroke-width: 4;
 }
 .ui-automation-lane__line {
@@ -158,12 +158,13 @@ function surfaceGesture(intent: UiGestureIntent): void {
   top: 11px;
   bottom: 10px;
   overflow: hidden;
-  border-block: 1px solid color-mix(in srgb, var(--ui-lane-color) 45%, transparent);
+  border-block: 1px solid color-mix(in srgb, var(--ui-lane-color) 32%, transparent);
   background: color-mix(in srgb, var(--ui-lane-color) 10%, transparent);
   pointer-events: none;
 }
 .ui-automation-lane__segment--selected {
-  background: color-mix(in srgb, var(--ui-lane-color) 19%, transparent);
+  border-block-color: color-mix(in srgb, var(--ui-lane-color) 60%, transparent);
+  background: color-mix(in srgb, var(--ui-lane-color) 20%, transparent);
 }
 .ui-automation-lane__segment b {
   display: block;
@@ -191,7 +192,7 @@ function surfaceGesture(intent: UiGestureIntent): void {
   top: 6px;
   bottom: 6px;
   height: auto;
-  border-radius: var(--ui-radius-sm);
+  border-radius: var(--ui-radius-xs);
   transform: translateX(-50%);
   cursor: ew-resize;
 }
@@ -200,6 +201,13 @@ function surfaceGesture(intent: UiGestureIntent): void {
 .ui-automation-lane__point:focus-visible {
   width: 11px;
   border-color: var(--ui-color-text);
+}
+.ui-automation-lane__point--selected {
+  box-shadow:
+    0 0 0 1px var(--ui-lane-color),
+    0 0 0 3px color-mix(in srgb, var(--ui-lane-color) 30%, transparent);
+}
+.ui-automation-lane__point:focus-visible {
   outline: 2px solid var(--ui-color-focus);
   outline-offset: 2px;
 }

@@ -9,9 +9,11 @@ html {
   font-size: var(--ui-font-size-md);
   font-weight: var(--ui-type-weight-regular);
   line-height: var(--ui-type-leading-normal);
+  letter-spacing: var(--ui-type-tracking-body);
   color: var(--ui-color-text);
   background: var(--ui-color-canvas);
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
@@ -37,6 +39,25 @@ textarea {
   outline: 2px solid var(--ui-color-focus);
   outline-offset: 2px;
   box-shadow: var(--ui-focus-ring);
+}
+
+/* Category label above a heading or group: interface type, never data type. */
+.ui-eyebrow {
+  margin: 0;
+  color: var(--ui-color-accent);
+  font-family: var(--ui-type-family-interface);
+  font-weight: var(--ui-type-weight-strong);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
+}
+
+/* Heavy, tightly tracked heading face shared with the product website. */
+.ui-display {
+  font-family: var(--ui-type-family-display);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-display);
+  line-height: var(--ui-type-leading-tight);
+  text-wrap: balance;
 }
 
 [hidden] {
@@ -66,7 +87,6 @@ textarea {
   --ui-color-action-pressed: var(--ui-daw-action-pressed);
   --ui-color-action-text: var(--ui-color-text-inverse);
   --ui-color-border: var(--ui-daw-border-strong);
-  --ui-color-border-strong: var(--ui-daw-action);
   --ui-color-control: var(--ui-daw-surface-hover);
   --ui-color-control-hover: var(--ui-daw-control-hover);
   --ui-color-focus: var(--ui-daw-focus);

@@ -140,7 +140,7 @@ function insert(selection: PluginSelection, slotOrder: number): void {
   flex-direction: column;
   flex: none;
   border: 1px solid var(--ui-domain-mixer-strip-edge);
-  border-radius: var(--ui-radius-sm);
+  border-radius: var(--ui-radius-md);
   overflow: hidden;
   background: var(--ui-domain-mixer-section);
 }
@@ -153,7 +153,11 @@ function insert(selection: PluginSelection, slotOrder: number): void {
   justify-content: space-between;
   flex-shrink: 0;
   padding: 4px 4px 2px 9px;
-  color: var(--ui-domain-mixer-label-ink);
+  color: var(--ui-color-text-subtle);
+  font-family: var(--ui-type-family-interface);
   font-size: var(--ui-type-size-label);
+  font-weight: var(--ui-type-weight-strong);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
 }
 </style>

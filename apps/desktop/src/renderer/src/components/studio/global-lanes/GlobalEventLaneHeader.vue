@@ -37,13 +37,9 @@ defineSlots<{
   grid-template-rows: auto auto;
   gap: 3px 7px;
   padding: 6px 10px;
-  border-bottom: 1px solid var(--ui-color-border-strong);
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--lane-color) 8%, var(--ui-daw-track-header)),
-    var(--ui-daw-track-header) 74%
-  );
-  box-shadow: 3px 0 0 var(--lane-color) inset;
+  border-bottom: 1px solid var(--ui-color-border);
+  background: color-mix(in srgb, var(--lane-color) 7%, var(--ui-daw-track-header));
+  box-shadow: inset var(--ui-signal-rail-width) 0 0 var(--lane-color);
 }
 .lane-copy {
   grid-column: 1;
@@ -56,13 +52,15 @@ defineSlots<{
 }
 .lane-copy span {
   color: var(--lane-color);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-micro) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-micro) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
 }
 .lane-copy strong {
   margin-top: 1px;
   color: var(--ui-color-text);
-  font: var(--ui-type-size-label) var(--ui-type-family-display);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-label) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-snug);
 }
 .lane-controls {
   grid-column: 1;

@@ -66,17 +66,19 @@ const emit = defineEmits<{
   color: var(--ui-color-text-muted);
   background: transparent;
   cursor: default;
+  transition:
+    color var(--ui-motion-fast) var(--ui-ease-standard),
+    background var(--ui-motion-fast) var(--ui-ease-standard);
 }
 
 .ui-window-control:hover {
-  border-color: var(--ui-color-border-strong);
   color: var(--ui-color-text);
-  background: var(--ui-color-surface-hover);
+  background: var(--ui-color-fill-hover);
 }
 
 .ui-window-control:active {
-  color: var(--ui-color-action-hover);
-  background: var(--ui-color-control-pressed);
+  color: var(--ui-color-text);
+  background: var(--ui-color-fill);
 }
 
 .ui-window-control--close:hover,

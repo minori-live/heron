@@ -27,7 +27,7 @@ const percentage = computed(() =>
 
 <template>
   <div
-    class="ui-progress relative h-2 w-full overflow-hidden rounded-ui-pill bg-ui-surface-active"
+    class="ui-progress relative h-2 w-full overflow-hidden rounded-ui-pill bg-[var(--ui-color-fill-hover)]"
     :class="{ 'ui-progress--indeterminate': normalizedValue === null }"
     role="progressbar"
     :aria-label="props.label"

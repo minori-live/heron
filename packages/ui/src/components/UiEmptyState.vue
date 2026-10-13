@@ -14,13 +14,17 @@ const props = withDefaults(
   <div class="grid min-w-0 place-items-center gap-ui-4 p-ui-8 text-center">
     <div
       v-if="$slots.icon"
-      class="grid h-12 w-12 place-items-center border border-solid border-ui-border rounded-full bg-ui-surface-raised text-ui-text-muted"
+      class="grid h-12 w-12 place-items-center border border-solid [border-color:var(--ui-color-glass-edge)] rounded-full bg-[var(--ui-color-fill)] text-ui-text-muted"
       aria-hidden="true"
     >
       <slot name="icon" />
     </div>
     <div class="grid max-w-[34rem] gap-ui-2">
-      <h2 class="m-0 text-ui-lg text-ui-text leading-ui-normal">{{ props.title }}</h2>
+      <h2
+        class="m-0 text-ui-lg font-ui-display font-750 tracking-[var(--ui-type-tracking-display)] text-ui-text leading-ui-tight [text-wrap:balance]"
+      >
+        {{ props.title }}
+      </h2>
       <p v-if="props.description" class="m-0 text-ui-sm text-ui-text-muted leading-ui-normal">
         {{ props.description }}
       </p>

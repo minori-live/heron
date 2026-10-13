@@ -4,8 +4,10 @@ import { Meta } from "@storybook/addon-docs/blocks"
 
 # Color
 
-Heron uses color to explain hierarchy and signal state. Large surfaces stay neutral; saturated
-color is reserved for primary actions, feedback, recording, MIDI, audio, meters, and focus.
+Heron uses color to explain hierarchy and signal state, in the same palette as the product
+website. Large surfaces stay graphite or paper; the committing action is solid ink; wave cyan
+means "on", selected, or audio; violet marks focus and wayfinding; red, green, and amber carry
+recording and level state.
 
 ## Semantic roles
 
@@ -14,7 +16,9 @@ color is reserved for primary actions, feedback, recording, MIDI, audio, meters,
     ["Canvas", "var(--ui-color-canvas)"],
     ["Surface", "var(--ui-color-surface)"],
     ["Raised", "var(--ui-color-surface-raised)"],
+    ["Emphasis", "var(--ui-color-emphasis)"],
     ["Action", "var(--ui-color-action)"],
+    ["Accent", "var(--ui-color-accent)"],
     ["Success", "var(--ui-color-success)"],
     ["Warning", "var(--ui-color-warning)"],
     ["Danger", "var(--ui-color-danger)"]
@@ -26,9 +30,11 @@ color is reserved for primary actions, feedback, recording, MIDI, audio, meters,
         borderRadius: "var(--ui-radius-md)",
         background: color,
         color:
-          name === "Action" || name === "Warning" || name === "Danger"
-            ? "var(--ui-color-text-inverse)"
-            : "var(--ui-color-text)"
+          name === "Emphasis"
+            ? "var(--ui-color-emphasis-text)"
+            : name === "Action" || name === "Accent" || name === "Warning" || name === "Danger"
+              ? "var(--ui-color-text-inverse)"
+              : "var(--ui-color-text)"
       }}
     >
       <strong>{name}</strong>

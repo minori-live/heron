@@ -55,14 +55,23 @@ defineExpose({ focus: () => textarea.value?.focus() })
   background: var(--ui-color-control);
   font-family: var(--ui-type-family-interface);
   line-height: var(--ui-type-leading-normal);
+  transition:
+    border-color var(--ui-motion-fast) var(--ui-ease-standard),
+    box-shadow var(--ui-motion-fast) var(--ui-ease-standard);
 }
 
 .ui-textarea:hover:not(:disabled) {
   border-color: var(--ui-color-border-strong);
 }
 
+.ui-textarea::placeholder {
+  color: var(--ui-color-text-faint);
+}
+
 .ui-textarea:focus {
   border-color: var(--ui-color-focus);
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
 }
 
 .ui-textarea[aria-invalid="true"] {

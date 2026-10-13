@@ -201,8 +201,14 @@ function keydown(event: KeyboardEvent): void {
   height: 2px;
 }
 
-.ui-resize-handle:hover::after,
-.ui-resize-handle--active::after,
+.ui-resize-handle:hover::after {
+  background: var(--ui-color-border-strong);
+}
+
+.ui-resize-handle--active::after {
+  background: var(--ui-color-action);
+}
+
 .ui-resize-handle:focus-visible::after {
   background: var(--ui-color-focus);
 }

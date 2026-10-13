@@ -65,9 +65,9 @@ const emit = defineEmits<{
   align-items: center;
   gap: 10px;
   padding: 9px 10px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 6px;
-  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-fill);
 }
 
 .port-mark {
@@ -75,13 +75,14 @@ const emit = defineEmits<{
   width: 28px;
   height: 28px;
   place-items: center;
-  border-radius: 5px;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text-faint);
-  background: var(--ui-color-surface-sunken);
+  background: var(--ui-color-fill);
 }
 
 .port-mark[data-connected="true"] {
   color: var(--ui-color-action);
+  background: color-mix(in srgb, var(--ui-color-action) 18%, transparent);
 }
 
 .port-copy {
@@ -93,6 +94,7 @@ const emit = defineEmits<{
 .port-copy strong {
   overflow: hidden;
   font-size: var(--ui-type-size-body-compact);
+  font-weight: var(--ui-type-weight-strong);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -106,6 +108,7 @@ const emit = defineEmits<{
 
 .port-copy small {
   color: var(--ui-color-text-subtle);
+  font-family: var(--ui-type-family-interface);
 }
 
 .offset-control {

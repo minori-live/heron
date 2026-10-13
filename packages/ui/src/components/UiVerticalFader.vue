@@ -203,13 +203,13 @@ function finish(): void {
   bottom: 0;
   left: var(--vertical-fader-track-center);
   width: 4px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-xs);
   background: linear-gradient(
     to top,
     var(--vertical-fader-accent) 0 var(--vertical-fader-level),
-    var(--ui-color-control-pressed) var(--vertical-fader-level) 100%
+    var(--ui-daw-meter-well) var(--vertical-fader-level) 100%
   );
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ui-color-text) 38%, transparent) inset;
   content: "";
   transform: translateX(-50%);
 }
@@ -240,18 +240,16 @@ function finish(): void {
   width: 1.75rem;
   height: 0.8125rem;
   margin-left: -0.8125rem;
-  border: 1px solid var(--ui-color-text-subtle);
-  border-radius: 1px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-xs);
   appearance: none;
   background: linear-gradient(
     to bottom,
-    var(--ui-color-control-hover) 0 calc(50% - 1px),
-    var(--ui-color-text) calc(50% - 1px) calc(50% + 1px),
-    var(--ui-color-control-hover) calc(50% + 1px) 100%
+    var(--ui-color-surface-raised) 0 calc(50% - 0.5px),
+    var(--ui-color-text) calc(50% - 0.5px) calc(50% + 0.5px),
+    var(--ui-color-surface-raised) calc(50% + 0.5px) 100%
   );
-  box-shadow:
-    var(--ui-shadow-sm),
-    0 0 0 1px var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-raised), var(--ui-shadow-sm);
   cursor: ns-resize;
 }
 
@@ -272,17 +270,15 @@ function finish(): void {
 .ui-vertical-fader__input::-moz-range-thumb {
   width: 1.75rem;
   height: 0.8125rem;
-  border: 1px solid var(--ui-color-text-subtle);
-  border-radius: 1px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-xs);
   background: linear-gradient(
     to bottom,
-    var(--ui-color-control-hover) 0 calc(50% - 1px),
-    var(--ui-color-text) calc(50% - 1px) calc(50% + 1px),
-    var(--ui-color-control-hover) calc(50% + 1px) 100%
+    var(--ui-color-surface-raised) 0 calc(50% - 0.5px),
+    var(--ui-color-text) calc(50% - 0.5px) calc(50% + 0.5px),
+    var(--ui-color-surface-raised) calc(50% + 0.5px) 100%
   );
-  box-shadow:
-    var(--ui-shadow-sm),
-    0 0 0 1px var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-raised), var(--ui-shadow-sm);
   cursor: ns-resize;
 }
 
@@ -293,7 +289,7 @@ function finish(): void {
 .ui-vertical-fader__input:focus-visible::-webkit-slider-thumb,
 .ui-vertical-fader__input:focus-visible::-moz-range-thumb {
   border-color: var(--ui-color-focus);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ui-color-focus) 50%, transparent);
+  box-shadow: var(--ui-focus-ring);
 }
 
 .ui-vertical-fader__tooltip {
@@ -303,11 +299,12 @@ function finish(): void {
   left: var(--vertical-fader-track-center);
   min-width: 2.375rem;
   padding: 0.1875rem 0.3125rem;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
+  background: var(--ui-color-glass);
   box-shadow: var(--ui-shadow-md);
+  backdrop-filter: var(--ui-backdrop-glass);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   text-align: center;
   transform: translate(-50%, 100%);
@@ -319,7 +316,7 @@ function finish(): void {
   bottom: 100%;
   left: 50%;
   border: 3px solid transparent;
-  border-bottom-color: var(--ui-color-border-strong);
+  border-bottom-color: var(--ui-color-glass);
   content: "";
   transform: translateX(-50%);
 }

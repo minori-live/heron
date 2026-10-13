@@ -27,11 +27,12 @@ const { t } = useI18n()
   grid-template-rows:
     54px var(--plugin-section-height) var(--send-section-height) 44px 34px 34px 78px
     minmax(282px, 1fr) 40px;
-  flex: 0 0 52px;
+  /* Sized by its longest label so every locale fits without clipping. */
+  flex: 0 0 auto;
   min-width: 52px;
   height: 100%;
   min-height: calc(566px + var(--plugin-section-height) + var(--send-section-height));
-  color: var(--ui-domain-mixer-label-ink);
+  color: var(--ui-color-text-subtle);
   background: var(--ui-domain-mixer-section);
   box-shadow:
     1px 0 0 var(--ui-domain-mixer-label-edge),
@@ -44,8 +45,10 @@ const { t } = useI18n()
   justify-content: flex-end;
   padding: 0 8px 0 4px;
   border-bottom: 1px solid var(--ui-domain-mixer-label-divider);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wide);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
   text-align: right;
+  white-space: nowrap;
 }
 </style>

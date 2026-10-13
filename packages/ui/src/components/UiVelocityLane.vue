@@ -66,18 +66,18 @@ function syncScroll(): void {
   display: flex;
   min-width: 0;
   height: 110px;
-  border-top: 1px solid var(--ui-color-border-strong);
+  border-top: 1px solid var(--ui-color-border);
   background: var(--ui-color-surface);
 }
 .ui-velocity-lane__header {
   flex: none;
   width: 72px;
   padding: var(--ui-space-2) 5px 0 0;
-  border-right: 1px solid var(--ui-color-border-strong);
-  color: var(--ui-color-text-muted);
+  border-right: 1px solid var(--ui-color-border);
+  color: var(--ui-color-text-subtle);
   background: var(--ui-color-surface-raised);
   text-align: right;
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
 }
 .ui-velocity-lane__scroll {
   min-width: 0;
@@ -97,11 +97,7 @@ function syncScroll(): void {
   position: absolute;
   bottom: 0;
   border: 1px solid
-    color-mix(
-      in srgb,
-      var(--ui-velocity-color, var(--ui-color-action)) 65%,
-      var(--ui-color-border-strong)
-    );
+    color-mix(in srgb, var(--ui-velocity-color, var(--ui-color-action)) 70%, transparent);
   border-bottom: 0;
   border-radius: var(--ui-radius-xs) var(--ui-radius-xs) 0 0;
   background: var(--ui-velocity-color, var(--ui-color-action));
@@ -111,7 +107,7 @@ function syncScroll(): void {
   opacity: 0.4;
 }
 .ui-velocity-lane__bar--selected {
-  outline: 1px solid var(--ui-color-focus);
+  outline: 1px solid var(--ui-color-text);
   opacity: 1;
 }
 </style>

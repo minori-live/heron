@@ -157,15 +157,16 @@ function setNumber(
   gap: 12px;
   margin-bottom: 1px;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--ui-color-border);
+  border-bottom: 1px solid var(--ui-color-glass-edge);
   color: var(--ui-color-text-muted);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
 }
 
 .runtime-strip span {
-  color: var(--ui-color-action);
-  font-weight: var(--ui-type-weight-bold);
-  letter-spacing: var(--ui-type-tracking-wider);
+  color: var(--ui-color-accent);
+  font-family: var(--ui-type-family-interface);
+  font-weight: var(--ui-type-weight-strong);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
@@ -176,7 +177,7 @@ function setNumber(
 .runtime-strip i {
   width: 1px;
   height: 11px;
-  background: var(--ui-color-border-strong);
+  background: var(--ui-color-glass-edge);
 }
 
 .thread-control {
@@ -188,11 +189,7 @@ function setNumber(
 
 .runtime-actions button {
   height: 36px;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 7px;
-  color: var(--ui-color-text-muted);
-  background: var(--ui-color-surface-hover);
-  font: var(--ui-type-size-body-compact) var(--ui-type-family-data);
+  font-size: var(--ui-type-size-body-compact);
 }
 
 .thread-control :deep(.ui-select-shell) {
@@ -221,9 +218,9 @@ function setNumber(
 
 .runtime-error {
   padding: 11px;
-  border-radius: 7px;
+  border-radius: var(--ui-radius-md);
   color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 9%, var(--ui-color-surface));
+  background: color-mix(in srgb, var(--ui-signal-record) 12%, transparent);
   font-size: var(--ui-type-size-body-compact);
 }
 </style>

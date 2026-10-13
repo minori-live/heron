@@ -117,7 +117,6 @@ const { t } = useI18n()
   justify-items: center;
   gap: 4px;
   border-top: 1px solid var(--ui-domain-mixer-divider);
-  background: var(--ui-domain-mixer-section);
 }
 .input-actions,
 .mix-actions {

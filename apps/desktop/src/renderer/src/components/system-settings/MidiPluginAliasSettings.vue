@@ -92,9 +92,9 @@ function availableParameters(instanceId: string): readonly PluginParameterInfo[]
   align-items: center;
   gap: 10px;
   padding: 10px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 7px;
-  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-fill);
 }
 
 .plugin-mark {
@@ -102,9 +102,9 @@ function availableParameters(instanceId: string): readonly PluginParameterInfo[]
   width: 28px;
   height: 28px;
   place-items: center;
-  border-radius: 5px;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-color-action);
-  background: var(--ui-color-surface-sunken);
+  background: color-mix(in srgb, var(--ui-color-action) 16%, transparent);
 }
 
 .plugin-copy {
@@ -116,6 +116,7 @@ function availableParameters(instanceId: string): readonly PluginParameterInfo[]
 .plugin-copy strong {
   overflow: hidden;
   font-size: var(--ui-type-size-body-compact);
+  font-weight: var(--ui-type-weight-strong);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -123,7 +124,7 @@ function availableParameters(instanceId: string): readonly PluginParameterInfo[]
 .plugin-copy small,
 .parameter-picker > span {
   color: var(--ui-color-text-faint);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-size-caption) var(--ui-type-family-interface);
 }
 
 .parameter-picker {
@@ -133,7 +134,7 @@ function availableParameters(instanceId: string): readonly PluginParameterInfo[]
   align-items: center;
   gap: 10px;
   padding-top: 9px;
-  border-top: 1px solid var(--ui-color-border);
+  border-top: 1px solid var(--ui-color-glass-edge);
 }
 
 @media (max-width: 760px) {

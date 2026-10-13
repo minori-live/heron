@@ -120,8 +120,8 @@ function escape(event: KeyboardEvent): void {
   overflow: hidden;
   padding: 0 var(--ui-space-1);
   border: 1px solid
-    color-mix(in srgb, var(--note-color, var(--ui-color-action)) 65%, var(--ui-color-border-strong));
-  border-radius: var(--ui-radius-sm);
+    color-mix(in srgb, var(--note-color, var(--ui-color-action)) 70%, var(--ui-color-text));
+  border-radius: var(--ui-radius-xs);
   color: var(--ui-color-canvas);
   background: var(--note-color, var(--ui-color-action));
   cursor: grab;
@@ -133,8 +133,15 @@ function escape(event: KeyboardEvent): void {
 .ui-piano-roll-note--selected,
 .ui-piano-roll-note:focus-visible {
   z-index: var(--ui-z-local-selection);
-  outline: 2px solid var(--ui-color-focus);
   opacity: 1;
+}
+.ui-piano-roll-note--selected {
+  border-color: var(--ui-color-text);
+  box-shadow: var(--ui-shadow-sm);
+}
+.ui-piano-roll-note:focus-visible {
+  outline: 2px solid var(--ui-color-focus);
+  outline-offset: 1px;
 }
 .ui-piano-roll-note--previewing {
   cursor: grabbing;

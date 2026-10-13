@@ -4,9 +4,10 @@ import { Meta } from "@storybook/addon-docs/blocks"
 
 # Typography
 
-Heron uses three deliberate families, bundled through `unplugin-fonts` and Fontsource. Interface
-copy uses Inter Variable, headings use Barlow Condensed, and aligned measurements use Cascadia
-Mono Variable. Unhead keeps `html lang` aligned with the active locale and loads Noto Sans SC
+Heron uses two deliberate families, bundled through `unplugin-fonts` and Fontsource, and shares
+them with the product website. Interface copy and headings use Inter Variable — headings are
+distinguished by heavy weight and tight tracking rather than by a second face — and aligned
+measurements use Cascadia Mono Variable. Unhead keeps `html lang` aligned with the active locale and loads Noto Sans SC
 Variable for Chinese UI so `:lang(zh*)` stacks pick the matching face. Font family, size, weight,
 line height, and tracking must come from typography tokens rather than local numeric values.
 
@@ -17,9 +18,15 @@ line height, and tracking must come from typography tokens rather than local num
     <strong>Interface</strong> · Inter Variable / Noto Sans SC Variable · Navigation, controls,
     explanations
   </div>
-  <div style={{ fontFamily: "var(--ui-type-family-display)" }}>
-    <strong>Display</strong> · Barlow Condensed / Noto Sans SC Variable · Page, panel, and section
-    titles
+  <div
+    style={{
+      fontFamily: "var(--ui-type-family-display)",
+      fontWeight: "var(--ui-type-weight-heavy)",
+      letterSpacing: "var(--ui-type-tracking-display)"
+    }}
+  >
+    <strong>Display</strong> · Inter Variable / Noto Sans SC Variable, heavy, tight tracking · Page,
+    panel, and section titles
   </div>
   <div style={{ fontFamily: "var(--ui-type-family-data)" }}>
     <strong>Data</strong> · Cascadia Mono Variable · 01:42:16.083 · 48,000 Hz · −6.2 dB
@@ -73,13 +80,13 @@ headings. Product DAW surfaces use the dense roles above instead of inventing pi
 
 ## Weight, leading, and tracking
 
-- Use regular for body and measurements, medium for active controls, semibold for headings, and
-  bold only for compact uppercase labels.
+- Use regular for body and measurements, medium for quiet controls, strong (650) for buttons,
+  selected controls, and eyebrows, and bold or heavy (750) for headings.
 - Use normal leading for interface copy, compact leading for dense descriptions, and tight leading
   for headings.
-- Use normal tracking by default. Wide, wider, and widest tracking are reserved for uppercase
-  utility labels. Tight tracking is reserved for large display text; tighter tracking is reserved
-  for tabular timecode.
+- Use normal tracking by default. Eyebrows and dense uppercase captions use interface type with
+  eyebrow tracking (`.ui-eyebrow`); data type is never a label style. Display and tight tracking
+  are reserved for headings; tighter tracking is reserved for tabular timecode.
 
 Text required to operate the product must remain legible at 200% zoom and may not be replaced by an
 unlabeled icon.

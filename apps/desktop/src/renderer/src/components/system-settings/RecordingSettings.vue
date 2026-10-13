@@ -167,10 +167,10 @@ function setSoftwareMonitoring(enabled: boolean): void {
   min-width: 0;
   overflow: hidden;
   padding: 11px;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 7px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-md);
   color: var(--ui-color-text-muted);
-  background: var(--ui-color-surface);
+  background: var(--ui-color-fill);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -178,13 +178,6 @@ function setSoftwareMonitoring(enabled: boolean): void {
 
 .path-control button {
   padding: 0 12px;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 7px;
-  color: var(--ui-color-text-muted);
-  background: var(--ui-color-surface-hover);
-}
-
-.path-control button {
 }
 
 .path-control button:disabled {
@@ -197,8 +190,9 @@ function setSoftwareMonitoring(enabled: boolean): void {
   width: min(240px, 100%);
   gap: 7px;
   color: var(--ui-color-text-subtle);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wide);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
 }
 .latency-budget-control {
   display: grid;
@@ -233,7 +227,9 @@ function setSoftwareMonitoring(enabled: boolean): void {
 
 .recovery-count b {
   color: var(--ui-signal-audio);
-  font: var(--ui-font-size-2xl) var(--ui-type-family-data);
+  font: var(--ui-type-weight-semibold) var(--ui-font-size-2xl) var(--ui-type-family-data);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--ui-type-tracking-tight);
 }
 
 .recovery-count span {
@@ -243,12 +239,12 @@ function setSoftwareMonitoring(enabled: boolean): void {
 
 .recording-error {
   padding: 11px;
-  border-radius: 7px;
+  border-radius: var(--ui-radius-md);
   font-size: var(--ui-type-size-body-compact);
 }
 
 .recording-error {
   color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 9%, var(--ui-color-surface));
+  background: color-mix(in srgb, var(--ui-signal-record) 12%, transparent);
 }
 </style>

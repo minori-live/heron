@@ -89,15 +89,17 @@ figcaption {
 }
 .plot-title {
   color: var(--ui-color-text);
+  font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-panel-title);
-  font-weight: var(--ui-type-weight-medium);
+  font-weight: var(--ui-type-weight-bold);
+  letter-spacing: var(--ui-type-tracking-tight);
 }
 .legend {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 16px;
   color: var(--ui-color-text-muted);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-size-caption) var(--ui-type-family-interface);
 }
 .legend > span {
   display: inline-flex;
@@ -108,6 +110,7 @@ figcaption {
   content: "";
   width: 14px;
   border-top: 2px solid var(--analysis-series-color);
+  border-radius: var(--ui-radius-pill);
 }
 .legend > span.dashed::before {
   border-top-style: dashed;

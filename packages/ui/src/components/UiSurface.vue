@@ -29,7 +29,7 @@ const paddingClasses = {
 <template>
   <component
     :is="props.as"
-    class="min-w-0 border border-solid border-ui-border rounded-ui-lg bg-ui-surface text-ui-text"
+    class="min-w-0 border border-solid [border-color:var(--ui-color-glass-edge)] rounded-ui-lg bg-ui-surface text-ui-text"
     :class="[levelClasses[props.level], paddingClasses[props.padding]]"
     :data-level="props.level"
     :data-padding="props.padding"

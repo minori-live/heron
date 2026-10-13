@@ -42,6 +42,11 @@ async function render(): Promise<void> {
     backgroundColor: "transparent",
     tooltip: {
       trigger: "item",
+      backgroundColor: "var(--ui-color-glass)",
+      borderColor: "var(--ui-color-glass-edge)",
+      textStyle: { color: "var(--ui-color-text)", fontFamily: "var(--ui-type-family-interface)" },
+      extraCssText:
+        "border-radius: var(--ui-radius-md); box-shadow: var(--ui-shadow-md); backdrop-filter: var(--ui-backdrop-glass);",
       formatter: (value: { data?: { detail?: string } }) => value.data?.detail ?? ""
     },
     series: [

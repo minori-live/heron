@@ -81,7 +81,7 @@ function relayChannelUpdate(channelId: string, patch: MixerChannelPatch): void {
   row-gap: 1px;
   padding: 1px 8px;
   border: 0;
-  border-bottom: 1px solid var(--ui-color-border-strong);
+  border-bottom: 1px solid var(--ui-color-border);
   color: var(--ui-color-text);
   background: var(--ui-daw-track-header);
   text-align: left;
@@ -93,13 +93,14 @@ function relayChannelUpdate(channelId: string, patch: MixerChannelPatch): void {
 .track-color {
   grid-row: 1/3;
   align-self: stretch;
-  border-radius: 2px;
+  border-radius: var(--ui-radius-xs);
 }
 .track-header > strong {
   grid-column: 2;
   grid-row: 1;
   color: var(--ui-color-text-subtle);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
+  font-variant-numeric: tabular-nums;
 }
 .track-copy {
   grid-column: 3;
@@ -123,6 +124,7 @@ function relayChannelUpdate(channelId: string, patch: MixerChannelPatch): void {
 .track-name-editor {
   display: block;
   font-size: var(--ui-type-size-body-compact);
-  font-weight: var(--ui-type-weight-bold);
+  font-weight: var(--ui-type-weight-strong);
+  letter-spacing: var(--ui-type-tracking-snug);
 }
 </style>

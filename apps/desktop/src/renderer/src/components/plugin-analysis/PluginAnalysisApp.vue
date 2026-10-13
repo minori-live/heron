@@ -184,8 +184,10 @@ watch(settingsOpen, async (open) => {
 }
 .settings-heading h2 {
   margin: 0;
+  font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-panel-title);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-tight);
 }
 .loading {
   padding: 40px;

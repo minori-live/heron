@@ -25,7 +25,7 @@ const markerClasses = {
 
 <template>
   <div
-    class="flex min-w-0 items-start gap-ui-3 border border-solid border-ui-border rounded-ui-md bg-ui-surface-raised px-ui-4 py-ui-3 text-ui-text"
+    class="ui-status-notice flex min-w-0 items-start gap-ui-3 border border-solid rounded-ui-lg px-ui-4 py-ui-3 text-ui-text"
     :data-tone="props.tone"
     :role="props.live === 'assertive' ? 'alert' : props.live === 'polite' ? 'status' : undefined"
     :aria-live="props.live === 'off' ? undefined : props.live"
@@ -36,8 +36,38 @@ const markerClasses = {
       aria-hidden="true"
     />
     <div class="grid min-w-0 gap-ui-1 text-ui-sm leading-ui-normal">
-      <strong v-if="props.title" class="font-600">{{ props.title }}</strong>
+      <strong v-if="props.title" class="font-650">{{ props.title }}</strong>
       <div class="text-ui-text-muted"><slot /></div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.ui-status-notice {
+  --notice-tone: var(--ui-color-text-muted);
+
+  border-color: color-mix(in srgb, var(--notice-tone) 22%, transparent);
+  background: color-mix(in srgb, var(--notice-tone) 10%, transparent);
+}
+
+.ui-status-notice[data-tone="neutral"] {
+  border-color: var(--ui-color-glass-edge);
+  background: var(--ui-color-fill);
+}
+
+.ui-status-notice[data-tone="info"] {
+  --notice-tone: var(--ui-color-info);
+}
+
+.ui-status-notice[data-tone="success"] {
+  --notice-tone: var(--ui-color-success);
+}
+
+.ui-status-notice[data-tone="warning"] {
+  --notice-tone: var(--ui-color-warning);
+}
+
+.ui-status-notice[data-tone="danger"] {
+  --notice-tone: var(--ui-color-danger);
+}
+</style>

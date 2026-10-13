@@ -227,9 +227,11 @@ const emptyPlot = computed<EmptyPlot>(() => {
   gap: 6px;
   max-width: 320px;
   padding: 14px 20px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
-  background: color-mix(in srgb, var(--ui-color-surface) 92%, transparent);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-glass);
+  box-shadow: var(--ui-shadow-md);
+  backdrop-filter: var(--ui-backdrop-glass);
   text-align: center;
 }
 .empty-state p {
@@ -237,8 +239,10 @@ const emptyPlot = computed<EmptyPlot>(() => {
 }
 .empty-title {
   color: var(--ui-color-text);
+  font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-panel-title);
-  font-weight: var(--ui-type-weight-medium);
+  font-weight: var(--ui-type-weight-bold);
+  letter-spacing: var(--ui-type-tracking-tight);
 }
 .empty-description {
   color: var(--ui-color-text-muted);

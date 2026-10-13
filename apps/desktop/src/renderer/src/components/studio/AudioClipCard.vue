@@ -333,7 +333,7 @@ function editGesture(action: string, intent: UiGestureIntent): void {
   flex: 1;
   overflow: hidden;
   font-size: var(--ui-type-size-body-compact);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-strong);
   line-height: var(--ui-type-leading-normal);
   text-overflow: ellipsis;
   text-shadow: 0 1px 2px var(--ui-domain-clip-ink-shadow);

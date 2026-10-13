@@ -118,7 +118,6 @@ function commitGainInputValue(raw: string): void {
   grid-template-rows: minmax(0, 1fr) 61px;
   min-height: 0;
   border-bottom: 1px solid var(--ui-domain-mixer-divider);
-  background: var(--ui-domain-mixer-section);
 }
 .strip-core {
   display: grid;
@@ -142,8 +141,8 @@ function commitGainInputValue(raw: string): void {
   height: 20px;
   margin: 0;
   padding: 0 2px;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 2px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text);
   background: var(--ui-daw-control);
   font: var(--ui-type-size-control) var(--ui-type-family-data);

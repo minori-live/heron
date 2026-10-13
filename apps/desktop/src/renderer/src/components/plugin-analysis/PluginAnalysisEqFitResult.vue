@@ -136,8 +136,9 @@ const summary = computed(() => {
   white-space: nowrap;
 }
 .fit-table th {
-  color: var(--ui-color-text-muted);
-  font-weight: var(--ui-type-weight-medium);
+  color: var(--ui-color-text-subtle);
+  font-family: var(--ui-type-family-interface);
+  font-weight: var(--ui-type-weight-strong);
 }
 .fit-table th:first-child,
 .fit-table td:first-child {
@@ -146,9 +147,9 @@ const summary = computed(() => {
 }
 .fit-caption {
   margin-bottom: 4px;
-  color: var(--ui-color-text-muted);
-  font: var(--ui-type-weight-semibold) var(--ui-type-size-label) var(--ui-type-family-interface);
-  letter-spacing: var(--ui-type-tracking-wide);
+  color: var(--ui-color-text-subtle);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-label) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-align: left;
   text-transform: uppercase;
 }

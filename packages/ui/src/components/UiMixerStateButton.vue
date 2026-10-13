@@ -61,13 +61,20 @@ function activate(event: MouseEvent): void {
   height: 1.5625rem;
   place-items: center;
   padding: 0;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-sm);
   color: color-mix(in srgb, var(--mixer-state-button-tone) 78%, var(--ui-color-text-muted));
-  background: var(--ui-color-control);
-  box-shadow: var(--ui-shadow-highlight-inset), var(--ui-shadow-sm);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-body-compact) var(--ui-type-family-data);
+  background: var(--ui-color-fill);
+  font: var(--ui-type-weight-bold) var(--ui-type-size-body-compact) var(--ui-type-family-interface);
   cursor: pointer;
+  transition:
+    color var(--ui-motion-fast) var(--ui-ease-standard),
+    background-color var(--ui-motion-fast) var(--ui-ease-standard),
+    border-color var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ui-mixer-state-button:not(.active):not(:disabled):hover {
+  background: var(--ui-color-fill-hover);
 }
 
 .ui-mixer-state-button.size-narrow {
@@ -79,8 +86,7 @@ function activate(event: MouseEvent): void {
 .ui-mixer-state-button.size-track {
   width: 17px;
   height: 17px;
-  border-radius: 2px;
-  box-shadow: var(--ui-shadow-highlight-inset);
+  border-radius: var(--ui-radius-xs);
   font-size: var(--ui-type-size-caption);
 }
 
@@ -110,24 +116,17 @@ function activate(event: MouseEvent): void {
   --mixer-state-button-tone: var(--ui-signal-mixer-bounce);
 }
 
-.ui-mixer-state-button.active {
-  border-color: color-mix(in srgb, var(--mixer-state-button-tone) 72%, white);
-  color: var(--ui-color-text-inverse);
-  background: var(--mixer-state-button-tone);
-  box-shadow:
-    0 0 8px color-mix(in srgb, var(--mixer-state-button-tone) 44%, transparent),
-    var(--ui-shadow-highlight-inset);
-}
-
-.ui-mixer-state-button.tone-solo.active,
-.ui-mixer-state-button.tone-input.active,
-.ui-mixer-state-button.tone-bounce.active {
-  color: var(--ui-color-text-inverse);
-}
-
+.ui-mixer-state-button.active,
 .ui-mixer-state-button.tone-bounce:not(:disabled):hover {
-  border-color: color-mix(in srgb, var(--mixer-state-button-tone) 72%, white);
-  color: var(--ui-color-text-inverse);
+  border-color: color-mix(in srgb, var(--mixer-state-button-tone) 36%, transparent);
+  color: var(--mixer-state-button-tone);
+  background: color-mix(in srgb, var(--mixer-state-button-tone) 20%, transparent);
+}
+
+/* An armed record button is the one lit state that must read from across the room. */
+.ui-mixer-state-button.tone-record.active {
+  border-color: var(--mixer-state-button-tone);
+  color: var(--ui-domain-signal-ink);
   background: var(--mixer-state-button-tone);
 }
 
@@ -153,13 +152,9 @@ function activate(event: MouseEvent): void {
 }
 
 .ui-mixer-state-button:disabled {
-  border-color: color-mix(
-    in srgb,
-    var(--mixer-state-button-tone) 45%,
-    var(--ui-color-border-strong)
-  );
+  border-color: color-mix(in srgb, var(--mixer-state-button-tone) 24%, transparent);
   color: var(--mixer-state-button-tone);
-  background: color-mix(in srgb, var(--mixer-state-button-tone) 10%, var(--ui-color-control));
+  background: color-mix(in srgb, var(--mixer-state-button-tone) 10%, transparent);
   cursor: not-allowed;
   opacity: 0.78;
 }

@@ -139,7 +139,7 @@ function choose(value: string): void {
   border: 1px solid var(--ui-color-border);
   border-radius: var(--ui-radius-md);
   color: var(--ui-color-text);
-  background: var(--ui-color-canvas-subtle);
+  background: var(--ui-color-control);
   text-align: left;
   cursor: default;
   transition:
@@ -189,8 +189,16 @@ function choose(value: string): void {
 .ui-cascading-select--compact {
   min-height: var(--ui-control-compact);
   padding: 0 6px 0 7px;
+  border-color: var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-sm);
+  background: var(--ui-color-fill);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
+}
+
+.ui-cascading-select--compact.ui-cascading-select--hover-surface:hover:not(:disabled),
+.ui-cascading-select--compact.ui-cascading-select--hover-surface[data-state="open"] {
+  border-color: var(--ui-color-glass-edge);
+  background: var(--ui-color-fill-hover);
 }
 
 .ui-cascading-select--compact .ui-cascading-select__chevron {
@@ -199,21 +207,15 @@ function choose(value: string): void {
 }
 
 .ui-cascading-select--workspace {
-  border-color: var(--ui-domain-face-neutral-border);
+  border-color: var(--ui-color-glass-edge);
   color: var(--ui-domain-face-neutral-ink);
-  background: linear-gradient(
-    var(--ui-domain-face-neutral-top),
-    var(--ui-domain-face-neutral-bottom)
-  );
+  background: var(--ui-color-fill);
 }
 
 .ui-cascading-select--workspace.ui-cascading-select--hover-surface:hover:not(:disabled),
 .ui-cascading-select--workspace.ui-cascading-select--hover-surface[data-state="open"] {
-  border-color: var(--ui-domain-face-neutral-hover-border);
-  background: linear-gradient(
-    var(--ui-domain-face-neutral-border),
-    var(--ui-domain-face-neutral-hover-bottom)
-  );
+  border-color: var(--ui-color-glass-edge);
+  background: var(--ui-color-fill-hover);
 }
 
 .ui-cascading-select--workspace:focus-visible {
@@ -239,7 +241,7 @@ function choose(value: string): void {
 .ui-cascading-select--embedded.ui-cascading-select--hover-surface:hover:not(:disabled),
 .ui-cascading-select--embedded.ui-cascading-select--hover-surface[data-state="open"] {
   border-color: transparent;
-  background: var(--ui-color-surface-hover);
+  background: var(--ui-color-fill-hover);
 }
 
 .ui-cascading-select--embedded.ui-cascading-select--hover-host-tint:hover:not(:disabled),

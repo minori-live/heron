@@ -96,20 +96,21 @@ function commitName(value: string): void {
   gap: 3px 9px;
   min-width: 0;
   padding: 10px 10px 10px 8px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 7px;
-  background: var(--ui-color-surface-sunken);
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-raised);
 }
 
 .track-color-rail {
   grid-row: 1 / 3;
-  border-radius: 2px;
+  border-radius: var(--ui-radius-xs);
 }
 
 .track-heading-label {
-  color: var(--ui-color-text-faint);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  color: var(--ui-color-text-subtle);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
@@ -119,6 +120,8 @@ function commitName(value: string): void {
   color: var(--ui-color-text);
   font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-panel-title);
+  font-weight: var(--ui-type-weight-bold);
+  letter-spacing: var(--ui-type-tracking-tight);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -135,9 +138,9 @@ function commitName(value: string): void {
 
 .property-section h2 {
   margin: 0;
-  color: var(--ui-color-text-faint);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  color: var(--ui-color-text-subtle);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
@@ -157,6 +160,7 @@ function commitName(value: string): void {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  font-family: var(--ui-type-family-interface);
 }
 
 .track-type :deep(svg) {

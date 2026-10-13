@@ -105,7 +105,18 @@ const { t } = useI18n()
   height: 100%;
   overflow: auto;
   padding: clamp(20px, 5vw, 64px);
-  background: var(--ui-color-canvas);
+  background:
+    radial-gradient(
+      48% 60% at 12% 8%,
+      color-mix(in srgb, var(--ui-signal-audio) 11%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      52% 60% at 88% 100%,
+      color-mix(in srgb, var(--ui-signal-midi) 10%, transparent),
+      transparent 70%
+    ),
+    var(--ui-color-canvas);
   color: var(--ui-color-text);
 }
 
@@ -120,14 +131,15 @@ const { t } = useI18n()
   align-items: center;
   gap: var(--ui-space-4);
   padding-bottom: var(--ui-space-5);
-  border-bottom: 2px solid var(--ui-color-action);
+  border-bottom: 2px solid var(--ui-color-glass-edge);
 }
 
 .welcome-setup__header h1 {
   margin: 0;
   font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-page-title);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-display);
 }
 
 .welcome-setup__header p,

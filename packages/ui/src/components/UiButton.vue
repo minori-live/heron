@@ -44,16 +44,16 @@ function stopPointer(event: PointerEvent): void {
 const sizeClasses = {
   compact: "ui-button--compact",
   status: "ui-button--status",
-  sm: "min-h-[var(--ui-control-sm)] px-ui-3 text-ui-xs",
-  md: "min-h-[var(--ui-control-md)] px-ui-4 text-ui-sm",
-  lg: "min-h-[var(--ui-control-lg)] px-ui-5 text-ui-md"
+  sm: "ui-button--sm min-h-[var(--ui-control-sm)] px-ui-3 text-ui-xs",
+  md: "ui-button--md min-h-[var(--ui-control-md)] px-ui-5 text-ui-sm",
+  lg: "ui-button--lg min-h-[var(--ui-control-lg)] px-ui-6 text-ui-md"
 } as const
 </script>
 
 <template>
   <button
     v-bind="attrs"
-    class="ui-button ui-inline-center min-w-0 min-h-[var(--ui-target-min)] cursor-pointer gap-ui-2 border border-solid border-transparent rounded-ui-md font-600 leading-ui-tight text-center [overflow-wrap:anywhere] transition-[color,background,border-color] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed disabled:opacity-[var(--ui-opacity-disabled)]"
+    class="ui-button ui-inline-center min-w-0 min-h-[var(--ui-target-min)] cursor-pointer gap-ui-2 border border-solid border-transparent rounded-ui-md font-650 leading-ui-tight text-center [overflow-wrap:anywhere] transition-[color,background,border-color,box-shadow] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed disabled:opacity-[var(--ui-opacity-disabled)]"
     :class="[`ui-button--${props.variant}`, sizeClasses[props.size]]"
     :data-variant="props.variant"
     :data-size="props.size"
@@ -70,6 +70,13 @@ const sizeClasses = {
 </template>
 
 <style scoped>
+/* Standard-density actions are pills, as on the product website; dense DAW
+   chrome keeps a tight radius so rows of controls stay legible as a grid. */
+.ui-button--md,
+.ui-button--lg {
+  border-radius: var(--ui-radius-pill);
+}
+
 .ui-button--compact,
 .ui-button--status {
   padding: 0 var(--ui-space-2);
@@ -88,28 +95,30 @@ const sizeClasses = {
 }
 
 .ui-button--primary {
-  color: var(--ui-color-action-text);
-  background: var(--ui-color-action);
+  color: var(--ui-color-emphasis-text);
+  background: var(--ui-color-emphasis);
 }
 
 .ui-button--primary:hover:not(:disabled) {
-  background: var(--ui-color-action-hover);
+  background: var(--ui-color-emphasis-hover);
 }
 
 .ui-button--primary:active:not(:disabled) {
-  background: var(--ui-color-action-pressed);
+  background: color-mix(in srgb, var(--ui-color-emphasis) 82%, var(--ui-color-canvas));
 }
 
 .ui-button--secondary {
   color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
-  border-color: var(--ui-color-border);
+  background: var(--ui-color-fill);
+  border-color: var(--ui-color-glass-edge);
 }
 
-.ui-button--secondary:hover:not(:disabled),
-.ui-button--ghost:hover:not(:disabled) {
-  background: var(--ui-color-surface-hover);
-  border-color: var(--ui-color-border-strong);
+/* A pressed toggle keeps its pressed paint under the pointer. */
+.ui-button--secondary:hover:not(:disabled):not([aria-pressed="true"]),
+.ui-button--ghost:hover:not(:disabled):not([aria-pressed="true"]) {
+  color: var(--ui-color-text);
+  background: var(--ui-color-fill-hover);
+  border-color: var(--ui-color-glass-edge);
 }
 
 .ui-button--ghost {

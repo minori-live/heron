@@ -34,7 +34,7 @@ const props = withDefaults(
     </TooltipTrigger>
     <TooltipPortal>
       <TooltipContent
-        class="z-[var(--ui-z-tooltip)] inline-flex max-w-[min(22rem,calc(100vw-2rem))] items-center gap-ui-2 border border-solid border-ui-border rounded-ui-sm bg-ui-surface-raised px-ui-3 py-ui-2 text-ui-xs text-ui-text leading-ui-normal shadow-ui-md"
+        class="z-[var(--ui-z-tooltip)] inline-flex max-w-[min(22rem,calc(100vw-2rem))] items-center gap-ui-2 border border-solid border-ui-border rounded-ui-md bg-ui-surface-raised px-ui-3 py-ui-2 text-ui-xs text-ui-text leading-ui-normal shadow-ui-md"
         data-ui-part="tooltip-content"
         :side="props.side"
         :side-offset="6"

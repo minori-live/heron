@@ -166,13 +166,12 @@ function confirmDrop(selection: PluginSelection): void {
   overflow: hidden;
   padding: 0;
   border: 1px solid var(--ui-domain-face-instrument-border);
-  border-radius: 4px;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-domain-signal-ink);
   background: linear-gradient(
     var(--ui-domain-face-instrument-top),
     var(--ui-domain-face-instrument-bottom)
   );
-  box-shadow: 0 1px 0 var(--ui-domain-face-sheen) inset;
 }
 .instrument-actions {
   display: grid;
@@ -184,8 +183,9 @@ function confirmDrop(selection: PluginSelection): void {
 }
 .mode-badge {
   padding: 1px 4px;
-  border: 1px solid var(--ui-domain-face-sheen);
-  border-radius: 3px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-xs);
+  background: var(--ui-domain-face-inset);
   font: var(--ui-type-size-micro) var(--ui-type-family-data);
 }
 .drop-mode-menu {
@@ -195,11 +195,11 @@ function confirmDrop(selection: PluginSelection): void {
   left: 0;
   width: 232px;
   padding: 9px;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 6px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
   color: var(--ui-color-text);
-  background: var(--ui-color-surface);
-  box-shadow: 0 14px 36px var(--ui-domain-popover-shadow);
+  background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-lg);
 }
 .instrument-input.bypassed {
   border-color: var(--ui-domain-face-bypassed-border);
@@ -208,7 +208,6 @@ function confirmDrop(selection: PluginSelection): void {
     var(--ui-domain-face-bypassed-top),
     var(--ui-domain-face-bypassed-bottom)
   );
-  box-shadow: 0 1px 0 var(--ui-domain-face-bypassed-sheen) inset;
 }
 .instrument-input.loading,
 .instrument-input.unloaded {
@@ -228,7 +227,6 @@ function confirmDrop(selection: PluginSelection): void {
     var(--ui-domain-face-failed-top),
     var(--ui-domain-face-failed-bottom)
   );
-  box-shadow: 0 1px 0 var(--ui-domain-face-failed-sheen) inset;
 }
 .instrument-input button {
   display: grid;
@@ -258,7 +256,7 @@ function confirmDrop(selection: PluginSelection): void {
   border-color: var(--ui-domain-face-empty-border);
   color: var(--ui-domain-face-empty-ink);
   background: var(--ui-domain-face-empty-fill);
-  box-shadow: 0 1px 2px var(--ui-domain-face-inset) inset;
+  box-shadow: inset 0 1px 1px var(--ui-domain-face-inset);
   font: inherit;
 }
 </style>

@@ -287,13 +287,15 @@ function removeLastSegment(): void {
 .segment-table td {
   text-align: left;
   padding: 6px;
-  border-bottom: 1px solid var(--ui-color-border);
+  border-bottom: 1px solid var(--ui-color-glass-edge);
 }
 
 .segment-table th {
-  color: var(--ui-color-text-faint);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
-  font-weight: var(--ui-type-weight-medium);
+  color: var(--ui-color-text-subtle);
+  font: var(--ui-type-size-caption) var(--ui-type-family-interface);
+  font-weight: var(--ui-type-weight-strong);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
 }
 
 .segment-table td:first-child,

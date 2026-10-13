@@ -51,7 +51,7 @@ const controlId = props.id ?? `ui-checkbox-${generatedId}`
 <style scoped>
 .ui-checkbox {
   position: relative;
-  font-family: var(--ui-type-family-data);
+  font-family: var(--ui-type-family-interface);
 }
 
 .ui-checkbox__input {
@@ -69,9 +69,9 @@ const controlId = props.id ?? `ui-checkbox-${generatedId}`
   margin-top: 1px;
   place-items: center;
   border: 1px solid var(--ui-color-border-strong);
-  border-radius: var(--ui-radius-sm);
+  border-radius: calc(var(--ui-radius-xs) * 2);
   color: var(--ui-color-action-text);
-  background: var(--ui-color-control);
+  background: var(--ui-color-fill);
   transition:
     border-color var(--ui-motion-fast) var(--ui-ease-standard),
     background-color var(--ui-motion-fast) var(--ui-ease-standard);
@@ -79,12 +79,13 @@ const controlId = props.id ?? `ui-checkbox-${generatedId}`
 
 .ui-checkbox:hover .ui-checkbox__indicator {
   border-color: var(--ui-color-text-subtle);
-  background: var(--ui-color-control-hover);
+  background: var(--ui-color-fill-hover);
 }
 
 .ui-checkbox__input:focus-visible + .ui-checkbox__indicator {
   outline: var(--ui-focus-width) solid var(--ui-color-focus);
   outline-offset: 2px;
+  box-shadow: var(--ui-focus-ring);
 }
 
 .ui-checkbox__input:checked + .ui-checkbox__indicator {
@@ -110,7 +111,7 @@ const controlId = props.id ?? `ui-checkbox-${generatedId}`
 .ui-checkbox__label {
   color: var(--ui-color-text-muted);
   font-size: var(--ui-type-size-body-compact);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-strong);
 }
 
 .ui-checkbox__description {

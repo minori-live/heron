@@ -92,8 +92,8 @@ const { t } = useI18n()
   gap: 7px;
   margin-top: 12px;
   color: var(--ui-color-text-subtle);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wide);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 .refresh-button {

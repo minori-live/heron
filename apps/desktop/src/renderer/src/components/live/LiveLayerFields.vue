@@ -235,3 +235,10 @@ function createOverride(command: OverrideValue): void {
     </UiDialog>
   </section>
 </template>
+
+<style scoped>
+th {
+  color: var(--ui-color-text-subtle);
+  font-weight: var(--ui-type-weight-strong);
+}
+</style>

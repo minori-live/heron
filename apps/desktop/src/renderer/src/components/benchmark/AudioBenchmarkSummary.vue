@@ -37,9 +37,10 @@ function deadlineHeadroom(report: AudioBenchmarkReport): number {
   align-items: stretch;
   min-height: 8rem;
   overflow: hidden;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-lg);
   background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-md);
 }
 
 .score-copy,
@@ -56,8 +57,8 @@ function deadlineHeadroom(report: AudioBenchmarkReport): number {
 
 .kicker {
   color: var(--ui-color-text-subtle);
-  font: var(--ui-type-weight-semibold) var(--ui-font-size-xs) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  font: var(--ui-type-weight-strong) var(--ui-font-size-xs) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
@@ -67,7 +68,8 @@ function deadlineHeadroom(report: AudioBenchmarkReport): number {
   gap: var(--ui-space-2);
   margin-top: var(--ui-space-2);
   color: var(--ui-color-text);
-  font: var(--ui-type-weight-semibold) var(--ui-font-size-2xl) var(--ui-type-family-data);
+  font: var(--ui-type-weight-bold) var(--ui-font-size-2xl) var(--ui-type-family-data);
+  letter-spacing: var(--ui-type-tracking-tight);
   font-variant-numeric: tabular-nums;
 }
 
@@ -78,8 +80,10 @@ function deadlineHeadroom(report: AudioBenchmarkReport): number {
 
 .rating-copy span {
   color: var(--ui-color-text);
+  font-family: var(--ui-type-family-display);
   font-size: var(--ui-font-size-lg);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-tight);
   line-height: var(--ui-type-leading-tight);
 }
 
@@ -91,19 +95,19 @@ function deadlineHeadroom(report: AudioBenchmarkReport): number {
 }
 
 .rating-limited {
-  border-color: color-mix(in srgb, var(--ui-color-danger) 62%, var(--ui-color-border));
+  border-color: color-mix(in srgb, var(--ui-color-danger) 45%, transparent);
 }
 
 .rating-basic {
-  border-color: color-mix(in srgb, var(--ui-color-warning) 62%, var(--ui-color-border));
+  border-color: color-mix(in srgb, var(--ui-color-warning) 45%, transparent);
 }
 
 .rating-good {
-  border-color: color-mix(in srgb, var(--ui-signal-audio) 62%, var(--ui-color-border));
+  border-color: color-mix(in srgb, var(--ui-signal-audio) 45%, transparent);
 }
 
 .rating-excellent {
-  border-color: color-mix(in srgb, var(--ui-color-success) 62%, var(--ui-color-border));
+  border-color: color-mix(in srgb, var(--ui-color-success) 45%, transparent);
 }
 
 @media (max-width: 700px) {

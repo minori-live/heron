@@ -139,7 +139,7 @@ function changeKeyZoom(delta: number): void {
   align-items: center;
   gap: 5px;
   color: var(--ui-color-text-subtle);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
 }
 
 .clip-chips {

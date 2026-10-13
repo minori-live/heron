@@ -244,9 +244,11 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   height: 100%;
   min-height: calc(566px + var(--plugin-section-height) + var(--send-section-height));
   overflow: hidden;
-  border-right: 1px solid var(--ui-domain-mixer-strip-edge);
+  border-right: 1px solid transparent;
+  border-radius: var(--ui-radius-sm);
   background: var(--ui-domain-mixer-section);
-  box-shadow: 1px 0 0 var(--ui-domain-mixer-strip-sheen) inset;
+  background-clip: padding-box;
+  box-shadow: inset 0 0 0 1px var(--ui-domain-mixer-strip-sheen);
 }
 
 .channel-strip::before {
@@ -258,7 +260,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   left: 0;
   height: 2px;
   background: var(--strip-color);
-  opacity: 0.75;
+  opacity: 0.6;
 }
 
 .channel-strip.aux {
@@ -269,14 +271,26 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   position: sticky;
   right: 0;
   z-index: var(--ui-z-local-sticky);
-  border-left: 1px solid var(--ui-domain-mixer-strip-master-edge);
+  border-left: 1px solid transparent;
   background: var(--ui-domain-mixer-strip-master);
-  box-shadow: -12px 0 22px var(--ui-domain-mixer-strip-master-cast);
+  background-clip: padding-box;
+  box-shadow:
+    inset 0 0 0 1px var(--ui-domain-mixer-strip-master-edge),
+    -12px 0 22px var(--ui-domain-mixer-strip-master-cast);
 }
 
 .channel-strip.selected {
   background: var(--ui-domain-mixer-strip-selected);
-  box-shadow: 3px 0 0 var(--strip-color) inset;
+  box-shadow:
+    inset 3px 0 0 var(--strip-color),
+    inset 0 0 0 1px color-mix(in srgb, var(--strip-color) 32%, transparent);
+}
+
+.channel-strip.master.selected {
+  box-shadow:
+    inset 3px 0 0 var(--strip-color),
+    inset 0 0 0 1px color-mix(in srgb, var(--strip-color) 32%, transparent),
+    -12px 0 22px var(--ui-domain-mixer-strip-master-cast);
 }
 
 .placeholder-section {
@@ -284,31 +298,25 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   align-items: center;
   padding: 4px 7px;
   border-bottom: 1px solid var(--ui-domain-mixer-divider);
-  background: var(--ui-domain-mixer-section);
 }
 
 .placeholder-section :deep(.ui-button) {
   width: 100%;
   height: 25px;
-  border: 1px solid var(--ui-domain-mixer-placeholder-border);
-  border-radius: 4px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-domain-mixer-placeholder-ink);
-  background: linear-gradient(
-    var(--ui-domain-mixer-placeholder-top),
-    var(--ui-domain-mixer-placeholder-bottom)
-  );
+  background: var(--ui-color-fill);
   font-size: var(--ui-type-size-control);
 }
 
-.automation-section button {
+.automation-section :deep(.ui-button) {
   color: var(--ui-domain-mixer-automation-ink);
-  text-shadow: 0 0 5px var(--ui-domain-mixer-automation-glow);
 }
 
 .pan-control {
   padding: 8px 12px;
   border-bottom: 1px solid var(--ui-domain-mixer-divider);
-  background: var(--ui-domain-mixer-section);
 }
 
 .channel-name {
@@ -318,21 +326,23 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   gap: 7px;
   padding: 0 6px;
   border: 0;
-  border-top: 1px solid var(--ui-color-border-strong);
-  color: var(--ui-color-text);
-  background: color-mix(in srgb, var(--strip-color) 72%, var(--ui-domain-mixer-name-base));
+  border-top: 1px solid var(--ui-domain-mixer-divider);
+  color: var(--ui-domain-mixer-label-ink);
+  background: color-mix(in srgb, var(--strip-color) 14%, var(--ui-domain-mixer-name-base));
+  box-shadow: inset 0 2px 0 var(--strip-color);
   text-align: left;
 }
 
 .channel-name i {
   align-self: stretch;
   margin: 6px 0;
-  border-radius: 1px;
+  border-radius: var(--ui-radius-xs);
 }
 
 .channel-name-editor {
   min-width: 0;
   font-size: var(--ui-type-size-body-compact);
   font-weight: var(--ui-type-weight-bold);
+  letter-spacing: var(--ui-type-tracking-snug);
 }
 </style>

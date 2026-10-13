@@ -404,10 +404,13 @@ function cancelEditing(): void {
   position: absolute;
   width: var(--rotary-control-knob-size);
   height: var(--rotary-control-knob-size);
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-pill);
-  background: linear-gradient(145deg, var(--ui-color-control-hover), var(--ui-color-control) 68%);
-  box-shadow: var(--ui-shadow-highlight-inset), var(--ui-shadow-sm);
+  background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-raised), var(--ui-shadow-sm);
+  transition:
+    border-color var(--ui-motion-fast) var(--ui-ease-standard),
+    box-shadow var(--ui-motion-fast) var(--ui-ease-standard);
 }
 
 .ui-rotary-control__track,
@@ -420,11 +423,10 @@ function cancelEditing(): void {
 .ui-rotary-control__track {
   background: conic-gradient(
     from 225deg,
-    var(--ui-color-text-subtle) 0deg 270deg,
+    color-mix(in srgb, var(--ui-color-text) 18%, transparent) 0deg 270deg,
     transparent 270deg
   );
   mask: radial-gradient(circle, transparent 66%, var(--ui-color-text) 68% 79%, transparent 81%);
-  opacity: 0.58;
 }
 
 .ui-rotary-control__progress {
@@ -434,9 +436,6 @@ function cancelEditing(): void {
     transparent var(--rotary-control-ring-inner),
     var(--ui-color-text) var(--rotary-control-ring-start) var(--rotary-control-ring-end),
     transparent var(--rotary-control-ring-outer)
-  );
-  filter: drop-shadow(
-    0 0 0.125rem color-mix(in srgb, var(--rotary-control-accent) 60%, transparent)
   );
 }
 
@@ -499,11 +498,12 @@ function cancelEditing(): void {
   left: 50%;
   min-width: 1.75rem;
   padding: 0.1875rem 0.3125rem;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
-  box-shadow: var(--ui-shadow-sm);
+  background: var(--ui-color-glass);
+  box-shadow: var(--ui-shadow-md);
+  backdrop-filter: var(--ui-backdrop-glass);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   text-align: center;
   transform: translateX(-50%);
@@ -512,7 +512,7 @@ function cancelEditing(): void {
 
 .ui-rotary-control:focus-within .ui-rotary-control__shell {
   border-color: var(--ui-color-focus);
-  box-shadow: var(--ui-focus-ring);
+  box-shadow: var(--ui-shadow-raised), var(--ui-focus-ring);
 }
 
 .ui-rotary-control.is-disabled {

@@ -105,19 +105,19 @@ function formatLatency(value: number | null): string {
 
 .performance-summary h3 {
   margin: 0 0 6px;
-  color: var(--ui-color-text-faint);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
+  color: var(--ui-color-text-subtle);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
   text-transform: uppercase;
-  letter-spacing: var(--ui-type-tracking-widest);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
 }
 
 .performance-summary-list {
   display: grid;
   margin: 0;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 6px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-md);
   overflow: hidden;
-  background: var(--ui-color-surface);
+  background: var(--ui-color-fill);
 }
 
 .summary-row {

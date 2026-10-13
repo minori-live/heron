@@ -48,6 +48,6 @@ const attrs = useAttrs()
 
 .ui-slider:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: var(--ui-opacity-disabled);
 }
 </style>

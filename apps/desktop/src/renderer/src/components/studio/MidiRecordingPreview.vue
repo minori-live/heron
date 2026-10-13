@@ -63,8 +63,8 @@ function noteStyle(note: MidiRecordingPreviewTake["notes"][number]) {
   bottom: 5px;
   min-width: 12px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 76%, white);
-  border-radius: 3px;
+  border: 1px solid var(--ui-signal-record);
+  border-radius: var(--ui-radius-sm);
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--ui-signal-record) 24%, var(--ui-color-surface-sunken)),
@@ -99,7 +99,7 @@ function noteStyle(note: MidiRecordingPreviewTake["notes"][number]) {
 .preview-heading strong {
   overflow: hidden;
   color: var(--ui-domain-clip-ink);
-  font: var(--ui-type-weight-semibold) var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
   text-overflow: ellipsis;
 }
 .preview-note {
@@ -120,7 +120,6 @@ function noteStyle(note: MidiRecordingPreviewTake["notes"][number]) {
   right: 0;
   bottom: 0;
   width: 2px;
-  background: color-mix(in srgb, var(--ui-signal-record) 80%, white);
-  box-shadow: 0 0 7px var(--ui-signal-record);
+  background: var(--ui-signal-record);
 }
 </style>

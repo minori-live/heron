@@ -68,6 +68,8 @@ function activate(): void {
 
 <style scoped>
 .workspace-control-button {
+  --control-tone: var(--ui-color-action);
+  --control-ink: var(--ui-color-text-subtle);
   display: grid;
   place-items: center;
   flex: none;
@@ -75,55 +77,40 @@ function activate(): void {
   height: 28px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 6px;
-  color: var(--ui-color-text-subtle);
+  border-radius: var(--ui-radius-sm);
+  color: var(--control-ink);
   background: transparent;
   -webkit-app-region: no-drag;
 }
+.workspace-control-button.ui-button--ghost {
+  color: var(--control-ink);
+}
 .workspace-control-button[aria-pressed="true"] {
-  border-color: color-mix(in srgb, var(--ui-color-action) 55%, var(--ui-color-border-strong));
-  color: var(--ui-color-text);
-  background: var(--ui-color-surface-active);
-  box-shadow: 0 -2px 0 var(--ui-color-action) inset;
-}
-.workspace-control-button.tone-play {
-  color: var(--ui-signal-audio);
-}
-.workspace-control-button.tone-record {
-  color: var(--ui-signal-record);
+  color: var(--control-tone);
+  background: color-mix(in srgb, var(--control-tone) 20%, transparent);
 }
 .workspace-control-button.tone-accent {
-  color: var(--ui-color-action-hover);
+  --control-ink: var(--ui-color-action);
 }
-.workspace-control-button.tone-loop {
-  color: var(--ui-signal-loop);
-}
-.workspace-control-button.tone-success {
-  color: var(--ui-color-text-subtle);
-}
-.workspace-control-button.tone-play[aria-pressed="true"] {
-  color: var(--ui-domain-play-ink);
-  background: var(--ui-signal-audio);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--ui-signal-audio) 38%, transparent);
-}
+/* Armed recording stays a solid red pad, as on the product website. */
 .workspace-control-button.tone-record[aria-pressed="true"] {
   color: var(--ui-domain-signal-ink);
   background: var(--ui-signal-record);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--ui-signal-record) 45%, transparent);
 }
-.workspace-control-button.tone-loop[aria-pressed="true"] {
-  border-color: var(--ui-signal-loop);
-  color: var(--ui-signal-loop-ink);
-  background: var(--ui-signal-loop);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--ui-signal-loop) 42%, transparent);
+.workspace-control-button.tone-play {
+  --control-tone: var(--ui-signal-audio);
+  --control-ink: var(--ui-signal-audio);
 }
-.workspace-control-button.tone-success[aria-pressed="true"] {
-  border-color: color-mix(in srgb, var(--ui-color-success) 62%, var(--ui-color-border-strong));
-  color: var(--ui-color-success);
-  background: color-mix(in srgb, var(--ui-color-success) 14%, var(--ui-color-surface-active));
-  box-shadow:
-    0 -2px 0 var(--ui-color-success) inset,
-    0 0 10px color-mix(in srgb, var(--ui-color-success) 20%, transparent);
+.workspace-control-button.tone-record {
+  --control-tone: var(--ui-signal-record);
+  --control-ink: var(--ui-signal-record);
+}
+.workspace-control-button.tone-loop {
+  --control-tone: var(--ui-signal-loop);
+  --control-ink: var(--ui-signal-loop);
+}
+.workspace-control-button.tone-success {
+  --control-tone: var(--ui-color-success);
 }
 .workspace-control-button.unavailable {
   opacity: 0.48;

@@ -4,11 +4,14 @@ import { Meta } from "@storybook/addon-docs/blocks"
 
 # Elevation
 
-Borders establish most hierarchy. Shadows are reserved for content that moves above the normal
-layout: raised cards, popovers, and modal dialogs. Numeric z-index values only exist in tokens.
+Hairline edges and recessed fills establish most hierarchy. Shadows are long and soft, as on the
+product website, and are reserved for content that moves above the normal layout: a raised
+segment or selected row (`raised`), cards (`sm`, `md`), and menus, popovers, and modal dialogs
+(`lg`). Floating chrome is translucent glass with `--ui-backdrop-glass`. Numeric z-index values
+only exist in tokens.
 
 <div className="storybook-grid">
-  {["sm", "md", "lg"].map((level) => (
+  {["raised", "sm", "md", "lg"].map((level) => (
     <div
       style={{
         minHeight: "8rem",

@@ -99,8 +99,8 @@ function formatFrames(value: number | null): string {
   gap: 7px;
   width: min(220px, 100%);
   color: var(--ui-color-text-subtle);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wide);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 .latency-grid {
@@ -112,18 +112,26 @@ function formatFrames(value: number | null): string {
   display: grid;
   gap: 4px;
   padding: 13px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 7px;
-  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-fill);
 }
 .latency-card span,
 .latency-card small {
   color: var(--ui-color-text-faint);
   font-size: var(--ui-type-size-caption);
 }
+.latency-card span {
+  color: var(--ui-color-text-subtle);
+  font-weight: var(--ui-type-weight-strong);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
+}
 .latency-card strong {
   color: var(--ui-signal-audio);
-  font: var(--ui-type-size-view-title) var(--ui-type-family-data);
+  font: var(--ui-type-weight-semibold) var(--ui-type-size-view-title) var(--ui-type-family-data);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--ui-type-tracking-tight);
 }
 @media (max-width: 1120px) {
   .latency-grid {

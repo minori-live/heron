@@ -143,14 +143,15 @@ function connected(binding: MidiControlBinding): boolean {
 .mapping-toolbar p {
   margin: 0;
   color: var(--ui-color-text-subtle);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-size-caption) var(--ui-type-family-interface);
 }
 
 .mapping-group {
   overflow: hidden;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 7px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
   background: var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-sm);
 }
 
 .mapping-header {
@@ -158,8 +159,8 @@ function connected(binding: MidiControlBinding): boolean {
   grid-template-columns: 30px minmax(0, 1fr) auto;
   gap: 10px;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--ui-color-border);
-  background: var(--ui-color-surface-raised);
+  border-bottom: 1px solid var(--ui-color-glass-edge);
+  background: var(--ui-color-fill);
 }
 
 .device-mark {
@@ -167,15 +168,16 @@ function connected(binding: MidiControlBinding): boolean {
   width: 28px;
   height: 28px;
   place-items: center;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 5px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text-faint);
-  background: var(--ui-color-surface-sunken);
+  background: var(--ui-color-fill);
 }
 
 .device-mark.connected {
-  border-color: color-mix(in srgb, var(--ui-color-action) 42%, var(--ui-color-border-strong));
+  border-color: transparent;
   color: var(--ui-color-action);
+  background: color-mix(in srgb, var(--ui-color-action) 18%, transparent);
 }
 
 .mapping-address,
@@ -197,7 +199,15 @@ function connected(binding: MidiControlBinding): boolean {
 .target-copy small,
 .connection-state {
   color: var(--ui-color-text-faint);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-size-caption) var(--ui-type-family-interface);
+}
+
+.mapping-address small {
+  font-family: var(--ui-type-family-data);
+}
+
+.connection-state {
+  font-weight: var(--ui-type-weight-strong);
 }
 
 .connection-state[data-connected="true"] {
@@ -218,7 +228,7 @@ function connected(binding: MidiControlBinding): boolean {
   justify-content: space-between;
   gap: 12px;
   min-height: 49px;
-  border-top: 1px solid var(--ui-color-border);
+  border-top: 1px solid var(--ui-color-glass-edge);
 }
 
 .target-row:first-child {

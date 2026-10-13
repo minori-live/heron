@@ -93,36 +93,40 @@ const emit = defineEmits<{ reset: [] }>()
 }
 .ui-zoom-control__slider::-webkit-slider-runnable-track {
   height: 3px;
+  border-radius: var(--ui-radius-pill);
   background: linear-gradient(
     to right,
     var(--ui-color-action) 0 var(--zoom-fill),
-    var(--ui-color-border-strong) var(--zoom-fill) 100%
+    color-mix(in srgb, var(--ui-color-text) 18%, transparent) var(--zoom-fill) 100%
   );
 }
 .ui-zoom-control__slider::-webkit-slider-thumb {
   width: 7px;
   height: 13px;
   margin-top: -5px;
-  border: 1px solid var(--ui-color-text-muted);
-  border-radius: 1px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-xs);
   appearance: none;
-  background: var(--ui-color-control);
-  box-shadow: 0 0 0 1px var(--ui-color-surface);
+  background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-raised), var(--ui-shadow-sm);
 }
 .ui-zoom-control__slider::-moz-range-track {
   height: 3px;
-  background: var(--ui-color-border-strong);
+  border-radius: var(--ui-radius-pill);
+  background: color-mix(in srgb, var(--ui-color-text) 18%, transparent);
 }
 .ui-zoom-control__slider::-moz-range-progress {
   height: 3px;
+  border-radius: var(--ui-radius-pill);
   background: var(--ui-color-action);
 }
 .ui-zoom-control__slider::-moz-range-thumb {
   width: 7px;
   height: 13px;
-  border: 1px solid var(--ui-color-text-muted);
-  border-radius: 1px;
-  background: var(--ui-color-control);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-xs);
+  background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-raised), var(--ui-shadow-sm);
 }
 .ui-zoom-control__slider:focus-visible {
   outline: 2px solid var(--ui-color-focus);

@@ -404,5 +404,6 @@ onBeforeUnmount(() => {
   pointer-events: none;
   background: color-mix(in srgb, var(--ui-color-action) 12%, transparent);
   border: 1px dashed var(--ui-color-action);
+  border-radius: var(--ui-radius-xs);
 }
 </style>

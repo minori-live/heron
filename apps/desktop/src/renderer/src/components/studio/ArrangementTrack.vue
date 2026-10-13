@@ -171,7 +171,7 @@ function relayFade(clipId: string, edge: AudioFadeEdge, frames: number): void {
   position: relative;
   min-width: 100%;
   overflow: hidden;
-  border-bottom: 1px solid var(--ui-color-border-strong);
+  border-bottom: 1px solid var(--ui-color-border);
   background-color: var(--ui-daw-lane);
   background-image: repeating-linear-gradient(
     0deg,
@@ -213,8 +213,8 @@ function relayFade(clipId: string, edge: AudioFadeEdge, frames: number): void {
   bottom: 9px;
   min-width: 12px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--clip-color) 48%, white);
-  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--clip-color) 60%, transparent);
+  border-radius: var(--ui-radius-sm);
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--clip-color) 65%, var(--ui-domain-clip-body-top)),
@@ -222,7 +222,7 @@ function relayFade(clipId: string, edge: AudioFadeEdge, frames: number): void {
   );
   box-shadow:
     0 0 0 1px var(--ui-domain-clip-drop-ring) inset,
-    0 0 18px color-mix(in srgb, var(--clip-color) 48%, transparent);
+    var(--ui-shadow-md);
   opacity: 0.92;
   pointer-events: none;
 }
@@ -232,7 +232,7 @@ function relayFade(clipId: string, edge: AudioFadeEdge, frames: number): void {
   padding: 5px 6px;
   color: var(--ui-domain-signal-ink);
   font-size: var(--ui-type-size-body-compact);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-strong);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

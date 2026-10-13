@@ -92,13 +92,15 @@ function isSupported(mode: PluginAudioMode): boolean {
 .mode-menu header b {
   overflow: hidden;
   font-size: var(--ui-type-size-label);
+  font-weight: var(--ui-type-weight-bold);
+  letter-spacing: var(--ui-type-tracking-snug);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .mode-menu header small {
   margin-top: 2px;
   color: var(--ui-color-text-faint);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-size-caption) var(--ui-type-family-interface);
 }
 .mode-list {
   display: grid;
@@ -106,7 +108,7 @@ function isSupported(mode: PluginAudioMode): boolean {
 }
 .mode-list em {
   color: var(--ui-color-text-faint);
-  font: var(--ui-type-size-micro) var(--ui-type-family-data);
+  font: var(--ui-type-size-micro) var(--ui-type-family-interface);
   font-style: normal;
 }
 </style>

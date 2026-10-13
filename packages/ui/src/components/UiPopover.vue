@@ -30,7 +30,7 @@ const props = withDefaults(
     <PopoverPortal>
       <PopoverContent
         :class="[
-          'z-[var(--ui-z-popover)] max-h-[min(36rem,calc(100dvh-1rem))] max-w-[min(28rem,calc(100vw-1rem))] overflow-auto border border-solid border-ui-border rounded-ui-md bg-ui-surface-raised p-ui-3 text-ui-text shadow-ui-md',
+          'z-[var(--ui-z-popover)] max-h-[min(36rem,calc(100dvh-1rem))] max-w-[min(28rem,calc(100vw-1rem))] overflow-auto ui-popover border border-solid border-ui-border rounded-ui-lg bg-ui-surface-raised p-ui-3 text-ui-text shadow-ui-lg',
           props.contentClass
         ]"
         :align="props.align"

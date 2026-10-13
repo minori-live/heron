@@ -36,19 +36,25 @@ const sizeClasses = {
     ref="input"
     v-bind="attrs"
     v-model="model"
-    class="ui-input min-w-0 w-full border border-solid border-ui-border rounded-ui-md bg-ui-control font-ui-data text-ui-text-muted leading-ui-normal transition-[border-color,background] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed disabled:opacity-[var(--ui-opacity-disabled)]"
+    class="ui-input min-w-0 w-full border border-solid border-ui-border rounded-ui-md bg-ui-control font-ui-interface text-ui-text leading-ui-normal transition-[border-color,background,box-shadow] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed disabled:opacity-[var(--ui-opacity-disabled)]"
     :class="sizeClasses[props.size]"
     :aria-invalid="props.invalid || undefined"
   />
 </template>
 
 <style scoped>
+.ui-input::placeholder {
+  color: var(--ui-color-text-faint);
+}
+
 .ui-input:hover:not(:disabled) {
   border-color: var(--ui-color-border-strong);
 }
 
 .ui-input:focus {
   border-color: var(--ui-color-focus);
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
 }
 
 .ui-input[aria-invalid="true"] {

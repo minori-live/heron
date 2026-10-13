@@ -17,7 +17,7 @@ const props = withDefaults(
     <div class="grid min-w-0 gap-ui-2">
       <component
         :is="`h${props.level}`"
-        class="m-0 text-ui-lg font-600 text-ui-text leading-ui-tight"
+        class="m-0 text-ui-lg font-ui-display font-750 tracking-[var(--ui-type-tracking-display)] text-ui-text leading-ui-tight [text-wrap:balance]"
       >
         {{ props.title }}
       </component>

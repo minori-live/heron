@@ -116,7 +116,7 @@ function seek(intent: UiGestureIntent): void {
   position: relative;
   height: 43px;
   overflow: hidden;
-  border-bottom: 1px solid var(--ui-color-border-strong);
+  border-bottom: 1px solid var(--ui-color-border);
   background: var(--ui-color-surface-sunken);
   user-select: none;
 }
@@ -144,15 +144,17 @@ function seek(intent: UiGestureIntent): void {
   top: 2px;
   bottom: 2px;
   min-width: 2px;
-  border: 1px solid var(--ui-color-action);
-  border-radius: var(--ui-radius-sm);
-  background: var(--ui-color-action);
+  border: 1px solid color-mix(in srgb, var(--ui-signal-loop) 40%, transparent);
+  border-radius: var(--ui-radius-xs);
+  background: color-mix(in srgb, var(--ui-signal-loop) 12%, transparent);
   cursor: grab;
-  opacity: 0.44;
+  transition:
+    background var(--ui-motion-fast) var(--ui-ease-standard),
+    border-color var(--ui-motion-fast) var(--ui-ease-standard);
 }
 .ui-timeline-ruler__cycle--enabled {
-  box-shadow: var(--ui-shadow-glow);
-  opacity: 1;
+  border-color: color-mix(in srgb, var(--ui-signal-loop) 72%, transparent);
+  background: color-mix(in srgb, var(--ui-signal-loop) 34%, transparent);
 }
 .ui-timeline-ruler__edge {
   position: absolute;
@@ -213,6 +215,8 @@ function seek(intent: UiGestureIntent): void {
 .ui-timeline-ruler__end:hover,
 .ui-timeline-ruler__end:focus-visible {
   color: var(--ui-color-text);
+}
+.ui-timeline-ruler__end:focus-visible {
   outline: 2px solid var(--ui-color-focus);
   outline-offset: 2px;
 }

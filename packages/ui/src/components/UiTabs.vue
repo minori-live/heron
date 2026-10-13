@@ -66,20 +66,34 @@ const props = defineProps<{
   padding: 0 var(--ui-space-3);
   border: 0;
   border-bottom: 2px solid transparent;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text-muted);
   background: transparent;
-  font: var(--ui-type-weight-medium) var(--ui-type-size-control) var(--ui-type-family-interface);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-control) var(--ui-type-family-interface);
   cursor: pointer;
+  transition:
+    color var(--ui-motion-fast) var(--ui-ease-standard),
+    background var(--ui-motion-fast) var(--ui-ease-standard);
 }
 
 .ui-tabs__trigger:hover:not(:disabled) {
   color: var(--ui-color-text);
-  background: var(--ui-color-surface-hover);
+  background: var(--ui-color-fill);
 }
 
 .ui-tabs__trigger[data-state="active"] {
   border-bottom-color: var(--ui-color-action);
   color: var(--ui-color-text);
+}
+
+/* Document tabs read as raised segments, as on the product website. */
+.ui-tabs:not([data-appearance="analysis"]) .ui-tabs__trigger {
+  border-bottom: 0;
+}
+
+.ui-tabs:not([data-appearance="analysis"]) .ui-tabs__trigger[data-state="active"] {
+  background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-raised);
 }
 
 .ui-tabs__trigger:disabled {

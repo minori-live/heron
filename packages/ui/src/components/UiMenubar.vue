@@ -63,7 +63,7 @@ const emit = defineEmits<{
   min-height: 25px;
   padding: 0 8px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text-subtle);
   background: transparent;
   font: var(--ui-type-weight-medium) var(--ui-type-size-body-compact)
@@ -74,9 +74,9 @@ const emit = defineEmits<{
 
 .ui-menubar__trigger[data-highlighted],
 .ui-menubar__trigger[data-state="open"] {
-  border-color: color-mix(in srgb, var(--ui-color-border-strong) 74%, transparent);
+  border-color: transparent;
   color: var(--ui-color-text);
-  background: var(--ui-color-surface-active);
+  background: var(--ui-color-fill-hover);
 }
 
 .ui-menubar__trigger:focus-visible {
@@ -87,13 +87,12 @@ const emit = defineEmits<{
   z-index: var(--ui-z-dropdown);
   min-width: 218px;
   padding: 5px;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 7px;
+  border: 1px solid var(--ui-color-menu-border);
+  border-radius: var(--ui-radius-md);
   color: var(--ui-color-text-muted);
-  background: var(--ui-color-surface-raised);
-  box-shadow:
-    var(--ui-shadow-md),
-    0 1px 0 color-mix(in srgb, var(--ui-color-text) 5%, transparent) inset;
+  background: var(--ui-color-menu-surface);
+  box-shadow: var(--ui-shadow-lg);
+  backdrop-filter: var(--ui-backdrop-glass);
   animation: ui-menubar-in var(--ui-motion-fast) var(--ui-ease-standard);
 }
 
@@ -104,15 +103,15 @@ const emit = defineEmits<{
   min-height: 29px;
   gap: 24px;
   padding: 0 9px;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-sm);
   outline: none;
   font-size: var(--ui-type-size-body-compact);
   cursor: default;
 }
 
 .ui-menubar__item[data-highlighted] {
-  color: var(--ui-color-action-text);
-  background: var(--ui-color-action);
+  color: var(--ui-color-menu-text);
+  background: var(--ui-color-menu-highlight);
 }
 
 .ui-menubar__item[data-disabled] {
@@ -127,13 +126,13 @@ const emit = defineEmits<{
 }
 
 .ui-menubar__item[data-highlighted] .ui-menubar__shortcut {
-  color: var(--ui-color-action-text);
+  color: var(--ui-color-menu-text-muted);
 }
 
 .ui-menubar__separator {
   height: 1px;
   margin: 4px 6px;
-  background: var(--ui-color-border);
+  background: var(--ui-color-menu-divider);
 }
 
 @keyframes ui-menubar-in {

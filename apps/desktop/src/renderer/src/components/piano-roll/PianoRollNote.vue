@@ -49,7 +49,7 @@ const {
   overflow: hidden;
   padding: 0 4px;
   border: 1px solid color-mix(in srgb, var(--note-color) 65%, var(--ui-color-border-strong));
-  border-radius: 2px;
+  border-radius: var(--ui-radius-xs);
   color: var(--ui-color-canvas);
   background: color-mix(
     in srgb,

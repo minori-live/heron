@@ -145,9 +145,6 @@ function reset(): void {
 
 <style scoped>
 .ui-horizontal-fader {
-  --ui-color-border-strong: var(--ui-daw-border-strong);
-  --ui-color-text-muted: var(--ui-daw-text-subtle);
-  --ui-color-control-hover: var(--ui-daw-control-hover);
   --ui-color-text: var(--ui-daw-text);
   --ui-color-surface-raised: var(--ui-daw-surface-hover);
   --ui-signal-meter-safe: var(--ui-daw-meter-safe);
@@ -167,38 +164,37 @@ function reset(): void {
   left: 0;
   height: 11px;
   overflow: hidden;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 2px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-xs);
   background: linear-gradient(
     to right,
     var(--ui-signal-meter-safe) 0 74%,
     var(--ui-signal-meter-warning) 86%,
     var(--ui-signal-meter-clip) 100%
   );
-  box-shadow: var(--ui-shadow-highlight-inset);
 }
 
 .ui-horizontal-fader__meter {
   position: absolute;
   inset: 0 0 0 var(--horizontal-fader-meter-level);
   background: var(--ui-daw-meter-well);
-  opacity: 0.88;
+  opacity: 0.9;
   transition: left 55ms linear;
 }
 
 .ui-horizontal-fader input::-webkit-slider-thumb {
   width: 7px;
   height: 15px;
-  border: 1px solid var(--ui-color-text-muted);
-  border-radius: 1px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-xs);
   appearance: none;
   background: linear-gradient(
     to right,
-    var(--ui-color-control-hover) 0 calc(50% - 1px),
-    var(--ui-color-text) calc(50% - 1px) calc(50% + 1px),
-    var(--ui-color-control-hover) calc(50% + 1px) 100%
+    var(--ui-color-surface-raised) 0 calc(50% - 0.5px),
+    var(--ui-color-text) calc(50% - 0.5px) calc(50% + 0.5px),
+    var(--ui-color-surface-raised) calc(50% + 0.5px) 100%
   );
-  box-shadow: var(--ui-shadow-sm);
+  box-shadow: var(--ui-shadow-raised), var(--ui-shadow-sm);
 }
 
 .ui-horizontal-fader input {
@@ -232,10 +228,10 @@ function reset(): void {
 .ui-horizontal-fader input::-moz-range-thumb {
   width: 7px;
   height: 15px;
-  border: 1px solid var(--ui-color-text-muted);
-  border-radius: 1px;
-  background: var(--ui-color-control-hover);
-  box-shadow: var(--ui-shadow-sm);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-xs);
+  background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-raised), var(--ui-shadow-sm);
 }
 
 .ui-horizontal-fader input:focus-visible {
@@ -250,11 +246,12 @@ function reset(): void {
   left: 50%;
   min-width: 2.25rem;
   padding: 0.1875rem 0.3125rem;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
-  box-shadow: var(--ui-shadow-sm);
+  background: var(--ui-color-glass);
+  box-shadow: var(--ui-shadow-md);
+  backdrop-filter: var(--ui-backdrop-glass);
   font: var(--ui-type-size-caption) var(--ui-type-family-data);
   text-align: center;
   transform: translateX(-50%);
@@ -262,7 +259,7 @@ function reset(): void {
 }
 
 .ui-horizontal-fader.is-disabled {
-  opacity: 0.45;
+  opacity: var(--ui-opacity-disabled);
 }
 
 .ui-horizontal-fader.is-disabled input {

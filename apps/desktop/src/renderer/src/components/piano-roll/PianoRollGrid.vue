@@ -125,8 +125,8 @@ const {
   left: 0;
   width: 72px;
   height: 28px;
-  border-right: 1px solid var(--ui-color-border-strong);
-  border-bottom: 1px solid var(--ui-color-border-strong);
+  border-right: 1px solid var(--ui-color-border);
+  border-bottom: 1px solid var(--ui-color-border);
   background: var(--ui-color-surface-raised);
 }
 
@@ -138,7 +138,7 @@ const {
   height: 28px;
   margin-top: -28px;
   margin-left: 72px;
-  border-bottom: 1px solid var(--ui-color-border-strong);
+  border-bottom: 1px solid var(--ui-color-border);
   background: var(--ui-color-surface-raised);
 }
 
@@ -221,7 +221,7 @@ const {
   position: absolute;
   z-index: var(--ui-z-local-selection);
   border: 1px solid color-mix(in srgb, var(--note-color) 65%, var(--ui-color-border-strong));
-  border-radius: 2px;
+  border-radius: var(--ui-radius-xs);
   background: color-mix(in srgb, var(--note-color) 75%, transparent);
   pointer-events: none;
 }

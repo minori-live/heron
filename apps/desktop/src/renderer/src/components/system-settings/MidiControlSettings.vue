@@ -341,10 +341,10 @@ onUnmounted(() => {
 .settings-error {
   margin: 16px 0 0;
   padding: 11px;
-  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 38%, var(--ui-color-border));
-  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 28%, transparent);
+  border-radius: var(--ui-radius-md);
   color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 8%, var(--ui-color-surface));
+  background: color-mix(in srgb, var(--ui-signal-record) 12%, transparent);
   font-size: var(--ui-type-size-body-compact);
 }
 </style>

@@ -132,7 +132,7 @@ const emit = defineEmits<{
   color: var(--ui-color-text);
   background: var(--ui-color-surface);
   border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-lg);
+  border-radius: var(--ui-radius-xl);
   box-shadow: var(--ui-shadow-lg);
   transform: translate(-50%, -50%);
 }
@@ -144,8 +144,8 @@ const emit = defineEmits<{
   place-items: center;
   color: var(--ui-color-action-text);
   background: var(--ui-color-info);
-  border-radius: 50%;
-  font-weight: var(--ui-type-weight-semibold);
+  border-radius: var(--ui-radius-md);
+  font-weight: var(--ui-type-weight-bold);
 }
 
 .ui-alert-dialog[data-tone="warning"] .ui-alert-dialog__marker {
@@ -165,16 +165,18 @@ const emit = defineEmits<{
 }
 
 .ui-alert-dialog__eyebrow {
-  color: var(--ui-color-text-subtle);
-  font: var(--ui-type-weight-semibold) var(--ui-font-size-xs) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-font-size-xs) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
 .ui-alert-dialog__title {
   margin: 0;
+  font-family: var(--ui-type-family-display);
   font-size: var(--ui-font-size-lg);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-tight);
   line-height: var(--ui-type-leading-tight);
 }
 
@@ -197,19 +199,33 @@ const emit = defineEmits<{
 
 .ui-alert-dialog__button {
   min-height: var(--ui-control-md);
-  padding: 0 var(--ui-space-4);
-  color: var(--ui-color-action-text);
-  background: var(--ui-color-action);
+  padding: 0 var(--ui-space-5);
+  color: var(--ui-color-emphasis-text);
+  background: var(--ui-color-emphasis);
   border: 1px solid transparent;
-  border-radius: var(--ui-radius-md);
-  font-weight: var(--ui-type-weight-semibold);
+  border-radius: var(--ui-radius-pill);
+  font-weight: var(--ui-type-weight-strong);
   cursor: pointer;
+  transition: background var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ui-alert-dialog__button:hover:not(:disabled) {
+  background: var(--ui-color-emphasis-hover);
 }
 
 .ui-alert-dialog__button--secondary {
   color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
-  border-color: var(--ui-color-border);
+  background: var(--ui-color-fill);
+  border-color: var(--ui-color-glass-edge);
+}
+
+.ui-alert-dialog__button--secondary:hover:not(:disabled),
+.ui-alert-dialog__button--ghost:hover:not(:disabled) {
+  background: var(--ui-color-fill-hover);
+}
+
+.ui-alert-dialog__button--danger:hover:not(:disabled) {
+  background: var(--ui-color-danger-hover);
 }
 
 .ui-alert-dialog__button--danger {

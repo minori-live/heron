@@ -282,14 +282,8 @@ export const SettingsNavigation: Story = {
     )
     const categoryIcon = canvasElement.querySelector(".ui-settings-navigator__category-icon")
     if (!categoryIcon) throw new Error("Expected a settings category icon")
-    const iconColor = getComputedStyle(categoryIcon).color
-    const colorChannels =
-      iconColor
-        .match(/[\d.]+/g)
-        ?.slice(0, 3)
-        .map(Number) ?? []
-    await expect(colorChannels).toHaveLength(3)
-    await expect(Math.max(...colorChannels) - Math.min(...colorChannels)).toBeLessThanOrEqual(2)
+    // Category icons are drawn in the row's ink, never in an accent hue.
+    await expect(getComputedStyle(categoryIcon).color).toBe(getComputedStyle(systemCategory).color)
     await userEvent.click(canvas.getByRole("button", { name: /Display/ }))
     await expect(canvas.getByRole("heading", { name: "display" })).toBeVisible()
     await userEvent.click(canvas.getByRole("button", { name: "Back to studio" }))

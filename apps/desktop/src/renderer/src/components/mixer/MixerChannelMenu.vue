@@ -63,21 +63,18 @@ const colorModel = computed({
   width: 22px;
   height: 22px;
   padding: 0;
-  border: 1px solid var(--ui-domain-menu-trigger-border);
-  border-radius: 3px;
-  color: var(--ui-domain-signal-ink);
-  background: var(--ui-domain-menu-trigger-fill);
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-sm);
+  color: var(--ui-domain-mixer-label-ink);
+  background: var(--ui-color-fill);
 }
 .channel-menu {
   display: grid;
   width: 168px;
   gap: 8px;
   padding: 10px;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 6px;
+  border: 1px solid transparent;
   color: var(--ui-color-text);
-  background: var(--ui-color-surface);
-  box-shadow: 0 14px 36px var(--ui-domain-popover-shadow);
 }
 .channel-menu label {
   display: flex;
@@ -92,10 +89,10 @@ const colorModel = computed({
   gap: 7px;
   height: 27px;
   padding: 0 8px;
-  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 55%, var(--ui-color-border-strong));
-  border-radius: 3px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 9%, var(--ui-daw-control));
+  background: color-mix(in srgb, var(--ui-signal-record) 14%, transparent);
   font-size: var(--ui-type-size-control);
 }
 </style>

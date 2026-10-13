@@ -47,12 +47,12 @@ const signalStyle = computed<CSSProperties | undefined>(() =>
   min-height: var(--ui-control-compact);
   align-items: center;
   padding: 0 var(--ui-space-2);
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--ui-color-glass-edge);
   border-inline-start-width: var(--ui-signal-rail-width);
   border-inline-start-color: var(--choice-signal);
   border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text-muted);
-  background: var(--ui-color-control-pressed);
+  background: var(--ui-color-fill);
   font: var(--ui-type-weight-medium) var(--ui-type-size-control) var(--ui-type-family-interface);
   white-space: nowrap;
   cursor: pointer;
@@ -64,17 +64,19 @@ const signalStyle = computed<CSSProperties | undefined>(() =>
 
 .ui-choice-chip:hover:not(:disabled) {
   color: var(--ui-color-text);
-  background: var(--ui-color-control-hover);
+  background: var(--ui-color-fill-hover);
 }
 
 .ui-choice-chip--selected {
-  border-color: var(--choice-signal);
+  border-color: color-mix(in srgb, var(--choice-signal) 55%, transparent);
+  border-inline-start-color: var(--choice-signal);
   color: var(--ui-color-text);
-  background: var(--ui-color-selection);
+  background: color-mix(in srgb, var(--choice-signal) 20%, transparent);
+  font-weight: var(--ui-type-weight-strong);
 }
 
 .ui-choice-chip--selected:hover:not(:disabled) {
-  background: var(--ui-color-selection-hover);
+  background: color-mix(in srgb, var(--choice-signal) 26%, transparent);
 }
 
 .ui-choice-chip:disabled {

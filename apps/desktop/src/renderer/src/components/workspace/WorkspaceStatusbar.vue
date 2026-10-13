@@ -20,7 +20,7 @@ function formatLatency(value: number | null): string {
 
 <template>
   <footer
-    class="statusbar col-span-full flex min-w-0 items-center gap-ui-4 border-t border-t-solid bg-[var(--ui-daw-statusbar)] py-0 pe-[6px] ps-[13px] text-[var(--ui-color-text-subtle)] [border-top-color:var(--ui-color-border-strong)]"
+    class="statusbar col-span-full flex min-w-0 items-center gap-ui-4 border-t border-t-solid bg-[var(--ui-daw-statusbar)] py-0 pe-[6px] ps-[13px] text-[var(--ui-color-text-subtle)] [border-top-color:var(--ui-color-border)]"
   >
     <span class="engine-state"
       ><i :class="{ active: runtime.state === 'running' }" />{{
@@ -75,6 +75,9 @@ function formatLatency(value: number | null): string {
 }
 .engine-state {
   color: var(--ui-color-text-muted);
+  font-family: var(--ui-type-family-interface);
+  font-weight: var(--ui-type-weight-medium);
+  letter-spacing: var(--ui-type-tracking-normal);
 }
 .engine-state i {
   width: 5px;
@@ -84,12 +87,15 @@ function formatLatency(value: number | null): string {
 }
 .engine-state i.active {
   background: var(--ui-signal-audio);
-  box-shadow: 0 0 6px var(--ui-signal-audio);
 }
 .status-spacer {
   flex: 1;
 }
+/* The spread shadow pads the pill without shifting the measured statusbar row. */
 .statusbar .alert {
-  color: var(--ui-signal-record);
+  border-radius: var(--ui-radius-pill);
+  color: var(--ui-color-danger);
+  background: color-mix(in srgb, var(--ui-color-danger) 16%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-color-danger) 16%, transparent);
 }
 </style>

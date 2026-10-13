@@ -87,7 +87,6 @@ const inputSummary = computed(() => {
   min-width: 0;
   padding: 7px;
   border-bottom: 1px solid var(--ui-domain-mixer-divider);
-  background: var(--ui-domain-mixer-section);
 }
 .section-control {
   display: flex;
@@ -99,13 +98,13 @@ const inputSummary = computed(() => {
   padding: 0 7px;
   overflow: hidden;
   border: 1px solid var(--ui-domain-face-neutral-border);
-  border-radius: 4px;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-domain-face-neutral-ink);
   background: linear-gradient(
     var(--ui-domain-face-neutral-top),
     var(--ui-domain-face-neutral-bottom)
   );
-  font: var(--ui-type-size-control) var(--ui-type-family-data);
+  font: var(--ui-type-size-control) var(--ui-type-family-interface);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

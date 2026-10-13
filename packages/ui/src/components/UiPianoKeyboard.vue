@@ -33,7 +33,7 @@ const emit = defineEmits<{ select: [key: number] }>()
   z-index: var(--ui-z-local-sticky);
   left: 0;
   width: 72px;
-  border-right: 1px solid var(--ui-color-border-strong);
+  border-right: 1px solid var(--ui-color-border);
   background: var(--ui-color-surface);
 }
 .ui-piano-keyboard__key {
@@ -51,7 +51,8 @@ const emit = defineEmits<{ select: [key: number] }>()
 }
 .ui-piano-keyboard__key--black {
   width: 47px;
-  border-right: 1px solid var(--ui-color-border-strong);
+  border-right: 1px solid var(--ui-color-border);
+  border-radius: 0 var(--ui-radius-xs) var(--ui-radius-xs) 0;
   color: var(--ui-color-text);
   background: var(--ui-color-canvas-subtle);
 }

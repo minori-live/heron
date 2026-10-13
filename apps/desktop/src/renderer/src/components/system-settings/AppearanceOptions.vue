@@ -123,8 +123,8 @@ const localeOptions = computed<
   display: grid;
   grid-template-columns: 25% 1fr;
   height: 72px;
-  border: 1px solid color-mix(in srgb, var(--ui-color-text) 18%, transparent);
-  border-radius: 5px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-sm);
   background: var(--ui-color-canvas);
   overflow: hidden;
 }
@@ -143,7 +143,7 @@ const localeOptions = computed<
 .preview-content i {
   display: block;
   height: 5px;
-  border-radius: 2px;
+  border-radius: var(--ui-radius-pill);
   background: var(--ui-color-border-strong);
 }
 

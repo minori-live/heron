@@ -56,10 +56,10 @@ const hasAsioOption = computed(() => props.options.some((option) => option.value
   grid-column: 1 / -1;
   margin: 0;
   padding: 18px;
-  border: 1px dashed var(--ui-color-border-strong);
-  border-radius: 7px;
+  border: 1px dashed var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
   color: var(--ui-color-text-subtle);
-  background: var(--ui-color-surface);
+  background: var(--ui-color-fill);
   font-size: var(--ui-type-size-body-compact);
 }
 </style>

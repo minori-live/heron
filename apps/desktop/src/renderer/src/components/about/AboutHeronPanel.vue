@@ -68,11 +68,21 @@ const manualUrl = "https://heron.minori.live/manual/"
   align-content: center;
   justify-items: center;
   padding: var(--ui-space-6);
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--ui-color-glass-edge);
   border-left: var(--ui-signal-rail-width) solid var(--ui-signal-audio);
   border-radius: var(--ui-radius-lg);
-  background: var(--ui-color-canvas-subtle);
-  box-shadow: var(--ui-shadow-highlight-inset);
+  background:
+    radial-gradient(
+      70% 120% at 18% 0%,
+      color-mix(in srgb, var(--ui-signal-audio) 10%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      60% 120% at 90% 100%,
+      color-mix(in srgb, var(--ui-signal-midi) 10%, transparent),
+      transparent 70%
+    ),
+    var(--ui-color-fill);
 }
 
 .brand-logo {
@@ -85,9 +95,9 @@ const manualUrl = "https://heron.minori.live/manual/"
 .build-facts {
   display: grid;
   margin: 0;
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-color-surface-raised);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-fill);
 }
 
 .build-fact {
@@ -96,7 +106,7 @@ const manualUrl = "https://heron.minori.live/manual/"
   align-items: baseline;
   gap: var(--ui-space-4);
   padding: var(--ui-space-3) var(--ui-space-4);
-  border-top: 1px solid var(--ui-color-border);
+  border-top: 1px solid var(--ui-color-glass-edge);
 }
 
 .build-fact:first-child {
@@ -131,12 +141,12 @@ const manualUrl = "https://heron.minori.live/manual/"
   justify-content: space-between;
   gap: var(--ui-space-3);
   padding: 0 var(--ui-space-3);
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-pill);
   color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
+  background: var(--ui-color-fill);
   font-size: var(--ui-font-size-xs);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-strong);
   text-decoration: none;
   transition:
     background var(--ui-motion-fast) var(--ui-ease-standard),
@@ -144,8 +154,7 @@ const manualUrl = "https://heron.minori.live/manual/"
 }
 
 .link-arrow {
-  color: var(--ui-signal-audio);
-  font-family: var(--ui-type-family-data);
+  color: var(--ui-color-accent);
 }
 
 @media (max-width: 30rem) {

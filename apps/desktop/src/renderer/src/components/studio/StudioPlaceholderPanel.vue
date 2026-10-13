@@ -50,25 +50,28 @@ const { t } = useI18n()
   display: block;
 }
 .panel-heading span {
-  color: var(--ui-color-action);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-widest);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
 }
 .panel-heading strong {
   margin-top: 5px;
   color: var(--ui-color-text);
   font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-panel-title);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-display);
 }
 .placeholder-card {
   display: grid;
   place-items: center;
   margin-top: 16px;
   padding: 25px 14px;
-  border: 1px dashed var(--ui-color-border-strong);
-  border-radius: 7px;
+  border: 1px dashed var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
   color: var(--ui-color-text-faint);
-  background: var(--ui-color-surface-sunken);
+  background: var(--ui-color-fill);
   text-align: center;
 }
 .placeholder-card > svg {
@@ -82,8 +85,9 @@ const { t } = useI18n()
   line-height: var(--ui-type-leading-normal);
 }
 .placeholder-card small {
-  color: var(--ui-color-text-faint);
-  font: var(--ui-type-size-micro) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-widest);
+  color: var(--ui-color-text-subtle);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-micro) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
 }
 </style>

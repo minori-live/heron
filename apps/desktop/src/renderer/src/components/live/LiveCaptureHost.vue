@@ -213,7 +213,9 @@ function capture(): void {
         {{ t("live.performance.stateIncludesParameters") }}
       </p>
       <section v-for="group in groups" :key="group.key" class="grid gap-ui-2">
-        <h3 class="m-0 text-ui-sm">
+        <h3
+          class="m-0 font-ui-display text-ui-sm font-700 tracking-[var(--ui-type-tracking-tight)]"
+        >
           {{ t("live.performance.captureGroupOwner", { name: group.name }) }}
         </h3>
         <div v-for="row in group.rows" :key="row.key" class="grid gap-ui-2">

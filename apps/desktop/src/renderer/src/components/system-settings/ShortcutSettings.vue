@@ -317,10 +317,7 @@ onBeforeUnmount(() => {
 .shortcut-toolbar button,
 .binding-button,
 .clear-button {
-  border: 1px solid var(--ui-color-border);
-  border-radius: 5px;
-  color: var(--ui-color-text-muted);
-  background: var(--ui-color-surface);
+  border-radius: var(--ui-radius-sm);
 }
 
 .shortcut-toolbar button {
@@ -331,9 +328,9 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 1px;
   overflow: hidden;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 6px;
-  background: var(--ui-color-border);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-glass-edge);
 }
 
 .shortcut-row {
@@ -352,6 +349,7 @@ onBeforeUnmount(() => {
 
 .shortcut-command strong {
   font-size: var(--ui-type-size-body-compact);
+  font-weight: var(--ui-type-weight-strong);
 }
 
 .shortcut-command small {
@@ -367,9 +365,9 @@ onBeforeUnmount(() => {
 }
 
 .binding-button.capturing {
-  border-color: var(--ui-color-action);
-  color: var(--ui-color-text);
-  box-shadow: var(--ui-focus-ring);
+  border-color: transparent;
+  color: var(--ui-color-action);
+  background: color-mix(in srgb, var(--ui-color-action) 20%, transparent);
 }
 
 .midi-binding {

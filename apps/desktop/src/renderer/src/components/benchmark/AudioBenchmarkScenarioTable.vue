@@ -88,22 +88,24 @@ function format(value: number, digits = 1): string {
 }
 
 .kicker {
-  color: var(--ui-signal-audio);
-  font: var(--ui-type-weight-semibold) var(--ui-font-size-xs) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-font-size-xs) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
 .result-heading h3 {
   margin: var(--ui-space-1) 0 0;
+  font-family: var(--ui-type-family-display);
   font-size: var(--ui-font-size-lg);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-tight);
   line-height: var(--ui-type-leading-tight);
 }
 
 .result-heading > small {
   color: var(--ui-color-text-subtle);
-  font: var(--ui-font-size-xs) var(--ui-type-family-data);
+  font: var(--ui-font-size-xs) var(--ui-type-family-interface);
 }
 
 .scenario-list {
@@ -113,9 +115,10 @@ function format(value: number, digits = 1): string {
 
 .scenario-card {
   padding: var(--ui-space-4);
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
   background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-sm);
 }
 
 .scenario-card header {
@@ -128,7 +131,8 @@ function format(value: number, digits = 1): string {
 .scenario-card h3 {
   margin: 0;
   font-size: var(--ui-font-size-sm);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-bold);
+  letter-spacing: var(--ui-type-tracking-snug);
 }
 
 .scenario-card header p {
@@ -157,7 +161,7 @@ function format(value: number, digits = 1): string {
   margin: var(--ui-space-3) 0;
   overflow: hidden;
   border-radius: var(--ui-radius-pill);
-  background: var(--ui-color-surface-active);
+  background: var(--ui-color-fill-hover);
 }
 
 .timing-fill {

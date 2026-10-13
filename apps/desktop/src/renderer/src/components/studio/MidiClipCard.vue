@@ -156,7 +156,7 @@ function selectMenuAction(id: string): void {
   min-width: 9px;
   padding: 4px 7px;
   border: 1px solid;
-  border-radius: 3px;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text);
   text-align: left;
 }
@@ -172,7 +172,7 @@ function selectMenuAction(id: string): void {
   z-index: var(--ui-z-local-raised);
   display: block;
   overflow: hidden;
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
   text-overflow: ellipsis;
   white-space: nowrap;
   pointer-events: none;

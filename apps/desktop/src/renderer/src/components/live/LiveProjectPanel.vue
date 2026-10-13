@@ -333,3 +333,16 @@ function submit(): void {
     </UiDialog>
   </aside>
 </template>
+
+<style scoped>
+/* Selected layers read as a signal-tinted row, as on the product website. */
+.live-project-panel :deep(.ui-action-row--selected) {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--ui-color-action) 16%, transparent);
+  box-shadow: none;
+}
+
+.live-project-panel :deep(.ui-action-row--selected .ui-action-row__leading) {
+  color: var(--ui-color-action);
+}
+</style>

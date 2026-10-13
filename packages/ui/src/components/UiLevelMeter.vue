@@ -98,15 +98,16 @@ const channelValueText = computed(() =>
   width: 1rem;
   gap: 1px;
   padding: 2px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-sm);
-  background: var(--ui-color-control-pressed);
+  background: var(--ui-daw-meter-well);
 }
 
 .ui-level-meter__well span {
   position: relative;
   flex: 1;
   overflow: hidden;
+  border-radius: var(--ui-radius-xs);
 }
 
 .ui-level-meter__well span::before {
@@ -125,7 +126,7 @@ const channelValueText = computed(() =>
 .ui-level-meter__well span::after {
   position: absolute;
   inset: 0 0 var(--level-meter-level) 0;
-  background: var(--ui-color-control-pressed);
+  background: var(--ui-daw-meter-well);
   content: "";
 }
 
@@ -137,12 +138,10 @@ const channelValueText = computed(() =>
   left: 0;
   height: 1px;
   background: var(--ui-signal-meter-warning);
-  box-shadow: 0 0 2px color-mix(in srgb, var(--ui-signal-meter-warning) 65%, transparent);
-  opacity: 0.9;
 }
 
 .ui-level-meter__well.clipped {
   border-color: var(--ui-signal-meter-clip);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--ui-signal-meter-clip) 35%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ui-signal-meter-clip) 24%, transparent);
 }
 </style>

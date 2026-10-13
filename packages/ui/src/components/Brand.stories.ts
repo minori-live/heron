@@ -39,7 +39,7 @@ export const OfficialVariants: Story = {
     template: `
       <div style="display:grid;gap:var(--ui-space-8)">
         <div v-for="variant in ['lockup', 'mark', 'wordmark']" :key="variant" style="display:grid;gap:var(--ui-space-2)">
-          <span style="color:var(--ui-color-text-subtle);font:var(--ui-font-size-xs) var(--ui-type-family-data);text-transform:uppercase">{{ variant }}</span>
+          <span class="ui-eyebrow" style="color:var(--ui-color-text-subtle);font-size:var(--ui-font-size-xs)">{{ variant }}</span>
           <HeronLogo
             :variant="variant"
             style="color:var(--ui-signal-audio);font-size:var(--ui-font-size-4xl)"

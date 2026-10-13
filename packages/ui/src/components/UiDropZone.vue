@@ -74,8 +74,8 @@ onUnmounted(() => window.removeEventListener("dragend", reset))
 }
 
 .ui-drop-zone--active {
-  outline: 2px solid var(--ui-color-focus);
+  outline: 2px dashed var(--ui-color-action);
   outline-offset: -2px;
-  background: var(--ui-color-selection);
+  background: color-mix(in srgb, var(--ui-color-action) 12%, transparent);
 }
 </style>

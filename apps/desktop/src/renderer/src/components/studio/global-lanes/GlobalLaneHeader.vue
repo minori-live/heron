@@ -64,13 +64,9 @@ const model = computed({
   grid-template-rows: auto 1fr;
   gap: 5px 7px;
   padding: 9px 10px;
-  border-bottom: 1px solid var(--ui-color-border-strong);
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--lane-color) 8%, var(--ui-daw-track-header)),
-    var(--ui-daw-track-header) 74%
-  );
-  box-shadow: 3px 0 0 var(--lane-color) inset;
+  border-bottom: 1px solid var(--ui-color-border);
+  background: color-mix(in srgb, var(--lane-color) 7%, var(--ui-daw-track-header));
+  box-shadow: inset var(--ui-signal-rail-width) 0 0 var(--lane-color);
 }
 .lane-copy {
   grid-column: 1;
@@ -83,13 +79,15 @@ const model = computed({
 }
 .lane-copy span {
   color: var(--lane-color);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-micro) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-micro) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
 }
 .lane-copy strong {
   margin-top: 3px;
   color: var(--ui-color-text);
-  font: var(--ui-type-size-label) var(--ui-type-family-display);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-label) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-snug);
 }
 .lane-value {
   display: grid;
@@ -101,9 +99,9 @@ const model = computed({
 .lane-value > span:first-child {
   display: block;
   margin-bottom: 4px;
-  color: var(--ui-color-text-faint);
-  font: var(--ui-type-size-micro) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  color: var(--ui-color-text-subtle);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-micro) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 </style>

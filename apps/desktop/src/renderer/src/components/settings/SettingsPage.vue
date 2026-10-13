@@ -25,7 +25,7 @@ defineSlots<{
       <p>{{ description }}</p>
     </header>
     <div
-      class="settings-page-body mt-[25px] max-w-[900px] border-t border-t-solid [border-top-color:var(--ui-color-border)]"
+      class="settings-page-body mt-[25px] max-w-[900px] border-t border-t-solid [border-top-color:var(--ui-color-glass-edge)]"
     >
       <slot />
     </div>
@@ -34,9 +34,9 @@ defineSlots<{
 
 <style scoped>
 .settings-page-path {
-  color: var(--ui-color-action);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-widest);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
@@ -48,8 +48,10 @@ defineSlots<{
 
 .settings-page-intro h2 {
   margin: 8px 0 6px;
-  font: var(--ui-type-weight-semibold) var(--ui-font-size-2xl) var(--ui-type-family-display);
-  letter-spacing: var(--ui-type-tracking-tight);
+  font: var(--ui-type-weight-heavy) var(--ui-font-size-2xl) / var(--ui-type-leading-tight)
+    var(--ui-type-family-display);
+  letter-spacing: var(--ui-type-tracking-display);
+  text-wrap: balance;
 }
 
 .settings-page-intro p {

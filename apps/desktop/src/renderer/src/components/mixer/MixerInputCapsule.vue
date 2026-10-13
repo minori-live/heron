@@ -266,10 +266,9 @@ function toggleStereo(): void {
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--ui-domain-face-audio-border);
-  border-radius: 4px;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-domain-signal-ink);
   background: linear-gradient(var(--ui-domain-face-audio-top), var(--ui-domain-face-audio-bottom));
-  box-shadow: 0 1px 0 var(--ui-domain-face-sheen) inset;
 }
 
 .input-capsule__status {

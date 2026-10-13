@@ -41,7 +41,7 @@ const errorId = computed(() => (props.error ? `${controlId.value}-error` : undef
     :class="`ui-field--${props.layout}`"
     :data-invalid="Boolean(props.error) || undefined"
   >
-    <label class="ui-field__label text-ui-sm font-600 text-ui-text" :for="controlId">
+    <label class="ui-field__label text-ui-sm font-650 text-ui-text" :for="controlId">
       {{ props.label }}
       <span v-if="props.required" class="ui-field__required" aria-hidden="true">*</span>
       <span v-if="props.required" class="ui-visually-hidden"> (required)</span>
@@ -72,7 +72,7 @@ const errorId = computed(() => (props.error ? `${controlId.value}-error` : undef
 .ui-field--inline .ui-field__label {
   grid-area: label;
   color: var(--ui-color-text-muted);
-  font: var(--ui-type-size-control) var(--ui-type-family-data);
+  font: var(--ui-type-weight-medium) var(--ui-type-size-control) var(--ui-type-family-interface);
   white-space: nowrap;
 }
 

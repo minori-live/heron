@@ -149,8 +149,8 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
   --ui-color-action-hover: var(--ui-color-text);
   --ui-color-action-pressed: var(--ui-color-text-muted);
   --ui-color-action-text: var(--ui-color-canvas);
-  --ui-color-focus: var(--settings-neutral-accent);
-  --ui-focus-ring: 0 0 0 3px color-mix(in srgb, var(--settings-neutral-accent) 38%, transparent);
+  --ui-color-focus: var(--ui-daw-focus);
+  --ui-focus-ring: 0 0 0 3px color-mix(in srgb, var(--ui-daw-focus) 32%, transparent);
   --focus-ring: var(--ui-focus-ring);
   --ui-shadow-selected-edge: 2px 0 0 var(--settings-neutral-accent) inset;
   --ui-shadow-selected-outline: 0 0 0 1px
@@ -159,7 +159,7 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
   --ui-color-selection-hover: var(--ui-color-surface-hover);
   --ui-color-selection-border: var(--ui-color-border-strong);
   --accent: var(--settings-neutral-accent);
-  --focus: var(--settings-neutral-accent);
+  --focus: var(--ui-daw-focus);
   display: grid;
   width: 100%;
   height: 100%;
@@ -175,29 +175,30 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
   align-items: center;
   gap: 0.8125rem;
   padding: 0 1.125rem;
-  border-bottom: 1px solid var(--ui-color-border-strong);
-  background: var(--ui-color-surface);
-  box-shadow: var(--ui-shadow-md);
+  border-bottom: 1px solid var(--ui-color-border);
+  background: var(--ui-color-glass);
+  backdrop-filter: var(--ui-backdrop-glass);
 }
 .ui-settings-navigator__title span,
 .ui-settings-navigator__label,
 .ui-settings-navigator__heading span,
 .ui-settings-navigator__build {
   color: var(--ui-color-text-subtle);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-widest);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 .ui-settings-navigator__title h1 {
   margin: 0.1875rem 0 0;
   font-family: var(--ui-type-family-display);
-  font-size: var(--ui-type-size-panel-title);
-  font-weight: var(--ui-type-weight-semibold);
-  letter-spacing: var(--ui-type-tracking-wide);
+  font-size: var(--ui-type-size-view-title);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-tight);
+  line-height: var(--ui-type-leading-tight);
 }
 .ui-settings-navigator__title span,
 .ui-settings-navigator__heading span {
-  color: var(--ui-color-text-subtle);
+  color: var(--ui-color-accent);
 }
 .ui-settings-navigator__actions {
   display: flex;
@@ -232,7 +233,9 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
   margin-top: 0.375rem;
   color: var(--ui-color-text);
   font-family: var(--ui-type-family-display);
-  font-size: var(--ui-type-size-section-title);
+  font-size: var(--ui-type-size-panel-title);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-snug);
 }
 .ui-settings-navigator__category,
 .ui-settings-navigator__page {
@@ -250,14 +253,19 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5625rem;
-  border-radius: 0.375rem;
+  border-radius: var(--ui-radius-md);
   font-size: var(--ui-type-size-body-compact);
+  font-weight: var(--ui-type-weight-medium);
 }
 .ui-settings-navigator__category.is-active {
-  border-color: var(--ui-color-border-strong);
   color: var(--ui-color-text);
-  background: var(--ui-color-selection);
-  box-shadow: 2px 0 0 var(--settings-neutral-accent) inset;
+  background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-raised);
+  font-weight: var(--ui-type-weight-strong);
+}
+.ui-settings-navigator__category.is-active .ui-settings-navigator__category-icon,
+.ui-settings-navigator__page.is-active .ui-settings-navigator__page-icon {
+  color: var(--ui-color-text);
 }
 .ui-settings-navigator__category-icon,
 .ui-settings-navigator__page-icon {
@@ -273,9 +281,9 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
 .ui-settings-navigator__category small,
 .ui-settings-navigator__page em {
   color: var(--ui-color-text-subtle);
-  font: var(--ui-type-size-micro) var(--ui-type-family-data);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-micro) var(--ui-type-family-interface);
   font-style: normal;
-  letter-spacing: var(--ui-type-tracking-wide);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 .ui-settings-navigator__heading {
@@ -290,13 +298,12 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
   gap: 0.5rem;
   margin-bottom: 0.3125rem;
   padding: 0.625rem;
-  border-radius: 0.4375rem;
+  border-radius: var(--ui-radius-md);
 }
 .ui-settings-navigator__page.is-active {
-  border-color: var(--ui-color-border-strong);
   color: var(--ui-color-text);
-  background: var(--ui-color-selection);
-  box-shadow: inset 0 0 0 1px var(--settings-neutral-accent);
+  background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-raised);
 }
 .ui-settings-navigator__page-copy b,
 .ui-settings-navigator__page-copy small {
@@ -305,6 +312,7 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
 }
 .ui-settings-navigator__page-copy b {
   font-size: var(--ui-type-size-body-compact);
+  font-weight: var(--ui-type-weight-strong);
 }
 .ui-settings-navigator__page-copy small {
   margin-top: 0.25rem;
@@ -312,10 +320,10 @@ function selectItem(item: UiNavigationCategory["items"][number]): void {
   font-size: var(--ui-type-size-caption);
   line-height: var(--ui-type-leading-compact);
 }
-.ui-settings-navigator__category:hover:not(:disabled),
-.ui-settings-navigator__page:hover:not(:disabled) {
+.ui-settings-navigator__category:hover:not(:disabled):not(.is-active),
+.ui-settings-navigator__page:hover:not(:disabled):not(.is-active) {
   color: var(--ui-color-text);
-  background: var(--ui-color-surface-hover);
+  background: var(--ui-color-fill);
 }
 .ui-settings-navigator__category:focus-visible,
 .ui-settings-navigator__page:focus-visible {

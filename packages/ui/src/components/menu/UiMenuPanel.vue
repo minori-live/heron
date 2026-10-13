@@ -193,10 +193,11 @@ defineExpose({
   overflow-x: hidden;
   overflow-y: auto;
   border: 1px solid var(--ui-color-menu-border);
-  border-radius: 7px;
+  border-radius: var(--ui-radius-md);
   color: var(--ui-color-menu-text-muted);
   background: var(--ui-color-menu-surface);
-  box-shadow: var(--ui-shadow-md);
+  box-shadow: var(--ui-shadow-lg);
+  backdrop-filter: var(--ui-backdrop-glass);
   animation: ui-menu-in var(--ui-motion-fast) var(--ui-ease-standard);
 }
 

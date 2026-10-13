@@ -180,10 +180,11 @@ function sampleRate(value: string): void {
 }
 .plugin-analysis-settings :deep(h3) {
   margin: 0 0 2px;
-  color: var(--ui-color-text-muted);
+  color: var(--ui-color-text-subtle);
+  font-family: var(--ui-type-family-interface);
   font-size: var(--ui-type-size-label);
-  font-weight: var(--ui-type-weight-semibold);
-  letter-spacing: var(--ui-type-tracking-wide);
+  font-weight: var(--ui-type-weight-strong);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 .plugin-analysis-settings :deep(.ui-field) {

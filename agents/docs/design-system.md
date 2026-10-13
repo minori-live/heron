@@ -4,6 +4,10 @@ Heron is a dense professional audio workstation. Its interface should feel preci
 signal-led: large surfaces remain neutral, while color is reserved for focus, primary action,
 feedback, recording, MIDI, audio, meters, and other data-bearing states.
 
+The application and the product website (`docs/.vitepress/theme/components/home/`) share one
+visual language. The website's product windows are drawings of the application, so a change to
+either side should keep the two recognizably the same product.
+
 The source of truth is `packages/ui`. Storybook in `apps/design-system` is the interactive
 reference. Product screens may compose these primitives, but they must not create a second
 generic component system.
@@ -21,20 +25,37 @@ legible without competing with the material being edited.
 
 The core palette is intentionally small:
 
-- **Carbon** `#101010` — the two-dimensional musical workspace;
-- **Graphite** `#202020` — controls, strips, and local structure;
-- **Steel** `#8da8b5` — focus, primary action, and neutral selection;
-- **Wave cyan** `#72c3c7` — audio-domain signal;
-- **Take red** `#ff6577` — recording and destructive live state;
-- **Meter amber** `#e8b75f` — thresholds that need attention.
+- **Graphite** `#1d2029` (dark) / **Paper** `#ffffff` on `#f3f3f4` (light) — panels, strips, and
+  the musical workspace; the dark neutrals lean slightly blue so glass panels read as one material;
+- **Ink** `#eceae4` (dark) / `#1b1d23` (light) — text and the solid committing action;
+- **Wave cyan** `#72c3c7` (light theme `#17777c`) — "on", selection, continuous values, and the
+  audio domain;
+- **Violet** `#a98ade` / `#c2abff` (light theme `#7353c4`) — focus and wayfinding: eyebrows and
+  inline links;
+- **Take red** `#ff6f86` — recording and destructive live state;
+- **Meter green** `#5cc27c` and **amber** `#f2b45a` — healthy level and thresholds that need
+  attention.
 
-Interface type uses bundled Inter Variable, restrained headings use Barlow Condensed, and
-musical measurements use Cascadia Mono Variable. Families are loaded through `unplugin-fonts`
+Interface type uses bundled Inter Variable; headings use the same family, distinguished by heavy
+weight (650–750) and tight tracking rather than by a second face; musical measurements use
+Cascadia Mono Variable. Families are loaded through `unplugin-fonts`
 and Fontsource (`packages/ui/fonts.ts`) so desktop, Storybook, and docs share the same faces.
 Desktop and Storybook use Unhead (`useLocaleFonts`) to keep `html lang` aligned with the active
 locale and to load Noto Sans SC Variable for Chinese UI; docs rely on VitePress locale `lang`
 plus the same `:lang(zh*)` token overrides. A family is a role, not decoration: time, dB, BPM,
-ticks, channels, and aligned tables use data type; sentences and controls use interface type.
+ticks, channels, and aligned tables use data type; sentences, controls, and names (tracks,
+devices, files, plug-ins) use interface type. Eyebrows above a heading use interface type,
+uppercase, `--ui-type-tracking-eyebrow`, and the violet accent (`.ui-eyebrow`); dense panel
+captions use the same treatment in subtle text. Data type never doubles as a label style.
+
+Shape and material follow hierarchy. Dense DAW controls keep a tight radius (`--ui-radius-sm`);
+generic controls are soft (`--ui-radius-md`) and standard-density buttons are pills; cards and
+panels use `--ui-radius-lg`; dialogs and hero cards use `--ui-radius-xl`. Floating chrome — menus,
+popovers, toolbar islands, title bars — is translucent glass (`--ui-color-glass` with
+`--ui-backdrop-glass`) with a hairline `--ui-color-glass-edge`. Command groups are recessed
+`--ui-color-fill` islands rather than bordered boxes, and a selected segment or list row is a
+raised surface with `--ui-shadow-raised`. Elevation is long and soft; it explains layering, never
+decorates a flat region.
 
 The signature element is the **signal rail**: a narrow channel-derived edge marks the active clip,
 track, route, or editable scope while the surrounding surface remains neutral. It always appears
@@ -90,6 +111,9 @@ is reserved for the shared system.
 `domain-palette.css` contains fixed product-rendering colors moved out of component styles during
 the 61-file audit. These values are allowed only where a DAW visualization needs a stable
 spatial or signal distinction: mixer chrome, tracks, clips, waveforms, meters, and plug-in state.
+Mixer, control-face, clip, and waveform chrome follow the application theme (graphite in dark,
+paper in light, as the website's windows do); lane identities, record hues, and theme-preview
+swatches are theme-independent.
 Ordinary forms, overlays, loading states, settings, and navigation use semantic tokens.
 
 Raw colors and numeric z-index values are forbidden outside token sources. Ordinary UI shadows
@@ -128,6 +152,9 @@ with the same provider.
 
 - `UiButton` is the default text action. Use `primary` once per decision area, `secondary` for
   normal actions, `ghost` for low-emphasis chrome, and `danger` for destructive commitment.
+  Primary is solid ink (`--ui-color-emphasis`), not a hue, so cyan keeps meaning "on"; secondary
+  is a translucent fill with a hairline edge. Standard-density buttons are pills; compact buttons
+  keep the dense radius.
 - `UiIconButton` requires a non-empty `label`. The tooltip supplements, but never replaces, the
   accessible name.
 - Loading disables the action, exposes `aria-busy`, and retains the original label so layout and
@@ -204,7 +231,9 @@ They should remain inexpensive to nest and must not read application state.
 - `UiToolbar` is the semantic command surface for an editor or dock. It has a required accessible
   label, fixed start/end areas, and a locally scrollable command area.
 - `UiSegmentedControl` is for one exclusive mode in a stable set, such as Select, Draw, or Erase.
-  It is not navigation and does not switch documents or panels.
+  It is not navigation and does not switch documents or panels. The default appearance is a
+  recessed track with a raised indicator that travels to the selected segment; the indicator is
+  presentation only, and the item's `data-state` remains the selected-state carrier.
 - `UiChoiceChip` selects one peer object such as an editable clip. Its signal rail may accept a
   documented runtime color, but text and `aria-pressed` carry the same state.
 - A zoom pair is an action group, not a segmented control. A panel switch is navigation, not a

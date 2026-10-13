@@ -35,10 +35,17 @@ const props = withDefaults(
   min-width: 0;
   height: 27px;
   padding: 0 7px;
-  border: 1px solid var(--ui-color-border-strong);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text-faint);
-  background: var(--ui-daw-control);
+  background: var(--ui-color-fill);
+  transition:
+    border-color var(--ui-motion-fast) var(--ui-ease-standard),
+    background-color var(--ui-motion-fast) var(--ui-ease-standard),
+    box-shadow var(--ui-motion-fast) var(--ui-ease-standard);
+}
+.ui-search-input:hover:not(.ui-search-input--disabled) {
+  background: var(--ui-color-fill-hover);
 }
 .ui-search-input:focus-within {
   border-color: var(--ui-color-focus);

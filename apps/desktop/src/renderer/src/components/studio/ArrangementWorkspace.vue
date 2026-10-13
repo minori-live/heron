@@ -702,11 +702,12 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
   display: flex;
   align-items: center;
   padding: 0 12px;
-  border-bottom: 1px solid var(--ui-color-border-strong);
-  color: var(--ui-color-text-faint);
+  border-bottom: 1px solid var(--ui-color-border);
+  color: var(--ui-color-text-subtle);
   background: var(--ui-daw-ruler);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
 }
 .timeline-playhead {
   position: absolute;
@@ -715,7 +716,6 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
   bottom: 0;
   width: 1px;
   background: var(--ui-signal-record);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--ui-signal-record) 55%, transparent);
   pointer-events: none;
 }
 .timeline-playhead span {
@@ -736,10 +736,11 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
   bottom: 12px;
   margin: 0;
   padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 55%, var(--ui-color-border-strong));
-  border-radius: 5px;
-  color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 14%, var(--ui-color-surface));
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-md);
+  color: var(--ui-color-danger);
+  background: color-mix(in srgb, var(--ui-color-danger) 16%, var(--ui-color-surface));
+  box-shadow: var(--ui-shadow-md);
   font-size: var(--ui-type-size-control);
 }
 @media (max-width: 1100px) {

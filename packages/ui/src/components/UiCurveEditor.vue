@@ -193,9 +193,9 @@ function handleKeydown(event: KeyboardEvent, handle: UiCurveHandle): void {
 .ui-curve-editor__stage {
   position: relative;
   padding: 18px 12px 24px 38px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-color-canvas-subtle);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-fill);
 }
 
 .ui-curve-editor__canvas {
@@ -243,7 +243,7 @@ function handleKeydown(event: KeyboardEvent, handle: UiCurveHandle): void {
 }
 
 .ui-curve-editor__handle-ring {
-  fill: var(--ui-color-canvas-subtle);
+  fill: var(--ui-color-surface-raised);
   stroke: currentColor;
   stroke-width: 5;
 }
@@ -273,7 +273,9 @@ function handleKeydown(event: KeyboardEvent, handle: UiCurveHandle): void {
 
 .ui-curve-editor__axis {
   position: absolute;
-  letter-spacing: var(--ui-type-tracking-wide);
+  font-family: var(--ui-type-family-interface);
+  font-weight: var(--ui-type-weight-strong);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 

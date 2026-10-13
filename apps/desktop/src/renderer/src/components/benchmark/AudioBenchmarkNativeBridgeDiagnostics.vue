@@ -103,16 +103,18 @@ function ipcRate(scenario: AudioNativeBenchmarkScenario): string {
 }
 
 .kicker {
-  color: var(--ui-signal-audio);
-  font: var(--ui-type-weight-semibold) var(--ui-font-size-xs) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-font-size-xs) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
 .result-heading h3 {
   margin: var(--ui-space-1) 0 0;
+  font-family: var(--ui-type-family-display);
   font-size: var(--ui-font-size-lg);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-tight);
   line-height: var(--ui-type-leading-tight);
 }
 
@@ -123,9 +125,10 @@ function ipcRate(scenario: AudioNativeBenchmarkScenario): string {
 
 .ipc-table {
   overflow: hidden;
-  border: 1px solid var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
   background: var(--ui-color-surface-raised);
+  box-shadow: var(--ui-shadow-sm);
 }
 
 .ipc-row {
@@ -149,13 +152,13 @@ function ipcRate(scenario: AudioNativeBenchmarkScenario): string {
 
 .ipc-table-header {
   min-height: var(--ui-control-sm);
-  background: var(--ui-color-canvas-subtle);
+  background: var(--ui-color-fill);
 }
 
 .ipc-table-header > span {
   color: var(--ui-color-text-subtle);
   font-family: var(--ui-type-family-interface);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-strong);
 }
 
 .ipc-name strong,

@@ -71,10 +71,10 @@ const { t } = useI18n()
 
 .welcome-recent__heading h2 {
   margin: 0;
-  color: var(--ui-color-text-muted);
-  font: var(--ui-type-weight-bold) var(--ui-font-size-xs) / var(--ui-type-leading-tight)
-    var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-widest);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-font-size-xs) / var(--ui-type-leading-tight)
+    var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
@@ -82,9 +82,10 @@ const { t } = useI18n()
   min-height: 32px;
   padding: 0;
   border: 0;
-  color: var(--ui-color-action);
+  color: var(--ui-color-accent);
   background: transparent;
   font-size: var(--ui-font-size-xs);
+  font-weight: var(--ui-type-weight-strong);
   transition: color var(--ui-motion-fast) var(--ui-ease-standard);
 }
 
@@ -130,10 +131,10 @@ const { t } = useI18n()
   width: 34px;
   height: 34px;
   place-items: center;
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-md);
-  color: var(--ui-color-text-faint);
-  background: var(--ui-color-surface-sunken);
+  color: var(--ui-color-text-subtle);
+  background: var(--ui-color-fill);
 }
 
 .recent-item__icon svg {
@@ -162,7 +163,7 @@ const { t } = useI18n()
 .recent-item__copy small {
   overflow: hidden;
   color: var(--ui-color-text-faint);
-  font: var(--ui-font-size-xs) var(--ui-type-family-data);
+  font: var(--ui-font-size-xs) var(--ui-type-family-interface);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -180,9 +181,10 @@ const { t } = useI18n()
 .welcome-recent__empty {
   margin: 16px 0 0;
   padding: 18px;
-  border: 1px dashed var(--ui-color-border);
-  border-radius: var(--ui-radius-md);
-  color: var(--ui-color-text-faint);
+  border: 1px dashed var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
+  color: var(--ui-color-text-subtle);
+  background: var(--ui-color-fill);
   font-size: var(--ui-font-size-sm);
   line-height: var(--ui-type-leading-relaxed);
 }

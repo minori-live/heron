@@ -149,13 +149,12 @@ function commitMeterEdit(value: string): void {
   align-self: stretch;
   min-width: 0;
   height: 44px;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 8px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-md);
   color: var(--ui-color-text-muted);
-  background: var(--ui-color-surface-sunken);
-  box-shadow:
-    0 1px 0 var(--ui-domain-display-hairline) inset,
-    0 7px 18px var(--ui-color-shadow);
+  background: var(--ui-color-glass);
+  box-shadow: var(--ui-shadow-md);
+  backdrop-filter: var(--ui-backdrop-glass);
   overflow: hidden;
   -webkit-app-region: no-drag;
 }
@@ -165,7 +164,7 @@ function commitMeterEdit(value: string): void {
   min-width: 0;
   align-content: center;
   justify-items: center;
-  border-left: 1px solid var(--ui-color-border);
+  border-left: 1px solid var(--ui-color-glass-edge);
 }
 .bar-cell {
   border-left: 0;
@@ -177,16 +176,28 @@ function commitMeterEdit(value: string): void {
 .key-dropdown {
   height: 22px;
   color: var(--ui-color-text);
-  font: var(--ui-type-weight-medium) var(--ui-type-size-feature-title) / var(--ui-type-leading-none)
-    var(--ui-type-family-data);
+  font: var(--ui-type-weight-semibold) var(--ui-type-size-feature-title) /
+    var(--ui-type-leading-none) var(--ui-type-family-data);
+  font-variant-numeric: tabular-nums;
   letter-spacing: var(--ui-type-tracking-tight);
-  text-shadow: 0 0 12px color-mix(in srgb, var(--ui-signal-audio) 23%, transparent);
 }
-.position-cell > span,
-.lcd-cell > span {
-  color: var(--ui-color-text-faint);
-  font: var(--ui-type-weight-semibold) var(--ui-type-size-micro) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+.position-cell > span:not(.ui-inline-edit),
+.lcd-cell > span:not(.ui-inline-edit) {
+  color: var(--ui-color-text-subtle);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-micro) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
+}
+/* Tempo, meter, and key are the secondary readouts: smaller than the position,
+   still large enough to read at a glance. */
+.tempo-value,
+.meter-value {
+  font-size: var(--ui-type-size-panel-title);
+}
+/* Outranks the compact select's own dense type and muted ink. */
+.harmony-cell :deep(.key-dropdown) {
+  color: var(--ui-color-text);
+  font-size: var(--ui-type-size-panel-title);
 }
 .tempo-value {
   width: 100%;
@@ -214,7 +225,6 @@ function commitMeterEdit(value: string): void {
   border: 0;
   border-radius: 0;
   background: transparent;
-  font-size: var(--ui-type-size-control);
   text-align: center;
 }
 .harmony-cell {
@@ -231,6 +241,9 @@ function commitMeterEdit(value: string): void {
 @media (max-width: 1279px) {
   .musical-display {
     grid-template-columns: 68px 38px 62px 48px 76px;
+  }
+  .harmony-cell :deep(.key-dropdown) {
+    font-size: var(--ui-type-size-label);
   }
 }
 @media (max-width: 1023px) {

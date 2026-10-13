@@ -26,10 +26,10 @@ const { t } = useI18n()
   align-items: center;
   gap: var(--ui-space-4);
   padding: var(--ui-space-4);
-  border: 1px solid var(--ui-color-border);
+  border: 1px solid var(--ui-color-glass-edge);
   border-left: var(--ui-signal-rail-width) solid var(--ui-signal-audio);
-  border-radius: var(--ui-radius-md);
-  background: var(--ui-color-canvas-subtle);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-fill);
 }
 
 .asio-compatible-logo {
@@ -48,8 +48,8 @@ const { t } = useI18n()
 
 .asio-legal-title {
   color: var(--ui-color-text);
-  font: var(--ui-type-weight-semibold) var(--ui-font-size-sm) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wide);
+  font: var(--ui-type-weight-bold) var(--ui-font-size-sm) var(--ui-type-family-display);
+  letter-spacing: var(--ui-type-tracking-snug);
 }
 
 .asio-trademark {

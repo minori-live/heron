@@ -83,18 +83,20 @@ function drop(data: UiDragData[], index: number): void {
   justify-content: space-between;
   margin-bottom: 4px;
   color: var(--ui-color-text-subtle);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
 }
 .rack-heading b {
   display: grid;
   place-items: center;
   min-width: 16px;
   height: 15px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 3px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-pill);
   color: var(--ui-color-text-faint);
-  font-size: var(--ui-type-size-micro);
+  background: var(--ui-color-fill);
+  font: var(--ui-type-size-micro) var(--ui-type-family-data);
 }
 .drop-zone {
   position: relative;
@@ -106,7 +108,7 @@ function drop(data: UiDragData[], index: number): void {
   position: absolute;
   inset: 1px 0 auto;
   height: 2px;
-  border-radius: 999px;
+  border-radius: var(--ui-radius-pill);
   background: transparent;
   content: "";
   pointer-events: none;

@@ -115,23 +115,23 @@ function resetMaximumPeak(): void {
   width: 34px;
   height: 20px;
   overflow: hidden;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 2px;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text-faint);
-  background: var(--ui-daw-meter-well);
+  background: var(--ui-daw-control);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .maximum-peak-value.active {
-  color: var(--ui-signal-mixer-pan);
+  color: var(--ui-signal-meter-safe);
 }
 .maximum-peak-value.hot {
   color: var(--ui-signal-mixer-solo);
 }
 .maximum-peak-value.clipped {
-  border-color: var(--ui-signal-mixer-record);
+  border-color: color-mix(in srgb, var(--ui-signal-record) 45%, transparent);
   color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 14%, var(--ui-daw-meter-well));
+  background: color-mix(in srgb, var(--ui-signal-record) 14%, var(--ui-daw-control));
 }
 </style>

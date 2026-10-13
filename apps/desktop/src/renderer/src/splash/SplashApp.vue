@@ -23,7 +23,7 @@ onMounted(() => void startup.load())
 
 <template>
   <main
-    class="splash-shell relative grid h-full w-full grid-rows-[1fr_auto] overflow-hidden border border-solid border-ui-border bg-ui-canvas-subtle px-[48px] pb-[40px] pt-[44px] shadow-[var(--ui-shadow-highlight-inset)]"
+    class="splash-shell relative grid h-full w-full grid-rows-[1fr_auto] overflow-hidden border border-solid border-[var(--ui-color-glass-edge)] bg-ui-canvas px-[48px] pb-[40px] pt-[44px]"
     :data-phase="startup.progress.phase"
   >
     <header
@@ -76,6 +76,23 @@ onMounted(() => void startup.load())
 }
 
 .splash-shell {
+  background:
+    radial-gradient(
+      60% 80% at 14% 12%,
+      color-mix(in srgb, var(--ui-signal-audio) 11%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      50% 70% at 92% 30%,
+      color-mix(in srgb, var(--ui-signal-record) 8%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      70% 70% at 40% 105%,
+      color-mix(in srgb, var(--ui-signal-midi) 12%, transparent),
+      transparent 70%
+    ),
+    var(--ui-color-canvas);
   -webkit-app-region: drag;
 }
 
@@ -102,8 +119,12 @@ onMounted(() => void startup.load())
 }
 
 .project-url,
-.version,
 .status-heading {
+  font-family: var(--ui-type-family-interface);
+}
+
+.version,
+.status-heading > strong {
   font-family: var(--ui-type-family-data);
 }
 
@@ -118,7 +139,7 @@ onMounted(() => void startup.load())
   margin: 8px 0 0;
   color: var(--ui-color-text-muted);
   font-size: var(--ui-type-size-caption);
-  letter-spacing: var(--ui-type-tracking-wide);
+  letter-spacing: var(--ui-type-tracking-normal);
   font-variant-numeric: tabular-nums;
 }
 
@@ -145,10 +166,9 @@ onMounted(() => void startup.load())
   position: relative;
   height: 8px;
   overflow: hidden;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 999px;
-  background: var(--ui-color-canvas);
-  box-shadow: var(--ui-shadow-highlight-inset);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-color-fill);
 }
 
 .progress-fill {

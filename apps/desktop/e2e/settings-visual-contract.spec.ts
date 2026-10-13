@@ -97,12 +97,12 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
       for (const [name, canvas, panel, line, accent] of [
         [
           "Light",
-          "rgb(216, 217, 219)",
-          "rgb(197, 199, 202)",
-          "rgb(164, 168, 174)",
-          "rgb(101, 127, 141)"
+          "rgb(243, 243, 244)",
+          "rgb(255, 255, 255)",
+          "rgb(208, 210, 216)",
+          "rgb(23, 119, 124)"
         ],
-        ["Dark", "rgb(32, 32, 32)", "rgb(23, 23, 23)", "rgb(65, 65, 65)", "rgb(139, 166, 180)"]
+        ["Dark", "rgb(29, 32, 41)", "rgb(18, 19, 24)", "rgb(48, 51, 61)", "rgb(114, 195, 199)"]
       ] as const) {
         const card = page.getByRole("button", { name: new RegExp(`^${name} `) })
         await expect(card.locator(".theme-preview")).toHaveCSS("background-color", canvas)
@@ -115,7 +115,7 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
       }
       await expect(page.locator(".app-titlebar__logo")).toHaveCSS(
         "color",
-        theme === "Light" ? "rgb(69, 109, 122)" : "rgb(141, 168, 181)"
+        theme === "Light" ? "rgb(23, 119, 124)" : "rgb(114, 195, 199)"
       )
       await page.screenshot({ path: testInfo.outputPath(`display-${theme}.png`) })
     }
@@ -147,7 +147,7 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     await expect(input).toBeVisible()
     await expect(page.locator(".mixer-console:visible .mixer-toolbar > span")).toHaveCSS(
       "color",
-      "rgb(141, 168, 181)"
+      "rgb(143, 147, 160)"
     )
     await page.evaluate(async () => {
       const bootstrap = await window.heron.bootstrap({
@@ -180,7 +180,7 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     await expect(monitorTarget).toHaveAttribute("aria-pressed", "true")
     await mixer.focus()
     await page.mouse.move(0, 0)
-    await expect(monitorTarget).toHaveCSS("color", "rgb(89, 215, 154)")
+    await expect(monitorTarget).toHaveCSS("color", "rgb(92, 194, 124)")
     await expect.poll(() => monitorTarget.evaluate((el) => el.getAnimations().length)).toBe(0)
     expect(await monitorTarget.evaluate((el) => getComputedStyle(el).boxShadow)).toContain("inset")
     const selectedBorder = await monitorTarget.evaluate((el) => getComputedStyle(el).borderColor)

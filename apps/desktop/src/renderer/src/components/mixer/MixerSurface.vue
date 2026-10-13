@@ -169,7 +169,7 @@ const sectionStyle = computed(() => ({
     :aria-busy="busy || undefined"
   >
     <header
-      class="mixer-toolbar flex flex-wrap items-center justify-between gap-ui-2 border-b border-b-solid bg-[var(--ui-color-surface)] py-ui-1 pe-[11px] ps-[14px] [border-bottom-color:var(--ui-color-border-strong)]"
+      class="mixer-toolbar flex flex-wrap items-center justify-between gap-ui-2 border-b border-b-solid bg-[var(--ui-color-surface)] py-ui-1 pe-[11px] ps-[14px] [border-bottom-color:var(--ui-color-border)]"
     >
       <span>{{ t("mixer.console.title") }}</span>
       <nav :aria-label="t('mixer.console.actions.ariaLabel')">
@@ -292,9 +292,10 @@ const sectionStyle = computed(() => ({
 
 <style scoped>
 .mixer-toolbar > span {
-  color: var(--ui-daw-action);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-widest);
+  color: var(--ui-color-text-subtle);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
 }
 .mixer-toolbar nav {
   display: flex;
@@ -303,12 +304,6 @@ const sectionStyle = computed(() => ({
 }
 .channel-scroll {
   background-color: var(--ui-domain-mixer-surface);
-  background-image: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--ui-color-text) 3%, transparent) 1px,
-    transparent 1px
-  );
-  background-size: 112px 100%;
 }
 .mixer-error {
   position: absolute;
@@ -316,10 +311,11 @@ const sectionStyle = computed(() => ({
   bottom: 8px;
   margin: 0;
   padding: 6px 9px;
-  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 55%, var(--ui-color-border-strong));
-  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 28%, transparent);
+  border-radius: var(--ui-radius-md);
   color: var(--ui-signal-record);
   background: color-mix(in srgb, var(--ui-signal-record) 14%, var(--ui-color-surface));
+  box-shadow: var(--ui-shadow-md);
   font-size: var(--ui-type-size-control);
 }
 </style>

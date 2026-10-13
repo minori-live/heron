@@ -31,7 +31,7 @@ test("global track inputs retain compact heights, tempo precision and space for 
   await tempo.hover()
   await expect(tempo).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
   await tempo.focus()
-  await expect(tempoShell).toHaveCSS("border-color", "rgb(101, 168, 255)")
+  await expect(tempoShell).toHaveCSS("border-color", "rgb(114, 195, 199)")
   await tempo.fill("137.25")
   await tempo.press("Enter")
   await expect(tempo).toHaveValue("137.25")
@@ -153,7 +153,10 @@ test("settings keep neutral colors, icons and usable navigation at 320px", async
       .slice(0, 3)
       .map(Number)
   )
-  expect(Math.max(...channels) - Math.min(...channels)).toBeLessThanOrEqual(2)
+  // Graphite and paper neutrals carry a slight deliberate tint; an accent hue
+  // leaking onto a settings surface spreads its channels far wider than this.
+  const neutralSpread = 12
+  expect(Math.max(...channels) - Math.min(...channels)).toBeLessThanOrEqual(neutralSpread)
   const device = page.getByRole("textbox", { name: "Device name" })
   const controlChannels = await device.evaluate((element) =>
     getComputedStyle(element)
@@ -161,7 +164,9 @@ test("settings keep neutral colors, icons and usable navigation at 320px", async
       .slice(0, 3)
       .map(Number)
   )
-  expect(Math.max(...controlChannels) - Math.min(...controlChannels)).toBeLessThanOrEqual(2)
+  expect(Math.max(...controlChannels) - Math.min(...controlChannels)).toBeLessThanOrEqual(
+    neutralSpread
+  )
   await expect(page.getByRole("button", { name: "Back to studio" })).toBeInViewport()
   await page.getByRole("button", { name: "System", exact: true }).click()
   await page.getByRole("button", { name: /Display/ }).click()

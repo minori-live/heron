@@ -70,7 +70,7 @@ const props = withDefaults(
   >
     <NumberFieldInput
       v-bind="$attrs"
-      class="ui-number-input__field min-w-0 w-full border border-solid border-ui-border rounded-ui-md bg-ui-control text-ui-text-muted [font-variant-numeric:tabular-nums] transition-[border-color,background] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed"
+      class="ui-number-input__field min-w-0 w-full border border-solid border-ui-border rounded-ui-md bg-ui-control text-ui-text [font-variant-numeric:tabular-nums] transition-[border-color,background,box-shadow] duration-[var(--ui-motion-fast)] ease-[var(--ui-ease-standard)] disabled:cursor-not-allowed"
       :placeholder="props.placeholder"
       :aria-invalid="props.invalid || undefined"
     />
@@ -93,6 +93,8 @@ const props = withDefaults(
 
 .ui-number-input__field:focus {
   border-color: var(--ui-color-focus);
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
 }
 
 .ui-number-input__field[aria-invalid="true"] {
@@ -106,7 +108,9 @@ const props = withDefaults(
 .ui-number-input--compact .ui-number-input__field {
   min-height: var(--ui-control-compact);
   padding: 0 var(--ui-space-2);
+  border-color: var(--ui-color-glass-edge);
   border-radius: var(--ui-radius-sm);
+  background: var(--ui-color-fill);
   font: var(--ui-type-size-control) var(--ui-type-family-data);
 }
 
@@ -133,6 +137,9 @@ const props = withDefaults(
   border: 1px solid var(--ui-color-border);
   border-radius: var(--ui-radius-sm);
   background: var(--ui-color-control);
+  transition:
+    border-color var(--ui-motion-fast) var(--ui-ease-standard),
+    box-shadow var(--ui-motion-fast) var(--ui-ease-standard);
 }
 
 .ui-number-input--suffix {
@@ -181,10 +188,10 @@ const props = withDefaults(
   place-items: center;
   min-width: 28px;
   padding: 0 3px;
-  border-left: 1px solid var(--line-soft, var(--ui-color-border));
+  border-left: 1px solid var(--line-soft, var(--ui-color-glass-edge));
   color: var(--number-input-accent, var(--ui-color-text-muted));
-  font: var(--ui-type-weight-bold) var(--ui-type-size-micro) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wide);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-micro) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
 }
 
 .ui-number-input--workspace:focus-within,

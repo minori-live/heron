@@ -79,7 +79,7 @@ test("records into a Large Object and reopens the PGlite project archive", async
       // The settings surface remaps the canvas onto the product palette, so it
       // stays on the DAW canvas rather than the generic application surface.
       const theme = await page.locator("html").getAttribute("data-theme")
-      expect(colors).toEqual(theme === "light" ? [216, 217, 219] : [21, 21, 21])
+      expect(colors).toEqual(theme === "light" ? [236, 238, 241] : [22, 24, 29])
       await expect(
         settings.locator(".ui-settings-navigator__category-icon svg").first()
       ).toBeVisible()

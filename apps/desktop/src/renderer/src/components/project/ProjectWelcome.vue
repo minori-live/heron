@@ -189,15 +189,21 @@ function createProject(): void {
   color: var(--ui-color-text);
   background:
     radial-gradient(
-      circle at 12% 18%,
-      color-mix(in srgb, var(--ui-color-action) 12%, transparent),
-      transparent 30%
+      48% 70% at 16% 22%,
+      color-mix(in srgb, var(--ui-signal-audio) 13%, transparent),
+      transparent 70%
     ),
-    linear-gradient(
-      125deg,
-      var(--ui-color-canvas) 0%,
-      color-mix(in srgb, var(--ui-color-canvas) 94%, var(--ui-color-surface-hover)) 100%
-    );
+    radial-gradient(
+      40% 60% at 90% 78%,
+      color-mix(in srgb, var(--ui-signal-record) 9%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      56% 70% at 46% 100%,
+      color-mix(in srgb, var(--ui-signal-midi) 12%, transparent),
+      transparent 70%
+    ),
+    var(--ui-color-canvas);
 }
 
 .project-welcome__atmosphere {
@@ -214,7 +220,7 @@ function createProject(): void {
   left: 34%;
   width: min(36vw, 520px);
   aspect-ratio: 1;
-  border: 1px solid color-mix(in srgb, var(--ui-color-action) 12%, transparent);
+  border: 1px solid var(--ui-color-glass-edge);
   border-radius: 50%;
   opacity: 0.6;
   transform: translate(-50%, -50%);
@@ -248,7 +254,7 @@ function createProject(): void {
 
 .project-welcome__wave-grid {
   fill: none;
-  stroke: color-mix(in srgb, var(--ui-color-border) 72%, transparent);
+  stroke: var(--ui-color-glass-edge);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
@@ -308,10 +314,10 @@ function createProject(): void {
 
 .project-welcome__eyebrow,
 .project-welcome__section-label {
-  color: var(--ui-color-action-hover);
-  font: var(--ui-type-weight-bold) var(--ui-font-size-xs) / var(--ui-type-leading-tight)
-    var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-widest);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-font-size-xs) / var(--ui-type-leading-tight)
+    var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 
@@ -319,9 +325,9 @@ function createProject(): void {
   margin: 18px 0 22px;
   font-family: var(--ui-type-family-display);
   font-size: clamp(var(--ui-font-size-5xl), 7.6vw, calc(var(--ui-font-size-5xl) * 1.6));
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-heavy);
   line-height: var(--ui-type-leading-none);
-  letter-spacing: var(--ui-type-tracking-tight);
+  letter-spacing: var(--ui-type-tracking-display);
   text-wrap: balance;
 }
 
@@ -337,7 +343,7 @@ function createProject(): void {
 .project-welcome__body {
   max-width: 560px;
   margin: 0;
-  color: var(--ui-color-text-subtle);
+  color: var(--ui-color-text-muted);
   font-size: clamp(var(--ui-font-size-md), 1.35vw, var(--ui-font-size-lg));
   line-height: var(--ui-type-leading-relaxed);
   text-wrap: pretty;
@@ -350,16 +356,16 @@ function createProject(): void {
   min-width: 0;
   max-height: 100%;
   padding: clamp(22px, 3vw, 38px);
-  border: 1px solid color-mix(in srgb, var(--ui-color-border-strong) 82%, transparent);
-  border-radius: 3px 28px;
-  background: color-mix(in srgb, var(--ui-color-surface) 92%, transparent);
-  box-shadow: var(--ui-shadow-lg), var(--ui-shadow-highlight-inset);
-  backdrop-filter: blur(20px);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-xl);
+  background: var(--ui-color-glass);
+  box-shadow: var(--ui-shadow-lg);
+  backdrop-filter: var(--ui-backdrop-glass);
 }
 
 .project-welcome__new-project {
   padding-bottom: clamp(26px, 4vh, 42px);
-  border-bottom: 1px solid var(--ui-color-border);
+  border-bottom: 1px solid var(--ui-color-glass-edge);
 }
 
 .project-welcome__section-label {
@@ -373,7 +379,7 @@ function createProject(): void {
   width: 24px;
   height: 24px;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--ui-color-action) 48%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-color-accent) 48%, transparent);
   border-radius: 50%;
 }
 
@@ -388,15 +394,15 @@ function createProject(): void {
   margin: 26px 0 9px;
   font-family: var(--ui-type-family-display);
   font-size: clamp(var(--ui-font-size-2xl), 3vw, var(--ui-font-size-4xl));
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-heavy);
   line-height: var(--ui-type-leading-tight);
-  letter-spacing: var(--ui-type-tracking-tight);
+  letter-spacing: var(--ui-type-tracking-display);
 }
 
 .project-welcome__new-project p {
   max-width: 420px;
   margin: 0;
-  color: var(--ui-color-text-subtle);
+  color: var(--ui-color-text-muted);
   font-size: var(--ui-font-size-sm);
   line-height: var(--ui-type-leading-relaxed);
 }
@@ -409,12 +415,12 @@ function createProject(): void {
   justify-content: space-between;
   margin-top: 28px;
   padding: 0 20px;
-  border: 1px solid var(--ui-color-action-pressed);
-  border-radius: var(--ui-radius-md);
-  color: var(--ui-color-action-text);
-  background: var(--ui-color-action);
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-pill);
+  color: var(--ui-color-emphasis-text);
+  background: var(--ui-color-emphasis);
   box-shadow: var(--ui-shadow-md);
-  font-weight: var(--ui-type-weight-semibold);
+  font-weight: var(--ui-type-weight-strong);
   transition:
     background var(--ui-motion-fast) var(--ui-ease-standard),
     box-shadow var(--ui-motion-fast) var(--ui-ease-standard),
@@ -433,9 +439,9 @@ function createProject(): void {
 
 .project-welcome__create--live {
   margin-top: 10px;
-  border-color: var(--ui-color-border-strong);
+  border-color: var(--ui-color-glass-edge);
   color: var(--ui-color-text);
-  background: var(--ui-color-surface-raised);
+  background: var(--ui-color-fill);
   box-shadow: none;
 }
 
@@ -505,7 +511,7 @@ function createProject(): void {
 
   .project-welcome__launchpad {
     padding: 22px 18px;
-    border-radius: 2px 22px;
+    border-radius: var(--ui-radius-lg);
   }
 }
 

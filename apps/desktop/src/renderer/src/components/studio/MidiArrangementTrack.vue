@@ -194,7 +194,7 @@ function relayDragStart(clipId: string, offsetPixels: number): void {
 .midi-track {
   position: relative;
   overflow: hidden;
-  border-bottom: 1px solid var(--ui-color-border-strong);
+  border-bottom: 1px solid var(--ui-color-border);
   background: var(--ui-daw-lane);
 }
 .midi-track.drag-target {
@@ -205,7 +205,7 @@ function relayDragStart(clipId: string, offsetPixels: number): void {
   top: 50%;
   left: var(--ui-space-3);
   color: var(--ui-color-text-subtle);
-  font: var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-size-caption) var(--ui-type-family-interface);
   pointer-events: none;
   transform: translateY(-50%);
 }
@@ -233,7 +233,7 @@ function relayDragStart(clipId: string, offsetPixels: number): void {
   min-width: 9px;
   padding: 4px 5px;
   border: 1px solid;
-  border-radius: 3px;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text);
   background: color-mix(in srgb, var(--clip-color) 32%, var(--ui-color-surface-sunken));
   box-shadow: var(--ui-focus-ring);
@@ -245,7 +245,7 @@ function relayDragStart(clipId: string, offsetPixels: number): void {
   z-index: var(--ui-z-local-raised);
   display: block;
   overflow: hidden;
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

@@ -68,7 +68,7 @@ const props = withDefaults(
 <style scoped>
 .ui-select {
   grid-area: 1 / 1;
-  font-family: var(--ui-type-family-data);
+  font-family: var(--ui-type-family-interface);
 }
 
 .ui-select:hover:not(:disabled) {
@@ -109,7 +109,7 @@ const props = withDefaults(
   min-height: 24px;
   padding: 0 24px 0 7px;
   border-radius: var(--ui-radius-sm);
-  font: var(--ui-type-size-control) var(--ui-type-family-data);
+  font: var(--ui-type-size-control) var(--ui-type-family-interface);
 }
 
 .ui-select-shell--compact .ui-select__chevron {

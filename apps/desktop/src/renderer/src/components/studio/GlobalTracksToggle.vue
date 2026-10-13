@@ -42,15 +42,14 @@ const { t } = useI18n()
   padding: 0 9px;
   align-items: center;
   gap: 7px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text-subtle);
-  background: var(--ui-daw-control);
+  background: var(--ui-color-fill);
 }
 .global-tracks-toggle[aria-pressed="true"] {
-  border-color: color-mix(in srgb, var(--ui-color-action) 58%, var(--ui-color-border));
-  color: var(--ui-color-text);
-  background: color-mix(in srgb, var(--ui-color-action) 13%, var(--ui-daw-control));
+  color: var(--ui-color-action);
+  background: color-mix(in srgb, var(--ui-color-action) 20%, transparent);
 }
 .global-tracks-icon {
   display: grid;
@@ -60,7 +59,7 @@ const { t } = useI18n()
 .global-tracks-icon i {
   display: block;
   height: 2px;
-  border-radius: 1px;
+  border-radius: var(--ui-radius-xs);
   background: var(--ui-color-text-faint);
 }
 .global-tracks-icon i:nth-child(1) {

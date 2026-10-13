@@ -108,7 +108,7 @@ function close(): void {
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  border-top: 1px solid var(--ui-color-border-strong);
+  border-top: 1px solid var(--ui-color-border);
   background: var(--ui-daw-workspace);
 }
 
@@ -145,7 +145,9 @@ function close(): void {
   bottom: var(--ui-space-2);
   margin: 0;
   padding: var(--ui-space-2);
+  border-radius: var(--ui-radius-md);
   color: var(--ui-color-danger);
-  background: var(--ui-color-surface);
+  background: color-mix(in srgb, var(--ui-color-danger) 16%, var(--ui-color-surface));
+  box-shadow: var(--ui-shadow-md);
 }
 </style>

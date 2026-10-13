@@ -243,12 +243,13 @@ function keydown(event: KeyboardEvent): void {
   bottom: 5px;
   overflow: hidden;
   min-width: 9px;
-  border: 1px solid var(--ui-clip-color, var(--ui-color-action));
+  border: 1px solid
+    color-mix(in srgb, var(--ui-clip-color, var(--ui-color-action)) 58%, transparent);
   border-radius: var(--ui-radius-sm);
   color: var(--ui-color-text);
   background: color-mix(
     in srgb,
-    var(--ui-clip-color, var(--ui-color-action)) 24%,
+    var(--ui-clip-color, var(--ui-color-action)) 30%,
     var(--ui-color-surface)
   );
   cursor: grab;
@@ -348,11 +349,10 @@ function keydown(event: KeyboardEvent): void {
   align-items: center;
   gap: 5px;
   padding: 4px 6px 5px;
-  color: var(--ui-domain-clip-ink);
+  color: color-mix(in srgb, var(--ui-clip-color) 42%, var(--ui-domain-clip-ink));
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--ui-clip-color) 34%, var(--ui-domain-clip-tint-hi)) 0%,
-    color-mix(in srgb, var(--ui-clip-color) 24%, var(--ui-domain-clip-tint-lo)) 72%,
+    color-mix(in srgb, var(--ui-clip-color) 14%, var(--ui-domain-clip-tint-hi)) 0%,
     transparent 100%
   );
   z-index: var(--ui-z-local-selection);
@@ -362,21 +362,21 @@ function keydown(event: KeyboardEvent): void {
   top: 9px;
   bottom: 9px;
   min-width: 12px;
-  border: 1px solid color-mix(in srgb, var(--ui-clip-color) 72%, white);
-  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--ui-clip-color) 58%, transparent);
+  border-radius: var(--ui-radius-sm);
   color: var(--ui-domain-clip-ink);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--ui-clip-color) 65%, var(--ui-domain-clip-body-top)),
-    color-mix(in srgb, var(--ui-clip-color) 38%, var(--ui-domain-clip-body-bottom))
+    color-mix(in srgb, var(--ui-clip-color) 34%, var(--ui-domain-clip-body-top)),
+    color-mix(in srgb, var(--ui-clip-color) 26%, var(--ui-domain-clip-body-bottom))
   );
   box-shadow:
     0 1px 0 var(--ui-domain-clip-body-sheen) inset,
-    0 7px 18px var(--ui-color-shadow);
+    0 6px 16px -8px var(--ui-color-shadow);
   text-align: left;
 }
 .ui-timeline-clip--audio:hover {
-  border-color: color-mix(in srgb, var(--ui-clip-color) 55%, white);
+  border-color: color-mix(in srgb, var(--ui-clip-color) 82%, transparent);
 }
 .ui-timeline-clip--audio.ui-timeline-clip--dragging {
   opacity: 0.2;
@@ -384,27 +384,28 @@ function keydown(event: KeyboardEvent): void {
 .ui-timeline-clip--audio.ui-timeline-clip--recording .ui-timeline-clip__heading {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--ui-signal-record) 34%, var(--ui-domain-clip-tint-hi)) 0%,
-    color-mix(in srgb, var(--ui-signal-record) 24%, var(--ui-domain-clip-tint-lo)) 72%,
+    color-mix(in srgb, var(--ui-signal-record) 18%, var(--ui-domain-clip-tint-hi)) 0%,
     transparent 100%
   );
 }
 .ui-timeline-clip--audio.ui-timeline-clip--selected {
   z-index: var(--ui-z-local-selection);
-  border-color: var(--ui-domain-clip-outline);
+  border-color: var(--ui-clip-color);
   outline: none;
   box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--ui-clip-color) 60%, transparent) inset,
-    0 0 20px color-mix(in srgb, var(--ui-clip-color) 45%, transparent);
+    0 0 0 1px var(--ui-clip-color) inset,
+    0 0 1.2em -0.2em color-mix(in srgb, var(--ui-clip-color) 60%, transparent);
 }
 .ui-timeline-clip--audio.ui-timeline-clip--recording {
-  border-color: color-mix(in srgb, var(--ui-signal-record) 72%, white);
+  border-color: var(--ui-signal-record);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--ui-signal-record) 72%, var(--ui-domain-clip-body-top)),
-    color-mix(in srgb, var(--ui-signal-record) 42%, var(--ui-domain-clip-body-bottom))
+    color-mix(in srgb, var(--ui-signal-record) 34%, var(--ui-domain-clip-body-top)),
+    color-mix(in srgb, var(--ui-signal-record) 26%, var(--ui-domain-clip-body-bottom))
   );
-  box-shadow: 0 0 18px color-mix(in srgb, var(--ui-signal-record) 35%, transparent);
+  box-shadow:
+    0 0 0 1px var(--ui-signal-record) inset,
+    0 0 1.2em -0.2em color-mix(in srgb, var(--ui-signal-record) 60%, transparent);
 }
 .ui-timeline-clip--audio:focus-visible {
   outline: 2px solid var(--ui-color-focus);

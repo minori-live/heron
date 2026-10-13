@@ -114,19 +114,21 @@ const meterSegments = Array.from({ length: 12 }, (_, index) => index)
   display: block;
 }
 .panel-heading span {
-  color: var(--ui-color-action);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-widest);
+  color: var(--ui-color-accent);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
+  text-transform: uppercase;
 }
 .panel-heading strong {
   margin-top: 5px;
   color: var(--ui-color-text);
   font-family: var(--ui-type-family-display);
   font-size: var(--ui-type-size-panel-title);
+  font-weight: var(--ui-type-weight-heavy);
+  letter-spacing: var(--ui-type-tracking-display);
 }
 .panel-heading > svg {
   color: var(--ui-signal-audio);
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--ui-signal-audio) 53%, transparent));
 }
 .panel-description {
   margin: 14px 0 17px;
@@ -136,10 +138,9 @@ const meterSegments = Array.from({ length: 12 }, (_, index) => index)
 }
 .signal-card {
   padding: 11px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 7px;
-  background: var(--ui-color-surface-sunken);
-  box-shadow: 0 1px 0 var(--ui-domain-surface-hairline) inset;
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-fill);
 }
 .signal-card-header,
 .gain-label {
@@ -167,11 +168,11 @@ const meterSegments = Array.from({ length: 12 }, (_, index) => index)
 }
 .meter span {
   height: 28%;
-  border-radius: 2px 2px 1px 1px;
-  background: var(--ui-daw-control);
+  border-radius: var(--ui-radius-xs);
+  background: var(--ui-color-fill-hover);
   transition:
-    height 160ms ease,
-    background 160ms ease;
+    height var(--ui-motion-fast) var(--ui-ease-standard),
+    background var(--ui-motion-fast) var(--ui-ease-standard);
 }
 .meter span:nth-child(3n + 2) {
   height: 42%;
@@ -181,12 +182,10 @@ const meterSegments = Array.from({ length: 12 }, (_, index) => index)
 }
 .meter span.active {
   height: 100%;
-  background: linear-gradient(var(--ui-signal-audio), var(--ui-color-action-pressed));
-  box-shadow: 0 0 6px color-mix(in srgb, var(--ui-signal-audio) 27%, transparent);
+  background: var(--ui-signal-audio);
 }
 .meter span.active.hot {
-  background: linear-gradient(var(--ui-signal-record), var(--ui-signal-meter-clip));
-  box-shadow: 0 0 6px color-mix(in srgb, var(--ui-signal-record) 33%, transparent);
+  background: var(--ui-signal-record);
 }
 .meter-scale {
   display: flex;
@@ -216,8 +215,8 @@ const meterSegments = Array.from({ length: 12 }, (_, index) => index)
   align-items: center;
   gap: 6px;
   color: var(--ui-color-text-subtle);
-  font: var(--ui-type-weight-bold) var(--ui-type-size-caption) var(--ui-type-family-data);
-  letter-spacing: var(--ui-type-tracking-wider);
+  font: var(--ui-type-weight-strong) var(--ui-type-size-caption) var(--ui-type-family-interface);
+  letter-spacing: var(--ui-type-tracking-eyebrow);
   text-transform: uppercase;
 }
 .inspector-panel dl {
@@ -246,10 +245,10 @@ const meterSegments = Array.from({ length: 12 }, (_, index) => index)
 .error-message {
   margin-top: 12px;
   padding: 9px;
-  border: 1px solid color-mix(in srgb, var(--ui-signal-record) 55%, var(--ui-color-border-strong));
-  border-radius: 6px;
-  color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 12%, var(--ui-color-surface));
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-md);
+  color: var(--ui-color-danger);
+  background: color-mix(in srgb, var(--ui-color-danger) 16%, transparent);
   font-size: var(--ui-type-size-control);
   line-height: var(--ui-type-leading-normal);
 }

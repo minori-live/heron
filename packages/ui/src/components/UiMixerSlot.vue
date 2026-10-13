@@ -21,6 +21,6 @@ const emit = defineEmits<{ select: [] }>()
   min-width: 0;
 }
 .ui-mixer-slot--selected {
-  box-shadow: 3px 0 0 var(--ui-color-action) inset;
+  box-shadow: var(--ui-signal-rail-width) 0 0 var(--ui-color-action) inset;
 }
 </style>

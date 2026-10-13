@@ -114,14 +114,16 @@ const lastScan = computed(() =>
   gap: 5px;
   min-width: 0;
   padding: 13px 12px;
-  border: 1px solid var(--ui-color-border);
-  border-radius: 7px;
-  background: var(--ui-color-surface-raised);
+  border: 1px solid var(--ui-color-glass-edge);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-fill);
 }
 
 .catalog-metric strong {
   color: var(--ui-color-action);
   font: var(--ui-type-weight-semibold) var(--ui-font-size-lg) var(--ui-type-family-data);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--ui-type-tracking-tight);
 }
 
 .catalog-metric span,
@@ -129,6 +131,10 @@ const lastScan = computed(() =>
 .scan-control span {
   color: var(--ui-color-text-subtle);
   font-size: var(--ui-type-size-caption);
+}
+
+.last-scan span {
+  font-family: var(--ui-type-family-interface);
 }
 
 .catalog-metric-muted strong {
@@ -158,10 +164,6 @@ const lastScan = computed(() =>
 .scan-control button {
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--ui-color-border-strong);
-  border-radius: 7px;
-  color: var(--ui-color-text-muted);
-  background: var(--ui-color-surface-hover);
   font-size: var(--ui-type-size-body-compact);
 }
 
@@ -173,9 +175,9 @@ const lastScan = computed(() =>
 .scan-error {
   margin: 12px 0 0;
   padding: 11px;
-  border-radius: 7px;
+  border-radius: var(--ui-radius-md);
   color: var(--ui-signal-record);
-  background: color-mix(in srgb, var(--ui-signal-record) 9%, var(--ui-color-surface));
+  background: color-mix(in srgb, var(--ui-signal-record) 12%, transparent);
   font-size: var(--ui-type-size-body-compact);
 }
 

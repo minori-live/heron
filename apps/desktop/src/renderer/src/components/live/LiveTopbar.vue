@@ -62,7 +62,7 @@ const silentMasterMeter = computed<MixerChannelMeter>(() => ({
       </WorkspaceControlButton>
     </WorkspaceControlGroup>
     <div class="live-document-title flex min-w-0 items-center justify-center gap-ui-3">
-      <span class="truncate text-ui-sm text-ui-text" :title="name">{{ name }}</span>
+      <span class="truncate text-ui-sm font-650 text-ui-text" :title="name">{{ name }}</span>
       <span v-if="dirty" class="text-ui-text-muted" :aria-label="t('live.unsaved')">•</span>
       <span
         class="truncate text-ui-xs text-ui-text-muted"
