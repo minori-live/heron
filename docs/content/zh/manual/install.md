@@ -105,7 +105,9 @@ nix profile install github:minori-live/heron
 ```
 
 该 flake 会包装 GitHub Releases 中的官方 Linux AppImage（`x86_64-linux` 与
-`aarch64-linux`），因此二进制与其他分发渠道一致。发布同步细节见
+`aarch64-linux`），因此二进制与其他分发渠道一致。请使用发布标签
+（`github:minori-live/heron/vX.Y.Z`），或在 Publish 写入 pin 之后使用 `main`。
+pin 的写入方式见
 [Nix 分发说明](https://github.com/minori-live/heron/blob/main/agents/docs/nix-distribution.md)。
 
 ### AppImage

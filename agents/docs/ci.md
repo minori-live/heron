@@ -214,8 +214,8 @@ in the Rust LCOV report.
 [Application updates](application-updates.md) owns installed eligibility, channel
 metadata, scheduling, installation admission and shutdown/recovery.
 [Homebrew distribution](homebrew-distribution.md) owns Tap synchronization.
-[Nix distribution](nix-distribution.md) owns the in-repo Linux flake pin and its
-release synchronization.
+[Nix distribution](nix-distribution.md) owns the in-repo Linux flake pin written
+during Publish.
 [Built-in plug-in distribution](builtin-plugin-distribution.md) owns the separately
 released runtime dependency and its upgrade PRs.
 
@@ -235,7 +235,10 @@ git push origin "v$(cat VERSION)"
 The tag must equal `v` followed by the exact contents of `VERSION`. A
 prerelease version such as `0.2.0-beta.1` creates a GitHub prerelease; other
 versions become the latest release. Rerunning `Publish` replaces the assets on
-an existing draft release.
+an existing draft release. After installers are built, Publish hashes the Linux
+AppImages into `nix/release.nix`, moves the tag to that pin commit, and
+fast-forwards `main` when possible so the Nix flake on the tag is self-contained
+without a follow-up sync PR.
 
 Tagged releases require the macOS universal artifact to be signed with the
 Developer ID Application identity stored in the `MAC_CSC_LINK` and

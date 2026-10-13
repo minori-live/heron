@@ -1,91 +1,83 @@
 import assert from "node:assert/strict"
+import { mkdtempSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { describe, it } from "node:test"
 import {
-  compareVersions,
+  applyPin,
+  appImageName,
   hexToSri,
-  parseRelease,
+  pinFromAppImages,
   releaseIdentity,
   renderReleaseNix,
-  updateReleaseNix
+  sha256FileHex
 } from "./nix-release-policy.ts"
-
-const samplePin = renderReleaseNix({
-  version: "0.8.0",
-  hashes: {
-    "x86_64-linux": "sha256-rkI2VjVdrtHJaAdSQIQH6hFMI2CrQCyZvAxP3yqUHLs=",
-    "aarch64-linux": "sha256-9hvIwfrW2i+IGjJqmaC3A5EgHN4sViM8QGSWDL5Oews="
-  }
-})
 
 const x64Hex = "ae423656355daed1c9680752408407ea114c2360ab402c99bc0c4fdf2a941cbb"
 const armHex = "f61bc8c1fad6da2f881a326a99a0b70391201cde2c56233c4064960cbe4e7b0b"
 
-function releasePayload(version: string, draft = false, prerelease = false) {
-  const tag = `v${version}`
-  return {
-    draft,
-    prerelease,
-    tag_name: tag,
-    assets: [
-      {
-        name: `Heron-${version}-linux-x86_64.AppImage`,
-        state: "uploaded",
-        size: 100,
-        digest: `sha256:${x64Hex}`,
-        browser_download_url: `https://github.com/minori-live/heron/releases/download/${tag}/Heron-${version}-linux-x86_64.AppImage`
-      },
-      {
-        name: `Heron-${version}-linux-arm64.AppImage`,
-        state: "uploaded",
-        size: 100,
-        digest: `sha256:${armHex}`,
-        browser_download_url: `https://github.com/minori-live/heron/releases/download/${tag}/Heron-${version}-linux-arm64.AppImage`
+function pinContent(
+  version: string,
+  x64 = x64Hex,
+  arm = armHex
+): ReturnType<typeof releaseIdentity> {
+  return releaseIdentity(
+    renderReleaseNix({
+      version,
+      hashes: {
+        "x86_64-linux": hexToSri(x64),
+        "aarch64-linux": hexToSri(arm)
       }
-    ]
-  }
+    })
+  )
 }
 
+const samplePin = renderReleaseNix(pinContent("0.8.0"))
+
 describe("nix-release-policy", () => {
-  it("converts GitHub hex digests to Nix SRI hashes", () => {
+  it("converts hex digests to Nix SRI hashes", () => {
     assert.equal(hexToSri(x64Hex), "sha256-rkI2VjVdrtHJaAdSQIQH6hFMI2CrQCyZvAxP3yqUHLs=")
     assert.equal(hexToSri(armHex), "sha256-9hvIwfrW2i+IGjJqmaC3A5EgHN4sViM8QGSWDL5Oews=")
   })
 
-  it("parses a published stable release with both Linux AppImages", () => {
-    const release = parseRelease(releasePayload("0.9.0"))
-    assert.equal(release.version, "0.9.0")
-    assert.equal(release.assets["x86_64-linux"].sha256, x64Hex)
-    assert.equal(release.assets["aarch64-linux"].sha256, armHex)
+  it("names Linux AppImages with the release artifact pattern", () => {
+    assert.equal(appImageName("0.8.0", "x86_64-linux"), "Heron-0.8.0-linux-x86_64.AppImage")
+    assert.equal(appImageName("0.8.0", "aarch64-linux"), "Heron-0.8.0-linux-arm64.AppImage")
   })
 
-  it("rejects drafts, prereleases, and incomplete assets", () => {
-    assert.throws(() => parseRelease(releasePayload("0.9.0", true)), /non-prerelease/)
-    assert.throws(() => parseRelease(releasePayload("0.9.0", false, true)), /non-prerelease/)
-    const incomplete = releasePayload("0.9.0")
-    incomplete.assets.pop()
-    assert.throws(() => parseRelease(incomplete), /exactly one release asset/)
+  it("reads and renders nix/release.nix pins", () => {
+    assert.deepEqual(releaseIdentity(samplePin), pinContent("0.8.0"))
   })
 
-  it("reads and upgrades nix/release.nix pins without downgrading", () => {
-    const identity = releaseIdentity(samplePin)
-    assert.equal(identity.version, "0.8.0")
-    assert.equal(compareVersions("0.9.0", "0.8.0"), 1)
+  it("pins from local AppImage bytes", () => {
+    const directory = mkdtempSync(join(tmpdir(), "heron-nix-pin-"))
+    const x64Path = join(directory, appImageName("0.9.0", "x86_64-linux"))
+    const armPath = join(directory, appImageName("0.9.0", "aarch64-linux"))
+    writeFileSync(x64Path, "x64-appimage")
+    writeFileSync(armPath, "arm-appimage")
 
-    const upgraded = updateReleaseNix(samplePin, parseRelease(releasePayload("0.9.0")))
-    assert.match(upgraded, /version = "0\.9\.0";/)
-    assert.match(upgraded, /x86_64-linux = "sha256-rkI2VjVdrtHJaAdSQIQH6hFMI2CrQCyZvAxP3yqUHLs=";/)
-
-    assert.equal(updateReleaseNix(samplePin, parseRelease(releasePayload("0.8.0"))), samplePin)
-    assert.throws(
-      () => updateReleaseNix(samplePin, parseRelease(releasePayload("0.7.0"))),
-      /downgrade/
-    )
+    const pin = pinFromAppImages("0.9.0", {
+      "x86_64-linux": x64Path,
+      "aarch64-linux": armPath
+    })
+    assert.equal(pin.version, "0.9.0")
+    assert.equal(pin.hashes["x86_64-linux"], hexToSri(sha256FileHex(x64Path)))
+    assert.equal(pin.hashes["aarch64-linux"], hexToSri(sha256FileHex(armPath)))
   })
 
-  it("refuses same-version digest replacements", () => {
-    const mutated = releasePayload("0.8.0")
-    mutated.assets[0]!.digest =
-      "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-    assert.throws(() => updateReleaseNix(samplePin, parseRelease(mutated)), /same version/)
+  it("applies upgrades and refuses stable downgrades", () => {
+    const upgraded = applyPin(samplePin, pinContent("0.9.0"))
+    assert.equal(upgraded.changed, true)
+    assert.match(upgraded.next, /version = "0\.9\.0";/)
+
+    assert.throws(() => applyPin(samplePin, pinContent("0.7.0")), /downgrade/)
+    assert.equal(applyPin(samplePin, pinContent("0.8.0")).changed, false)
+  })
+
+  it("allows same-version digest replacement for draft rebuilds", () => {
+    const rebuilt = pinContent("0.8.0", "0".repeat(64), armHex)
+    const result = applyPin(samplePin, rebuilt)
+    assert.equal(result.changed, true)
+    assert.match(result.next, /x86_64-linux = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="/)
   })
 })

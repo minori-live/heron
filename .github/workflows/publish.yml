@@ -174,6 +174,54 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
+      # AppImage digests are only known after Build. Write them onto the tagged
+      # revision so github:minori-live/heron/vX.Y.Z never needs a post-release
+      # sync PR or extra secrets (GITHUB_TOKEN only).
+      - name: Pin Nix flake to release AppImages
+        id: nix_pin
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          TAG_NAME: ${{ needs.validate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+          git fetch origin "refs/tags/${TAG_NAME}:refs/tags/${TAG_NAME}"
+          previous="$(git rev-list -n 1 "refs/tags/${TAG_NAME}")"
+          git switch --detach "$previous"
+
+          node scripts/nix-pin-release.ts "$RELEASE_VERSION" "$PWD/release-assets"
+
+          if git diff --quiet -- nix/release.nix; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Nix release pin already matches the AppImage digests."
+            exit 0
+          fi
+
+          git add nix/release.nix
+          git commit -m "chore(nix): pin ${RELEASE_VERSION} AppImage digests"
+          pinned="$(git rev-parse HEAD)"
+
+          git tag -f "$TAG_NAME" "$pinned"
+          git push origin "refs/tags/${TAG_NAME}" --force
+
+          git fetch origin main
+          main="$(git rev-parse origin/main)"
+          if [[ "$main" == "$previous" ]]; then
+            if git push origin "$pinned:refs/heads/main"; then
+              echo "Fast-forwarded main to the Nix pin commit."
+            else
+              echo "::warning::Could not fast-forward main with GITHUB_TOKEN (branch protection?). Nix pin is on tag ${TAG_NAME} (${pinned})."
+            fi
+          else
+            echo "::warning::main has moved past ${TAG_NAME}; Nix pin is on the tag only (${pinned}). Cherry-pick onto main so nix run github:minori-live/heron tracks this release."
+          fi
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "commit=${pinned}" >> "$GITHUB_OUTPUT"
+
       - name: Attest release artifacts
         if: github.event.repository.visibility == 'public'
         uses: actions/attest@v4

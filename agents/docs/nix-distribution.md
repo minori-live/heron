@@ -2,7 +2,7 @@
 
 Heron's Linux Nix package lives in this repository's root flake. Application
 versions and build artifacts remain owned by the tagged GitHub Release flow.
-This document owns the publication contract, setup and recovery.
+This document owns the packaging contract and how the release pin is written.
 
 ## Package contract
 
@@ -18,43 +18,36 @@ release pipeline, take much longer in CI, and diverge from the published
 artifacts other channels ship.
 
 Pinned version and content hashes live in [`nix/release.nix`](../../nix/release.nix).
+The package reads that pin (not the development `VERSION` file) so mid-cycle
+version bumps on `main` do not break `nix run` before the next tag ships.
 `flake.lock` pins nixpkgs only.
 
 ## Release flow
 
-1. Update VERSION and synchronize package versions using existing release tooling.
-2. Push the matching v-prefixed tag. The publish workflow validates and uploads
-   installers to a draft Release.
-3. Publish the reviewed Release. `update-nix-flake.yml` synchronizes
-   `nix/release.nix` for non-prerelease v-prefixed releases independently of
-   Homebrew Tap notification and update-manifest promotion.
-4. The workflow re-reads the latest stable Release, validates Linux AppImage
-   metadata, and opens or updates a single release PR. Merge advances the flake
-   that `nix run github:minori-live/heron` resolves from `main`.
+AppImage digests exist only after the Publish workflow builds installers. The
+pin therefore cannot live in the maintainer's pre-tag version bump commit.
+Instead, Publish writes it as part of creating the draft release:
 
-Preparing an unreleased development version does not update the flake pin.
-Drafts and prereleases do not advance it. Preserve published assets; the sync
-rejects same-version asset digest changes and automatic downgrades. Digests
-come from GitHub's release asset API (same source as the Homebrew Cask).
+1. Update `VERSION` and synchronize package versions using existing release
+   tooling, then push the matching v-prefixed tag.
+2. Publish validates, tests, and builds installers (including both Linux
+   AppImages).
+3. Before creating or updating the draft GitHub Release, Publish hashes the
+   local AppImages, writes `nix/release.nix`, commits that pin on top of the
+   tagged revision, force-updates the tag to the pin commit (so
+   `github:minori-live/heron/vX.Y.Z` is self-contained), and fast-forwards
+   `main` when the tag still pointed at `main`'s tip.
+4. Publish creates or updates the draft Release for review. Homebrew Tap
+   notification and update-manifest promotion remain separate steps after the
+   Release is published.
 
-## Setup and recovery
+No extra secrets are required; the job uses `GITHUB_TOKEN` with `contents:
+write`. There is no post-release sync PR. Draft rebuilds may rewrite the same
+version's digests; stable downgrades of the pin are rejected.
 
-Configure `NIX_SYNC_TOKEN` with a fine-grained PAT whose resource owner is
-minori-live, whose only selected repository is heron, and whose permissions are
-Contents write and Pull requests write. The workflow uses it so the update PR
-can start required checks without the approval delay that applies to PRs opened
-with `GITHUB_TOKEN`. No custom GitHub App is needed.
-
-If synchronization fails, fix the reported credentials/configuration and run:
-
-```sh
-gh workflow run update-nix-flake.yml --repo minori-live/heron --ref main
-```
-
-The retry reconciles the latest stable Release without a tag input.
-Notification failure does not unpublish the Release or block application update
-manifests or Homebrew Tap synchronization. The previous `nix/release.nix` pin
-remains until a successful sync PR merges. There is no scheduled compensation.
+If `main` moved past the tagged commit before Publish finished, the pin remains
+on the tag and Publish warns; cherry-pick the pin commit onto `main` so
+`nix run github:minori-live/heron` tracks the latest release.
 
 ## Validation
 
@@ -67,14 +60,16 @@ nix build .#heron
 ./result/bin/heron --version
 ```
 
-Publication has no atomic commit across the Release and the flake pin:
-notifications may lag, credentials expire, and manual dispatch reconciles the
-latest state.
+To rewrite the pin from local AppImages (as Publish does):
+
+```sh
+mise run nix:pin -- 0.8.0 path/to/release-assets
+```
 
 ## Candidate durable decision
 
 Shipping Linux through an in-repo flake that wraps published AppImages (rather
-than a separate binary cache, nixpkgs upstreaming, or a from-source Nix build)
-is a durable distribution choice. It is noted here and in PR descriptions as a
-candidate ADR; do not file or accept an ADR without an explicit maintainer
-request.
+than a separate binary cache, nixpkgs upstreaming, or a from-source Nix build),
+and writing the pin inside Publish so tagged revisions stay self-contained, is
+a durable distribution choice. Note it in PR descriptions as a candidate ADR;
+do not file or accept an ADR without an explicit maintainer request.

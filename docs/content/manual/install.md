@@ -114,8 +114,10 @@ With home-manager:
 
 The flake wraps the official Linux AppImages from GitHub Releases for
 `x86_64-linux` and `aarch64-linux`, so the binary matches other distribution
-channels. See [Nix distribution](https://github.com/minori-live/heron/blob/main/agents/docs/nix-distribution.md)
-for release synchronization details.
+channels. Prefer a release tag (`github:minori-live/heron/vX.Y.Z`) or `main`
+after Publish has written the pin. See
+[Nix distribution](https://github.com/minori-live/heron/blob/main/agents/docs/nix-distribution.md)
+for how the pin is written during Publish.
 
 ### AppImage
 

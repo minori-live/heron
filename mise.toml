@@ -295,9 +295,10 @@ depends = ["install"]
 depends_post = ["native:bindings:debug"]
 run = "node scripts/version.ts sync"
 
-[tasks."nix:sync"]
-description = "Synchronize nix/release.nix with the latest stable GitHub Release"
-run = "node scripts/nix-sync-release.ts"
+[tasks."nix:pin"]
+description = "Write nix/release.nix from local Linux AppImage digests"
+# Usage: mise run nix:pin -- <version> <asset-directory>
+run = "node scripts/nix-pin-release.ts"
 
 [tasks.coverage]
 description = "Collect combined JavaScript and Rust coverage in one test pass"

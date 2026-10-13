@@ -1,5 +1,5 @@
-# Pinned published Linux AppImage digests for the Nix package.
-# Updated by `node scripts/nix-sync-release.ts` when a stable release is published.
+# Pinned Linux AppImage digests for the Nix package.
+# Written by the Publish workflow from the release AppImages (scripts/nix-pin-release.ts).
 {
   version = "0.8.0";
   hashes = {
