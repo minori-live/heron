@@ -250,6 +250,9 @@ jobs:
             "$RUNNER_TEMP/heron-signing-certificate.p12" \
             "$RUNNER_TEMP/heron-notarization-api-key.p8"
 
+      - name: Verify packaged plug-in resources and hosted Revox inference
+        run: pnpm --filter @heron/desktop verify:packaged-plugins
+
       - name: Verify update assets
         if: env.HERON_RELEASE_BUILD == 'true'
         run: pnpm --filter @heron/desktop verify:update-assets ${{ matrix.artifact }}

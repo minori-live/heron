@@ -17,6 +17,7 @@ import {
 } from "./plugin-artifact-contract.ts"
 import { preparePluginArtifacts } from "./plugin-artifact-cache.ts"
 import { extractPluginArchive, validatePluginBinary } from "./plugin-artifact-extract.ts"
+import { revoxResourceFixture } from "./test-support/revox-resource-fixture.ts"
 import {
   pluginLockFromRelease,
   updatePluginLock,
@@ -132,7 +133,11 @@ function runtimeArchive(machine = 62, suiteVersion = version): Buffer {
         path: `bundles/${plugin.bundleName}/Contents/Resources/LICENSE`,
         bytes: Buffer.from("matching suite license fixture")
       }
-    ])
+    ]),
+    ...revoxResourceFixture(platform).map((entry) => ({
+      ...entry,
+      path: `bundles/Heron Revox.vst3/${entry.path}`
+    }))
   ])
 }
 
@@ -351,11 +356,27 @@ await test("manifest identities and binary architectures are verified before pub
       platform
     )
   )
+  for (const builtinId of ["live.minori.heron.eq", "live.minori.heron.revox"]) {
+    assert.throws(() =>
+      parseBundleManifest(
+        {
+          ...manifest,
+          plugins: REQUIRED_BUILTINS.filter((entry) => entry.builtinId !== builtinId)
+        },
+        lock.release,
+        platform
+      )
+    )
+  }
   assert.throws(() =>
     parseBundleManifest(
       {
         ...manifest,
-        plugins: REQUIRED_BUILTINS.filter((entry) => entry.builtinId !== "live.minori.heron.eq")
+        plugins: REQUIRED_BUILTINS.map((entry) =>
+          entry.builtinId === "live.minori.heron.revox"
+            ? { ...entry, nativeId: "B".repeat(32) }
+            : entry
+        )
       },
       lock.release,
       platform

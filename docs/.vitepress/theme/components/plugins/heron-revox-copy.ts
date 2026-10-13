@@ -45,7 +45,7 @@ const accelerationBackends = ["CoreML", "WebGPU", "TensorRT", "CUDA", "DirectML"
 const accelerationRows: RevoxAccelerationRow[] = [
   {
     platform: "macOS · Apple Silicon",
-    cells: ["ready", "experimental", "none", "none", "none", "ready"]
+    cells: ["ready", "none", "none", "none", "none", "ready"]
   },
   {
     platform: "macOS · Intel",
@@ -53,15 +53,15 @@ const accelerationRows: RevoxAccelerationRow[] = [
   },
   {
     platform: "Windows · x64",
-    cells: ["none", "none", "experimental", "experimental", "experimental", "ready"]
+    cells: ["none", "none", "none", "none", "none", "ready"]
   },
   {
     platform: "Linux · x64",
-    cells: ["none", "none", "experimental", "experimental", "none", "ready"]
+    cells: ["none", "none", "none", "none", "none", "ready"]
   },
   {
     platform: "Linux · arm64",
-    cells: ["none", "none", "experimental", "experimental", "none", "ready"]
+    cells: ["none", "none", "none", "none", "none", "ready"]
   }
 ]
 
@@ -113,8 +113,9 @@ export const revoxCopy = {
         body: "Especially useful for harmonies and other vocal-layering scenarios."
       }
     ],
-    accelerationTitle: "GPU acceleration by platform",
-    accelerationSubtitle: "ONNX Runtime execution providers compiled into each package.",
+    accelerationTitle: "Execution backends by platform",
+    accelerationSubtitle:
+      "Released packages use CPU on Windows, Linux, and Intel Mac. Apple Silicon can also use CoreML; individual operators may fall back to CPU.",
     accelerationPlatformLabel: "Platform",
     accelerationBackends,
     accelerationRows,
@@ -173,8 +174,9 @@ export const revoxCopy = {
         body: "尤其适合和声与其他人声叠层场景。"
       }
     ],
-    accelerationTitle: "各平台 GPU 加速支持",
-    accelerationSubtitle: "各安装包中编译的 ONNX Runtime 执行提供程序。",
+    accelerationTitle: "各平台执行后端",
+    accelerationSubtitle:
+      "Windows、Linux 和 Intel Mac 正式包使用 CPU。Apple Silicon 还可使用 CoreML，个别算子可能回退到 CPU。",
     accelerationPlatformLabel: "平台",
     accelerationBackends,
     accelerationRows,

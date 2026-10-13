@@ -39,6 +39,13 @@ export const BUILTIN_PLUGIN_BASELINE: readonly BuiltinPluginSpec[] = [
     classId: "8CD16A11027ACC7FDF0C1419E86D1024",
     name: "Heron Metronome",
     kind: "instrument"
+  },
+  {
+    id: "live.minori.heron.revox",
+    bundleName: "Heron Revox.vst3",
+    classId: "801E1EF7D1FBA46DD7EE039C0317622C",
+    name: "Heron Revox",
+    kind: "effect"
   }
 ]
 

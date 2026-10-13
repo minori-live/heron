@@ -69,6 +69,14 @@ export const REQUIRED_BUILTINS: readonly BuiltinBundle[] = [
     format: "vst3",
     nativeId: "8CD16A11027ACC7FDF0C1419E86D1024",
     bundleName: "Heron Metronome.vst3"
+  },
+  {
+    builtinId: "live.minori.heron.revox",
+    name: "Heron Revox",
+    kind: "effect",
+    format: "vst3",
+    nativeId: "801E1EF7D1FBA46DD7EE039C0317622C",
+    bundleName: "Heron Revox.vst3"
   }
 ]
 

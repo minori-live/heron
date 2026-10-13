@@ -54,6 +54,14 @@ const expected = [
     audioOutputs: 1,
     eventInputs: 1,
     supportedAudioModes: ["mono", "stereo"]
+  },
+  {
+    bundle: "Heron Revox.vst3",
+    classId: "801E1EF7D1FBA46DD7EE039C0317622C",
+    audioInputs: 1,
+    audioOutputs: 1,
+    eventInputs: 0,
+    supportedAudioModes: ["mono", "stereo"]
   }
 ] as const
 
@@ -78,4 +86,6 @@ for (const plugin of expected) {
   }
 }
 
-console.log("Built-in VST3 probe smoke passed (stable IDs, buses, sample32, Iced editors)")
+console.log(
+  "Built-in VST3 probe smoke passed (stable IDs, buses, sample32, reported editor support)"
+)

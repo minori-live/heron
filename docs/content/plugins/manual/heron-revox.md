@@ -23,27 +23,24 @@ For the product introduction, see [Heron Revox](../heron-revox.md).
 
 TODO: Document editor controls, parameters, and workflow in more detail.
 
-## GPU acceleration by platform
+## Execution backends by platform
 
-Revox uses ONNX Runtime with a fixed execution-provider chain. Available GPU
-backends register first; CPU is always the final fallback. There is no manual
-backend selector. The chart on the [product page](../heron-revox.md) summarizes
-compiled providers; details below reflect what
-[heron-plugins](https://github.com/minori-live/heron-plugins) compiles and
-registers today—not a claim that every operator runs on the GPU.
+Released Revox packages include ONNX Runtime and embedded models. The plug-in
+selects its execution backend automatically; there is no manual backend selector.
+The chart on the [product page](../heron-revox.md) summarizes the backends included
+in the released packages.
 
-| Platform              | Backends (priority order)                       | Notes                                                                                                                                                                     |
-| --------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| macOS · Apple Silicon | CoreML → WebGPU → CPU                           | CoreML is the primary path and has been exercised on Apple Silicon. WebGPU (Dawn) is experimental upstream.                                                               |
-| macOS · Intel         | CPU (default)                                   | No pinned ORT rc.14 prebuilt for Intel macOS. Ship as CPU-only unless an external ORT build is provided through `ORT_LIB_PATH` (then CoreML → WebGPU → CPU can register). |
-| Windows · x64         | TensorRT RTX → TensorRT → CUDA → DirectML → CPU | Compiled into the Windows x64 package. GPU backends need matching drivers/runtimes; hardware validation is still outstanding.                                             |
-| Linux · x64           | TensorRT RTX → TensorRT → CUDA → CPU            | Compiled into the Linux x64 package. Needs CUDA/TensorRT runtimes; hardware validation is still outstanding. No Vulkan EP.                                                |
-| Linux · arm64         | TensorRT RTX → TensorRT → CUDA → CPU            | Same registration chain as Linux x64. Needs CUDA/TensorRT runtimes; hardware validation is still outstanding. No Vulkan EP.                                               |
+| Platform              | Backends (priority order) | Notes                                  |
+| --------------------- | ------------------------- | -------------------------------------- |
+| macOS · Apple Silicon | CoreML → CPU              | CoreML is available with CPU fallback. |
+| macOS · Intel         | CPU                       | Uses the bundled CPU runtime.          |
+| Windows · x64         | CPU                       | Uses the bundled CPU runtime.          |
+| Linux · x64           | CPU                       | Uses the bundled CPU runtime.          |
+| Linux · arm64         | CPU                       | Uses the bundled CPU runtime.          |
 
-There is no Metal or Vulkan ONNX execution provider in the Revox chain. A
-registered provider does not prove every operator runs on the GPU. CUDA and
-TensorRT builds need matching NVIDIA runtimes (CUDA 13.2+ / cuDNN 9.23+ for the
-current ORT package).
+On Apple Silicon, individual operators may fall back to CPU. CoreML availability
+does not mean the entire model runs on the GPU or Neural Engine; performance
+depends on the machine and DAW workload.
 
 ## Related pages
 

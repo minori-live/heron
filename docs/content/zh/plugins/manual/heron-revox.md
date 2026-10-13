@@ -21,25 +21,21 @@ Heron Revox 是一款由神经网络声码器驱动的插件。它可消除人�
 
 TODO：后续补充更详细的编辑器控件、参数与工作流程说明。
 
-## 各平台 GPU 加速支持
+## 各平台执行后端
 
-Revox 通过 ONNX Runtime 按固定优先级注册执行提供程序。可用的 GPU 后端会先注册，
-CPU 始终作为最终回退。没有手动后端选择器。[产品页](../heron-revox.md)上的图示
-概括了已编译的提供程序；下表细节反映
-[heron-plugins](https://github.com/minori-live/heron-plugins) 当前代码实际编译并
-注册的内容，并不表示每个算子都在 GPU 上运行。
+Revox 正式包包含 ONNX Runtime 和内嵌模型。插件自动选择执行后端，没有手动后端
+选择器。[产品页](../heron-revox.md)上的图示概括了正式包中包含的后端。
 
-| 平台                  | 后端（优先级）                                  | 说明                                                                                                                               |
-| --------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| macOS · Apple Silicon | CoreML → WebGPU → CPU                           | CoreML 为主要路径，并已在 Apple Silicon 上验证。WebGPU（Dawn）上游仍属实验性质。                                                   |
-| macOS · Intel         | CPU（默认）                                     | Intel macOS 没有固定的 ORT rc.14 预构建包。默认按仅 CPU 交付；若通过 `ORT_LIB_PATH` 提供外部 ORT，则可注册 CoreML → WebGPU → CPU。 |
-| Windows · x64         | TensorRT RTX → TensorRT → CUDA → DirectML → CPU | 已编入 Windows x64 包。GPU 后端依赖相应驱动/运行时；硬件验证仍待完成。                                                             |
-| Linux · x64           | TensorRT RTX → TensorRT → CUDA → CPU            | 已编入 Linux x64 包。需要 CUDA/TensorRT 运行时；硬件验证仍待完成。无 Vulkan EP。                                                   |
-| Linux · arm64         | TensorRT RTX → TensorRT → CUDA → CPU            | 与 Linux x64 相同的注册链。需要 CUDA/TensorRT 运行时；硬件验证仍待完成。无 Vulkan EP。                                             |
+| 平台                  | 后端（优先级） | 说明                             |
+| --------------------- | -------------- | -------------------------------- |
+| macOS · Apple Silicon | CoreML → CPU   | 可使用 CoreML，并保留 CPU 回退。 |
+| macOS · Intel         | CPU            | 使用随包提供的 CPU 运行时。      |
+| Windows · x64         | CPU            | 使用随包提供的 CPU 运行时。      |
+| Linux · x64           | CPU            | 使用随包提供的 CPU 运行时。      |
+| Linux · arm64         | CPU            | 使用随包提供的 CPU 运行时。      |
 
-Revox 链路中没有 Metal 或 Vulkan 的 ONNX 执行提供程序。“已注册”并不代表每个算子
-都在 GPU 上运行。CUDA 与 TensorRT 构建需要匹配的 NVIDIA 运行时（当前 ORT 包要求
-CUDA 13.2+ / cuDNN 9.23+）。
+在 Apple Silicon 上，个别算子可能回退到 CPU。CoreML 可用不代表整个模型都在 GPU
+或神经网络引擎上运行；实际性能取决于机器和 DAW 的工作负载。
 
 ## 相关页面
 

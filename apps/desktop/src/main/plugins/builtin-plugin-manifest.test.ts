@@ -102,11 +102,18 @@ describe("bundled plug-in inventory", () => {
       })
       await catalog.initialize()
       expect(probeClient.probe).not.toHaveBeenCalled()
-      expect(catalog.list().plugins).toHaveLength(4)
+      expect(catalog.list().plugins).toHaveLength(5)
       expect(catalog.list().plugins).toContainEqual(
         expect.objectContaining({
           source: { kind: "builtin", id: "live.minori.heron.eq" },
           locator: expect.objectContaining({ nativeId: "8A8341D5CA36B6C9A9572788F40EBB9F" }),
+          kind: "effect"
+        })
+      )
+      expect(catalog.list().plugins).toContainEqual(
+        expect.objectContaining({
+          source: { kind: "builtin", id: "live.minori.heron.revox" },
+          locator: expect.objectContaining({ nativeId: "801E1EF7D1FBA46DD7EE039C0317622C" }),
           kind: "effect"
         })
       )
@@ -145,8 +152,10 @@ describe("bundled plug-in inventory", () => {
     const escaping = manifest()
     escaping.plugins[0]!.bundleName = "../Gain.vst3"
     expect(() => parseBuiltinPluginManifest(escaping)).toThrow()
-    const changed = manifest()
-    changed.plugins[0]!.nativeId = "C".repeat(32)
-    expect(() => parseBuiltinPluginManifest(changed)).toThrow()
+    for (const builtinId of ["live.minori.heron.eq", "live.minori.heron.revox"]) {
+      const changed = manifest()
+      changed.plugins.find((entry) => entry.builtinId === builtinId)!.nativeId = "C".repeat(32)
+      expect(() => parseBuiltinPluginManifest(changed)).toThrow()
+    }
   })
 })

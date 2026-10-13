@@ -25,7 +25,8 @@ builds, and tagged releases.
   `mise run ci:check:native-coverage`, which collects Rust coverage from workspace
   tests and instrumented napi-rs calls while running desktop and project-database
   tests without JavaScript coverage. Each platform also runs
-  `mise run test:builtin-vst3` against the pinned Heron plug-in release; the Linux
+  `mise run test:builtin-vst3` against the pinned Heron plug-in release, including
+  Revox's paced real-time shifted-audio host test; the Linux
   end-to-end suite exercises the bundled Gain's native editors. All reports are
   uploaded to Codecov and notifications are published only after the complete
   matrix succeeds. The workflow is reusable through `workflow_call` and can also
@@ -37,6 +38,10 @@ builds, and tagged releases.
   manual smoke runs disable release LTO (`CARGO_PROFILE_RELEASE_LTO=false`,
   higher `codegen-units`, stripped symbols) so MSVC packaging stays tolerable;
   pass `full_release_profile: true` to keep the Cargo.toml thin-LTO settings.
+  Every packaging leg checks that all plug-in bundle files match the prepared
+  release byte for byte, validates Revox's private runtime and notices, and runs
+  its shifted-audio host test from the final packaged resource path. This gate
+  uses the CPU runtime explicitly; it does not claim accelerator coverage.
 - **Publish** (`.github/workflows/publish.yml`) runs on a `v*` tag, validates
   that the tag matches `VERSION`, calls the reusable Test and Build workflows
   (Build with `full_release_profile: true`), and creates a draft GitHub Release

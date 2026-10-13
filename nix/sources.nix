@@ -10,7 +10,7 @@
     hash = "sha256-t4VTZQid9Uks4Y6TgKZOqGmG+Gce7N9d01+1UsMJ5ZY=";
   };
   plugins = {
-    x86_64-linux = "sha256-NbjfPsQPCW0+fZz2yV/UncLUX6P+zVzJ22eaBIDSR00=";
-    aarch64-linux = "sha256-dv7IH2GEW39v7g8tEfIcWMJ4z53wQJnruwXX1F2P1q8=";
+    x86_64-linux = "sha256-XT1IkTFhq04L5LA+W5GDlHYC63vcwbz3EQ3ERCwNxSY=";
+    aarch64-linux = "sha256-AUXZWdINSQ2tk8+jOpudcL848lA7IP7BHirjpRArtjQ=";
   };
 }
