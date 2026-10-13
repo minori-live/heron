@@ -2,27 +2,27 @@
   "schemaVersion": 1,
   "repository": "minori-live/heron-plugins",
   "release": {
-    "version": "0.7.1",
-    "sourceCommit": "1c884ad440e37883c29c92f47a10bf8a6a667067",
+    "version": "0.8.0",
+    "sourceCommit": "8f96478428af65da7be49a96166638a10d86abda",
     "assets": {
       "macos-universal": {
         "runtime": {
-          "file": "heron-plugins-0.7.1-macos-universal-vst3.zip"
+          "file": "heron-plugins-0.8.0-macos-universal-vst3.zip"
         }
       },
       "windows-x64": {
         "runtime": {
-          "file": "heron-plugins-0.7.1-windows-x64-vst3.zip"
+          "file": "heron-plugins-0.8.0-windows-x64-vst3.zip"
         }
       },
       "linux-x64": {
         "runtime": {
-          "file": "heron-plugins-0.7.1-linux-x64-vst3.zip"
+          "file": "heron-plugins-0.8.0-linux-x64-vst3.zip"
         }
       },
       "linux-arm64": {
         "runtime": {
-          "file": "heron-plugins-0.7.1-linux-arm64-vst3.zip"
+          "file": "heron-plugins-0.8.0-linux-arm64-vst3.zip"
         }
       }
     }
