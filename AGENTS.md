@@ -139,6 +139,8 @@ page and end-user manual. Place architecture, roadmap, performance, CI,
 design-system, development-environment notes, agent workflows, permission
 guidance, and implementation checklists under `agents/docs/`. Treat
 `.agents/skills/` as APM-managed content derived from `apm.yml` and
-`apm.lock.yaml`; update the dependency declarations instead of hand-editing
-installed skill copies. Do not place temporary agent notes, generated output,
-or benchmark artifacts in either documentation directory.
+`apm.lock.yaml` and checked into the repository for fresh agent checkouts;
+update the dependency declarations instead of hand-editing installed skill
+copies. Keep `apm_modules/` git-ignored as the local APM package cache. Do not
+place temporary agent notes, generated output, or benchmark artifacts in either
+documentation directory.
