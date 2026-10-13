@@ -36,7 +36,9 @@ const image = withBase("/plugins/heron-eq.png")
       :manual-href="manualHref"
       :manual-label="copy.manual"
     >
-      <template #support><PluginCompatibility :locale="locale" compact /></template>
+      <template #support>
+        <PluginCompatibility class="eq-support" :locale="locale" compact />
+      </template>
     </ProductHero>
     <div class="eq-content">
       <PluginFeatureGrid :title="copy.featuresTitle" :image="image" :features="copy.features" />
@@ -57,6 +59,9 @@ const image = withBase("/plugins/heron-eq.png")
 <style scoped>
 .eq-page {
   color: var(--vp-c-text-1);
+}
+.eq-support {
+  justify-content: center;
 }
 .eq-content {
   width: min(1180px, calc(100% - 80px));
