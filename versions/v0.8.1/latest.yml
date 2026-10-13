@@ -1,0 +1,8 @@
+version: 0.8.1
+files:
+  - url: https://github.com/minori-live/heron/releases/download/v0.8.1/Heron-0.8.1-win-x64.exe
+    sha512: q9AlMjUV3xHcWbXG3yO2nYq4k0+fTjpZQuWnp9CifSe6hxdPhG+y3LLQMlto3imcuKAAG7eMic8FhiCVCSrPXg==
+    size: 198952203
+path: https://github.com/minori-live/heron/releases/download/v0.8.1/Heron-0.8.1-win-x64.exe
+sha512: q9AlMjUV3xHcWbXG3yO2nYq4k0+fTjpZQuWnp9CifSe6hxdPhG+y3LLQMlto3imcuKAAG7eMic8FhiCVCSrPXg==
+releaseDate: 2026-10-13T18:39:37.069Z

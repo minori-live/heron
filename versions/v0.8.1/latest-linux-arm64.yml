@@ -1,0 +1,8 @@
+version: 0.8.1
+files:
+  - url: https://github.com/minori-live/heron/releases/download/v0.8.1/Heron-0.8.1-linux-arm64.AppImage
+    sha512: 76LBvU/Hx9Fjb0zNUlnQfK+KxolMI2t+saXiLduuDptnhRZNIGLNalSganAYzJwJb/MAbD7sm1JmQLRfxmcy6w==
+    size: 415274410
+path: https://github.com/minori-live/heron/releases/download/v0.8.1/Heron-0.8.1-linux-arm64.AppImage
+sha512: 76LBvU/Hx9Fjb0zNUlnQfK+KxolMI2t+saXiLduuDptnhRZNIGLNalSganAYzJwJb/MAbD7sm1JmQLRfxmcy6w==
+releaseDate: 2026-10-13T18:35:32.008Z
