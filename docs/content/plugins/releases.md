@@ -12,6 +12,9 @@ Download [Heron EQ](heron-eq.md) as part of the Heron Plugins suite from
 [Heron Plugins releases](https://github.com/minori-live/heron-plugins/releases).
 Each release includes downloads and release notes for the plug-in suite.
 
+Also see the [Heron Revox](heron-revox.md) introduction. TODO: confirm when
+Revox ships in the published suite and document its install package names.
+
 Heron Plugins has its own releases, separate from
 [Heron DAW releases](https://github.com/minori-live/heron/releases).
 Use the plug-in downloads to install Heron EQ in another DAW.

@@ -147,6 +147,7 @@ export default defineConfig({
             activeMatch: "^/plugins/",
             items: [
               { text: "Heron EQ", link: "/plugins/heron-eq" },
+              { text: "Heron Revox", link: "/plugins/heron-revox" },
               { text: "Manual", link: "/plugins/manual/" },
               { text: "Releases", link: "/plugins/releases" }
             ]
@@ -159,6 +160,7 @@ export default defineConfig({
               text: "Plugins",
               items: [
                 { text: "Heron EQ", link: "/plugins/heron-eq" },
+                { text: "Heron Revox", link: "/plugins/heron-revox" },
                 { text: "Releases", link: "/plugins/releases" }
               ]
             },
@@ -166,7 +168,8 @@ export default defineConfig({
               text: "Manual",
               items: [
                 { text: "Overview", link: "/plugins/manual/" },
-                { text: "Heron EQ", link: "/plugins/manual/heron-eq" }
+                { text: "Heron EQ", link: "/plugins/manual/heron-eq" },
+                { text: "Heron Revox", link: "/plugins/manual/heron-revox" }
               ]
             }
           ],
@@ -258,6 +261,7 @@ export default defineConfig({
             activeMatch: "^/zh/plugins/",
             items: [
               { text: "Heron EQ", link: "/zh/plugins/heron-eq" },
+              { text: "Heron Revox", link: "/zh/plugins/heron-revox" },
               { text: "手册", link: "/zh/plugins/manual/" },
               { text: "发布版本", link: "/zh/plugins/releases" }
             ]
@@ -270,6 +274,7 @@ export default defineConfig({
               text: "插件",
               items: [
                 { text: "Heron EQ", link: "/zh/plugins/heron-eq" },
+                { text: "Heron Revox", link: "/zh/plugins/heron-revox" },
                 { text: "发布版本", link: "/zh/plugins/releases" }
               ]
             },
@@ -277,7 +282,8 @@ export default defineConfig({
               text: "手册",
               items: [
                 { text: "概览", link: "/zh/plugins/manual/" },
-                { text: "Heron EQ", link: "/zh/plugins/manual/heron-eq" }
+                { text: "Heron EQ", link: "/zh/plugins/manual/heron-eq" },
+                { text: "Heron Revox", link: "/zh/plugins/manual/heron-revox" }
               ]
             }
           ],

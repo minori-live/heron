@@ -12,6 +12,8 @@ vstTrademark: true
 下载包含 [Heron EQ](heron-eq.md) 的 Heron Plugins 插件套件。
 每个版本都附有套件的下载文件和更新说明。
 
+另见 [Heron Revox](heron-revox.md) 介绍。TODO：确认 Revox 何时随已发布套件提供，并补充其安装包名称。
+
 Heron Plugins 独立于 [Heron DAW](https://github.com/minori-live/heron/releases) 发布。
 要在其他 DAW 中使用 Heron EQ，请下载独立插件。
 

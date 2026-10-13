@@ -23,3 +23,4 @@ Heron Studio 已内置 Heron EQ，可直接加载，无需单独安装插件。
 ## 插件
 
 - [Heron EQ](heron-eq.md) — 编辑 EQ 频段、观察频谱、匹配侧链参考，以及调整处理模式和输出设置。
+- [Heron Revox](heron-revox.md) — 面向人声相位清理、损耗更小的音高变换与和声叠层的神经网络声码器。

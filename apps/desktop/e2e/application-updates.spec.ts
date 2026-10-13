@@ -10,7 +10,10 @@ test("ordinary builds expose disabled updates through the real preload boundary"
   const application = await electron.launch({
     executablePath,
     args: [
+      ...(process.platform === "linux" ? ["--ozone-platform=x11"] : []),
       "--disable-gpu",
+      "--disable-gpu-compositing",
+      "--disable-gpu-sandbox",
       "--no-sandbox",
       ...(executablePath ? [] : [resolve(import.meta.dirname, "..")])
     ],
@@ -21,9 +24,10 @@ test("ordinary builds expose disabled updates through the real preload boundary"
     }
   })
   try {
-    await application.firstWindow()
+    const splash = await application.firstWindow()
+    await splash.waitForLoadState("domcontentloaded")
     const page =
-      application.windows().find((candidate) => candidate.url().includes("index.html")) ??
+      application.windows().find((candidate) => !candidate.url().includes("splash.html")) ??
       (await application.waitForEvent("window", {
         predicate: (candidate) => !candidate.url().includes("splash.html")
       }))

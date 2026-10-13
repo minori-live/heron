@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 520" role="img" aria-label="Abstract neural network">
+  <defs>
+    <linearGradient id="revox-net-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#171a1f"/>
+      <stop offset="45%" stop-color="#1c2030"/>
+      <stop offset="100%" stop-color="#171a1f"/>
+    </linearGradient>
+    <linearGradient id="revox-net-glow" x1="0" y1="0.5" x2="1" y2="0.5">
+      <stop offset="0%" stop-color="#a98ade" stop-opacity="0"/>
+      <stop offset="35%" stop-color="#a98ade" stop-opacity=".22"/>
+      <stop offset="65%" stop-color="#72c3c7" stop-opacity=".28"/>
+      <stop offset="100%" stop-color="#e5d899" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="revox-net-node-a" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#cbb6ef"/>
+      <stop offset="100%" stop-color="#a98ade"/>
+    </radialGradient>
+    <radialGradient id="revox-net-node-b" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#9bdadd"/>
+      <stop offset="100%" stop-color="#72c3c7"/>
+    </radialGradient>
+    <radialGradient id="revox-net-node-c" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f0e6b8"/>
+      <stop offset="100%" stop-color="#e5d899"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1040" height="520" fill="url(#revox-net-bg)"/>
+  <rect x="80" y="90" width="880" height="340" rx="28" fill="url(#revox-net-glow)"/>
+
+  <!-- soft edges -->
+  <g opacity=".12" stroke="#eef0f2" stroke-width="1">
+    <path d="M0 130H1040M0 260H1040M0 390H1040"/>
+  </g>
+
+  <!-- connections: layer 1 -> 2 -->
+  <g fill="none" stroke="#a98ade" stroke-width="1.4" opacity=".28">
+    <path d="M220 140C310 140 310 140 400 160"/>
+    <path d="M220 140C310 180 310 200 400 220"/>
+    <path d="M220 140C310 240 310 280 400 280"/>
+    <path d="M220 140C310 300 310 340 400 340"/>
+    <path d="M220 200C310 150 310 150 400 160"/>
+    <path d="M220 200C310 200 310 210 400 220"/>
+    <path d="M220 200C310 250 310 270 400 280"/>
+    <path d="M220 200C310 310 310 340 400 340"/>
+    <path d="M220 260C310 160 310 160 400 160"/>
+    <path d="M220 260C310 210 310 220 400 220"/>
+    <path d="M220 260C310 260 310 270 400 280"/>
+    <path d="M220 260C310 320 310 340 400 340"/>
+    <path d="M220 320C310 170 310 170 400 160"/>
+    <path d="M220 320C310 220 310 230 400 220"/>
+    <path d="M220 320C310 280 310 290 400 280"/>
+    <path d="M220 320C310 340 310 350 400 340"/>
+    <path d="M220 380C310 180 310 180 400 160"/>
+    <path d="M220 380C310 230 310 240 400 220"/>
+    <path d="M220 380C310 290 310 300 400 280"/>
+    <path d="M220 380C310 350 310 360 400 340"/>
+  </g>
+
+  <!-- connections: layer 2 -> 3 -->
+  <g fill="none" stroke="#72c3c7" stroke-width="1.4" opacity=".3">
+    <path d="M400 160C490 160 490 150 580 150"/>
+    <path d="M400 160C490 200 490 210 580 220"/>
+    <path d="M400 160C490 260 490 280 580 300"/>
+    <path d="M400 160C490 320 490 350 580 370"/>
+    <path d="M400 220C490 160 490 150 580 150"/>
+    <path d="M400 220C490 210 490 210 580 220"/>
+    <path d="M400 220C490 270 490 290 580 300"/>
+    <path d="M400 220C490 340 490 360 580 370"/>
+    <path d="M400 280C490 170 490 160 580 150"/>
+    <path d="M400 280C490 220 490 220 580 220"/>
+    <path d="M400 280C490 290 490 300 580 300"/>
+    <path d="M400 280C490 350 490 370 580 370"/>
+    <path d="M400 340C490 180 490 170 580 150"/>
+    <path d="M400 340C490 230 490 230 580 220"/>
+    <path d="M400 340C490 300 490 310 580 300"/>
+    <path d="M400 340C490 360 490 380 580 370"/>
+  </g>
+
+  <!-- connections: layer 3 -> 4 -->
+  <g fill="none" stroke="#e5d899" stroke-width="1.5" opacity=".32">
+    <path d="M580 150C670 170 670 200 760 200"/>
+    <path d="M580 150C670 230 670 250 760 260"/>
+    <path d="M580 150C670 300 670 320 760 320"/>
+    <path d="M580 220C670 180 670 200 760 200"/>
+    <path d="M580 220C670 240 670 250 760 260"/>
+    <path d="M580 220C670 300 670 320 760 320"/>
+    <path d="M580 300C670 190 670 200 760 200"/>
+    <path d="M580 300C670 250 670 260 760 260"/>
+    <path d="M580 300C670 310 670 320 760 320"/>
+    <path d="M580 370C670 200 670 210 760 200"/>
+    <path d="M580 370C670 260 670 270 760 260"/>
+    <path d="M580 370C670 320 670 330 760 320"/>
+  </g>
+
+  <!-- layer 1 -->
+  <g>
+    <circle cx="220" cy="140" r="11" fill="url(#revox-net-node-a)" opacity=".95"/>
+    <circle cx="220" cy="200" r="11" fill="url(#revox-net-node-a)" opacity=".9"/>
+    <circle cx="220" cy="260" r="11" fill="url(#revox-net-node-a)"/>
+    <circle cx="220" cy="320" r="11" fill="url(#revox-net-node-a)" opacity=".9"/>
+    <circle cx="220" cy="380" r="11" fill="url(#revox-net-node-a)" opacity=".95"/>
+  </g>
+
+  <!-- layer 2 -->
+  <g>
+    <circle cx="400" cy="160" r="12" fill="url(#revox-net-node-b)" opacity=".92"/>
+    <circle cx="400" cy="220" r="12" fill="url(#revox-net-node-b)"/>
+    <circle cx="400" cy="280" r="12" fill="url(#revox-net-node-b)"/>
+    <circle cx="400" cy="340" r="12" fill="url(#revox-net-node-b)" opacity=".92"/>
+  </g>
+
+  <!-- layer 3 -->
+  <g>
+    <circle cx="580" cy="150" r="12" fill="url(#revox-net-node-b)" opacity=".9"/>
+    <circle cx="580" cy="220" r="13" fill="url(#revox-net-node-c)" opacity=".95"/>
+    <circle cx="580" cy="300" r="13" fill="url(#revox-net-node-c)" opacity=".95"/>
+    <circle cx="580" cy="370" r="12" fill="url(#revox-net-node-b)" opacity=".9"/>
+  </g>
+
+  <!-- layer 4 -->
+  <g>
+    <circle cx="760" cy="200" r="14" fill="url(#revox-net-node-c)"/>
+    <circle cx="760" cy="260" r="15" fill="url(#revox-net-node-c)"/>
+    <circle cx="760" cy="320" r="14" fill="url(#revox-net-node-c)"/>
+  </g>
+
+  <!-- soft highlight orbs -->
+  <circle cx="300" cy="260" r="70" fill="#a98ade" opacity=".05"/>
+  <circle cx="620" cy="250" r="90" fill="#72c3c7" opacity=".06"/>
+</svg>

@@ -64,6 +64,17 @@ To apply a result from Plugin Analysis, follow
 For an overview and downloads for other DAWs, see the
 [Heron EQ introduction](../plugins/heron-eq.md).
 
+## Heron Revox
+
+**Heron Revox** is a neural network vocoder for vocals. It helps remove phase
+problems and supports pitch shifting up or down with much less loss, especially
+for harmonies and similar vocal layers.
+
+See the [Heron Revox introduction](../plugins/heron-revox.md) for the product
+overview. The [plug-in manual chapter](../plugins/manual/heron-revox.md) is a
+starter stub; TODO: expand control documentation when the editor UI is final,
+and confirm whether Revox ships as a bundled Studio effect.
+
 ## Manage inserts
 
 An insert can be:

@@ -6,6 +6,7 @@ import DocsLayout from "./components/DocsLayout.vue"
 import HomePage from "./components/home/HomePage.vue"
 import MermaidDiagram from "./components/MermaidDiagram.vue"
 import HeronEqPage from "./components/plugins/HeronEqPage.vue"
+import HeronRevoxPage from "./components/plugins/HeronRevoxPage.vue"
 import HeronStudioIncluded from "./components/plugins/HeronStudioIncluded.vue"
 import PluginCompatibility from "./components/plugins/PluginCompatibility.vue"
 import DawOverviewPage from "./components/daw/DawOverviewPage.vue"
@@ -30,6 +31,7 @@ export default {
     app.component("DawOverviewPage", DawOverviewPage)
     app.component("HomePage", HomePage)
     app.component("HeronEqPage", HeronEqPage)
+    app.component("HeronRevoxPage", HeronRevoxPage)
     app.component("HeronStudioIncluded", HeronStudioIncluded)
     app.component("MermaidDiagram", MermaidDiagram)
     app.component("PluginCompatibility", PluginCompatibility)

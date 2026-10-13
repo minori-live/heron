@@ -58,6 +58,14 @@ Heron 会在启动时扫描。安装新插件后要重新查找：
 要应用 Plugin Analysis 的拟合结果，请参阅[拟合参数均衡器](plugin-analysis.md#拟合参数均衡器)。
 功能概览与适用于其他 DAW 的下载入口，请参阅 [Heron EQ 介绍](../plugins/heron-eq.md)。
 
+## Heron Revox
+
+**Heron Revox** 是面向人声的神经网络声码器。它有助于消除相位问题，并支持上移或下移
+音高且损耗更小，尤其适合和声与类似的人声叠层。
+
+功能概览见 [Heron Revox 介绍](../plugins/heron-revox.md)。
+[插件手册章节](../plugins/manual/heron-revox.md)目前为起步说明；TODO：待编辑器界面确定后补充控件文档，并确认 Revox 是否作为 Studio 内置效果提供。
+
 ## 管理插入
 
 插入可以：

@@ -26,3 +26,5 @@ plug-in installation.
 
 - [Heron EQ](heron-eq.md) — Edit EQ bands, inspect spectra, match a sidechain
   reference, and adjust processing and output settings.
+- [Heron Revox](heron-revox.md) — Neural network vocoder for vocal phase cleanup,
+  pitch shifting with less loss, and harmony layers.
