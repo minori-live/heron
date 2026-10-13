@@ -459,9 +459,7 @@ impl MixerGraph {
                 block.post_pan[source_index] = post;
             }
 
-            let send_count = sends_by_source[index].len();
-            for send_pos in 0..send_count {
-                let send_index = sends_by_source[index][send_pos];
+            for &send_index in &sends_by_source[index] {
                 if !sends[send_index].enabled || !send_audible[send_index] {
                     continue;
                 }

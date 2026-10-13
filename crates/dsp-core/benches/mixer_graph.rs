@@ -137,7 +137,11 @@ fn prepared_block_graph(
     graph
 }
 
-fn channel_major_sources(graph: &MixerGraph, tracks: usize, block_frames: usize) -> Vec<StereoFrame> {
+fn channel_major_sources(
+    graph: &MixerGraph,
+    tracks: usize,
+    block_frames: usize,
+) -> Vec<StereoFrame> {
     // Scenario helper places audio tracks at channel indices `0..tracks`.
     let mut sources = vec![[0.0, 0.0]; graph.channel_count() * block_frames];
     for track in 0..tracks {
@@ -274,11 +278,8 @@ fn bench_process_block_api(c: &mut Criterion) {
                 &256_usize,
                 |bencher, _block_frames| {
                     bencher.iter(|| {
-                        black_box(process_block_api(
-                            &mut graph,
-                            &mut channel_sources,
-                            &mut output,
-                        ));
+                        process_block_api(&mut graph, &mut channel_sources, &mut output);
+                        black_box(&output);
                     });
                 },
             );
