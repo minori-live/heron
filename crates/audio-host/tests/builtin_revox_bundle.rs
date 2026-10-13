@@ -44,17 +44,139 @@ fn packaged_revox_applies_coarse_and_fine_pitch_through_the_realtime_host() {
         .spawn()
         .expect("start isolated Revox host test");
     let started = Instant::now();
+    #[cfg(target_os = "linux")]
+    let mut diagnostics = worker_diagnostics::Sampler::default();
     loop {
         if let Some(status) = child.try_wait().expect("poll isolated Revox host test") {
+            #[cfg(target_os = "linux")]
+            diagnostics.summary(child.id(), started.elapsed());
             assert!(status.success(), "Revox host test exited with {status}");
             break;
         }
         if started.elapsed() >= Duration::from_secs(60) {
+            #[cfg(target_os = "linux")]
+            diagnostics.summary(child.id(), started.elapsed());
             let _ = child.kill();
             let _ = child.wait();
             panic!("Revox host test exceeded its 60-second loading/audio/teardown deadline");
         }
+        #[cfg(target_os = "linux")]
+        diagnostics.sample(child.id(), started.elapsed());
         thread::sleep(Duration::from_millis(50));
+    }
+}
+
+#[cfg(target_os = "linux")]
+mod worker_diagnostics {
+    use std::{fs, time::Duration};
+
+    #[derive(Default)]
+    pub(super) struct Sampler {
+        next_sample: Duration,
+        observed: bool,
+        observed_then_absent: bool,
+    }
+
+    impl Sampler {
+        // All filesystem work stays in the parent, outside the paced audio child.
+        // Absence is an observation, not a failure verdict: teardown also exits the worker.
+        pub(super) fn sample(&mut self, pid: u32, elapsed: Duration) {
+            if elapsed < self.next_sample {
+                return;
+            }
+            self.next_sample = elapsed + Duration::from_secs(1);
+            let prefix = format!(
+                "Revox worker pid={pid} parent_elapsed={:.3}s",
+                elapsed.as_secs_f64()
+            );
+            let tasks = match fs::read_dir(format!("/proc/{pid}/task")) {
+                Ok(tasks) => tasks,
+                Err(error) => {
+                    eprintln!("{prefix} diagnostic=unavailable task_directory={error}");
+                    return;
+                }
+            };
+            let mut found = false;
+            let mut complete = true;
+            for task in tasks {
+                let task = match task {
+                    Ok(task) => task,
+                    Err(error) => {
+                        complete = false;
+                        eprintln!("{prefix} diagnostic=unavailable task_entry={error}");
+                        continue;
+                    }
+                };
+                let path = task.path();
+                let comm = match fs::read_to_string(path.join("comm")) {
+                    Ok(comm) => comm,
+                    Err(error) => {
+                        complete = false;
+                        eprintln!(
+                            "{prefix} diagnostic=unavailable comm={} error={error}",
+                            path.display()
+                        );
+                        continue;
+                    }
+                };
+                if comm.trim_end() != "heron-revox" {
+                    continue;
+                }
+                found = true;
+                self.observed = true;
+                let name = task.file_name();
+                let tid = name.to_string_lossy();
+                let stat = match fs::read_to_string(path.join("stat")) {
+                    Ok(stat) => describe_stat(&stat, &tid).unwrap_or_else(|| {
+                        format!("stat=unavailable invalid_or_changed_identity={stat:?}")
+                    }),
+                    Err(error) => format!("stat=unavailable error={error}"),
+                };
+                let wchan = match fs::read_to_string(path.join("wchan")) {
+                    Ok(wchan) => wchan.trim_end().to_owned(),
+                    Err(error) => format!("unavailable: {error}"),
+                };
+                eprintln!("{prefix} tid={tid} comm=heron-revox {stat} wchan={wchan:?}");
+            }
+            // A racing/denied read must not turn an incomplete scan into confirmed absence.
+            self.observed_then_absent |= self.observed && complete && !found;
+            let worker = if found {
+                "present"
+            } else if complete {
+                "absent"
+            } else {
+                "unavailable"
+            };
+            eprintln!(
+                "{prefix} worker={worker} scan_complete={complete} observed={} observed_then_absent={}",
+                self.observed, self.observed_then_absent
+            );
+        }
+
+        pub(super) fn summary(&self, pid: u32, elapsed: Duration) {
+            eprintln!(
+                "Revox worker summary pid={pid} parent_elapsed={:.3}s observed={} observed_then_absent={}",
+                elapsed.as_secs_f64(),
+                self.observed,
+                self.observed_then_absent
+            );
+        }
+    }
+
+    fn describe_stat(stat: &str, tid: &str) -> Option<String> {
+        // comm may contain spaces or parentheses. Fields after its final ')' start at 3.
+        let (identity, rest) = stat.rsplit_once(')')?;
+        if identity != format!("{tid} (heron-revox") {
+            return None;
+        }
+        let fields: Vec<_> = rest.split_whitespace().collect();
+        let state = fields.first()?;
+        let utime = fields.get(11)?.parse::<u64>().ok()?;
+        let stime = fields.get(12)?.parse::<u64>().ok()?;
+        let starttime = fields.get(19)?.parse::<u64>().ok()?;
+        Some(format!(
+            "state={state} utime_ticks={utime} stime_ticks={stime} starttime_ticks={starttime}"
+        ))
     }
 }
 

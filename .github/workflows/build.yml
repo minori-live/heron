@@ -72,30 +72,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Windows x64
-            os: windows-latest
-            builder-arch: x64
-            mise-task: ci:package:windows-x64
-            artifact: windows-x64
-            package-glob: release/*.exe
-          - name: Linux x64
-            os: ubuntu-24.04
-            builder-arch: x64
-            mise-task: ci:package:linux-x64
-            artifact: linux-x64
-            package-glob: release/*.AppImage
+          # Temporary diagnostic branch: preserve the complete packaging path
+          # while isolating the failing ARM64 runtime check.
           - name: Linux arm64
             os: ubuntu-24.04-arm
             builder-arch: arm64
             mise-task: ci:package:linux-arm64
             artifact: linux-arm64
             package-glob: release/*.AppImage
-          - name: macOS universal
-            os: macos-latest
-            builder-arch: universal
-            mise-task: ci:package:macos-universal
-            artifact: macos-universal
-            package-glob: release/*.dmg
     steps:
       - name: Check out source
         uses: actions/checkout@v7
@@ -249,6 +233,12 @@ jobs:
           rm -f \
             "$RUNNER_TEMP/heron-signing-certificate.p12" \
             "$RUNNER_TEMP/heron-notarization-api-key.p8"
+
+      - name: Record ARM diagnostic CPU and clock tick frequency
+        shell: bash
+        run: |
+          getconf CLK_TCK
+          lscpu
 
       - name: Verify packaged plug-in resources and hosted Revox inference
         run: pnpm --filter @heron/desktop verify:packaged-plugins
