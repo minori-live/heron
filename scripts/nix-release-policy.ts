@@ -45,19 +45,20 @@ export function appImageName(version: string, architecture: LinuxArchitecture): 
 
 export function releaseIdentity(content: string): ReleasePin {
   const versionMatch = content.match(versionPattern)
-  if (!versionMatch) {
+  const version = versionMatch?.[1]
+  if (!version) {
     throw new Error("Expected one pinned version in nix/release.nix")
   }
-  const version = versionMatch[1]!
   assertReleaseVersion(version)
 
   const hashes = {} as Record<LinuxArchitecture, string>
   for (const architecture of linuxArchitectures) {
     const matches = [...content.matchAll(new RegExp(hashPattern(architecture).source, "gm"))]
-    if (matches.length !== 1) {
+    const hash = matches.length === 1 ? matches[0]?.[1] : undefined
+    if (!hash) {
       throw new Error(`Expected one ${architecture} hash in nix/release.nix`)
     }
-    hashes[architecture] = matches[0]![1]!
+    hashes[architecture] = hash
   }
 
   return { version, hashes }
@@ -132,8 +133,13 @@ function compareStableVersions(left: string, right: string): number {
   const a = left.split(".").map(BigInt)
   const b = right.split(".").map(BigInt)
   for (let index = 0; index < 3; index++) {
-    if (a[index]! < b[index]!) return -1
-    if (a[index]! > b[index]!) return 1
+    const leftPart = a[index]
+    const rightPart = b[index]
+    if (leftPart === undefined || rightPart === undefined) {
+      throw new Error("Expected three numeric version components")
+    }
+    if (leftPart < rightPart) return -1
+    if (leftPart > rightPart) return 1
   }
   return 0
 }
