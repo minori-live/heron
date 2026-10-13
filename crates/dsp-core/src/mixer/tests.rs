@@ -441,6 +441,169 @@ fn stereo_bus_right_side_participates_in_feedback_and_solo() {
 }
 
 #[test]
+fn prepare_block_processing_is_lazy_and_zero_length_blocks_succeed() {
+    let channels = vec![
+        channel("audio", ChannelKind::Audio, Some(2)),
+        channel("master", ChannelKind::Master, None),
+        channel("output", ChannelKind::Output, None),
+    ];
+    let mut graph = MixerGraph::new(48_000, channels, vec![]).unwrap();
+    let mut sources = vec![[0.25, -0.5]; graph.channel_count()];
+    let mut output = [[0.0; super::MAX_OUTPUT_CHANNELS]; 1];
+
+    // Scratch + SIMD Level are allocated only by prepare.
+    assert!(matches!(
+        graph.process_block_with_sources(&mut sources, &mut output, &mut |_, _, _| {}),
+        Err(GraphError::InvalidBlock)
+    ));
+    assert_eq!(output[0][0], 0.0);
+    assert!(
+        GraphError::InvalidBlock
+            .to_string()
+            .contains("prepared capacity")
+    );
+
+    graph.prepare_block_processing(4);
+    // Oversized blocks still reject without growing scratch.
+    let mut oversized = [[0.0; super::MAX_OUTPUT_CHANNELS]; 8];
+    assert!(matches!(
+        graph.process_block_with_sources(&mut sources, &mut oversized, &mut |_, _, _| {}),
+        Err(GraphError::InvalidBlock)
+    ));
+
+    // Zero-length blocks are a no-op success after prepare.
+    let mut empty_output: [super::HardwareOutputFrame; 0] = [];
+    graph
+        .process_block_with_sources(&mut sources, &mut empty_output, &mut |_, _, _| {
+            panic!("zero-length blocks must not visit channels");
+        })
+        .unwrap();
+
+    // Re-prepare grows capacity for a subsequent valid block.
+    graph.prepare_block_processing(8);
+    let mut larger_sources = vec![[0.0; 2]; graph.channel_count() * 8];
+    larger_sources[..8].fill([0.5, -0.25]);
+    let mut larger_output = [[0.0; super::MAX_OUTPUT_CHANNELS]; 8];
+    graph
+        .process_block_with_sources(&mut larger_sources, &mut larger_output, &mut |_, _, _| {})
+        .unwrap();
+    assert_eq!(&larger_output[0][..2], &[0.5, -0.25]);
+}
+
+#[test]
+fn stereo_bus_block_peaks_fold_absolute_maxima() {
+    let mut source = channel("source", ChannelKind::Audio, Some(3));
+    source.output = Some(RouteTarget::StereoBus(0));
+    let mut receiver = channel("receiver", ChannelKind::Aux, Some(3));
+    receiver.input_bus = Some([0, 1]);
+    let channels = vec![
+        source,
+        receiver,
+        channel("master", ChannelKind::Master, None),
+        channel("output", ChannelKind::Output, None),
+    ];
+    let mut graph = MixerGraph::new(48_000, channels, vec![]).unwrap();
+    graph.prepare_block_processing(5);
+    let frames = [
+        [0.25, -0.5],
+        [-0.75, 0.125],
+        [0.5, -1.0],
+        [0.0, 0.25],
+        [-0.125, 0.75],
+    ];
+    let mut sources = vec![[0.0; 2]; graph.channel_count() * frames.len()];
+    sources[..frames.len()].copy_from_slice(&frames);
+    let mut output = [[0.0; super::MAX_OUTPUT_CHANNELS]; 5];
+    graph
+        .process_block_with_sources(&mut sources, &mut output, &mut |_, _, _| {})
+        .unwrap();
+
+    let mut peaks = vec![Default::default(); graph.channel_count()];
+    graph.write_peaks(&mut peaks);
+    assert_eq!(peaks[0].pre, [0.75, 1.0]);
+    assert_eq!(peaks[0].post, [0.75, 1.0]);
+    // Receiver hears the stereo bus; peaks fold the absolute maxima of that path.
+    assert_eq!(peaks[1].pre, [0.75, 1.0]);
+    assert_eq!(peaks[1].post, [0.75, 1.0]);
+    assert_eq!(&output[2][..2], &[0.5, -1.0]);
+}
+
+#[test]
+fn block_path_covers_mute_disabled_send_and_delay_routes() {
+    let mut source = channel("source", ChannelKind::Audio, Some(4));
+    source.output = Some(RouteTarget::Bus(0));
+    let mut muted = channel("muted", ChannelKind::Audio, Some(4));
+    muted.muted = true;
+    let mut aux = channel("aux", ChannelKind::Aux, Some(4));
+    aux.input_bus = Some([0, 0]);
+    let mut master = channel("master", ChannelKind::Master, None);
+    master.muted = true;
+    let channels = vec![
+        source,
+        muted,
+        aux,
+        master,
+        channel("output", ChannelKind::Output, None),
+    ];
+    let sends = vec![
+        SendSpec {
+            id: "live-post-pan".into(),
+            source: 0,
+            target: RouteTarget::StereoBus(2),
+            enabled: true,
+            tap: SendTap::PostPan,
+            level_db: 0.0,
+        },
+        SendSpec {
+            id: "live-pre".into(),
+            source: 0,
+            target: RouteTarget::Bus(3),
+            enabled: true,
+            tap: SendTap::Pre,
+            level_db: -6.0,
+        },
+        SendSpec {
+            id: "live-post".into(),
+            source: 0,
+            target: RouteTarget::Bus(4),
+            enabled: true,
+            tap: SendTap::Post,
+            level_db: -6.0,
+        },
+        SendSpec {
+            id: "disabled".into(),
+            source: 0,
+            target: RouteTarget::Bus(1),
+            enabled: false,
+            tap: SendTap::Pre,
+            level_db: 0.0,
+        },
+    ];
+    let mut graph = MixerGraph::new(48_000, channels, sends).unwrap();
+    graph.set_channel_output_delay(0, 1).unwrap();
+    graph.set_send_delay(0, 1).unwrap();
+    graph.set_send_delay(1, 1).unwrap();
+    graph.set_send_delay(2, 1).unwrap();
+    graph.prepare_block_processing(3);
+
+    let mut sources = vec![[0.0; 2]; graph.channel_count() * 3];
+    sources[0] = [0.5, -0.25];
+    sources[1] = [0.25, -0.5];
+    sources[2] = [1.0, -1.0];
+    // muted channel inputs
+    sources[3] = [0.9, 0.9];
+    sources[4] = [0.9, 0.9];
+    sources[5] = [0.9, 0.9];
+    let mut output = [[0.0; super::MAX_OUTPUT_CHANNELS]; 3];
+    graph
+        .process_block_with_sources(&mut sources, &mut output, &mut |_, _, _| {})
+        .unwrap();
+    // Master mute silences hardware; delays shift the first frame to silence.
+    assert_eq!(&output[0][..2], &[0.0, 0.0]);
+    assert_eq!(&output[1][..2], &[0.0, 0.0]);
+}
+
+#[test]
 fn mono_output_routes_downmix_frames_and_blocks_before_the_output_strip() {
     for tap in [
         None,

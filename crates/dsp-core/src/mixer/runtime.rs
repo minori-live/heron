@@ -121,12 +121,10 @@ impl MixerGraph {
             send_runtime,
             sends_by_source,
             master,
-            block_capacity: 0,
             block_bus_count,
-            block_bus_accumulation: Vec::new(),
-            block_master_gains: Vec::new(),
-            block_master_pans: Vec::new(),
-            block_post_pan: Vec::new(),
+            // Defer Level detection and scratch allocation to
+            // `prepare_block_processing` so `process_frame` keeps a compact graph.
+            block: None,
         })
     }
 
@@ -287,14 +285,23 @@ impl MixerGraph {
     /// Allocates the scratch storage used by [`Self::process_block_with_sources`].
     ///
     /// Call this while building the graph, before publishing it to a real-time
-    /// thread. Processing a block never grows these buffers.
+    /// thread. Processing a block never grows these buffers. Also detects and
+    /// caches the SIMD [`fearless_simd::Level`] here (outside the real-time path).
     pub fn prepare_block_processing(&mut self, maximum_frames: usize) {
-        self.block_capacity = maximum_frames;
-        self.block_bus_accumulation =
-            vec![0.0; self.block_bus_count.saturating_mul(maximum_frames)];
-        self.block_master_gains = vec![0.0; maximum_frames];
-        self.block_master_pans = vec![0.0; maximum_frames];
-        self.block_post_pan = vec![[0.0, 0.0]; self.channels.len().saturating_mul(maximum_frames)];
+        self.block = Some(Box::new(BlockProcessingState {
+            simd_level: simd::detect_level(),
+            capacity: maximum_frames,
+            bus_count: self.block_bus_count,
+            bus_accumulation: vec![0.0; self.block_bus_count.saturating_mul(maximum_frames)],
+            master_gains: vec![0.0; maximum_frames],
+            master_pans: vec![0.0; maximum_frames],
+            channel_gains: vec![0.0; maximum_frames],
+            channel_pans: vec![0.0; maximum_frames],
+            send_gains: vec![0.0; maximum_frames],
+            post_pan: vec![[0.0, 0.0]; self.channels.len().saturating_mul(maximum_frames)],
+            post_fader: vec![[0.0, 0.0]; maximum_frames],
+            send_tap: vec![[0.0, 0.0]; maximum_frames],
+        }));
     }
 
     pub fn process_frame(&mut self, audio_inputs: &[StereoFrame]) -> HardwareOutputFrame {
@@ -341,7 +348,11 @@ impl MixerGraph {
     ) -> Result<(), GraphError> {
         let frame_count = output.len();
         let required_sources = self.channels.len().saturating_mul(frame_count);
-        if frame_count > self.block_capacity || channel_sources.len() < required_sources {
+        let prepared = self
+            .block
+            .as_ref()
+            .is_some_and(|block| frame_count <= block.capacity);
+        if !prepared || channel_sources.len() < required_sources {
             output.fill([0.0; MAX_OUTPUT_CHANNELS]);
             return Err(GraphError::InvalidBlock);
         }
@@ -349,130 +360,190 @@ impl MixerGraph {
             return Ok(());
         }
 
-        output.fill([0.0; MAX_OUTPUT_CHANNELS]);
-        let used_bus_samples = self.block_bus_count.saturating_mul(frame_count);
-        self.block_bus_accumulation[..used_bus_samples].fill(0.0);
-        self.block_post_pan[..required_sources].fill([0.0, 0.0]);
+        // Destructure so block scratch can be mutated alongside channel/send runtimes
+        // without overlapping borrows through `self`.
+        let MixerGraph {
+            channels,
+            sends,
+            order,
+            audible,
+            output_audible,
+            send_audible,
+            channel_runtime,
+            send_runtime,
+            peaks,
+            sends_by_source,
+            master,
+            block,
+            ..
+        } = self;
+        let block = block
+            .as_mut()
+            .expect("prepare_block_processing checked above");
 
-        let master = &self.channels[self.master];
-        let master_gate = if master.muted { 0.0 } else { 1.0 };
-        for frame in 0..frame_count {
-            self.block_master_gains[frame] =
-                self.channel_runtime[self.master].gain.next() * master_gate;
-            self.block_master_pans[frame] = self.channel_runtime[self.master].pan.next();
+        output.fill([0.0; MAX_OUTPUT_CHANNELS]);
+        let used_bus_samples = block.bus_count.saturating_mul(frame_count);
+        block.bus_accumulation[..used_bus_samples].fill(0.0);
+        block.post_pan[..required_sources].fill([0.0, 0.0]);
+
+        let master_muted = channels[*master].muted;
+        channel_runtime[*master]
+            .gain
+            .fill_next(&mut block.master_gains[..frame_count]);
+        if master_muted {
+            block.master_gains[..frame_count].fill(0.0);
         }
+        channel_runtime[*master]
+            .pan
+            .fill_next(&mut block.master_pans[..frame_count]);
         let mut master_pre = [0.0_f32; 2];
         let mut master_post = [0.0_f32; 2];
+        let simd_level = block.simd_level;
 
-        for &index in &self.order {
-            if index == self.master {
+        for &index in order.iter() {
+            if index == *master {
                 continue;
             }
             let start = index * frame_count;
             let end = start + frame_count;
-            if let Some([left, right]) = self.channels[index].input_bus {
-                let left_start = left * frame_count;
-                let right_start = right * frame_count;
-                for frame in 0..frame_count {
-                    channel_sources[start + frame][0] +=
-                        self.block_bus_accumulation[left_start + frame];
-                    channel_sources[start + frame][1] +=
-                        self.block_bus_accumulation[right_start + frame];
-                }
+            if let Some([left, right]) = channels[index].input_bus {
+                simd::add_buses_into_stereo(
+                    simd_level,
+                    &mut channel_sources[start..end],
+                    &block.bus_accumulation,
+                    left,
+                    right,
+                    frame_count,
+                );
             }
             processor(
                 index,
                 &mut channel_sources[start..end],
-                &self.block_post_pan[..required_sources],
+                &block.post_pan[..required_sources],
             );
 
-            let muted = self.channels[index].muted;
-            let output_route = self.channels[index].output;
-            let hardware_output = self.channels[index].hardware_output;
-            for (frame, hardware_frame) in output.iter_mut().enumerate() {
+            simd::peak_abs_stereo(
+                simd_level,
+                &channel_sources[start..end],
+                &mut peaks[index].pre,
+            );
+
+            let muted = channels[index].muted;
+            let output_route = channels[index].output;
+            let hardware_output = channels[index].hardware_output;
+            let silenced = muted || !audible[index];
+            channel_runtime[index]
+                .gain
+                .fill_next(&mut block.channel_gains[..frame_count]);
+            if silenced {
+                block.channel_gains[..frame_count].fill(0.0);
+            }
+            channel_runtime[index]
+                .pan
+                .fill_next(&mut block.channel_pans[..frame_count]);
+
+            for frame in 0..frame_count {
                 let source_index = start + frame;
                 let pre = channel_sources[source_index];
-                self.peaks[index].pre = [
-                    self.peaks[index].pre[0].max(pre[0].abs()),
-                    self.peaks[index].pre[1].max(pre[1].abs()),
-                ];
-                let gate = if muted || !self.audible[index] {
-                    0.0
+                let post_fader = scale(pre, block.channel_gains[frame]);
+                let post = balance_stereo(post_fader, block.channel_pans[frame]);
+                block.post_fader[frame] = post_fader;
+                block.post_pan[source_index] = post;
+            }
+
+            for &send_index in &sends_by_source[index] {
+                if !sends[send_index].enabled || !send_audible[send_index] {
+                    continue;
+                }
+                let tap = sends[send_index].tap;
+                let target = sends[send_index].target;
+                send_runtime[send_index]
+                    .gain
+                    .fill_next(&mut block.send_gains[..frame_count]);
+                let delay_empty = send_runtime[send_index].delay.is_empty();
+                if delay_empty {
+                    for frame in 0..frame_count {
+                        let source = match tap {
+                            SendTap::Pre => channel_sources[start + frame],
+                            SendTap::Post => block.post_fader[frame],
+                            SendTap::PostPan => block.post_pan[start + frame],
+                        };
+                        block.send_tap[frame] = scale(source, block.send_gains[frame]);
+                    }
+                    Self::route_block_tap(
+                        target,
+                        frame_count,
+                        simd_level,
+                        &mut block.bus_accumulation,
+                        channel_sources,
+                        &block.send_tap[..frame_count],
+                    );
                 } else {
-                    1.0
-                };
-                let post_fader = scale(pre, self.channel_runtime[index].gain.next() * gate);
-                let post = balance_stereo(post_fader, self.channel_runtime[index].pan.next());
-                self.block_post_pan[source_index] = post;
-
-                for &send_index in &self.sends_by_source[index] {
-                    let send = &self.sends[send_index];
-                    if !send.enabled || !self.send_audible[send_index] {
-                        continue;
-                    }
-                    let tap = match send.tap {
-                        SendTap::Pre => pre,
-                        SendTap::Post => post_fader,
-                        SendTap::PostPan => post,
-                    };
-                    let sent = scale(tap, self.send_runtime[send_index].gain.next());
-                    let sent = self.send_runtime[send_index].delay.process(sent);
-                    match send.target {
-                        RouteTarget::Bus(bus) => {
-                            self.block_bus_accumulation[bus * frame_count + frame] +=
-                                (sent[0] + sent[1]) * 0.5;
-                        }
-                        RouteTarget::StereoBus(bus) => {
-                            self.block_bus_accumulation[bus * frame_count + frame] += sent[0];
-                            self.block_bus_accumulation[(bus + 1) * frame_count + frame] += sent[1];
-                        }
-                        RouteTarget::MonoOutput(target) => {
-                            add(
-                                &mut channel_sources[target * frame_count + frame],
-                                [(sent[0] + sent[1]) * 0.5; 2],
-                            );
-                        }
-                        RouteTarget::Output(target) => {
-                            let target_index = target * frame_count + frame;
-                            add(&mut channel_sources[target_index], sent);
-                        }
+                    for frame in 0..frame_count {
+                        let source = match tap {
+                            SendTap::Pre => channel_sources[start + frame],
+                            SendTap::Post => block.post_fader[frame],
+                            SendTap::PostPan => block.post_pan[start + frame],
+                        };
+                        let sent = scale(source, block.send_gains[frame]);
+                        let sent = send_runtime[send_index].delay.process(sent);
+                        Self::route_frame_tap(
+                            target,
+                            frame_count,
+                            frame,
+                            sent,
+                            &mut block.bus_accumulation,
+                            channel_sources,
+                        );
                     }
                 }
+            }
 
-                self.peaks[index].post = [
-                    self.peaks[index].post[0].max(post[0].abs()),
-                    self.peaks[index].post[1].max(post[1].abs()),
-                ];
-                if let Some(route) = output_route.filter(|_| self.output_audible[index]) {
-                    let routed = self.channel_runtime[index].output_delay.process(post);
-                    match route {
-                        RouteTarget::Bus(bus) => {
-                            self.block_bus_accumulation[bus * frame_count + frame] +=
-                                (routed[0] + routed[1]) * 0.5;
-                        }
-                        RouteTarget::StereoBus(bus) => {
-                            self.block_bus_accumulation[bus * frame_count + frame] += routed[0];
-                            self.block_bus_accumulation[(bus + 1) * frame_count + frame] +=
-                                routed[1];
-                        }
-                        RouteTarget::MonoOutput(target) => {
-                            add(
-                                &mut channel_sources[target * frame_count + frame],
-                                [(routed[0] + routed[1]) * 0.5; 2],
-                            );
-                        }
-                        RouteTarget::Output(target) => {
-                            let target_index = target * frame_count + frame;
-                            add(&mut channel_sources[target_index], routed);
-                        }
+            simd::peak_abs_stereo(
+                simd_level,
+                &block.post_pan[start..end],
+                &mut peaks[index].post,
+            );
+
+            if let Some(route) = output_route.filter(|_| output_audible[index]) {
+                let delay_empty = channel_runtime[index].output_delay.is_empty();
+                if delay_empty {
+                    // Copy post-pan into send-tap scratch so bus accumulation can
+                    // borrow mutably without overlapping `post_pan`.
+                    block.send_tap[..frame_count].copy_from_slice(&block.post_pan[start..end]);
+                    Self::route_block_tap(
+                        route,
+                        frame_count,
+                        simd_level,
+                        &mut block.bus_accumulation,
+                        channel_sources,
+                        &block.send_tap[..frame_count],
+                    );
+                } else {
+                    for frame in 0..frame_count {
+                        let routed = channel_runtime[index]
+                            .output_delay
+                            .process(block.post_pan[start + frame]);
+                        Self::route_frame_tap(
+                            route,
+                            frame_count,
+                            frame,
+                            routed,
+                            &mut block.bus_accumulation,
+                            channel_sources,
+                        );
                     }
                 }
-                if let Some([left, right]) = hardware_output {
+            }
+
+            if let Some([left, right]) = hardware_output {
+                for (frame, hardware_frame) in output.iter_mut().enumerate() {
+                    let post = block.post_pan[start + frame];
                     master_pre[0] = master_pre[0].max(post[0].abs());
                     master_pre[1] = master_pre[1].max(post[1].abs());
                     let mastered = balance_stereo(
-                        scale(post, self.block_master_gains[frame]),
-                        self.block_master_pans[frame],
+                        scale(post, block.master_gains[frame]),
+                        block.master_pans[frame],
                     );
                     master_post[0] = master_post[0].max(mastered[0].abs());
                     master_post[1] = master_post[1].max(mastered[1].abs());
@@ -481,15 +552,92 @@ impl MixerGraph {
                 }
             }
         }
-        self.peaks[self.master].pre = [
-            self.peaks[self.master].pre[0].max(master_pre[0]),
-            self.peaks[self.master].pre[1].max(master_pre[1]),
+        peaks[*master].pre = [
+            peaks[*master].pre[0].max(master_pre[0]),
+            peaks[*master].pre[1].max(master_pre[1]),
         ];
-        self.peaks[self.master].post = [
-            self.peaks[self.master].post[0].max(master_post[0]),
-            self.peaks[self.master].post[1].max(master_post[1]),
+        peaks[*master].post = [
+            peaks[*master].post[0].max(master_post[0]),
+            peaks[*master].post[1].max(master_post[1]),
         ];
         Ok(())
+    }
+
+    fn route_frame_tap(
+        target: RouteTarget,
+        frame_count: usize,
+        frame: usize,
+        sent: StereoFrame,
+        bus_accumulation: &mut [f32],
+        channel_sources: &mut [StereoFrame],
+    ) {
+        match target {
+            RouteTarget::Bus(bus) => {
+                bus_accumulation[bus * frame_count + frame] += (sent[0] + sent[1]) * 0.5;
+            }
+            RouteTarget::StereoBus(bus) => {
+                bus_accumulation[bus * frame_count + frame] += sent[0];
+                bus_accumulation[(bus + 1) * frame_count + frame] += sent[1];
+            }
+            RouteTarget::MonoOutput(target_channel) => {
+                add(
+                    &mut channel_sources[target_channel * frame_count + frame],
+                    [(sent[0] + sent[1]) * 0.5; 2],
+                );
+            }
+            RouteTarget::Output(target_channel) => {
+                add(
+                    &mut channel_sources[target_channel * frame_count + frame],
+                    sent,
+                );
+            }
+        }
+    }
+
+    fn route_block_tap(
+        target: RouteTarget,
+        frame_count: usize,
+        simd_level: fearless_simd::Level,
+        bus_accumulation: &mut [f32],
+        channel_sources: &mut [StereoFrame],
+        tap: &[StereoFrame],
+    ) {
+        match target {
+            RouteTarget::Bus(bus) => {
+                let bus_start = bus * frame_count;
+                simd::accumulate_stereo_to_bus(
+                    simd_level,
+                    &mut bus_accumulation[bus_start..bus_start + frame_count],
+                    tap,
+                    0.5,
+                );
+            }
+            RouteTarget::StereoBus(bus) => {
+                simd::accumulate_stereo_to_stereo_bus(
+                    simd_level,
+                    bus_accumulation,
+                    tap,
+                    bus,
+                    bus + 1,
+                    frame_count,
+                );
+            }
+            RouteTarget::MonoOutput(target_channel) => {
+                let target_start = target_channel * frame_count;
+                for frame in 0..frame_count {
+                    add(
+                        &mut channel_sources[target_start + frame],
+                        [(tap[frame][0] + tap[frame][1]) * 0.5; 2],
+                    );
+                }
+            }
+            RouteTarget::Output(target_channel) => {
+                let target_start = target_channel * frame_count;
+                for frame in 0..frame_count {
+                    add(&mut channel_sources[target_start + frame], tap[frame]);
+                }
+            }
+        }
     }
 
     fn process_accumulated(

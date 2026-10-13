@@ -34,6 +34,8 @@ cc = "1"
 cpal = "0.18.2"
 clap-sys = "=0.5.0"
 criterion = { version = "0.8.2", features = ["csv_output", "html_reports"] }
+fearless_simd = "1.1.0"
+fearless_simd_macros = "0.1.0"
 libc = "0.2"
 # Standalone Rust tests and benchmarks link the N-API crates without a Node
 # host on macOS and Linux. Keep symbol lookup dynamic even with older napi 3.x
