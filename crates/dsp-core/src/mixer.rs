@@ -299,4 +299,47 @@ mod smoothed_tests {
         block_wise.fill_next(&mut settled_actual);
         assert_eq!(settled_actual, settled_expected);
     }
+
+    #[test]
+    fn fill_next_handles_empty_settled_and_mid_ramp_snap() {
+        let mut empty = SmoothedValue::new(0.5, 48_000);
+        empty.fill_next(&mut []);
+        assert!((empty.next() - 0.5).abs() < 1.0e-7);
+
+        let mut settled = SmoothedValue::new(-3.0, 48_000);
+        let mut block = [0.0; 8];
+        settled.fill_next(&mut block);
+        assert_eq!(block, [-3.0; 8]);
+
+        // coefficient == 1.0 snaps to the target on the first sample, then fills
+        // the remainder without further branching.
+        let mut snapping = SmoothedValue::new(0.0, 1);
+        snapping.set_target(1.0);
+        let mut snapped = [0.0; 5];
+        snapping.fill_next(&mut snapped);
+        assert_eq!(snapped, [1.0; 5]);
+        assert!((snapping.next() - 1.0).abs() < 1.0e-7);
+
+        // Short ramp that settles inside the block exercises the mid-ramp fill.
+        let mut mid_snap = SmoothedValue::new(1.0, 1_000);
+        mid_snap.set_target(0.0);
+        let mut long_block = [0.0_f32; 256];
+        mid_snap.fill_next(&mut long_block);
+        assert!(
+            long_block
+                .iter()
+                .any(|sample| *sample > 0.0 && *sample < 1.0)
+        );
+        assert_eq!(*long_block.last().unwrap(), 0.0);
+        let first_settled = long_block
+            .iter()
+            .position(|sample| *sample == 0.0)
+            .expect("ramp must settle inside the block");
+        assert!(first_settled > 0);
+        assert!(
+            long_block[first_settled..]
+                .iter()
+                .all(|sample| *sample == 0.0)
+        );
+    }
 }

@@ -9,7 +9,9 @@ license.workspace = true
 path = "src/lib.rs"
 
 [dependencies]
-fearless_simd.workspace = true
+# Keep the scalar Fallback backend available so tests can exercise Level::fallback()
+# dispatch parity beside the host's best SIMD level.
+fearless_simd = { workspace = true, features = ["force_support_fallback"] }
 fearless_simd_macros.workspace = true
 
 [lints]

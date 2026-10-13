@@ -386,16 +386,12 @@ impl MixerGraph {
         block.bus_accumulation[..used_bus_samples].fill(0.0);
         block.post_pan[..required_sources].fill([0.0, 0.0]);
 
-        let master_gate = if channels[*master].muted { 0.0 } else { 1.0 };
+        let master_muted = channels[*master].muted;
         channel_runtime[*master]
             .gain
             .fill_next(&mut block.master_gains[..frame_count]);
-        if master_gate == 0.0 {
+        if master_muted {
             block.master_gains[..frame_count].fill(0.0);
-        } else if master_gate != 1.0 {
-            for gain in &mut block.master_gains[..frame_count] {
-                *gain *= master_gate;
-            }
         }
         channel_runtime[*master]
             .pan
@@ -435,16 +431,12 @@ impl MixerGraph {
             let muted = channels[index].muted;
             let output_route = channels[index].output;
             let hardware_output = channels[index].hardware_output;
-            let gate = if muted || !audible[index] { 0.0 } else { 1.0 };
+            let silenced = muted || !audible[index];
             channel_runtime[index]
                 .gain
                 .fill_next(&mut block.channel_gains[..frame_count]);
-            if gate == 0.0 {
+            if silenced {
                 block.channel_gains[..frame_count].fill(0.0);
-            } else if gate != 1.0 {
-                for gain in &mut block.channel_gains[..frame_count] {
-                    *gain *= gate;
-                }
             }
             channel_runtime[index]
                 .pan

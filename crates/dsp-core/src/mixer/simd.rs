@@ -296,74 +296,100 @@ mod tests {
         }
     }
 
-    #[test]
-    fn bus_into_stereo_matches_scalar() {
-        let level = detect_level();
-        let frame_count = 64;
-        let mut buses = vec![0.0; frame_count * 2];
-        for index in 0..frame_count {
-            buses[index] = index as f32 * 0.01;
-            buses[frame_count + index] = index as f32 * -0.02;
-        }
-        let mut simd_frames = vec![[0.25, -0.5]; frame_count];
-        let mut scalar_frames = simd_frames.clone();
-        add_buses_into_stereo(level, &mut simd_frames, &buses, 0, 1, frame_count);
-        add_buses_into_stereo_scalar(&mut scalar_frames, &buses, 0, 1, frame_count);
-        assert_frames_close(&simd_frames, &scalar_frames);
+    /// Host-best SIMD plus the forced scalar Fallback backend.
+    fn dispatch_levels() -> Vec<Level> {
+        vec![detect_level(), Level::fallback()]
+    }
 
-        let mut same_bus_simd = vec![[0.1, 0.2]; frame_count];
-        let mut same_bus_scalar = same_bus_simd.clone();
-        add_buses_into_stereo(level, &mut same_bus_simd, &buses, 0, 0, frame_count);
-        add_buses_into_stereo_scalar(&mut same_bus_scalar, &buses, 0, 0, frame_count);
-        assert_frames_close(&same_bus_simd, &same_bus_scalar);
+    /// Lengths that hit vector bodies and non-multiple-of-lane remainders.
+    fn remainder_lengths() -> [usize; 8] {
+        [1, 7, 8, 15, 17, 31, 33, 65]
     }
 
     #[test]
-    fn stereo_to_bus_matches_scalar() {
-        let level = detect_level();
-        let frames: Vec<StereoFrame> = (0..65)
-            .map(|index| [index as f32 * 0.03, index as f32 * -0.04])
-            .collect();
-        let mut simd_bus = vec![0.125; 65];
-        let mut scalar_bus = simd_bus.clone();
-        accumulate_stereo_to_bus(level, &mut simd_bus, &frames, 0.5);
-        accumulate_stereo_to_bus_scalar(&mut scalar_bus, &frames, 0.5);
-        for (actual, expected) in simd_bus.iter().zip(&scalar_bus) {
-            assert_close(*actual, *expected);
+    fn bus_into_stereo_matches_scalar_across_levels_and_tails() {
+        for level in dispatch_levels() {
+            for &frame_count in &remainder_lengths() {
+                let mut buses = vec![0.0; frame_count * 2];
+                for index in 0..frame_count {
+                    buses[index] = index as f32 * 0.01;
+                    buses[frame_count + index] = index as f32 * -0.02;
+                }
+                let mut simd_frames = vec![[0.25, -0.5]; frame_count];
+                let mut scalar_frames = simd_frames.clone();
+                add_buses_into_stereo(level, &mut simd_frames, &buses, 0, 1, frame_count);
+                add_buses_into_stereo_scalar(&mut scalar_frames, &buses, 0, 1, frame_count);
+                assert_frames_close(&simd_frames, &scalar_frames);
+
+                let mut same_bus_simd = vec![[0.1, 0.2]; frame_count];
+                let mut same_bus_scalar = same_bus_simd.clone();
+                add_buses_into_stereo(level, &mut same_bus_simd, &buses, 0, 0, frame_count);
+                add_buses_into_stereo_scalar(&mut same_bus_scalar, &buses, 0, 0, frame_count);
+                assert_frames_close(&same_bus_simd, &same_bus_scalar);
+            }
         }
     }
 
     #[test]
-    fn stereo_to_stereo_bus_matches_scalar() {
-        let level = detect_level();
-        let frame_count = 63;
-        let frames: Vec<StereoFrame> = (0..frame_count)
-            .map(|index| [index as f32 * 0.05, index as f32 * -0.07])
-            .collect();
-        let mut simd_buses = vec![0.25; frame_count * 2];
-        let mut scalar_buses = simd_buses.clone();
-        accumulate_stereo_to_stereo_bus(level, &mut simd_buses, &frames, 0, 1, frame_count);
-        accumulate_stereo_to_stereo_bus_scalar(&mut scalar_buses, &frames, 0, 1, frame_count);
-        for (actual, expected) in simd_buses.iter().zip(&scalar_buses) {
-            assert_close(*actual, *expected);
+    fn stereo_to_bus_matches_scalar_across_levels_and_tails() {
+        for level in dispatch_levels() {
+            for &frame_count in &remainder_lengths() {
+                let frames: Vec<StereoFrame> = (0..frame_count)
+                    .map(|index| [index as f32 * 0.03, index as f32 * -0.04])
+                    .collect();
+                let mut simd_bus = vec![0.125; frame_count];
+                let mut scalar_bus = simd_bus.clone();
+                accumulate_stereo_to_bus(level, &mut simd_bus, &frames, 0.5);
+                accumulate_stereo_to_bus_scalar(&mut scalar_bus, &frames, 0.5);
+                for (actual, expected) in simd_bus.iter().zip(&scalar_bus) {
+                    assert_close(*actual, *expected);
+                }
+            }
         }
     }
 
     #[test]
-    fn peak_abs_matches_scalar() {
-        let level = detect_level();
-        let frames: Vec<StereoFrame> = (0..67)
-            .map(|index| {
-                let value = (index as f32 * 0.07) - 1.5;
-                [value, -value * 0.5]
-            })
-            .collect();
-        let mut simd_peak = [0.1, 0.2];
-        let mut scalar_peak = simd_peak;
-        peak_abs_stereo(level, &frames, &mut simd_peak);
-        peak_abs_stereo_scalar(&frames, &mut scalar_peak);
-        assert_close(simd_peak[0], scalar_peak[0]);
-        assert_close(simd_peak[1], scalar_peak[1]);
+    fn stereo_to_stereo_bus_matches_scalar_across_levels_and_tails() {
+        for level in dispatch_levels() {
+            for &frame_count in &remainder_lengths() {
+                let frames: Vec<StereoFrame> = (0..frame_count)
+                    .map(|index| [index as f32 * 0.05, index as f32 * -0.07])
+                    .collect();
+                let mut simd_buses = vec![0.25; frame_count * 2];
+                let mut scalar_buses = simd_buses.clone();
+                accumulate_stereo_to_stereo_bus(level, &mut simd_buses, &frames, 0, 1, frame_count);
+                accumulate_stereo_to_stereo_bus_scalar(
+                    &mut scalar_buses,
+                    &frames,
+                    0,
+                    1,
+                    frame_count,
+                );
+                for (actual, expected) in simd_buses.iter().zip(&scalar_buses) {
+                    assert_close(*actual, *expected);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn peak_abs_matches_scalar_across_levels_and_tails() {
+        for level in dispatch_levels() {
+            for &frame_count in &remainder_lengths() {
+                let frames: Vec<StereoFrame> = (0..frame_count)
+                    .map(|index| {
+                        let value = (index as f32 * 0.07) - 1.5;
+                        [value, -value * 0.5]
+                    })
+                    .collect();
+                let mut simd_peak = [0.1, 0.2];
+                let mut scalar_peak = simd_peak;
+                peak_abs_stereo(level, &frames, &mut simd_peak);
+                peak_abs_stereo_scalar(&frames, &mut scalar_peak);
+                assert_close(simd_peak[0], scalar_peak[0]);
+                assert_close(simd_peak[1], scalar_peak[1]);
+            }
+        }
     }
 
     #[test]

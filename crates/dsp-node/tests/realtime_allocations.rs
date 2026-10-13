@@ -134,6 +134,27 @@ fn realtime_mixer_render_preview_and_capture_do_not_allocate() {
         }
     });
 
+    // prepare_block_processing may allocate; the block realtime path must not.
+    graph.prepare_block_processing(256);
+    let mut block_sources = vec![[0.0, 0.0]; graph.channel_count() * 256];
+    for frame in &mut block_sources[..256] {
+        *frame = [0.25, -0.25];
+    }
+    let mut block_output = vec![[0.0; 32]; 256];
+    graph
+        .process_block_with_sources(&mut block_sources, &mut block_output, &mut |_, _, _| {})
+        .expect("prepared block");
+    assert_no_thread_allocations("MixerGraph::process_block_with_sources", || {
+        graph
+            .process_block_with_sources(
+                black_box(&mut block_sources),
+                black_box(&mut block_output),
+                &mut |_, _, _| {},
+            )
+            .expect("prepared block");
+        black_box(&block_output);
+    });
+
     let mut render = RenderHarness::new(RenderScenario {
         sample_rate: 48_000,
         tracks: 32,
