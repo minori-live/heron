@@ -64,6 +64,52 @@ brew upgrade --cask --greedy-auto-updates minori-live/tap/heron
 
 ## Linux
 
+### Nix
+
+在启用 [Nix](https://nixos.org/download/) flakes 的情况下：
+
+```sh
+nix run github:minori-live/heron
+```
+
+安装到用户 profile：
+
+```sh
+nix profile install github:minori-live/heron
+```
+
+在 NixOS 中导入 flake 模块并启用：
+
+```nix
+{
+  inputs.heron.url = "github:minori-live/heron";
+
+  outputs = { nixpkgs, heron, ... }: {
+    nixosConfigurations.example = nixpkgs.lib.nixosSystem {
+      modules = [
+        heron.nixosModules.heron
+        { programs.heron.enable = true; }
+      ];
+    };
+  };
+}
+```
+
+使用 home-manager：
+
+```nix
+{
+  imports = [ inputs.heron.homeManagerModules.heron ];
+  programs.heron.enable = true;
+}
+```
+
+该 flake 会包装 GitHub Releases 中的官方 Linux AppImage（`x86_64-linux` 与
+`aarch64-linux`），因此二进制与其他分发渠道一致。发布同步细节见
+[Nix 分发说明](https://github.com/minori-live/heron/blob/main/agents/docs/nix-distribution.md)。
+
+### AppImage
+
 为 AppImage 添加可执行权限，然后运行：
 
 ```sh

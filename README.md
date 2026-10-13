@@ -86,6 +86,18 @@ The [Heron user manual](https://heron.minori.live/manual/) covers installation,
 projects, recording, MIDI editing, mixing, plug-ins, audio-device setup, and
 troubleshooting.
 
+## Install
+
+- **macOS:** `brew install --cask minori-live/tap/heron` (see the
+  [Homebrew tap](https://github.com/minori-live/homebrew-tap))
+- **Linux (Nix):** `nix run github:minori-live/heron` or
+  `nix profile install github:minori-live/heron`
+- **Windows / macOS / Linux installers:** download from
+  [Releases](https://github.com/minori-live/heron/releases)
+
+NixOS and home-manager module snippets are in the
+[install guide](https://heron.minori.live/manual/install).
+
 ## Development
 
 The repository uses a locked, project-managed toolchain. To start a development

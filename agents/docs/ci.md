@@ -214,6 +214,8 @@ in the Rust LCOV report.
 [Application updates](application-updates.md) owns installed eligibility, channel
 metadata, scheduling, installation admission and shutdown/recovery.
 [Homebrew distribution](homebrew-distribution.md) owns Tap synchronization.
+[Nix distribution](nix-distribution.md) owns the in-repo Linux flake pin and its
+release synchronization.
 [Built-in plug-in distribution](builtin-plugin-distribution.md) owns the separately
 released runtime dependency and its upgrade PRs.
 

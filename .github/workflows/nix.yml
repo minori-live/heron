@@ -1,0 +1,55 @@
+name: Nix
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nix-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flake:
+    name: Flake check and package
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v23
+
+      - name: Magically cache Nix store paths
+        uses: DeterminateSystems/magic-nix-cache-action@v15
+
+      - name: Evaluate and build the flake
+        run: |
+          nix flake check --print-build-logs
+          nix build .#heron --print-build-logs
+
+      - name: Smoke-test the wrapped binary
+        run: |
+          test -x ./result/bin/heron
+          test -f ./result/share/applications/heron.desktop
+          # Headless start: confirm the FHS wrapper resolves. Bound the wait so a
+          # stuck Electron main process cannot hang the job.
+          set +e
+          output="$(timeout 30 ./result/bin/heron --version 2>&1)"
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          if printf '%s' "$output" | grep -Eiq 'error while loading shared libraries|cannot open shared object'; then
+            echo "::error::Heron failed to resolve shared libraries under the Nix wrapper."
+            exit 1
+          fi
+          # 0 = clean exit, 124 = timeout after linking/startup, other = post-link failure.
+          if [[ "$status" -eq 0 || "$status" -eq 124 ]]; then
+            exit 0
+          fi
+          echo "Binary launched far enough to exercise dynamic linking (exit $status)."

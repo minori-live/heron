@@ -36,6 +36,8 @@ local in each repository so either can be developed independently.
 - [Product interaction design](interaction-design.md)
 - [Rust performance benchmarks](benchmarks.md)
 - [Continuous integration and releases](ci.md)
+- [Homebrew distribution](homebrew-distribution.md)
+- [Nix distribution](nix-distribution.md)
 - [Built-in plug-in distribution](builtin-plugin-distribution.md)
 - [EQ host integration and fitted-preset interchange](heron-eq.md)
 - [Plugin development standards](https://github.com/minori-live/heron-plugins/blob/main/agents/docs/README.md)

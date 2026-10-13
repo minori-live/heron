@@ -29,10 +29,16 @@ jobs:
     permissions:
       contents: read
 
+  nix:
+    name: Nix
+    uses: ./.github/workflows/nix.yml
+    permissions:
+      contents: read
+
   gate:
     name: Gate
     if: ${{ always() }}
-    needs: [test, build]
+    needs: [test, build, nix]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -41,9 +47,10 @@ jobs:
         env:
           TEST_RESULT: ${{ needs.test.result }}
           BUILD_RESULT: ${{ needs.build.result }}
+          NIX_RESULT: ${{ needs.nix.result }}
         run: |
-          if [[ "$TEST_RESULT" != "success" || "$BUILD_RESULT" != "success" ]]; then
-            echo "::error::Required CI jobs did not succeed (Test: $TEST_RESULT, Build: $BUILD_RESULT)."
+          if [[ "$TEST_RESULT" != "success" || "$BUILD_RESULT" != "success" || "$NIX_RESULT" != "success" ]]; then
+            echo "::error::Required CI jobs did not succeed (Test: $TEST_RESULT, Build: $BUILD_RESULT, Nix: $NIX_RESULT)."
             exit 1
           fi
 
