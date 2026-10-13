@@ -1,5 +1,6 @@
-import { DOMWrapper, mount } from "@vue/test-utils"
+import { DOMWrapper, flushPromises, mount } from "@vue/test-utils"
 import { afterEach, describe, expect, it } from "vitest"
+import { nextTick } from "vue"
 
 import UiButton from "./UiButton.vue"
 import UiCascadingMenu from "./UiCascadingMenu.vue"
@@ -69,6 +70,27 @@ describe("UI controls", () => {
     expect(buttons[0]?.attributes("data-state")).toBe("on")
     await buttons[1]?.trigger("click")
     expect(wrapper.emitted("update:modelValue")).toEqual([["draw"]])
+  })
+
+  it("hides the selection indicator when an optional mode is cleared", async () => {
+    const wrapper = mount(UiSegmentedControl, {
+      props: {
+        label: "Asset type",
+        modelValue: "audio",
+        options: [
+          { label: "Audio", value: "audio" },
+          { label: "MIDI", value: "midi" }
+        ]
+      }
+    })
+
+    await nextTick()
+    const indicator = wrapper.get(".ui-segmented__indicator")
+    expect(indicator.classes()).toContain("is-visible")
+    await wrapper.setProps({ modelValue: "" })
+    await flushPromises()
+    expect(wrapper.findAll('[data-state="on"]')).toHaveLength(0)
+    expect(indicator.classes()).not.toContain("is-visible")
   })
 
   it("commits bounded numeric values from stepping, blur, and Enter", async () => {

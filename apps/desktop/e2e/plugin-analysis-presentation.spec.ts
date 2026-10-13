@@ -122,6 +122,10 @@ test("analysis layout reflows without clipping and its text stays readable after
     await page.locator("html").evaluate((element, theme) => {
       element.dataset.theme = theme
     }, theme)
+    // Colour transitions run on a theme switch; measure the settled colours.
+    await page.evaluate(() =>
+      Promise.all(document.getAnimations().map((animation) => animation.finished))
+    )
     await expectReadableAnalysisText(page)
     await page.screenshot({ path: test.info().outputPath(`analysis-${theme}.png`) })
   }

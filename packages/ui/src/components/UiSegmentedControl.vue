@@ -48,9 +48,8 @@ function place(): void {
 let resize: ResizeObserver | undefined
 onMounted(() => {
   place()
-  if (typeof ResizeObserver === "undefined" || !root.value) return
   resize = new ResizeObserver(place)
-  resize.observe(root.value.$el)
+  resize.observe(root.value!.$el)
 })
 onBeforeUnmount(() => resize?.disconnect())
 watch([model, () => props.options], () => nextTick(place))
