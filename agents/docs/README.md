@@ -7,7 +7,9 @@ Use it for architecture, roadmap, performance, CI, design-system notes,
 development-environment guidance, agent workflows, permission guidance,
 implementation checklists, and other automation-specific conventions. Manage
 reusable agent skills through `apm.yml` rather than documenting or editing
-installed copies under `.agents/skills/`.
+installed copies under `.agents/skills/`. Installed skills are checked into the
+repository so fresh agent checkouts can use them without an APM install step;
+regenerate via the locked APM workflow when `apm.yml` changes.
 
 Native plugin development is owned by
 [Heron Plugins' local standards](https://github.com/minori-live/heron-plugins/blob/main/agents/docs/README.md).

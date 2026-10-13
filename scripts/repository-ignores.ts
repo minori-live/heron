@@ -7,7 +7,13 @@
  * formatter-only additions are separated here rather than in three files.
  */
 
-/** Generated, vendored and build output directories and files. */
+/**
+ * Generated, vendored and build output directories and files.
+ *
+ * `.agents/skills/` is checked into git for fresh agent checkouts, but remains
+ * formatter/linter-ignored because copies are regenerated from `apm.yml`.
+ * `apm_modules/` is the local APM package cache and stays git-ignored.
+ */
 export const generatedAndBuildPaths = [
   ".agents/skills/",
   ".pnpm-store/",

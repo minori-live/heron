@@ -115,6 +115,11 @@ mise run check
 This prevents a system-global Node.js, pnpm, Rust, Cargo, or APM installation
 from silently replacing the versions declared by the repository.
 
+Agent skills declared in `apm.yml` are installed under `.agents/skills/` and
+checked into git for fresh checkouts. Keep regenerating them with
+`apm install --frozen` when dependencies change; leave `apm_modules/`
+git-ignored as the local package cache.
+
 Use pnpm workspace filters for package-level commands:
 
 ```sh

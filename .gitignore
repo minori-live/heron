@@ -25,9 +25,8 @@ mise.local.toml
 crates/dsp-node/index.d.ts
 crates/dsp-node/index.js
 
-# APM dependencies
+# APM package cache (installed skills live under .agents/skills/ and are tracked)
 apm_modules/
-.agents/skills/
 *.tsbuildinfo
 
 # Local VST3 Bindgen experiments; production bindings are emitted to OUT_DIR.
