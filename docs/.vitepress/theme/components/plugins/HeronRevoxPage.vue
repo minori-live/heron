@@ -56,7 +56,6 @@ const features = computed(() =>
       </template>
     </ProductHero>
     <div class="revox-content">
-      <p class="revox-media-todo">{{ copy.mediaTodo }}</p>
       <PluginFeatureGrid :title="copy.featuresTitle" :features="features" />
       <HeronRevoxDetails :copy="copy" />
       <RevoxAcceleration
