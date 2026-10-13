@@ -9,7 +9,6 @@ interface Layer {
   kind: "project" | "set" | "patch"
   name: string
   chorus?: boolean
-  target?: boolean
 }
 
 const layers: Layer[] = [
@@ -18,7 +17,7 @@ const layers: Layer[] = [
   { kind: "patch", name: "Warm Keys" },
   { kind: "patch", name: "Lead Vox" },
   { kind: "set", name: "Chorus" },
-  { kind: "patch", name: "Wide Pad", chorus: true, target: true },
+  { kind: "patch", name: "Wide Pad", chorus: true },
   { kind: "patch", name: "Big Drums" }
 ]
 
@@ -63,7 +62,6 @@ function level(strip: Strip, index: number, channel: number): number {
             `live-layer--${layer.kind}`,
             { 'is-active': layer.kind === 'patch' && layer.name === activeName }
           ]"
-          :data-cursor-target="layer.target ? 'patch' : undefined"
         >
           <i class="live-layer__icon" />
           <span>{{ layer.name }}</span>

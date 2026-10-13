@@ -1,14 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from "vue"
-import DeskCursor from "./DeskCursor.vue"
-import {
-  REST_TIME,
-  cursorStates,
-  deskWindows,
-  fallbackTargets,
-  type DeskTargets,
-  type Rect
-} from "./desk-scenario"
+import { computed, onMounted, ref } from "vue"
+import { REST_TIME, deskWindows, type Rect } from "./desk-scenario"
 import { useHomeCopy } from "./home-copy"
 import { useAnimationClock, usePrefersReducedMotion, useScrollProgress } from "./home-motion"
 import AnalysisWindow from "./windows/AnalysisWindow.vue"
@@ -18,12 +10,10 @@ import StudioWindow from "./windows/StudioWindow.vue"
 
 const t = useHomeCopy()
 const hero = ref<HTMLElement>()
-const stage = ref<HTMLElement>()
 const reduced = usePrefersReducedMotion()
 const time = useAnimationClock(hero, reduced, REST_TIME)
 const leave = useScrollProgress(hero, "leave")
 const assembled = ref(false)
-const targets = shallowRef<DeskTargets>(fallbackTargets)
 
 const windows = [
   { key: "eq", component: EqWindow, rect: deskWindows.eq },
@@ -31,15 +21,6 @@ const windows = [
   { key: "studio", component: StudioWindow, rect: deskWindows.studio },
   { key: "live", component: LiveWindow, rect: deskWindows.live }
 ] as const
-
-const cursorColors = {
-  record: "var(--home-red)",
-  shape: "var(--home-violet)",
-  patch: "var(--home-cyan)",
-  measure: "var(--home-amber)"
-}
-
-const cursors = computed(() => cursorStates(time.value, targets.value))
 
 /** Each window starts in a tilted diagonal stack and flies to its place. */
 function slotStyle(rect: Rect, index: number) {
@@ -65,61 +46,17 @@ const stageStyle = computed(() => {
   }
 })
 
-function measureTargets() {
-  const root = stage.value
-  if (!root) return
-  const box = root.getBoundingClientRect()
-  const relative = (selector: string): Rect | undefined => {
-    const element = root.querySelector(`[data-cursor-target="${selector}"]`)
-    if (!element) return undefined
-    const r = element.getBoundingClientRect()
-    return {
-      x: ((r.left - box.left) / box.width) * 100,
-      y: ((r.top - box.top) / box.height) * 100,
-      w: (r.width / box.width) * 100,
-      h: (r.height / box.height) * 100
-    }
-  }
-  const center = (rect: Rect | undefined) =>
-    rect && { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 }
-  targets.value = {
-    record: center(relative("record")) ?? fallbackTargets.record,
-    patch: center(relative("patch")) ?? fallbackTargets.patch,
-    eqPlot: relative("eq-plot") ?? fallbackTargets.eqPlot,
-    analysisPlot: relative("analysis-plot") ?? fallbackTargets.analysisPlot
-  }
-}
-
-let landed = false
-let landing = 0
-let resize: ResizeObserver | undefined
 onMounted(() => {
   requestAnimationFrame(() => {
     assembled.value = true
   })
-  // Measure once the windows have landed; the intro transforms skew earlier readings.
-  landing = window.setTimeout(
-    () => {
-      landed = true
-      measureTargets()
-    },
-    reduced.value ? 0 : 1900
-  )
-  resize = new ResizeObserver(() => {
-    if (landed) measureTargets()
-  })
-  if (stage.value) resize.observe(stage.value)
-})
-onBeforeUnmount(() => {
-  window.clearTimeout(landing)
-  resize?.disconnect()
 })
 </script>
 
 <template>
   <section ref="hero" class="desk" :class="{ 'is-assembled': assembled, 'is-reduced': reduced }">
     <div class="desk__viewport">
-      <div ref="stage" class="desk__stage" role="img" :aria-label="t.deskLabel" :style="stageStyle">
+      <div class="desk__stage" role="img" :aria-label="t.deskLabel" :style="stageStyle">
         <div
           v-for="(win, i) in windows"
           :key="win.key"
@@ -131,18 +68,6 @@ onBeforeUnmount(() => {
               <component :is="win.component" :t="time" />
             </div>
           </div>
-        </div>
-        <div class="desk__cursors" aria-hidden="true">
-          <DeskCursor
-            v-for="cursor in cursors"
-            :key="cursor.key"
-            :x="cursor.x"
-            :y="cursor.y"
-            :color="cursorColors[cursor.key]"
-            :label="t.cursors[cursor.key]"
-            :label-visible="cursor.labelVisible"
-            :pressed="cursor.pressed"
-          />
         </div>
       </div>
     </div>
@@ -213,17 +138,6 @@ onBeforeUnmount(() => {
   animation: desk-float 7s ease-in-out calc(var(--i) * -1.7s) infinite alternate;
 }
 
-.desk__cursors {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 0.6s ease 1.6s;
-}
-
-.is-assembled .desk__cursors {
-  opacity: 1;
-}
-
 .desk__copy {
   position: relative;
   z-index: 2;
@@ -268,8 +182,7 @@ onBeforeUnmount(() => {
   margin-top: 26px;
 }
 
-.is-reduced .desk__motion,
-.is-reduced .desk__cursors {
+.is-reduced .desk__motion {
   transition: none;
 }
 

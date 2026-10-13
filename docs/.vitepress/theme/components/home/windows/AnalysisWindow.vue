@@ -44,7 +44,7 @@ const readout = computed(() => {
       <span v-for="(tab, i) in tabs" :key="tab" :class="{ 'is-active': i === 0 }">{{ tab }}</span>
     </div>
     <div class="analysis-body">
-      <div class="analysis-plot" data-cursor-target="analysis-plot">
+      <div class="analysis-plot">
         <svg viewBox="0 0 400 160" preserveAspectRatio="none" aria-hidden="true">
           <g class="analysis-grid">
             <line v-for="x in [100, 200, 300]" :key="x" :x1="x" :x2="x" y1="0" y2="160" />

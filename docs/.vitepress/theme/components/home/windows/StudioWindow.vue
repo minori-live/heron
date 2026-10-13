@@ -103,11 +103,7 @@ const bar = computed(() => Math.floor(playhead.value * 8) + 1)
       <span class="studio-button studio-button--on" aria-hidden="true"
         ><i class="studio-play"
       /></span>
-      <span
-        class="studio-button"
-        :class="{ 'studio-button--record': recording }"
-        data-cursor-target="record"
-        aria-hidden="true"
+      <span class="studio-button" :class="{ 'studio-button--record': recording }" aria-hidden="true"
         ><i class="studio-record"
       /></span>
       <span class="studio-time">{{ timecode }}</span>

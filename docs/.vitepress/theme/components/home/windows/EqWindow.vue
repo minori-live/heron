@@ -27,7 +27,7 @@ const formatGain = (gain: number) => `${gain >= 0 ? "+" : ""}${gain.toFixed(1)} 
 <template>
   <AppWindow title="Heron EQ" :basis="40" surface="plugin">
     <template #bar><span class="eq-mode">Natural phase</span></template>
-    <div class="eq-plot" data-cursor-target="eq-plot">
+    <div class="eq-plot">
       <svg viewBox="0 0 400 200" preserveAspectRatio="none" aria-hidden="true">
         <g class="eq-grid">
           <line v-for="x in gridX" :key="x" :x1="x * 400" :x2="x * 400" y1="0" y2="200" />

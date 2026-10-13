@@ -42,7 +42,6 @@ export interface InstallTarget {
 
 export interface HomeCopy {
   deskLabel: string
-  cursors: { record: string; shape: string; patch: string; measure: string }
   heroEyebrow: string
   heroTitle: string
   heroLead: string
@@ -75,12 +74,6 @@ export interface HomeCopy {
 
 const en: HomeCopy = {
   deskLabel: "Heron Studio, Heron Live, Heron EQ, and Plugin Analysis windows working side by side",
-  cursors: {
-    record: "Recording a take",
-    shape: "Shaping the low end",
-    patch: "Switching to Chorus",
-    measure: "Measuring response"
-  },
   heroEyebrow: "Free and open-source music software",
   heroTitle: "From sketch to stage.",
   heroLead:
@@ -215,12 +208,6 @@ const en: HomeCopy = {
 
 const zh: HomeCopy = {
   deskLabel: "Heron Studio、Heron Live、Heron EQ 与 Plugin Analysis 窗口并排工作",
-  cursors: {
-    record: "录下一遍",
-    shape: "雕琢低频",
-    patch: "切换到副歌",
-    measure: "测量响应"
-  },
   heroEyebrow: "自由、开源的音乐软件",
   heroTitle: "从灵感，到舞台。",
   heroLead:
