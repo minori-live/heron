@@ -78,6 +78,9 @@ describe("nix-release-policy", () => {
     const rebuilt = pinContent("0.8.0", "0".repeat(64), armHex)
     const result = applyPin(samplePin, rebuilt)
     assert.equal(result.changed, true)
-    assert.match(result.next, /x86_64-linux = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="/)
+    assert.match(
+      result.next,
+      /x86_64-linux = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="/
+    )
   })
 })
