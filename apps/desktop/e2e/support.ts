@@ -21,6 +21,8 @@ export async function closeElectronApplication(application: ElectronApplication)
   if (!closed) application.process().kill()
 }
 
+const layoutTolerance = 0.01
+
 /**
  * Compare a layout measurement with the value the stylesheet specifies.
  *
@@ -31,5 +33,22 @@ export async function closeElectronApplication(application: ElectronApplication)
  * the runner rather than on the layout.
  */
 export function expectNear(actual: number, expected: number): void {
-  expect(Math.abs(actual - expected)).toBeLessThan(0.01)
+  expect(Math.abs(actual - expected)).toBeLessThan(layoutTolerance)
+}
+
+/**
+ * Assert that a layout edge starts at or after another edge.
+ *
+ * Use this when the two edges touch by design, such as a caption stacked
+ * directly under its title. The same fractional rounding that `expectNear`
+ * absorbs can report the touching edge 0.00003px early, so `>=` alone passes or
+ * fails depending on the runner.
+ */
+export function expectAtOrAfter(actual: number, edge: number): void {
+  expect(actual).toBeGreaterThan(edge - layoutTolerance)
+}
+
+/** Assert that a layout edge ends at or before another edge; see `expectAtOrAfter`. */
+export function expectAtOrBefore(actual: number, edge: number): void {
+  expect(actual).toBeLessThan(edge + layoutTolerance)
 }

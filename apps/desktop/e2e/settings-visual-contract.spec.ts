@@ -6,6 +6,8 @@ import {
   completeWelcomeSetup,
   closeElectronApplication,
   dismissAutomaticTutorial,
+  expectAtOrAfter,
+  expectAtOrBefore,
   expectNear
 } from "./support"
 
@@ -68,8 +70,10 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     await expect(backendTitle).toHaveCSS("font-size", "9px")
     await expect(backendTitle).toHaveCSS("font-family", /Inter Variable/)
     await expect(backendDescription).toHaveCSS("font-size", "7px")
-    expect((await backendDescription.boundingBox())!.y).toBeGreaterThanOrEqual(
-      (await backendTitle.boundingBox())!.y + (await backendTitle.boundingBox())!.height
+    const backendTitleBox = (await backendTitle.boundingBox())!
+    expectAtOrAfter(
+      (await backendDescription.boundingBox())!.y,
+      backendTitleBox.y + backendTitleBox.height
     )
     expectNear((await backend.getByRole("radio").first().boundingBox())!.width, 12)
     await page.screenshot({ path: testInfo.outputPath("backend.png") })
@@ -231,8 +235,8 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     await expect(search).toHaveCSS("box-shadow", "none")
     const shellBox = (await searchShell.boundingBox())!
     const searchBox = (await search.boundingBox())!
-    expect(searchBox.y).toBeGreaterThanOrEqual(shellBox.y)
-    expect(searchBox.y + searchBox.height).toBeLessThanOrEqual(shellBox.y + shellBox.height)
+    expectAtOrAfter(searchBox.y, shellBox.y)
+    expectAtOrBefore(searchBox.y + searchBox.height, shellBox.y + shellBox.height)
     const filters = browser.locator(".filter-row")
     expect((await filters.boundingBox())!.y - shellBox.y - shellBox.height).toBeGreaterThanOrEqual(
       6
@@ -252,12 +256,10 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     const assetDetail = asset.locator("small")
     const titleBox = (await assetTitle.boundingBox())!
     expect(titleBox.width).toBeGreaterThan(100)
-    expect((await assetDetail.boundingBox())!.y).toBeGreaterThanOrEqual(
-      titleBox.y + titleBox.height
-    )
+    expectAtOrAfter((await assetDetail.boundingBox())!.y, titleBox.y + titleBox.height)
     const audition = browser.getByRole("button", { name: `Audition ${audioName}`, exact: true })
     const assetBox = (await asset.boundingBox())!
-    expect((await audition.boundingBox())!.x).toBeGreaterThanOrEqual(assetBox.x + assetBox.width)
+    expectAtOrAfter((await audition.boundingBox())!.x, assetBox.x + assetBox.width)
     await asset.click()
     await expect(asset).toHaveAttribute("aria-current", "true")
     await audition.click()

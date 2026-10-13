@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises"
 import { extname, resolve } from "node:path"
 import type { PluginAnalysisSnapshot, PluginDescriptor } from "@heron/contracts"
 import { analysisSnapshot } from "../src/renderer/src/test/plugin-analysis"
+import { expectAtOrBefore } from "./support"
 
 // Exercise the real built renderer and CSS without an audio device or Electron.
 // The IPC fixture supplies product state; Chromium owns layout and computed colors.
@@ -187,5 +188,5 @@ test("a full analysis chain scrolls within the sidebar in a short window", async
   expect(scrolling.top).toBeGreaterThan(0)
   const panel = (await chain.boundingBox())!
   const row = (await last.boundingBox())!
-  expect(row.y + row.height).toBeLessThanOrEqual(panel.y + panel.height)
+  expectAtOrBefore(row.y + row.height, panel.y + panel.height)
 })
