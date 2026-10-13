@@ -141,6 +141,9 @@ impl SmoothedValue {
     /// Settled values fill the block in one write. Ramps still snap to the
     /// target once the residual drops below the per-sample threshold, then
     /// fill the remainder without further branching.
+    ///
+    /// Kept out-of-line so the per-frame [`Self::next`] hot path stays compact.
+    #[inline(never)]
     fn fill_next(&mut self, out: &mut [f32]) {
         if out.is_empty() {
             return;
@@ -217,6 +220,26 @@ impl StereoDelay {
     }
 }
 
+/// Scratch buffers and SIMD level used only by [`MixerGraph::process_block_with_sources`].
+///
+/// Stored behind `Option<Box<_>>` so [`MixerGraph::process_frame`] keeps a compact
+/// layout when block processing was never prepared. `Level` is detected in
+/// [`MixerGraph::prepare_block_processing`], never on the per-frame path.
+struct BlockProcessingState {
+    simd_level: Level,
+    capacity: usize,
+    bus_count: usize,
+    bus_accumulation: Vec<f32>,
+    master_gains: Vec<f32>,
+    master_pans: Vec<f32>,
+    channel_gains: Vec<f32>,
+    channel_pans: Vec<f32>,
+    send_gains: Vec<f32>,
+    post_pan: Vec<StereoFrame>,
+    post_fader: Vec<StereoFrame>,
+    send_tap: Vec<StereoFrame>,
+}
+
 pub struct MixerGraph {
     channels: Vec<ChannelSpec>,
     sends: Vec<SendSpec>,
@@ -234,19 +257,9 @@ pub struct MixerGraph {
     peaks: Vec<ChannelPeak>,
     sends_by_source: Vec<Vec<usize>>,
     master: usize,
-    /// Cached outside the real-time path via [`simd::detect_level`].
-    simd_level: Level,
-    block_capacity: usize,
+    /// Highest bus index + 1; used when allocating [`BlockProcessingState`].
     block_bus_count: usize,
-    block_bus_accumulation: Vec<f32>,
-    block_master_gains: Vec<f32>,
-    block_master_pans: Vec<f32>,
-    block_channel_gains: Vec<f32>,
-    block_channel_pans: Vec<f32>,
-    block_send_gains: Vec<f32>,
-    block_post_pan: Vec<StereoFrame>,
-    block_post_fader: Vec<StereoFrame>,
-    block_send_tap: Vec<StereoFrame>,
+    block: Option<Box<BlockProcessingState>>,
 }
 
 mod graph;

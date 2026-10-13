@@ -116,6 +116,37 @@ fn process_block(
     result
 }
 
+fn process_block_api(
+    graph: &mut MixerGraph,
+    channel_sources: &mut [StereoFrame],
+    output: &mut [HardwareOutputFrame],
+) {
+    graph
+        .process_block_with_sources(channel_sources, output, &mut |_, _, _| {})
+        .expect("benchmark block must be prepared");
+}
+
+fn prepared_block_graph(
+    sample_rate: u32,
+    channels: Vec<ChannelSpec>,
+    sends: Vec<SendSpec>,
+    block_frames: usize,
+) -> MixerGraph {
+    let mut graph = MixerGraph::new(sample_rate, channels, sends).expect("benchmark graph");
+    graph.prepare_block_processing(block_frames);
+    graph
+}
+
+fn channel_major_sources(graph: &MixerGraph, tracks: usize, block_frames: usize) -> Vec<StereoFrame> {
+    // Scenario helper places audio tracks at channel indices `0..tracks`.
+    let mut sources = vec![[0.0, 0.0]; graph.channel_count() * block_frames];
+    for track in 0..tracks {
+        let start = track * block_frames;
+        sources[start..start + block_frames].fill([0.125, -0.125]);
+    }
+    sources
+}
+
 fn bench_graph_build(c: &mut Criterion) {
     let mut group = c.benchmark_group("dsp-core/mixer_graph/build");
     group
@@ -212,6 +243,50 @@ fn bench_process_complexity(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_process_block_api(c: &mut Criterion) {
+    let mut group = c.benchmark_group("dsp-core/mixer_graph/process_block_with_sources");
+    group
+        .warm_up_time(Duration::from_secs(3))
+        .measurement_time(Duration::from_secs(5))
+        .sample_size(100)
+        .noise_threshold(0.03)
+        .throughput(Throughput::Elements(256));
+
+    for &sample_rate in &[48_000, 96_000] {
+        for &(tracks, buses, sends_per_track, topology) in &[
+            (1, 0, 0, Topology::Direct),
+            (8, 0, 0, Topology::Direct),
+            (32, 4, 0, Topology::Cascaded),
+            (32, 4, 1, Topology::SendHeavy),
+            (128, 16, 4, Topology::SendHeavy),
+        ] {
+            let (channels, sends) = scenario(tracks, buses, sends_per_track, topology, false);
+            let mut graph = prepared_block_graph(sample_rate, channels, sends, 256);
+            let mut channel_sources = channel_major_sources(&graph, tracks, 256);
+            let mut output = vec![[0.0; 32]; 256];
+            let parameter = format!(
+                "{}Hz/{}/tracks={tracks}/buses={buses}/sends-per-track={sends_per_track}",
+                sample_rate,
+                topology.label()
+            );
+            group.bench_with_input(
+                BenchmarkId::new("block=256", parameter),
+                &256_usize,
+                |bencher, _block_frames| {
+                    bencher.iter(|| {
+                        black_box(process_block_api(
+                            &mut graph,
+                            &mut channel_sources,
+                            &mut output,
+                        ));
+                    });
+                },
+            );
+        }
+    }
+    group.finish();
+}
+
 fn bench_block_sizes_and_branches(c: &mut Criterion) {
     let mut group = c.benchmark_group("dsp-core/mixer_graph/block_and_branches");
     group
@@ -270,6 +345,7 @@ criterion_group!(
     benches,
     bench_graph_build,
     bench_process_complexity,
+    bench_process_block_api,
     bench_block_sizes_and_branches,
     bench_parameters_and_meters
 );

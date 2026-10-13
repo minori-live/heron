@@ -1,9 +1,10 @@
 //! Safe, runtime-dispatched SIMD helpers for mixer hot loops.
 //!
-//! `Level` is detected once when a [`super::MixerGraph`] is built (outside the
-//! real-time path) and reused for every block. Production dispatch includes
-//! `fearless_simd`'s scalar fallback backend; explicit scalar helpers exist for
-//! parity tests.
+//! `Level` is detected once in [`super::MixerGraph::prepare_block_processing`]
+//! (outside the real-time path) and reused for every block. Production dispatch
+//! includes `fearless_simd`'s scalar fallback backend; explicit scalar helpers
+//! exist for parity tests. Entry points are `#[inline(never)]` so the per-frame
+//! mixer path does not pull SIMD dispatch into its I-cache working set.
 
 use fearless_simd::{Level, Simd, dispatch, prelude::*};
 use fearless_simd_macros::simd;
@@ -220,7 +221,7 @@ fn peak_abs_stereo_kernel<S: Simd>(simd: S, frames: &[StereoFrame], peak: &mut S
 }
 
 /// Runtime-dispatched bus → stereo accumulation.
-#[inline]
+#[inline(never)]
 pub(super) fn add_buses_into_stereo(
     level: Level,
     frames: &mut [StereoFrame],
@@ -236,7 +237,7 @@ pub(super) fn add_buses_into_stereo(
 }
 
 /// Runtime-dispatched stereo → mono bus accumulation (`(L+R)*scale`).
-#[inline]
+#[inline(never)]
 pub(super) fn accumulate_stereo_to_bus(
     level: Level,
     bus: &mut [f32],
@@ -247,7 +248,7 @@ pub(super) fn accumulate_stereo_to_bus(
 }
 
 /// Runtime-dispatched stereo → adjacent stereo bus lanes (L and R separately).
-#[inline]
+#[inline(never)]
 pub(super) fn accumulate_stereo_to_stereo_bus(
     level: Level,
     buses: &mut [f32],
@@ -270,7 +271,7 @@ pub(super) fn accumulate_stereo_to_stereo_bus(
 }
 
 /// Runtime-dispatched stereo absolute-peak fold.
-#[inline]
+#[inline(never)]
 pub(super) fn peak_abs_stereo(level: Level, frames: &[StereoFrame], peak: &mut StereoFrame) {
     dispatch!(level, simd => peak_abs_stereo_kernel(simd, frames, peak));
 }
