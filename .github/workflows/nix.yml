@@ -1,0 +1,64 @@
+name: Nix
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nix-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flake:
+    name: Source build (${{ matrix.system }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: x86_64-linux
+            runner: ubuntu-24.04
+            plugin-platform: linux-x64
+          - system: aarch64-linux
+            runner: ubuntu-24.04-arm
+            plugin-platform: linux-arm64
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v23
+
+      - name: Magically cache Nix store paths
+        uses: DeterminateSystems/magic-nix-cache-action@v15
+
+      - name: Check Nix formatting
+        run: nix fmt -- --check flake.nix nix/*.nix
+
+      - name: Build and check the source package
+        run: |
+          nix flake check --print-build-logs
+          nix build .#heron --print-build-logs --out-link result
+
+      - name: Install headless smoke dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends jq xvfb xauth
+
+      - name: Process audio with the installed built-in plug-ins
+        run: xvfb-run --auto-servernum bash nix/smoke.sh ./result ${{ matrix.plugin-platform }}
+
+      - name: Record validated source and package
+        run: |
+          {
+            printf 'Source: `%s`\n\n' "$(git rev-parse HEAD)"
+            printf 'System: `%s`\n\n' '${{ matrix.system }}'
+            printf 'Built and smoke-tested package: `%s`\n' "$(nix path-info ./result)"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -182,10 +182,10 @@ const en: HomeCopy = {
       },
       linux: {
         command: {
-          label: "Then make it executable and run it",
-          lines: ["chmod +x Heron-*.AppImage", "./Heron-*.AppImage"]
+          label: "Or install with Nix",
+          lines: ["nix profile install github:minori-live/heron"]
         },
-        note: "Your desktop audio configuration decides which devices Heron can open."
+        note: "AppImage downloads work too: chmod +x Heron-*.AppImage && ./Heron-*.AppImage. Your desktop audio configuration decides which devices Heron can open."
       }
     },
     plugins: {
@@ -306,10 +306,10 @@ const zh: HomeCopy = {
       },
       linux: {
         command: {
-          label: "然后赋予执行权限并运行",
-          lines: ["chmod +x Heron-*.AppImage", "./Heron-*.AppImage"]
+          label: "或使用 Nix 安装",
+          lines: ["nix profile install github:minori-live/heron"]
         },
-        note: "桌面音频配置决定了 Heron 可以打开哪些设备。"
+        note: "也可以使用 AppImage：chmod +x Heron-*.AppImage && ./Heron-*.AppImage。桌面音频配置决定了 Heron 可以打开哪些设备。"
       }
     },
     plugins: {

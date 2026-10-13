@@ -1,15 +1,15 @@
 # Continuous integration and releases
 
-The `CI`, `Test`, `Build`, and `Publish` GitHub Actions workflows are the
+The `CI`, `Test`, `Build`, `Nix`, and `Publish` GitHub Actions workflows are the
 source of truth for validation, documentation deployment, packaging smoke
 builds, and tagged releases.
 
 ## Workflows
 
 - **CI** (`.github/workflows/ci.yml`) runs on pull requests and pushes to
-  `main`. It calls the reusable Test and Build workflows and builds the
-  VitePress user documentation in parallel, then reports their combined result
-  through the stable `Gate` job. After the gate succeeds on `main`, it calls the
+  `main`. It calls the reusable Test, Build, and Nix workflows in parallel,
+  then reports their combined result through the stable `Gate` job. After the
+  gate succeeds on `main`, it calls the
   shared Pages workflow, which builds the documentation and includes the current
   update manifests. Configure the `Gate` check (shown
   under the `CI` workflow) as the only required status check for pull requests.
@@ -43,6 +43,12 @@ builds, and tagged releases.
   only after both succeed. It stages verified update manifests on the
   `update-manifests` branch before creating the draft, while Release assets
   contain installers only.
+- **Nix** (`.github/workflows/nix.yml`) builds the source flake on native Linux
+  x64 and arm64 runners. Each job runs `nix flake check` and `nix build .#heron`
+  against the checked-out revision. The package builds Heron's Rust and
+  Electron code using locked dependencies; it does not fetch a Heron AppImage
+  from a Release. See [Nix distribution](nix-distribution.md) for dependency
+  updates and local validation.
 - **Publish update manifests** (`.github/workflows/publish-updates.yml`) handles
   the Release `published` event. It promotes the staged manifests and dispatches
   the shared Pages workflow from `main`, the branch allowed by the Pages
@@ -52,11 +58,11 @@ builds, and tagged releases.
 
 ## Workflow tiers
 
-- Pull requests and pushes to `main` run `CI`, which calls `Test` and `Build`
-  and builds the user documentation. The `Gate` job succeeds only when all
-  three jobs succeed. Main-branch runs then deploy the documentation to GitHub
+- Pull requests and pushes to `main` run `CI`, which calls `Test`, `Build`,
+  and `Nix`. The `Gate` job succeeds only when all three jobs succeed.
+  Main-branch runs then deploy the documentation to GitHub
   Pages. Installers remain available as workflow artifacts for 14 days.
-- Manual `workflow_dispatch` runs are available on `CI`, `Test`, and `Build`.
+- Manual `workflow_dispatch` runs are available on `CI`, `Test`, `Build`, and `Nix`.
 - Tags beginning with `v` run `Publish`, which calls `Test` and `Build`. After
   both succeed, `Publish` downloads the Build artifacts, stages update metadata,
   and adds the installers, generated release notes, and
@@ -214,6 +220,8 @@ in the Rust LCOV report.
 [Application updates](application-updates.md) owns installed eligibility, channel
 metadata, scheduling, installation admission and shutdown/recovery.
 [Homebrew distribution](homebrew-distribution.md) owns Tap synchronization.
+[Nix distribution](nix-distribution.md) owns the in-repo Linux source build
+and its fixed dependency inputs.
 [Built-in plug-in distribution](builtin-plugin-distribution.md) owns the separately
 released runtime dependency and its upgrade PRs.
 
@@ -233,7 +241,9 @@ git push origin "v$(cat VERSION)"
 The tag must equal `v` followed by the exact contents of `VERSION`. A
 prerelease version such as `0.2.0-beta.1` creates a GitHub prerelease; other
 versions become the latest release. Rerunning `Publish` replaces the assets on
-an existing draft release.
+an existing draft release. The Nix flake builds the selected source revision
+with locked dependencies; Publish does not write Nix hashes or move the version
+tag or `main`.
 
 Tagged releases require the macOS universal artifact to be signed with the
 Developer ID Application identity stored in the `MAC_CSC_LINK` and

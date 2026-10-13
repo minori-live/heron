@@ -1,5 +1,11 @@
 node_modules/
 .pnpm-store/
+
+# Nix flake evaluation outputs
+result
+result-*
+.direnv/
+
 target/
 target-coverage/
 out/

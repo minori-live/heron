@@ -72,6 +72,57 @@ from audio inputs.
 
 ## Linux
 
+### Nix
+
+With [Nix](https://nixos.org/download/) flakes enabled:
+
+```sh
+nix run github:minori-live/heron
+```
+
+Install into your profile:
+
+```sh
+nix profile install github:minori-live/heron
+```
+
+On NixOS, import the flake module and enable the program:
+
+```nix
+{
+  inputs.heron.url = "github:minori-live/heron";
+
+  outputs = { nixpkgs, heron, ... }: {
+    nixosConfigurations.example = nixpkgs.lib.nixosSystem {
+      modules = [
+        heron.nixosModules.heron
+        { programs.heron.enable = true; }
+      ];
+    };
+  };
+}
+```
+
+With home-manager:
+
+```nix
+{
+  imports = [ inputs.heron.homeManagerModules.heron ];
+  programs.heron.enable = true;
+}
+```
+
+The flake builds Heron from the selected source revision for `x86_64-linux`
+and `aarch64-linux`. Use a release tag (`github:minori-live/heron/vX.Y.Z`) or
+an exact commit to select a particular version; the default URL uses the
+default branch. The build uses locked dependencies and does not require a
+published Heron AppImage. Update through your Nix profile or by updating the
+Heron input and rebuilding your NixOS or home-manager configuration. See
+[Nix distribution](https://github.com/minori-live/heron/blob/main/agents/docs/nix-distribution.md)
+for the source build and dependency pins.
+
+### AppImage
+
 Make the AppImage executable, then run it:
 
 ```sh

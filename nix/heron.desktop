@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Heron
+Comment=Digital audio workstation
+Exec=heron
+Icon=heron
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Midi;
+StartupWMClass=heron
