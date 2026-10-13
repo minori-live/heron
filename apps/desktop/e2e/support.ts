@@ -1,4 +1,4 @@
-import { expect, type ElectronApplication, type Page } from "@playwright/test"
+import { expect, type ElectronApplication, type Locator, type Page } from "@playwright/test"
 
 /** Set up a fresh profile before testing a different product workflow. */
 export async function completeWelcomeSetup(page: Page): Promise<void> {
@@ -34,6 +34,33 @@ const layoutTolerance = 0.01
  */
 export function expectNear(actual: number, expected: number): void {
   expect(Math.abs(actual - expected)).toBeLessThan(layoutTolerance)
+}
+
+export interface LayoutBox {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/**
+ * Read several layout boxes from one rendered frame.
+ *
+ * Separate `boundingBox` calls can land on different frames. While a route
+ * enters, the whole page slides by a few pixels, so two separately read edges
+ * that touch by design can appear to overlap. Compare edges only within one
+ * snapshot.
+ */
+export async function boxesInOneFrame(...locators: Locator[]): Promise<LayoutBox[]> {
+  const handles = await Promise.all(locators.map((locator) => locator.elementHandle()))
+  return locators[0].page().evaluate(
+    (elements) =>
+      elements.map((element) => {
+        const { x, y, width, height } = element.getBoundingClientRect()
+        return { x, y, width, height }
+      }),
+    handles
+  )
 }
 
 /**

@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises"
 import { extname, resolve } from "node:path"
 import type { PluginAnalysisSnapshot, PluginDescriptor } from "@heron/contracts"
 import { analysisSnapshot } from "../src/renderer/src/test/plugin-analysis"
-import { expectAtOrBefore } from "./support"
+import { boxesInOneFrame, expectAtOrBefore } from "./support"
 
 // Exercise the real built renderer and CSS without an audio device or Electron.
 // The IPC fixture supplies product state; Chromium owns layout and computed colors.
@@ -186,7 +186,6 @@ test("a full analysis chain scrolls within the sidebar in a short window", async
   }))
   expect(scrolling.overflow).toBe(true)
   expect(scrolling.top).toBeGreaterThan(0)
-  const panel = (await chain.boundingBox())!
-  const row = (await last.boundingBox())!
+  const [panel, row] = await boxesInOneFrame(chain, last)
   expectAtOrBefore(row.y + row.height, panel.y + panel.height)
 })

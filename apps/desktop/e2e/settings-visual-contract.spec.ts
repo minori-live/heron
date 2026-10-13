@@ -3,6 +3,7 @@ import { mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import {
+  boxesInOneFrame,
   completeWelcomeSetup,
   closeElectronApplication,
   dismissAutomaticTutorial,
@@ -70,11 +71,11 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     await expect(backendTitle).toHaveCSS("font-size", "9px")
     await expect(backendTitle).toHaveCSS("font-family", /Inter Variable/)
     await expect(backendDescription).toHaveCSS("font-size", "7px")
-    const backendTitleBox = (await backendTitle.boundingBox())!
-    expectAtOrAfter(
-      (await backendDescription.boundingBox())!.y,
-      backendTitleBox.y + backendTitleBox.height
+    const [backendTitleBox, backendDescriptionBox] = await boxesInOneFrame(
+      backendTitle,
+      backendDescription
     )
+    expectAtOrAfter(backendDescriptionBox.y, backendTitleBox.y + backendTitleBox.height)
     expectNear((await backend.getByRole("radio").first().boundingBox())!.width, 12)
     await page.screenshot({ path: testInfo.outputPath("backend.png") })
     await page.getByRole("button", { name: "System", exact: true }).click()
@@ -233,14 +234,11 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     expectNear((await searchShell.boundingBox())!.height, 27)
     await expect(search).toHaveCSS("outline-style", "none")
     await expect(search).toHaveCSS("box-shadow", "none")
-    const shellBox = (await searchShell.boundingBox())!
-    const searchBox = (await search.boundingBox())!
+    const filters = browser.locator(".filter-row")
+    const [shellBox, searchBox, filtersBox] = await boxesInOneFrame(searchShell, search, filters)
     expectAtOrAfter(searchBox.y, shellBox.y)
     expectAtOrBefore(searchBox.y + searchBox.height, shellBox.y + shellBox.height)
-    const filters = browser.locator(".filter-row")
-    expect((await filters.boundingBox())!.y - shellBox.y - shellBox.height).toBeGreaterThanOrEqual(
-      6
-    )
+    expect(filtersBox.y - shellBox.y - shellBox.height).toBeGreaterThanOrEqual(6)
     await expect(filters.locator(".ui-segmented")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
     await page.screenshot({ path: testInfo.outputPath("media-and-track-controls.png") })
     await application.evaluate(({ dialog }, path) => {
@@ -254,12 +252,16 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     await expect(asset).toBeVisible()
     const assetTitle = asset.locator("strong")
     const assetDetail = asset.locator("small")
-    const titleBox = (await assetTitle.boundingBox())!
-    expect(titleBox.width).toBeGreaterThan(100)
-    expectAtOrAfter((await assetDetail.boundingBox())!.y, titleBox.y + titleBox.height)
     const audition = browser.getByRole("button", { name: `Audition ${audioName}`, exact: true })
-    const assetBox = (await asset.boundingBox())!
-    expectAtOrAfter((await audition.boundingBox())!.x, assetBox.x + assetBox.width)
+    const [titleBox, detailBox, assetBox, auditionBox] = await boxesInOneFrame(
+      assetTitle,
+      assetDetail,
+      asset,
+      audition
+    )
+    expect(titleBox.width).toBeGreaterThan(100)
+    expectAtOrAfter(detailBox.y, titleBox.y + titleBox.height)
+    expectAtOrAfter(auditionBox.x, assetBox.x + assetBox.width)
     await asset.click()
     await expect(asset).toHaveAttribute("aria-current", "true")
     await audition.click()
