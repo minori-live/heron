@@ -1,0 +1,11 @@
+version: 0.8.2
+files:
+  - url: https://github.com/minori-live/heron/releases/download/v0.8.2/Heron-0.8.2-mac-universal.zip
+    sha512: HBCIShm/zXSLH3Pw9mBRN0mazzgttAoT8ZetqK16W316eSioQzzx0Sg0/9cGlfNTM2PFdFRTvHUs/vMdqc3UZg==
+    size: 470646139
+  - url: https://github.com/minori-live/heron/releases/download/v0.8.2/Heron-0.8.2-mac-universal.dmg
+    sha512: G/duMNhKDK2NQsXvpMzDXAfDhNmGY+OkpzrO+uP9bRgAYLrWfBoL/JKFvyWw9GFMWxlR7tVN8gTH7B36EtBnmA==
+    size: 477064255
+path: https://github.com/minori-live/heron/releases/download/v0.8.2/Heron-0.8.2-mac-universal.zip
+sha512: HBCIShm/zXSLH3Pw9mBRN0mazzgttAoT8ZetqK16W316eSioQzzx0Sg0/9cGlfNTM2PFdFRTvHUs/vMdqc3UZg==
+releaseDate: 2026-10-14T05:50:14.766Z
