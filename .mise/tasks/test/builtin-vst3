@@ -9,7 +9,3 @@ pnpm --filter @heron/desktop test:builtin-vst3
 cargo test --locked --target "$(node scripts/rust-target.ts)" \
   -p heron-audio-host --test builtin_eq_bundle \
   -- --ignored --test-threads=1 --nocapture
-
-# Paced Revox realtime pitch measurements are a local performance gate only.
-# Run `mise run test:revox-perf` after packaging or preparing plug-ins.
-# CI must never set HERON_REVOX_PERF or invoke that task.

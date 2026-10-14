@@ -4,8 +4,8 @@ Heron uses Criterion for repeatable microbenchmarks of the native mixer, render
 path, media cache, and recorder. These results describe code performance on one
 machine; they are not portable scores and do not run as a pull-request gate.
 CI environments must never run performance tests: Criterion measurement,
-wall-clock paced audio gates (including `mise run test:revox-perf`), realtime
-factor thresholds, and throughput or latency score assertions stay local.
+realtime-factor thresholds, and throughput or latency score assertions stay
+local.
 
 The mixer pilot uses `fearless_simd` for bus accumulation and peak metering in
 `process_block_with_sources`. Detect `Level` in `prepare_block_processing`

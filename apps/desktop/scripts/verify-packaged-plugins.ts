@@ -78,7 +78,5 @@ await runTask(async () => {
   const revoxBundle = join(packaged, revox.bundleName)
   await validateRevoxResources(revoxBundle, platform)
   console.log(`Verified ${manifest.plugins.length} byte-identical packaged plug-in bundles`)
-  // Paced Revox realtime pitch timing stays local-only (`mise run test:revox-perf`).
-  // CI must not run performance or wall-clock paced gates.
   console.log(`Packaged Revox resources validated at ${revoxBundle}`)
 })
