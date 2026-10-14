@@ -29,8 +29,9 @@ async function response(url: string, fetchRelease: ReleaseFetch): Promise<Respon
 function releaseAssetSha256(asset: { name: string; digest?: string | null }): string {
   const match =
     typeof asset.digest === "string" ? /^sha256:([0-9a-f]{64})$/u.exec(asset.digest) : null
-  if (!match) throw new Error(`Plug-in release asset is missing a sha256 digest: ${asset.name}`)
-  return nixSha256FromHex(match[1])
+  const hex = match?.[1]
+  if (!hex) throw new Error(`Plug-in release asset is missing a sha256 digest: ${asset.name}`)
+  return nixSha256FromHex(hex)
 }
 
 export async function pluginLockFromRelease(
