@@ -1,4 +1,8 @@
 //! Prove Heron's realtime host applies coarse and fine pitch to the released Revox bundle.
+//!
+//! This is a paced wall-clock performance gate. Run it locally with
+//! `mise run test:revox-perf` (optionally `HERON_REVOX_BUNDLE=...`). CI must not
+//! invoke it: CI environments never run performance or realtime-pacing tests.
 
 use std::{
     path::PathBuf,

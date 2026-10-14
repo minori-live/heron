@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Run paced Revox realtime pitch performance gate (local only; not CI)"
+#MISE depends=["native:release"]
+set -euo pipefail
+
+# Wall-clock paced audio and pitch-timing assertions. CI must not run this task.
+# Point HERON_REVOX_BUNDLE at a prepared or packaged Revox.vst3 when needed.
+cargo test --locked --release --target "$(node scripts/rust-target.ts)" \
+  -p heron-audio-host --test builtin_revox_bundle \
+  -- --ignored --test-threads=1 --nocapture

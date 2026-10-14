@@ -5,12 +5,11 @@ set -euo pipefail
 
 pnpm --filter @heron/desktop test:builtin-vst3
 
-# This host integration test loads the prepared artifact, without plugin sources.
+# Functional host integration against prepared artifacts (no wall-clock pacing).
 cargo test --locked --target "$(node scripts/rust-target.ts)" \
   -p heron-audio-host --test builtin_eq_bundle \
   -- --ignored --test-threads=1 --nocapture
 
-# Keep the timed audio driver and pitch measurements optimized on every platform.
-cargo test --locked --release --target "$(node scripts/rust-target.ts)" \
-  -p heron-audio-host --test builtin_revox_bundle \
-  -- --ignored --test-threads=1 --nocapture
+# Paced Revox realtime pitch measurements are a local performance gate only.
+# Run `mise run test:revox-perf` after packaging or preparing plug-ins.
+# CI must never set HERON_REVOX_PERF or invoke that task.

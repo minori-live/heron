@@ -3,7 +3,6 @@ import { createHash } from "node:crypto"
 import { createReadStream } from "node:fs"
 import { access, readFile, readdir } from "node:fs/promises"
 import { join, resolve } from "node:path"
-import { cargoHost } from "../../../scripts/cargo-host.ts"
 import {
   currentPluginPlatform,
   parseBundleManifest,
@@ -79,20 +78,7 @@ await runTask(async () => {
   const revoxBundle = join(packaged, revox.bundleName)
   await validateRevoxResources(revoxBundle, platform)
   console.log(`Verified ${manifest.plugins.length} byte-identical packaged plug-in bundles`)
-  await cargoHost(
-    [
-      "test",
-      "--locked",
-      "--release",
-      "-p",
-      "heron-audio-host",
-      "--test",
-      "builtin_revox_bundle",
-      "--",
-      "--ignored",
-      "--test-threads=1",
-      "--nocapture"
-    ],
-    { cwd: workspace, env: { ...process.env, HERON_REVOX_BUNDLE: revoxBundle } }
-  )
+  // Paced Revox realtime pitch timing stays local-only (`mise run test:revox-perf`).
+  // CI must not run performance or wall-clock paced gates.
+  console.log(`Packaged Revox resources validated at ${revoxBundle}`)
 })

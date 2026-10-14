@@ -203,12 +203,13 @@ reactivation leaves the committed project intact and the live graph bypassed.
 ### Built-in plug-in integration testing
 
 CI uses the pinned released Heron plug-ins for host integration. The
-cross-platform `test:builtin-vst3` task checks the four plug-ins' native
-identities and capabilities, historical state restoration, Gain processing in
-a live graph, and EQ integration. Linux additionally runs instrumented
-`test:plugin-analysis` with Heron Gain to exercise state cloning, parameter
-replay, processing and report mapping. The Linux Electron end-to-end suite
-opens independent native Gain editors.
+cross-platform `test:builtin-vst3` task checks the plug-ins' native identities
+and capabilities, historical state restoration, Gain processing in a live
+graph, and EQ integration. CI must not run performance or wall-clock paced
+gates; local `mise run test:revox-perf` covers paced Revox pitch timing.
+Linux additionally runs instrumented `test:plugin-analysis` with Heron Gain to
+exercise state cloning, parameter replay, processing and report mapping. The
+Linux Electron end-to-end suite opens independent native Gain editors.
 
 CI no longer builds or runs Steinberg VST3 or free-audio CLAP example plug-ins.
 Their local diagnostic scripts remain available. The VST3 SDK remains a
