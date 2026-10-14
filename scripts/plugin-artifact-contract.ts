@@ -9,6 +9,8 @@ export type PluginPlatform = (typeof PLUGIN_PLATFORMS)[number]
 
 export interface PluginAsset {
   file: string
+  /** Nix SRI digest (`sha256-…`) of the immutable release archive. */
+  sha256: string
 }
 export interface PluginRelease {
   version: string
@@ -138,12 +140,26 @@ export function pluginBinaryPath(bundleName: string, platform: PluginPlatform): 
   return `bundles/${bundleName}/${binary}`
 }
 
+export function pluginAssetSha256(value: unknown): string {
+  if (typeof value !== "string" || !/^sha256-[A-Za-z0-9+/]{43}=$/u.test(value)) {
+    throw new Error("Plug-in asset sha256 must be a Nix SRI digest")
+  }
+  return value
+}
+
+export function nixSha256FromHex(hex: string): string {
+  if (!/^[0-9a-f]{64}$/u.test(hex)) {
+    throw new Error("sha256 digest must be 64 lowercase hex characters")
+  }
+  return `sha256-${Buffer.from(hex, "hex").toString("base64")}`
+}
+
 function asset(value: unknown, filename: string): PluginAsset {
   const item = object(value)
   if (item.file !== filename) {
     throw new Error(`Invalid locked plug-in asset: ${filename}`)
   }
-  return { file: filename }
+  return { file: filename, sha256: pluginAssetSha256(item.sha256) }
 }
 
 export function parsePluginLock(value: unknown): PluginLock {

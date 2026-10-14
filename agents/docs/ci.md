@@ -25,12 +25,13 @@ builds, and tagged releases.
   `mise run ci:check:native-coverage`, which collects Rust coverage from workspace
   tests and instrumented napi-rs calls while running desktop and project-database
   tests without JavaScript coverage. Each platform also runs
-  `mise run test:builtin-vst3` against the pinned Heron plug-in release, including
-  Revox's paced real-time shifted-audio host test; the Linux
-  end-to-end suite exercises the bundled Gain's native editors. All reports are
-  uploaded to Codecov and notifications are published only after the complete
-  matrix succeeds. The workflow is reusable through `workflow_call` and can also
-  be started manually.
+  `mise run test:builtin-vst3` against the pinned Heron plug-in release
+  (identities, legacy state restoration, Gain graph smoke, and EQ host
+  integration). CI must never run performance tests. The Linux end-to-end suite
+  exercises the bundled Gain's native editors. All reports are uploaded to
+  Codecov and notifications are published only after the complete matrix
+  succeeds. The workflow is reusable through `workflow_call` and can also be
+  started manually.
   Callers must pass `CODECOV_TOKEN` when available (see `CI` and `Publish`).
 - **Build** (`.github/workflows/build.yml`) packages installers for Windows
   x64, Linux x64 and arm64, and universal macOS as a packaging smoke test. It
@@ -39,11 +40,7 @@ builds, and tagged releases.
   higher `codegen-units`, stripped symbols) so MSVC packaging stays tolerable;
   pass `full_release_profile: true` to keep the Cargo.toml thin-LTO settings.
   Every packaging leg checks that all plug-in bundle files match the prepared
-  release byte for byte, validates Revox's private runtime and notices, and runs
-  its shifted-audio host test from the final packaged resource path with the
-  release Cargo profile to keep measurement overhead low during real-time
-  inference. This gate uses the CPU runtime explicitly; it does not
-  claim accelerator coverage.
+  release byte for byte and validates Revox's private runtime and notices.
 - **Publish** (`.github/workflows/publish.yml`) runs on a `v*` tag, validates
   that the tag matches `VERSION`, calls the reusable Test and Build workflows
   (Build with `full_release_profile: true`), and creates a draft GitHub Release

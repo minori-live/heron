@@ -90,6 +90,23 @@ const version = "1.0.0"
 const sourceCommit = "a".repeat(40)
 const platform = "linux-x64" as const
 
+function fixtureSha256(seed: number): string {
+  return `sha256-${Buffer.alloc(32, seed).toString("base64")}`
+}
+
+function releaseAssets(
+  suiteVersion: string,
+  digestFor: (name: string, index: number) => string = (_name, index) => fixtureSha256(index + 1)
+) {
+  return PLUGIN_PLATFORMS.map((platform, index) => {
+    const name = pluginAssetName(suiteVersion, platform)
+    return {
+      name,
+      digest: `sha256:${Buffer.from(digestFor(name, index).slice(7), "base64").toString("hex")}`
+    }
+  })
+}
+
 function lockedRelease(suiteVersion = version): PluginLock & { release: PluginRelease } {
   return {
     schemaVersion: 1,
@@ -98,10 +115,13 @@ function lockedRelease(suiteVersion = version): PluginLock & { release: PluginRe
       version: suiteVersion,
       sourceCommit,
       assets: Object.fromEntries(
-        PLUGIN_PLATFORMS.map((platform) => [
+        PLUGIN_PLATFORMS.map((platform, index) => [
           platform,
           {
-            runtime: { file: pluginAssetName(suiteVersion, platform) }
+            runtime: {
+              file: pluginAssetName(suiteVersion, platform),
+              sha256: fixtureSha256(index + 1)
+            }
           }
         ])
       ) as PluginRelease["assets"]
@@ -447,7 +467,7 @@ await test("concurrent prepares use the release cache and publish a complete sta
 })
 
 await test("the updater pins all platform artifacts to the published tag commit and rejects incomplete releases", async () => {
-  const files = PLUGIN_PLATFORMS.map((platform) => pluginAssetName(version, platform))
+  const assets = releaseAssets(version)
   const urls: string[] = []
   const fetchRelease = async (url: string) => {
     urls.push(url)
@@ -456,7 +476,7 @@ await test("the updater pins all platform artifacts to the published tag commit 
       tag_name: `v${version}`,
       draft: false,
       prerelease: false,
-      assets: files.map((name) => ({ name }))
+      assets
     })
   }
   const lock = await pluginLockFromRelease(version, fetchRelease)
@@ -468,9 +488,24 @@ await test("the updater pins all platform artifacts to the published tag commit 
     `https://api.github.com/repos/${PLUGIN_REPOSITORY}/commits/v${version}`
   ])
   assert.deepEqual(lock.release.assets[platform], {
-    runtime: { file: pluginAssetName(version, platform) }
+    runtime: {
+      file: pluginAssetName(version, platform),
+      sha256: fixtureSha256(PLUGIN_PLATFORMS.indexOf(platform) + 1)
+    }
   })
   assert.throws(() => parsePluginLock({ ...lock, repository: "untrusted/repo" }))
+  assert.throws(() =>
+    parsePluginLock({
+      ...lock,
+      release: {
+        ...lock.release!,
+        assets: {
+          ...lock.release!.assets,
+          [platform]: { runtime: { file: pluginAssetName(version, platform) } }
+        }
+      }
+    })
+  )
   await assert.rejects(
     pluginLockFromRelease(version, async (url) => {
       if (url.includes("/releases/tags/"))
@@ -482,6 +517,19 @@ await test("the updater pins all platform artifacts to the published tag commit 
         })
       return fetchRelease(url)
     })
+  )
+  await assert.rejects(
+    pluginLockFromRelease(version, async (url) => {
+      if (url.includes("/releases/tags/"))
+        return Response.json({
+          tag_name: `v${version}`,
+          draft: false,
+          prerelease: false,
+          assets: PLUGIN_PLATFORMS.map((name) => ({ name: pluginAssetName(version, name) }))
+        })
+      return fetchRelease(url)
+    }),
+    /missing a sha256 digest/u
   )
 })
 
@@ -516,9 +564,7 @@ await test("legacy symbol metadata does not change the locked runtime identity",
               tag_name: `v${version}`,
               draft: false,
               prerelease: false,
-              assets: PLUGIN_PLATFORMS.map((platform) => ({
-                name: pluginAssetName(version, platform)
-              }))
+              assets: releaseAssets(version)
             }),
       legacy
     ),
@@ -536,18 +582,19 @@ await test("releases without public symbols can be locked and prepared for runti
           tag_name: `v${suiteVersion}`,
           draft: false,
           prerelease: false,
-          assets: PLUGIN_PLATFORMS.map((platform) => ({
-            name: pluginAssetName(suiteVersion, platform)
-          }))
+          assets: releaseAssets(suiteVersion)
         })
   )
   const lock = parsePluginLock(
     JSON.parse(await readFile(join(root, "heron-plugins.lock.json"), "utf8"))
   )
   assert(lock.release)
-  for (const platform of PLUGIN_PLATFORMS)
-    assert.deepEqual(lock.release.assets[platform], {
-      runtime: { file: pluginAssetName(suiteVersion, platform) }
+  for (const [index, lockedPlatform] of PLUGIN_PLATFORMS.entries())
+    assert.deepEqual(lock.release.assets[lockedPlatform], {
+      runtime: {
+        file: pluginAssetName(suiteVersion, lockedPlatform),
+        sha256: fixtureSha256(index + 1)
+      }
     })
   const destination = await preparePluginArtifacts({
     workspace: root,
@@ -568,18 +615,15 @@ await test("releases without public symbols can be locked and prepared for runti
 
 await test("latest notifications converge on the newest release and reject mutated versions", async (context) => {
   const { root } = await workspace(context)
-  const filesFor = (version: string) =>
-    PLUGIN_PLATFORMS.map((platform) => pluginAssetName(version, platform))
   const fetchRelease = async (url: string) => {
     const selectedVersion = url.includes("v1.0.0") ? "1.0.0" : "1.1.0"
-    const files = filesFor(selectedVersion)
     if (url.includes("/commits/"))
       return Response.json({ sha: selectedVersion === "1.0.0" ? "b".repeat(40) : sourceCommit })
     return Response.json({
       tag_name: `v${selectedVersion}`,
       draft: false,
       prerelease: false,
-      assets: files.map((name) => ({ name }))
+      assets: releaseAssets(selectedVersion)
     })
   }
   await assert.rejects(updatePluginLock(root, "1.0.0", fetchRelease))
@@ -598,13 +642,12 @@ await test("rolling upgrades cannot regress or mutate an unmerged lock ahead of 
   let publishedCommit = sourceCommit
   const fetchRelease = async (url: string) => {
     const selected = /\/v(\d+\.\d+\.\d+)/u.exec(url)?.[1] ?? latest
-    const files = PLUGIN_PLATFORMS.map((platform) => pluginAssetName(selected, platform))
     if (url.includes("/commits/")) return Response.json({ sha: publishedCommit })
     return Response.json({
       tag_name: `v${selected}`,
       draft: false,
       prerelease: false,
-      assets: files.map((name) => ({ name }))
+      assets: releaseAssets(selected)
     })
   }
   const pending = await pluginLockFromRelease("1.2.0", fetchRelease)
