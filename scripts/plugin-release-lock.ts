@@ -2,6 +2,7 @@ import { readFile, rename, rm, writeFile } from "node:fs/promises"
 import { randomUUID } from "node:crypto"
 import { join } from "node:path"
 import {
+  nixSha256FromHex,
   parsePluginLock,
   PLUGIN_PLATFORMS,
   PLUGIN_REPOSITORY,
@@ -15,7 +16,7 @@ interface GitHubRelease {
   tag_name: string
   draft: boolean
   prerelease: boolean
-  assets: Array<{ name: string }>
+  assets: Array<{ name: string; digest?: string | null }>
 }
 export type ReleaseFetch = (url: string) => Promise<Response>
 
@@ -23,6 +24,13 @@ async function response(url: string, fetchRelease: ReleaseFetch): Promise<Respon
   const result = await fetchRelease(url)
   if (!result.ok) throw new Error(`Unable to read plug-in release metadata (${result.status})`)
   return result
+}
+
+function releaseAssetSha256(asset: { name: string; digest?: string | null }): string {
+  const match =
+    typeof asset.digest === "string" ? /^sha256:([0-9a-f]{64})$/u.exec(asset.digest) : null
+  if (!match) throw new Error(`Plug-in release asset is missing a sha256 digest: ${asset.name}`)
+  return nixSha256FromHex(match[1]!)
 }
 
 export async function pluginLockFromRelease(
@@ -47,12 +55,12 @@ export async function pluginLockFromRelease(
   const assets = Object.fromEntries(
     PLUGIN_PLATFORMS.map((platform) => {
       const runtime = pluginAssetName(version, platform)
-      if (!release.assets.some((asset) => asset.name === runtime))
-        throw new Error(`Plug-in release is incomplete: ${runtime}`)
+      const asset = release.assets.find((candidate) => candidate.name === runtime)
+      if (!asset) throw new Error(`Plug-in release is incomplete: ${runtime}`)
       return [
         platform,
         {
-          runtime: { file: runtime }
+          runtime: { file: runtime, sha256: releaseAssetSha256(asset) }
         }
       ]
     })

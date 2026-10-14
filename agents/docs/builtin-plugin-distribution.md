@@ -11,9 +11,9 @@ plugin DSP/editor requirements live in the producer.
 ## Dependency preparation
 
 `heron-plugins.lock.json` pins one stable release and all four VST3 runtime
-archives. Obsolete symbol entries in older locks are ignored. `release: null`
-means the first release has not been selected;
-native development and packaging must not bypass that gate.
+archives, including each archive's Nix SRI `sha256`. Obsolete symbol entries in
+older locks are ignored. `release: null` means the first release has not been
+selected; native development and packaging must not bypass that gate.
 
 After the producer publishes its first tested release:
 
@@ -78,14 +78,16 @@ enabling AAX creates a new producer version.
 
 ## Artifact identity and publication
 
-Pin suite version, source commit and runtime asset filenames. Cache by version,
-platform and filename; there is no separate Heron checksum catalog or plug-in
-symbol identity. Signing, notarization and distribution attestations remain
-release-tool responsibilities. Updater metadata and Homebrew digests keep their
-own distribution-specific integrity fields. Normalize old symbol-bearing locks
-without changing runtime identity; same-version comparisons use normalized runtime
-fields on both sides. Invalid cached archives are removed and downloaded again
-on a later online preparation. Validated caches permit offline builds.
+Pin suite version, source commit, runtime asset filenames, and per-asset
+`sha256` digests. Cache by version, platform and filename; the lock is the
+checksum catalog for Nix fixed-output fetches and plug-in upgrades. There is no
+separate plug-in symbol identity. Signing, notarization and distribution
+attestations remain release-tool responsibilities. Updater metadata and Homebrew
+digests keep their own distribution-specific integrity fields. Normalize old
+symbol-bearing locks without changing runtime identity; same-version comparisons
+use normalized runtime fields on both sides. Invalid cached archives are removed
+and downloaded again on a later online preparation. Validated caches permit
+offline builds.
 
 Validate manifests, identities and architecture before replacing staging.
 Recovery/publication share a permanent gate file locked exclusively by an open

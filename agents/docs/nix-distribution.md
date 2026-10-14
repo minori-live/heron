@@ -24,9 +24,9 @@ already existing. A branch revision can therefore be built before it is tagged.
 lockfiles; the pnpm dependency store has a fixed content hash. The VST3 and ARA
 SDK sources also have fixed revisions and hashes. Built-in plug-ins retain the
 independent `heron-plugins` release contract: the Nix package fetches the Linux
-runtime assets selected by `heron-plugins.lock.json`, with fixed hashes for
-each architecture. These upstream assets are build inputs, separate from
-Heron's own application output.
+runtime assets selected by `heron-plugins.lock.json`, using the per-asset
+`sha256` digests written into that lock. These upstream assets are build inputs,
+separate from Heron's own application output.
 
 The pinned nixpkgs revision supplies the build toolchain and Electron runtime;
 the mise lock continues to govern ordinary development. These pins make the
@@ -49,7 +49,7 @@ after the Release is published.
 
 ## Updating dependencies
 
-Keep dependency lockfile changes and their hashes in
+Keep pnpm, VST3, and ARA pin changes and their hashes in
 [`nix/sources.nix`](../../nix/sources.nix) in the same change. When updating pnpm
 dependencies, update `pnpm-lock.yaml`, temporarily set `pnpmDeps.hash` to
 `lib.fakeHash` in `nix/package.nix`, and request that fixed-output derivation:
@@ -61,9 +61,11 @@ nix build .#heron.pnpmDeps --print-build-logs
 Copy the reported actual hash into the `pnpm` pin in `nix/sources.nix`, restore
 `pnpmDeps.hash = sources.pnpm`, and build the complete package. A
 dependency-store build alone does not validate
-the native addon or Electron application. When updating VST3, ARA, or the
-built-in plug-ins, update their corresponding fixed hashes as well and validate
-both Linux architectures.
+the native addon or Electron application. When updating VST3 or ARA, update their
+fixed hashes in `nix/sources.nix` as well. Built-in plug-in archive hashes are
+not stored there: `pnpm plugins:update` writes Nix SRI digests into
+`heron-plugins.lock.json`, and the package derivation reads them from that lock.
+Validate both Linux architectures after any of these input changes.
 
 ## Validation
 

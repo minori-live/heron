@@ -40,11 +40,12 @@ let
   pluginLock = builtins.fromJSON (builtins.readFile ../heron-plugins.lock.json);
   pluginRelease = pluginLock.release;
   pluginPlatform = "linux-${arch}";
-  pluginFile = pluginRelease.assets.${pluginPlatform}.runtime.file;
+  pluginRuntime = pluginRelease.assets.${pluginPlatform}.runtime;
+  pluginFile = pluginRuntime.file;
   sources = import ./sources.nix;
   plugins = fetchurl {
     url = "https://github.com/${pluginLock.repository}/releases/download/v${pluginRelease.version}/${pluginFile}";
-    hash = sources.plugins.${stdenv.hostPlatform.system};
+    hash = pluginRuntime.sha256;
   };
   vst3sdk = fetchFromGitHub {
     owner = "steinbergmedia";

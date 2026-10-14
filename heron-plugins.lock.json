@@ -7,22 +7,26 @@
     "assets": {
       "macos-universal": {
         "runtime": {
-          "file": "heron-plugins-0.8.1-macos-universal-vst3.zip"
+          "file": "heron-plugins-0.8.1-macos-universal-vst3.zip",
+          "sha256": "sha256-lXOBP2F9HuO6hEj4S/hTBJbnB2xl2UhLeH1eIFxDeCk="
         }
       },
       "windows-x64": {
         "runtime": {
-          "file": "heron-plugins-0.8.1-windows-x64-vst3.zip"
+          "file": "heron-plugins-0.8.1-windows-x64-vst3.zip",
+          "sha256": "sha256-s4TFMclkQT9UJGv4eCKCxnc6zxCywpk9xHKzpc5+z2Q="
         }
       },
       "linux-x64": {
         "runtime": {
-          "file": "heron-plugins-0.8.1-linux-x64-vst3.zip"
+          "file": "heron-plugins-0.8.1-linux-x64-vst3.zip",
+          "sha256": "sha256-XT1IkTFhq04L5LA+W5GDlHYC63vcwbz3EQ3ERCwNxSY="
         }
       },
       "linux-arm64": {
         "runtime": {
-          "file": "heron-plugins-0.8.1-linux-arm64-vst3.zip"
+          "file": "heron-plugins-0.8.1-linux-arm64-vst3.zip",
+          "sha256": "sha256-AUXZWdINSQ2tk8+jOpudcL848lA7IP7BHirjpRArtjQ="
         }
       }
     }
