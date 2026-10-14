@@ -30,7 +30,7 @@ function releaseAssetSha256(asset: { name: string; digest?: string | null }): st
   const match =
     typeof asset.digest === "string" ? /^sha256:([0-9a-f]{64})$/u.exec(asset.digest) : null
   if (!match) throw new Error(`Plug-in release asset is missing a sha256 digest: ${asset.name}`)
-  return nixSha256FromHex(match[1]!)
+  return nixSha256FromHex(match[1])
 }
 
 export async function pluginLockFromRelease(
