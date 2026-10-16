@@ -15,9 +15,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Classify changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      docs_only: ${{ steps.classify.outputs.docs_only }}
+    steps:
+      - name: Check out complete history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Classify documentation-only changes
+        id: classify
+        shell: bash
+        run: |
+          # Use the hosted runner's Node without provisioning a toolchain. Older
+          # runtimes or missing output must fall back to full CI, never a skip.
+          echo "docs_only=false" >> "$GITHUB_OUTPUT"
+          if ! node scripts/ci-docs-only.ts; then
+            echo "::warning::Classification could not run; running full CI."
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+          fi
+
   test:
     name: Test
+    needs: changes
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/test.yml
+    with:
+      docs_only: ${{ needs.changes.result == 'success' && needs.changes.outputs.docs_only == 'true' }}
     permissions:
       contents: read
     secrets:
@@ -25,12 +54,16 @@ jobs:
 
   build:
     name: Build
+    needs: changes
+    if: ${{ !cancelled() && !(needs.changes.result == 'success' && needs.changes.outputs.docs_only == 'true') }}
     uses: ./.github/workflows/build.yml
     permissions:
       contents: read
 
   nix:
     name: Nix
+    needs: changes
+    if: ${{ !cancelled() && !(needs.changes.result == 'success' && needs.changes.outputs.docs_only == 'true') }}
     uses: ./.github/workflows/nix.yml
     permissions:
       contents: read
@@ -38,25 +71,31 @@ jobs:
   gate:
     name: Gate
     if: ${{ always() }}
-    needs: [test, build, nix]
+    needs: [changes, test, build, nix]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require successful CI jobs
         shell: bash
         env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          DOCS_ONLY: ${{ needs.changes.outputs.docs_only }}
           TEST_RESULT: ${{ needs.test.result }}
           BUILD_RESULT: ${{ needs.build.result }}
           NIX_RESULT: ${{ needs.nix.result }}
         run: |
-          if [[ "$TEST_RESULT" != "success" || "$BUILD_RESULT" != "success" || "$NIX_RESULT" != "success" ]]; then
-            echo "::error::Required CI jobs did not succeed (Test: $TEST_RESULT, Build: $BUILD_RESULT, Nix: $NIX_RESULT)."
+          expected_build=success
+          if [[ "$CHANGES_RESULT" == "success" && "$DOCS_ONLY" == "true" ]]; then
+            expected_build=skipped
+          fi
+          if [[ "$CHANGES_RESULT" != "success" || "$TEST_RESULT" != "success" || "$BUILD_RESULT" != "$expected_build" || "$NIX_RESULT" != "$expected_build" ]]; then
+            echo "::error::Required CI jobs did not succeed (Changes: $CHANGES_RESULT, docs-only: $DOCS_ONLY, Test: $TEST_RESULT, Build: $BUILD_RESULT, Nix: $NIX_RESULT)."
             exit 1
           fi
 
   deploy-docs:
     name: Deploy documentation
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ !cancelled() && needs.gate.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: [gate]
     uses: ./.github/workflows/pages.yml
     with:
