@@ -26,6 +26,8 @@ jobs:
   build:
     name: Build
     uses: ./.github/workflows/build.yml
+    with:
+      pr_smoke_build: ${{ github.event_name == 'pull_request' }}
     permissions:
       contents: read
 
