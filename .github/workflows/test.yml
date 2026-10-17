@@ -3,6 +3,12 @@ name: Test
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      docs_only:
+        description: Skip native tests and Electron E2E for positively classified documentation-only CI changes.
+        type: boolean
+        required: false
+        default: false
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -29,6 +35,10 @@ env:
 jobs:
   checks:
     name: Checks (${{ matrix.name }})
+    if: >-
+      ${{ !(inputs.docs_only &&
+          (github.event_name == 'pull_request' ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/main'))) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 180
     strategy:
@@ -143,6 +153,10 @@ jobs:
 
   e2e:
     name: Electron end-to-end (Linux x64)
+    if: >-
+      ${{ !(inputs.docs_only &&
+          (github.event_name == 'pull_request' ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/main'))) }}
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:

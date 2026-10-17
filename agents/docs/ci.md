@@ -7,8 +7,9 @@ builds, and tagged releases.
 ## Workflows
 
 - **CI** (`.github/workflows/ci.yml`) runs on pull requests and pushes to
-  `main`. It calls the reusable Test, Build, and Nix workflows in parallel,
-  then reports their combined result through the stable `Gate` job. After the
+  `main`. It classifies the complete change, then calls the reusable Test,
+  Build, and Nix workflows in parallel unless the documentation-only tier below
+  applies. It reports their combined result through the stable `Gate` job. After the
   gate succeeds on `main`, it calls the
   shared Pages workflow, which builds the documentation and includes the current
   update manifests. Configure the `Gate` check (shown
@@ -63,7 +64,9 @@ builds, and tagged releases.
 ## Workflow tiers
 
 - Pull requests and pushes to `main` run `CI`, which calls `Test`, `Build`,
-  and `Nix`. The `Gate` job succeeds only when all three jobs succeed.
+  and `Nix` by default. The `Gate` job requires successful classification and
+  all three workflows to succeed, except for the explicit documentation-only
+  skips below.
   Main-branch runs then deploy the documentation to GitHub
   Pages. Installers remain available as workflow artifacts for 14 days.
 - Manual `workflow_dispatch` runs are available on `CI`, `Test`, `Build`, and `Nix`.
@@ -73,6 +76,40 @@ builds, and tagged releases.
   (for public repositories) GitHub artifact attestations to a draft GitHub
   Release. Publishing the draft makes the update manifests available at
   `https://heron.minori.live/updates/` after the Pages deployment succeeds.
+
+### Documentation-only changes
+
+CI skips native Checks (and their Codecov finalization), Package, Electron E2E,
+and Nix jobs only when every changed file is ordinary documentation:
+
+- Root `README.md` and `AGENTS.md`.
+- Markdown under `agents/docs/` and `docs/content/`.
+- PNG, JPEG, GIF, WebP, and ICO images under `docs/content/public/`.
+
+The existing **Static and design checks** job still runs unchanged, including
+the VitePress documentation build through `check:packages`. This tier is not
+native-build-free: Static still owns its existing Clippy, benchmark compilation,
+generated-binding preparation, and Storybook checks. It removes the independent
+coverage, packaging, Nix, and Electron E2E work without weakening those checks.
+Successful main-branch runs still deploy Pages after `Gate`.
+
+The allowlist excludes CI/toolchain/APM files, installed agent skills, manifests,
+lockfiles, install scripts, docs theme/configuration, and executable assets.
+Executable files, symlinks, and submodules also require full CI even at an
+allowlisted path. Renames check both the removed and added paths. PRs compare
+their head with the merge base of the event's base and head revisions; main
+pushes compare the complete event `before` and `after` trees. Empty changes,
+unavailable history, zero `before` SHAs, and classification errors fall back to
+full CI. Manual and tag workflows retain their full default validation.
+Classification uses the hosted runner's Node without installing a toolchain;
+an unsupported runtime or missing output also defaults to full CI. The full
+history checkout adds per-run overhead, which must be measured in hosted CI
+before claiming net savings.
+
+`Gate` always requires Test to succeed. It accepts skipped Build and Nix only
+after successful, positive documentation-only classification; failed, cancelled,
+or unexpectedly skipped required work cannot pass it. A failed classification
+job runs the full tier where possible and prevents the gate from succeeding.
 
 The Test and Build workflows install the versions in `mise.lock`, use frozen
 pnpm dependencies, and pin the VST3 SDK commit where a native setup is
