@@ -345,17 +345,20 @@ retains the rationale for generation and distinct resolved state.
 
 ## Offline sample-rate conversion
 
-Imported assets keep their source sample rate on disk. When clip decode,
-streaming clip prefetch, or recording finalize must match the engine or project
-rate, Heron converts offline through `heron-dsp-resample`. That crate wraps a
-thin safe API over `heron-rubberband-sys`, which compiles Rubber Band Library
-v4.0.0 from the sources vendored under `crates/rubberband-sys/vendor/rubberband`
-(no system package). Offline conversion uses the R3 (`EngineFiner`) stretcher
-with `time_ratio = target / source` and `pitch_scale = source / target` so
-output length and tone frequency both match playback at the target rate. The
-stretcher API is preferred over Rubber Band's internal C++ `Resampler` because
-it is exposed through the C ABI we already bind and can later host time-stretch
-or pitch-shift features. Real-time device clock adaptation in the audio engine
+Imported assets keep their source sample rate on disk. When clip decode or
+recording finalize must match the engine or project rate, Heron converts
+offline through `heron-dsp-resample`. That crate wraps a thin safe API over
+`heron-rubberband-sys`, which compiles Rubber Band Library v4.0.0 from the
+sources vendored under `crates/rubberband-sys/vendor/rubberband` (no system
+package). Offline conversion uses the R3 (`EngineFiner`) stretcher with
+`time_ratio = target / source` and `pitch_scale = source / target` so output
+length and tone frequency both match playback at the target rate. The stretcher
+API is preferred over Rubber Band's internal C++ `Resampler` because it is
+exposed through the C ABI we already bind and can later host time-stretch or
+pitch-shift features. Streaming clip prefetch only runs when the asset rate
+already matches the engine rate; rate-mismatched large assets take the full-file
+Rubber Band decode path so adjacent prefetch windows do not restart a fresh
+offline stretcher. Real-time device clock adaptation in the audio engine
 continues to use `rubato` and is out of scope for this path.
 
 ## Media audition

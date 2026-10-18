@@ -217,7 +217,7 @@ mod spec;
 #[path = "engine/transport_midi.rs"]
 mod transport_midi;
 
-use clip_decode::{parse_channel_kind, spawn_streaming_clip};
+use clip_decode::{inspect_clip_sample_rate, parse_channel_kind, spawn_streaming_clip};
 use clip_streaming::{ClipSamples, LoadedClip, StreamTask, StreamWorkerPool, StreamingClip};
 use compiled_graph::compiled_graph_snapshot;
 use device_recovery::{DeviceFaultSignal, DeviceRecoveryState, StreamFaultReporter};

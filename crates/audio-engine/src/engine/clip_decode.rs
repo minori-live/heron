@@ -27,6 +27,19 @@ fn resample_clip_samples(
         .map_err(|error| audio_error("failed to resample mixer clip", error))
 }
 
+/// Read a mixer clip's on-disk sample rate without decoding PCM.
+pub(super) fn inspect_clip_sample_rate(path: &str) -> Result<u32> {
+    let mut reader = WaveReader::open(path)
+        .map_err(|error| audio_error("failed to inspect mixer clip", error))?;
+    let format = reader
+        .format()
+        .map_err(|error| audio_error("failed to read mixer clip format", error))?;
+    if format.sample_rate == 0 {
+        return Err(invalid_config("mixer clip has an invalid sample rate"));
+    }
+    Ok(format.sample_rate)
+}
+
 pub fn decode_clip_audio(path: &str, target_sample_rate: u32) -> Result<Vec<StereoFrame>> {
     let mut reader =
         WaveReader::open(path).map_err(|error| audio_error("failed to open mixer clip", error))?;
@@ -58,6 +71,11 @@ pub fn decode_clip_audio(path: &str, target_sample_rate: u32) -> Result<Vec<Ster
     Ok(interleaved_to_stereo(&resampled, channels))
 }
 
+/// Prefetch a native-rate mixer clip through the streaming window worker.
+///
+/// The asset sample rate must already match `target_sample_rate`. Offline
+/// Rubber Band conversion is full-file only; rate-mismatched assets must use
+/// [`decode_clip_audio`] so adjacent windows do not restart a fresh stretcher.
 pub(super) fn spawn_streaming_clip(
     path: String,
     target_sample_rate: u32,
@@ -76,9 +94,11 @@ pub(super) fn spawn_streaming_clip(
     if source_channels == 0 || format.sample_rate == 0 {
         return Err(invalid_config("streaming mixer clip has an invalid format"));
     }
-    let target_frames = ((source_frames as u128 * u128::from(target_sample_rate)
-        + u128::from(format.sample_rate) / 2)
-        / u128::from(format.sample_rate)) as usize;
+    if format.sample_rate != target_sample_rate {
+        return Err(invalid_config(
+            "streaming mixer clips require a matching sample rate; resample offline first",
+        ));
+    }
     let capacity = (target_sample_rate as usize)
         .saturating_mul(STREAM_WINDOW_SECONDS)
         .max(1);
@@ -90,7 +110,6 @@ pub(super) fn spawn_streaming_clip(
     let mut frame_reader = reader
         .audio_frame_reader()
         .map_err(|error| audio_error("clip prefetch failed", error))?;
-    let source_ratio = f64::from(format.sample_rate) / f64::from(target_sample_rate);
     let prefetch_threshold = (target_sample_rate as usize / 2).max(1);
     let overlap = (target_sample_rate as usize / 4).max(1);
     let mut source_buffer = Vec::<f32>::new();
@@ -122,7 +141,7 @@ pub(super) fn spawn_streaming_clip(
                     } else {
                         requested
                     };
-                    let window_count = capacity.min(target_frames.saturating_sub(window_start));
+                    let window_count = capacity.min(source_frames.saturating_sub(window_start));
                     let inactive = 1 - active;
                     while worker_control.reader_window.load(Ordering::Acquire) == inactive + 1
                         && !worker_control.shutdown.load(Ordering::Acquire)
@@ -133,17 +152,9 @@ pub(super) fn spawn_streaming_clip(
                         return Ok(());
                     }
 
-                    let source_start = (window_start as f64 * source_ratio).floor() as usize;
-                    let source_end = (((window_start.saturating_add(window_count)) as f64
-                        * source_ratio)
-                        .ceil() as usize)
-                        .saturating_add(1)
-                        .min(source_frames);
-                    let requested_source_frames = source_end.saturating_sub(source_start);
-                    source_buffer
-                        .resize(requested_source_frames.saturating_mul(source_channels), 0.0);
+                    source_buffer.resize(window_count.saturating_mul(source_channels), 0.0);
                     frame_reader
-                        .locate(source_start as u64)
+                        .locate(window_start as u64)
                         .map_err(|error| error.to_string())?;
                     let read_frames = frame_reader
                         .read_frames(&mut source_buffer)
@@ -153,50 +164,21 @@ pub(super) fn spawn_streaming_clip(
 
                     let window = &worker_control.windows[inactive];
                     let mut written = 0;
-                    if format.sample_rate == target_sample_rate {
-                        for output_index in 0..window_count {
-                            if generation != worker_control.generation.load(Ordering::Acquire) {
-                                break;
-                            }
-                            let local = window_start
-                                .saturating_add(output_index)
-                                .saturating_sub(source_start);
-                            if local >= read_frames {
-                                break;
-                            }
-                            let left = source_buffer[local * source_channels];
-                            let right = if source_channels > 1 {
-                                source_buffer[local * source_channels + 1]
-                            } else {
-                                left
-                            };
-                            window.store(output_index, [left, right]);
-                            written += 1;
+                    for output_index in 0..window_count {
+                        if generation != worker_control.generation.load(Ordering::Acquire) {
+                            break;
                         }
-                    } else {
-                        let resampled = resample_interleaved(
-                            &source_buffer,
-                            source_channels,
-                            format.sample_rate,
-                            target_sample_rate,
-                        )
-                        .map_err(|error| error.to_string())?;
-                        let stereo = interleaved_to_stereo(&resampled, source_channels);
-                        // Map the resampled chunk onto the target window by
-                        // wall-clock alignment from the source start frame.
-                        let chunk_origin = ((source_start as f64) / source_ratio).round() as isize;
-                        for output_index in 0..window_count {
-                            if generation != worker_control.generation.load(Ordering::Acquire) {
-                                break;
-                            }
-                            let absolute = window_start.saturating_add(output_index) as isize;
-                            let local = absolute - chunk_origin;
-                            if local < 0 || local as usize >= stereo.len() {
-                                break;
-                            }
-                            window.store(output_index, stereo[local as usize]);
-                            written += 1;
+                        if output_index >= read_frames {
+                            break;
                         }
+                        let left = source_buffer[output_index * source_channels];
+                        let right = if source_channels > 1 {
+                            source_buffer[output_index * source_channels + 1]
+                        } else {
+                            left
+                        };
+                        window.store(output_index, [left, right]);
+                        written += 1;
                     }
                     if generation != worker_control.generation.load(Ordering::Acquire) {
                         return Ok(());
@@ -231,7 +213,7 @@ pub(super) fn spawn_streaming_clip(
                 control,
                 expected_frame: Some(initial_frame),
             },
-            target_frames,
+            source_frames,
         )),
         Ok(Err(message)) => {
             control.shutdown.store(true, Ordering::Release);

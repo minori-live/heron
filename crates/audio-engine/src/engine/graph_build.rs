@@ -7,8 +7,9 @@ use super::{
     ResolvedLatencyPolicy, ResolvedMixerChannel, ResolvedMixerClip, ResolvedMixerGraph,
     ResolvedMixerSend, ResolvedPluginInstance, Result, RouteTarget, ScheduledMidiEvent,
     ScheduledMidiEventKind, SendSpec, SendTap, SignalWidth, StereoDelayLine, TempoMap,
-    TransportShared, audio_error, clip_storage_policy, decode_clip_audio, fs, invalid_config,
-    parse_channel_kind, plan_low_latency, spawn_streaming_clip,
+    TransportShared, audio_error, clip_storage_policy, decode_clip_audio, fs,
+    inspect_clip_sample_rate, invalid_config, parse_channel_kind, plan_low_latency,
+    spawn_streaming_clip,
 };
 use crate::application_capture::ApplicationCaptureLogicalTarget;
 

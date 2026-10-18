@@ -530,11 +530,16 @@ fn decode_clip_audio_resamples_44100_to_48000() {
     assert_eq!(decoded.len(), 4_800);
     assert!(decoded[0][0].abs() < 0.3);
 
-    let (mut stream, frames) =
-        spawn_streaming_clip(path.to_string_lossy().into_owned(), 48_000, 0).unwrap();
-    assert_eq!(frames, 4_800);
-    assert!(stream.sample_at(0).is_some());
-    drop(stream);
+    // Streaming requires a matching rate; SRC stays on the full-file path.
+    let stream_result = spawn_streaming_clip(path.to_string_lossy().into_owned(), 48_000, 0);
+    let stream_err = match stream_result {
+        Err(error) => error,
+        Ok(_) => panic!("streaming rejects rate-mismatched clips"),
+    };
+    assert!(
+        stream_err.to_string().contains("matching sample rate"),
+        "unexpected error: {stream_err}"
+    );
     fs::remove_file(path).unwrap();
 }
 
