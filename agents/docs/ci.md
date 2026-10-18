@@ -35,9 +35,13 @@ builds, and tagged releases.
   started manually.
   Callers must pass `CODECOV_TOKEN` when available (see `CI` and `Publish`).
 - **Build** (`.github/workflows/build.yml`) packages installers for Windows
-  x64, Linux x64 and arm64, and universal macOS as a packaging smoke test. It
-  is reusable through `workflow_call` and can also be started manually. CI and
-  manual smoke runs disable release LTO (`CARGO_PROFILE_RELEASE_LTO=false`,
+  x64, Linux x64 and arm64, and universal macOS by default. CI pull requests
+  pass `pr_smoke_build: true` to package only Linux x64; this does not reduce
+  the three-platform functional tests in `Test`. Pushes to `main`, tag releases,
+  manual runs, and reusable callers that omit this input retain the full
+  packaging matrix. The workflow is reusable through `workflow_call` and can
+  also be started manually. CI and manual smoke runs disable release LTO
+  (`CARGO_PROFILE_RELEASE_LTO=false`,
   higher `codegen-units`, stripped symbols) so MSVC packaging stays tolerable;
   pass `full_release_profile: true` to keep the Cargo.toml thin-LTO settings.
   Every packaging leg checks that all plug-in bundle files match the prepared

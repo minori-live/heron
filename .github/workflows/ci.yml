@@ -57,6 +57,8 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && !(needs.changes.result == 'success' && needs.changes.outputs.docs_only == 'true') }}
     uses: ./.github/workflows/build.yml
+    with:
+      pr_smoke_build: ${{ github.event_name == 'pull_request' }}
     permissions:
       contents: read
 

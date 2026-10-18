@@ -11,6 +11,11 @@ on:
         default: false
   workflow_call:
     inputs:
+      pr_smoke_build:
+        description: Package Linux x64 only for pull-request smoke validation.
+        type: boolean
+        required: false
+        default: false
       release_updates:
         description: Enable updates only for a validated tag-push release.
         type: boolean
@@ -71,31 +76,52 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: Windows x64
-            os: windows-latest
-            builder-arch: x64
-            mise-task: ci:package:windows-x64
-            artifact: windows-x64
-            package-glob: release/*.exe
-          - name: Linux x64
-            os: ubuntu-24.04
-            builder-arch: x64
-            mise-task: ci:package:linux-x64
-            artifact: linux-x64
-            package-glob: release/*.AppImage
-          - name: Linux arm64
-            os: ubuntu-24.04-arm
-            builder-arch: arm64
-            mise-task: ci:package:linux-arm64
-            artifact: linux-arm64
-            package-glob: release/*.AppImage
-          - name: macOS universal
-            os: macos-latest
-            builder-arch: universal
-            mise-task: ci:package:macos-universal
-            artifact: macos-universal
-            package-glob: release/*.dmg
+        # Default callers, manual builds, and releases keep every platform.
+        include: >-
+          ${{ fromJSON(inputs.pr_smoke_build && github.event_name == 'pull_request' &&
+            '[
+              {
+                "name": "Linux x64",
+                "os": "ubuntu-24.04",
+                "builder-arch": "x64",
+                "mise-task": "ci:package:linux-x64",
+                "artifact": "linux-x64",
+                "package-glob": "release/*.AppImage"
+              }
+            ]' || '[
+              {
+                "name": "Windows x64",
+                "os": "windows-latest",
+                "builder-arch": "x64",
+                "mise-task": "ci:package:windows-x64",
+                "artifact": "windows-x64",
+                "package-glob": "release/*.exe"
+              },
+              {
+                "name": "Linux x64",
+                "os": "ubuntu-24.04",
+                "builder-arch": "x64",
+                "mise-task": "ci:package:linux-x64",
+                "artifact": "linux-x64",
+                "package-glob": "release/*.AppImage"
+              },
+              {
+                "name": "Linux arm64",
+                "os": "ubuntu-24.04-arm",
+                "builder-arch": "arm64",
+                "mise-task": "ci:package:linux-arm64",
+                "artifact": "linux-arm64",
+                "package-glob": "release/*.AppImage"
+              },
+              {
+                "name": "macOS universal",
+                "os": "macos-latest",
+                "builder-arch": "universal",
+                "mise-task": "ci:package:macos-universal",
+                "artifact": "macos-universal",
+                "package-glob": "release/*.dmg"
+              }
+            ]') }}
     steps:
       - name: Check out source
         uses: actions/checkout@v7
