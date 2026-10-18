@@ -26,15 +26,16 @@ use std::ptr;
 use heron_rubberband_sys as ffi;
 use thiserror::Error;
 
-const PROCESS_OFFLINE: u32 = ffi::RubberBandOption_RubberBandOptionProcessOffline;
-const ENGINE_FINER: u32 = ffi::RubberBandOption_RubberBandOptionEngineFiner;
-const PITCH_HIGH_QUALITY: u32 = ffi::RubberBandOption_RubberBandOptionPitchHighQuality;
-const CHANNELS_TOGETHER: u32 = ffi::RubberBandOption_RubberBandOptionChannelsTogether;
-const THREADING_NEVER: u32 = ffi::RubberBandOption_RubberBandOptionThreadingNever;
+// Option flag values from rubberband-c.h. Bindgen may emit these as `i32` or
+// `u32` depending on the host clang/MSVC ABI, so keep the portable literals.
+const PROCESS_OFFLINE: i32 = 0x0000_0000;
+const ENGINE_FINER: i32 = 0x2000_0000;
+const PITCH_HIGH_QUALITY: i32 = 0x0200_0000;
+const CHANNELS_TOGETHER: i32 = 0x1000_0000;
+const THREADING_NEVER: i32 = 0x0001_0000;
 
 const OFFLINE_OPTIONS: i32 =
-    (PROCESS_OFFLINE | ENGINE_FINER | PITCH_HIGH_QUALITY | CHANNELS_TOGETHER | THREADING_NEVER)
-        as i32;
+    PROCESS_OFFLINE | ENGINE_FINER | PITCH_HIGH_QUALITY | CHANNELS_TOGETHER | THREADING_NEVER;
 
 const PROCESS_CHUNK_FRAMES: usize = 4_096;
 

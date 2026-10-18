@@ -27,6 +27,8 @@ export const generatedAndBuildPaths = [
   "**/target/",
   "**/test-results/",
   "**/third_party/",
+  // Vendored Rubber Band sources; leave upstream formatting untouched.
+  "crates/rubberband-sys/vendor/",
   "crates/.dsp-node.napi-stage-*/",
   "**/.napi-rs-filesystem-transaction*.swp/",
   "crates/dsp-node/index.d.ts",
