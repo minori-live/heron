@@ -1,4 +1,5 @@
-//! Offline sample-rate conversion for Heron media loads and recording finalize.
+//! Sample-rate conversion for Heron media loads, recording finalize, and
+//! streaming clip prefetch.
 //!
 //! # Rubber Band choice
 //!
@@ -18,8 +19,9 @@
 //!
 //! A time ratio of `1.0` alone would keep the frame count and therefore change
 //! duration once the buffer is labeled at the new rate; both ratios are
-//! required for correct SRC. Real-time device clock adaptation continues to
-//! use `rubato` in the audio engine.
+//! required for correct SRC. Streaming prefetch uses [`StreamingSrc`] (one
+//! persistent real-time stretcher per clip). Real-time device clock adaptation
+//! continues to use `rubato` in the audio engine.
 
 use std::ptr;
 
@@ -37,7 +39,20 @@ const THREADING_NEVER: i32 = 0x0001_0000;
 const OFFLINE_OPTIONS: i32 =
     PROCESS_OFFLINE | ENGINE_FINER | PITCH_HIGH_QUALITY | CHANNELS_TOGETHER | THREADING_NEVER;
 
-const PROCESS_CHUNK_FRAMES: usize = 4_096;
+pub(crate) const PROCESS_CHUNK_FRAMES: usize = 4_096;
+
+mod streaming;
+pub use streaming::{StreamingSrc, source_frame_for_output};
+
+/// Rounded output frame count for a source of `source_frames` at the given rates.
+#[must_use]
+pub fn expected_output_frames(source_frames: usize, source_rate: u32, target_rate: u32) -> usize {
+    if source_rate == 0 {
+        return 0;
+    }
+    ((source_frames as u128 * u128::from(target_rate) + u128::from(source_rate) / 2)
+        / u128::from(source_rate)) as usize
+}
 
 /// Errors produced while preparing or running offline resampling.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
@@ -127,9 +142,7 @@ pub fn resample_interleaved(
         return Ok(interleaved.to_vec());
     }
 
-    let expected_frames = ((source_frames as u128 * u128::from(target_rate)
-        + u128::from(source_rate) / 2)
-        / u128::from(source_rate)) as usize;
+    let expected_frames = expected_output_frames(source_frames, source_rate, target_rate);
     let time_ratio = f64::from(target_rate) / f64::from(source_rate);
     let pitch_scale = f64::from(source_rate) / f64::from(target_rate);
 
@@ -262,7 +275,7 @@ fn drain_available(stretcher: &mut StretcherGuard, channels: usize, planar_out: 
     }
 }
 
-fn deinterleave(interleaved: &[f32], channels: usize) -> Vec<Vec<f32>> {
+pub(crate) fn deinterleave(interleaved: &[f32], channels: usize) -> Vec<Vec<f32>> {
     let frames = interleaved.len() / channels;
     let mut planar = vec![vec![0.0_f32; frames]; channels];
     for (frame, chunk) in interleaved.chunks_exact(channels).enumerate() {

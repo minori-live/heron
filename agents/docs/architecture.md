@@ -355,11 +355,12 @@ package). Offline conversion uses the R3 (`EngineFiner`) stretcher with
 length and tone frequency both match playback at the target rate. The stretcher
 API is preferred over Rubber Band's internal C++ `Resampler` because it is
 exposed through the C ABI we already bind and can later host time-stretch or
-pitch-shift features. Streaming clip prefetch only runs when the asset rate
-already matches the engine rate; rate-mismatched large assets take the full-file
-Rubber Band decode path so adjacent prefetch windows do not restart a fresh
-offline stretcher. Real-time device clock adaptation in the audio engine
-continues to use `rubato` and is out of scope for this path.
+pitch-shift features. Streaming clip prefetch keeps one persistent real-time
+Rubber Band stretcher per rate-mismatched clip, feeding contiguous source across
+windows so phase stays continuous; seeks reset and re-prime with
+`getPreferredStartPad` / `getStartDelay`. Small clips still fully decode into
+memory when under the existing size threshold. Real-time device clock adaptation
+in the audio engine continues to use `rubato` and is out of scope for this path.
 
 ## Media audition
 

@@ -2,7 +2,7 @@ use super::{
     ChannelKind, ChannelSpec, ClipSamples, ClipStoragePolicy, DecodedMidiClip,
     DecodedMidiEventKind, LoadedClip, ResolvedMixerClip, Result, ScheduledMidiEvent,
     ScheduledMidiEventKind, TempoMap, audio_error, clip_storage_policy, decode_clip_audio, fs,
-    inspect_clip_sample_rate, invalid_config, spawn_streaming_clip,
+    invalid_config, spawn_streaming_clip,
 };
 
 pub(super) struct MidiBuild {
@@ -45,19 +45,9 @@ pub(super) fn load_audio_clips(
                 (ClipSamples::Memory(decoded), sample_frames)
             }
             ClipStoragePolicy::Streaming => {
-                // Rubber Band offline SRC is full-file only. Rate-mismatched
-                // assets must not stream in windows that each restart a fresh
-                // stretcher (clicks / phase breaks every prefetch window).
-                let source_rate = inspect_clip_sample_rate(&clip.path)?;
-                if source_rate != sample_rate {
-                    let decoded = decode_clip_audio(&clip.path, sample_rate)?;
-                    let sample_frames = decoded.len();
-                    (ClipSamples::Memory(decoded), sample_frames)
-                } else {
-                    let (streaming, sample_frames) =
-                        spawn_streaming_clip(clip.path, sample_rate, source_offset_frames)?;
-                    (ClipSamples::Streaming(streaming), sample_frames)
-                }
+                let (streaming, sample_frames) =
+                    spawn_streaming_clip(clip.path, sample_rate, source_offset_frames)?;
+                (ClipSamples::Streaming(streaming), sample_frames)
             }
         };
         let available = sample_frames.saturating_sub(source_offset_frames);

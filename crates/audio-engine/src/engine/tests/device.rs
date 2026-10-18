@@ -529,17 +529,138 @@ fn decode_clip_audio_resamples_44100_to_48000() {
     let decoded = decode_clip_audio(&path.to_string_lossy(), 48_000).expect("resample decode");
     assert_eq!(decoded.len(), 4_800);
     assert!(decoded[0][0].abs() < 0.3);
+    fs::remove_file(path).unwrap();
+}
 
-    // Streaming requires a matching rate; SRC stays on the full-file path.
-    let stream_result = spawn_streaming_clip(path.to_string_lossy().into_owned(), 48_000, 0);
-    let stream_err = match stream_result {
-        Err(error) => error,
-        Ok(_) => panic!("streaming rejects rate-mismatched clips"),
-    };
+fn wait_for_stream_sample(stream: &mut StreamingClip, frame: usize) -> Option<StereoFrame> {
+    for _ in 0..500 {
+        if let Some(sample) = stream.poll_sample_at(frame) {
+            return Some(sample);
+        }
+        thread::sleep(Duration::from_millis(2));
+    }
+    None
+}
+
+#[test]
+fn streaming_src_matches_full_decode_across_windows() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let path = std::env::temp_dir().join(format!(
+        "heron-stream-src-{}-{nonce}.bwf",
+        std::process::id()
+    ));
+    // 5s @ 8k → 10s @ 16k (~3× 2s windows) without a huge fixture.
+    let source_rate = 8_000;
+    let target_rate = 16_000;
+    let source_frames = source_rate * 5;
+    write_deterministic_test_recording(
+        RecordingStartConfig {
+            path: path.to_string_lossy().into_owned(),
+            asset_id: "stream-src-test".to_owned(),
+            originator: "Heron test".to_owned(),
+            origination_date: "2026-10-18".to_owned(),
+            origination_time: "12:00:00".to_owned(),
+            time_reference: 0,
+            sample_rate: source_rate,
+            channels: 2,
+        },
+        source_rate,
+        source_frames,
+    )
+    .unwrap();
+
+    let reference = decode_clip_audio(&path.to_string_lossy(), target_rate).expect("full decode");
+    let (mut stream, frames) =
+        spawn_streaming_clip(path.to_string_lossy().into_owned(), target_rate, 0)
+            .expect("spawn streaming src");
+    assert_eq!(frames, reference.len());
+
+    let window = (target_rate as usize) * 2;
+    let mut streamed = Vec::with_capacity(frames);
+    for frame in 0..frames {
+        let sample = wait_for_stream_sample(&mut stream, frame)
+            .unwrap_or_else(|| panic!("missing streamed frame {frame}"));
+        streamed.push(sample);
+    }
+
+    let mut mean_err = 0.0_f64;
+    for (a, b) in streamed.iter().zip(reference.iter()) {
+        mean_err += f64::from((a[0] - b[0]).abs() + (a[1] - b[1]).abs()) * 0.5;
+    }
+    mean_err /= frames.max(1) as f64;
     assert!(
-        stream_err.to_string().contains("matching sample rate"),
-        "unexpected error: {stream_err}"
+        mean_err < 0.04,
+        "streaming vs full-decode mean abs error {mean_err}"
     );
+
+    for boundary in [window, window * 2] {
+        if boundary == 0 || boundary >= frames {
+            continue;
+        }
+        let stream_step = (streamed[boundary][0] - streamed[boundary - 1][0]).abs();
+        let ref_step = (reference[boundary][0] - reference[boundary - 1][0]).abs();
+        assert!(
+            (stream_step - ref_step).abs() < 0.05,
+            "window boundary click at {boundary}: stream={stream_step} ref={ref_step}"
+        );
+    }
+
+    drop(stream);
+    fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn streaming_src_seek_matches_full_decode_segment() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let path = std::env::temp_dir().join(format!(
+        "heron-stream-seek-{}-{nonce}.bwf",
+        std::process::id()
+    ));
+    let source_rate = 8_000;
+    let target_rate = 16_000;
+    let source_frames = source_rate * 3;
+    write_deterministic_test_recording(
+        RecordingStartConfig {
+            path: path.to_string_lossy().into_owned(),
+            asset_id: "stream-seek-test".to_owned(),
+            originator: "Heron test".to_owned(),
+            origination_date: "2026-10-18".to_owned(),
+            origination_time: "12:00:00".to_owned(),
+            time_reference: 0,
+            sample_rate: source_rate,
+            channels: 2,
+        },
+        source_rate,
+        source_frames,
+    )
+    .unwrap();
+
+    let reference = decode_clip_audio(&path.to_string_lossy(), target_rate).expect("full decode");
+    let seek_at = reference.len() / 3;
+    let (mut stream, frames) =
+        spawn_streaming_clip(path.to_string_lossy().into_owned(), target_rate, seek_at)
+            .expect("spawn streaming seek");
+    assert_eq!(frames, reference.len());
+
+    let mut mean_err = 0.0_f64;
+    let compare = 1_024.min(reference.len().saturating_sub(seek_at));
+    // Skip a short settle window after start-pad re-prime.
+    let settle = 128usize;
+    for frame in (seek_at + settle)..(seek_at + settle + compare) {
+        let sample = wait_for_stream_sample(&mut stream, frame)
+            .unwrap_or_else(|| panic!("missing seek frame {frame}"));
+        mean_err += f64::from((sample[0] - reference[frame][0]).abs());
+    }
+    mean_err /= compare.max(1) as f64;
+    assert!(mean_err < 0.08, "seek segment mean abs error {mean_err}");
+
+    drop(stream);
     fs::remove_file(path).unwrap();
 }
 

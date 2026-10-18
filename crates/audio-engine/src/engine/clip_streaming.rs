@@ -8,6 +8,12 @@ pub(super) struct StreamingClip {
 }
 
 impl StreamingClip {
+    /// Read `frame` without treating a retry as a seek (no generation bump).
+    pub(super) fn poll_sample_at(&mut self, frame: usize) -> Option<StereoFrame> {
+        self.expected_frame = Some(frame);
+        self.sample_at(frame)
+    }
+
     pub(super) fn sample_at(&mut self, frame: usize) -> Option<StereoFrame> {
         if self.expected_frame != Some(frame) {
             self.control.generation.fetch_add(1, Ordering::AcqRel);
