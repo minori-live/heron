@@ -301,7 +301,8 @@ impl Drop for StreamingSrc {
     }
 }
 
-// Rubber Band state must not be shared across threads.
+// SAFETY: Rubber Band state is exclusively owned by this struct and never
+// shared across threads; only the owning worker may call into it.
 unsafe impl Send for StreamingSrc {}
 
 #[cfg(test)]
@@ -503,12 +504,12 @@ mod tests {
         for lag in -64isize..=64 {
             let mut score = 0.0_f64;
             let mut count = 0usize;
-            for i in 0..probe {
+            for (i, sample) in first.iter().enumerate().take(probe) {
                 let ci = seek_at as isize + i as isize + lag;
                 if ci < 0 || ci as usize >= continuous.len() {
                     continue;
                 }
-                score += f64::from(first[i] * continuous[ci as usize]);
+                score += f64::from(sample * continuous[ci as usize]);
                 count += 1;
             }
             if count > 0 {

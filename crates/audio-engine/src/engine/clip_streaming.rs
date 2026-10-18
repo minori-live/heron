@@ -9,6 +9,7 @@ pub(super) struct StreamingClip {
 
 impl StreamingClip {
     /// Read `frame` without treating a retry as a seek (no generation bump).
+    #[cfg(test)]
     pub(super) fn poll_sample_at(&mut self, frame: usize) -> Option<StereoFrame> {
         self.expected_frame = Some(frame);
         self.sample_at(frame)

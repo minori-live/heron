@@ -652,10 +652,13 @@ fn streaming_src_seek_matches_full_decode_segment() {
     let compare = 1_024.min(reference.len().saturating_sub(seek_at));
     // Skip a short settle window after start-pad re-prime.
     let settle = 128usize;
-    for frame in (seek_at + settle)..(seek_at + settle + compare) {
+    let start = seek_at + settle;
+    let end = (start + compare).min(reference.len());
+    for (offset, expected) in reference[start..end].iter().enumerate() {
+        let frame = start + offset;
         let sample = wait_for_stream_sample(&mut stream, frame)
             .unwrap_or_else(|| panic!("missing seek frame {frame}"));
-        mean_err += f64::from((sample[0] - reference[frame][0]).abs());
+        mean_err += f64::from((sample[0] - expected[0]).abs());
     }
     mean_err /= compare.max(1) as f64;
     assert!(mean_err < 0.08, "seek segment mean abs error {mean_err}");
