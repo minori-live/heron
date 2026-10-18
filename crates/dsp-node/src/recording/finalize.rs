@@ -105,20 +105,13 @@ pub(super) fn finalize(config: &NativeFinalizeRecordingConfig) -> Result<NativeF
     let processed = if source_format.sample_rate == config.target_sample_rate {
         samples
     } else {
-        let mut resampler = Fft::<f32>::new(
-            source_format.sample_rate as usize,
-            config.target_sample_rate as usize,
-            8_192,
+        resample_interleaved(
+            &samples,
             channels,
-            FixedSync::Input,
+            source_format.sample_rate,
+            config.target_sample_rate,
         )
-        .map_err(|error| recording_error("failed to create offline resampler", error))?;
-        let adapter = InterleavedSlice::new(&samples, channels, read_frames)
-            .map_err(|error| recording_error("failed to adapt recording buffer", error))?;
-        resampler
-            .process_all(&adapter, read_frames, None)
-            .map_err(|error| recording_error("failed to resample recording", error))?
-            .take_data()
+        .map_err(|error| recording_error("failed to resample recording", error))?
     };
 
     let bits = match config.bit_depth.as_str() {
@@ -162,7 +155,7 @@ pub(super) fn finalize(config: &NativeFinalizeRecordingConfig) -> Result<NativeF
             &config.origination_time,
             config.time_reference.max(0) as u64,
             format!(
-                "A=PCM,F={},W=32,M={} channel,T=Heron swap\r\nA=PCM,F={},W={},T=Fft SRC + final quantization\r\n",
+                "A=PCM,F={},W=32,M={} channel,T=Heron swap\r\nA=PCM,F={},W={},T=Rubber Band R3 SRC + final quantization\r\n",
                 source_format.sample_rate, channels, config.target_sample_rate, bits
             ),
         ))

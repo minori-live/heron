@@ -1,8 +1,31 @@
+use heron_dsp_resample::resample_interleaved;
+
 use super::{
     Arc, ChannelKind, Duration, Ordering, Result, STREAM_WINDOW_SECONDS, StereoFrame,
     StreamControl, StreamTask, StreamWorkerPool, StreamingClip, WaveReader, audio_error,
     invalid_config, mpsc, thread,
 };
+
+fn interleaved_to_stereo(samples: &[f32], channels: usize) -> Vec<StereoFrame> {
+    samples
+        .chunks_exact(channels)
+        .map(|frame| {
+            let left = frame[0];
+            let right = if channels > 1 { frame[1] } else { left };
+            [left, right]
+        })
+        .collect()
+}
+
+fn resample_clip_samples(
+    samples: &[f32],
+    channels: usize,
+    source_rate: u32,
+    target_rate: u32,
+) -> Result<Vec<f32>> {
+    resample_interleaved(samples, channels, source_rate, target_rate)
+        .map_err(|error| audio_error("failed to resample mixer clip", error))
+}
 
 pub fn decode_clip_audio(path: &str, target_sample_rate: u32) -> Result<Vec<StereoFrame>> {
     let mut reader =
@@ -27,38 +50,12 @@ pub fn decode_clip_audio(path: &str, target_sample_rate: u32) -> Result<Vec<Ster
         .map_err(|error| audio_error("failed to decode mixer clip", error))?
         as usize;
     samples.truncate(read_frames.saturating_mul(channels));
-    let decoded: Vec<StereoFrame> = samples
-        .chunks_exact(channels)
-        .map(|frame| {
-            let left = frame[0];
-            let right = if channels > 1 { frame[1] } else { left };
-            [left, right]
-        })
-        .collect();
-    if decoded.is_empty() {
-        return Ok(decoded);
+    if samples.is_empty() {
+        return Ok(Vec::new());
     }
-    if format.sample_rate == target_sample_rate {
-        return Ok(decoded);
-    }
-    let target_frames = ((decoded.len() as u128 * u128::from(target_sample_rate)
-        + u128::from(format.sample_rate) / 2)
-        / u128::from(format.sample_rate)) as usize;
-    let ratio = f64::from(format.sample_rate) / f64::from(target_sample_rate);
-    Ok((0..target_frames)
-        .map(|frame| {
-            let position = frame as f64 * ratio;
-            let base = position.floor() as usize;
-            let next = (base + 1).min(decoded.len().saturating_sub(1));
-            let fraction = (position - base as f64) as f32;
-            let first = decoded[base.min(decoded.len().saturating_sub(1))];
-            let second = decoded[next];
-            [
-                first[0] + (second[0] - first[0]) * fraction,
-                first[1] + (second[1] - first[1]) * fraction,
-            ]
-        })
-        .collect())
+    let resampled =
+        resample_clip_samples(&samples, channels, format.sample_rate, target_sample_rate)?;
+    Ok(interleaved_to_stereo(&resampled, channels))
 }
 
 pub(super) fn spawn_streaming_clip(
@@ -156,38 +153,50 @@ pub(super) fn spawn_streaming_clip(
 
                     let window = &worker_control.windows[inactive];
                     let mut written = 0;
-                    for output_index in 0..window_count {
-                        if generation != worker_control.generation.load(Ordering::Acquire) {
-                            break;
+                    if format.sample_rate == target_sample_rate {
+                        for output_index in 0..window_count {
+                            if generation != worker_control.generation.load(Ordering::Acquire) {
+                                break;
+                            }
+                            let local = window_start
+                                .saturating_add(output_index)
+                                .saturating_sub(source_start);
+                            if local >= read_frames {
+                                break;
+                            }
+                            let left = source_buffer[local * source_channels];
+                            let right = if source_channels > 1 {
+                                source_buffer[local * source_channels + 1]
+                            } else {
+                                left
+                            };
+                            window.store(output_index, [left, right]);
+                            written += 1;
                         }
-                        let source_position = (window_start + output_index) as f64 * source_ratio;
-                        let base_source = source_position.floor() as usize;
-                        let local = base_source.saturating_sub(source_start);
-                        if local >= read_frames {
-                            break;
+                    } else {
+                        let resampled = resample_interleaved(
+                            &source_buffer,
+                            source_channels,
+                            format.sample_rate,
+                            target_sample_rate,
+                        )
+                        .map_err(|error| error.to_string())?;
+                        let stereo = interleaved_to_stereo(&resampled, source_channels);
+                        // Map the resampled chunk onto the target window by
+                        // wall-clock alignment from the source start frame.
+                        let chunk_origin = ((source_start as f64) / source_ratio).round() as isize;
+                        for output_index in 0..window_count {
+                            if generation != worker_control.generation.load(Ordering::Acquire) {
+                                break;
+                            }
+                            let absolute = window_start.saturating_add(output_index) as isize;
+                            let local = absolute - chunk_origin;
+                            if local < 0 || local as usize >= stereo.len() {
+                                break;
+                            }
+                            window.store(output_index, stereo[local as usize]);
+                            written += 1;
                         }
-                        let next = (local + 1).min(read_frames.saturating_sub(1));
-                        let fraction = (source_position - base_source as f64) as f32;
-                        let first_left = source_buffer[local * source_channels];
-                        let second_left = source_buffer[next * source_channels];
-                        let first_right = if source_channels > 1 {
-                            source_buffer[local * source_channels + 1]
-                        } else {
-                            first_left
-                        };
-                        let second_right = if source_channels > 1 {
-                            source_buffer[next * source_channels + 1]
-                        } else {
-                            second_left
-                        };
-                        window.store(
-                            output_index,
-                            [
-                                first_left + (second_left - first_left) * fraction,
-                                first_right + (second_right - first_right) * fraction,
-                            ],
-                        );
-                        written += 1;
                     }
                     if generation != worker_control.generation.load(Ordering::Acquire) {
                         return Ok(());

@@ -47,6 +47,12 @@ ASIO SDK automatically; set `CPAL_ASIO_DIR` only when using a preinstalled SDK.
 Runtime ASIO validation also requires a 64-bit vendor ASIO driver or a fallback
 such as ASIO4ALL.
 
+Offline Rubber Band resampling (`heron-rubberband-sys`) compiles C++ from the
+vendored library and needs a working C++ toolchain on every platform (MSVC on
+Windows, Apple Clang on macOS, `g++` on Linux). Linux CI installs `g++`
+explicitly. The sys crate prefers `g++` on Linux when `CXX` is unset so hosts
+whose default `c++` is a header-light Clang still build.
+
 For a local SDK installation, set `CPAL_ASIO_DIR` in the repository-root
 `.mise.local.toml` (ignored by Git):
 

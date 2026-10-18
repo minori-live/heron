@@ -89,7 +89,7 @@ fn repairs_an_unfinished_data_chunk() {
 }
 
 #[test]
-fn fft_resampling_preserves_sine_length_frequency_and_all_final_formats() {
+fn rubberband_resampling_preserves_sine_length_frequency_and_all_final_formats() {
     let source = temporary_file("source-sine");
     let mut writer = WaveWriter::create(&source, float_stereo_format(44_100)).unwrap();
     writer

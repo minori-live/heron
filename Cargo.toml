@@ -4,10 +4,12 @@ members = [
     "crates/clap-host",
     "crates/dsp-core",
     "crates/dsp-node",
+    "crates/dsp-resample",
     "crates/dsp-runtime",
     "crates/dsp-render",
     "crates/audio-engine",
     "crates/audio-host",
+    "crates/rubberband-sys",
     "crates/vst3-host-sys",
     "crates/vst3-host",
 ]
@@ -67,6 +69,8 @@ tokio = { version = "1.53.1", default-features = false, features = ["macros", "r
 ts-rs = { version = "12", features = ["serde-compat", "no-serde-warnings"] }
 windows = "0.62.2"
 heron-dsp-core = { path = "crates/dsp-core" }
+heron-dsp-resample = { path = "crates/dsp-resample" }
+heron-rubberband-sys = { path = "crates/rubberband-sys" }
 heron-audio-plugin = { path = "crates/audio-plugin" }
 heron-clap-host = { path = "crates/clap-host" }
 heron-dsp-runtime = { path = "crates/dsp-runtime" }
@@ -113,6 +117,12 @@ opt-level = 3
 opt-level = 3
 
 [profile.dev.package.rubato]
+opt-level = 3
+
+[profile.dev.package.heron-dsp-resample]
+opt-level = 3
+
+[profile.dev.package.heron-rubberband-sys]
 opt-level = 3
 
 # libflac-sys maps opt-level > 0 plus debug info to CMake RelWithDebInfo.

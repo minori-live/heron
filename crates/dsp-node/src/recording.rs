@@ -4,9 +4,9 @@ use std::{
 };
 
 use bwavfile::{Bext, WAVE_TAG_FLOAT, WaveFmt, WaveReader, WaveWriter};
+use heron_dsp_resample::resample_interleaved;
 use napi::{Error, Result, Status, Task, bindgen_prelude::Buffer};
 use napi_derive::napi;
-use rubato::{Fft, FixedSync, Resampler, audioadapter_buffers::direct::InterleavedSlice};
 use sha2::{Digest, Sha256};
 
 const WAVEFORM_BASE_FRAMES: usize = 64;

@@ -1,0 +1,20 @@
+[package]
+name = "heron-dsp-resample"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Offline high-quality sample-rate conversion via Rubber Band (R3)"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+heron-rubberband-sys.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+rustfft.workspace = true
+
+[lints]
+workspace = true

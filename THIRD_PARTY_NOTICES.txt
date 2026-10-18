@@ -88,3 +88,16 @@ the GNU Lesser General Public License, version 3. The bundled LAME 3.100 source
 is distributed under the GNU Library General Public License, version 2.
 License texts and corresponding source are included in the dependency source
 distributions.
+
+Rubber Band Library
+-------------------
+
+Heron uses Rubber Band Library for offline sample-rate conversion when loaded
+or finalized audio differs from the engine/project rate. The in-tree
+`heron-rubberband-sys` crate (GPL-2.0-or-later) vendors and compiles Rubber Band
+Library v4.0.0 from source under `crates/rubberband-sys/vendor/rubberband`; no
+system Rubber Band package is required. Rubber Band is Copyright 2007–2024
+Particular Programs Ltd and is available under the GNU General Public License,
+version 2 or later (compatible with Heron's GPL-3.0-only license). The library
+COPYING notice is included with the vendored sources. See
+https://breakfastquay.com/rubberband/.

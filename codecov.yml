@@ -15,6 +15,7 @@ coverage:
 
 ignore:
   - "third_party/**"
+  - "crates/rubberband-sys/vendor/**"
 
 comment:
   layout: "header, diff, flags, components, files"
@@ -80,6 +81,14 @@ component_management:
       name: dsp-core
       paths:
         - crates/dsp-core/**
+    - component_id: dsp-resample
+      name: dsp-resample
+      paths:
+        - crates/dsp-resample/**
+    - component_id: rubberband-sys
+      name: rubberband-sys
+      paths:
+        - crates/rubberband-sys/**
     - component_id: dsp-node
       name: dsp-node
       paths:
