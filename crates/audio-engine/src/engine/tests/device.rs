@@ -501,6 +501,44 @@ fn asio_rejects_different_input_and_output_drivers() {
 }
 
 #[test]
+fn decode_clip_audio_resamples_44100_to_48000() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let path = std::env::temp_dir().join(format!(
+        "heron-decode-src-{}-{nonce}.bwf",
+        std::process::id()
+    ));
+    write_deterministic_test_recording(
+        RecordingStartConfig {
+            path: path.to_string_lossy().into_owned(),
+            asset_id: "decode-src-test".to_owned(),
+            originator: "Heron test".to_owned(),
+            origination_date: "2026-10-18".to_owned(),
+            origination_time: "12:00:00".to_owned(),
+            time_reference: 0,
+            sample_rate: 44_100,
+            channels: 2,
+        },
+        44_100,
+        4_410,
+    )
+    .unwrap();
+
+    let decoded = decode_clip_audio(&path.to_string_lossy(), 48_000).expect("resample decode");
+    assert_eq!(decoded.len(), 4_800);
+    assert!(decoded[0][0].abs() < 0.3);
+
+    let (mut stream, frames) =
+        spawn_streaming_clip(path.to_string_lossy().into_owned(), 48_000, 0).unwrap();
+    assert_eq!(frames, 4_800);
+    assert!(stream.sample_at(0).is_some());
+    drop(stream);
+    fs::remove_file(path).unwrap();
+}
+
+#[test]
 fn streaming_clip_prefetches_and_restarts_after_a_seek_generation() {
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)

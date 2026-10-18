@@ -25,7 +25,8 @@ use super::{
     SignalWidth, StereoDelayLine, SupportedBufferSize, TRANSPORT_COUNTING_IN, TRANSPORT_PLAYING,
     TRANSPORT_RECORDING, TRANSPORT_STOPPED, TRANSPORT_WAITING, TransportAction, TransportShared,
     build_mixer_runtime, clip_storage_policy, compile_graph_build, compiled_graph_snapshot,
-    frames_to_nanos, parse_channel_kind, resolve_stream_devices, spawn_streaming_clip,
+    decode_clip_audio, frames_to_nanos, parse_channel_kind, resolve_stream_devices,
+    spawn_streaming_clip,
 };
 use crate::midi_input::GLOBAL_MIDI_TEST_LOCK;
 use crate::recording::{RecordingStartConfig, StereoFrame, write_deterministic_test_recording};
