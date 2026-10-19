@@ -350,10 +350,10 @@ export const EmbeddedHoverTreatments: Story = {
     template: `
       <div class="storybook-stack" style="max-width:28rem">
         <div style="overflow:hidden;border-radius:var(--ui-radius-sm);color:white;background:linear-gradient(var(--ui-domain-face-audio-top),var(--ui-domain-face-audio-bottom))">
-          <UiCascadingSelect v-model="hostTintValue" :options="options" size="compact" appearance="embedded" hover-treatment="host-tint" aria-label="Host tint embedded hover" />
+          <UiCascadingSelect v-model="hostTintValue" :options="options" size="compact" appearance="embedded" hover-treatment="host-tint" :aria-label="options[0].label + ', Host tint embedded hover'" />
         </div>
         <div style="overflow:hidden;border-radius:var(--ui-radius-sm);color:white;background:linear-gradient(var(--ui-domain-face-audio-top),var(--ui-domain-face-audio-bottom))">
-          <UiCascadingSelect v-model="surfaceValue" :options="options" size="compact" appearance="embedded" hover-treatment="surface" aria-label="Surface embedded hover" />
+          <UiCascadingSelect v-model="surfaceValue" :options="options" size="compact" appearance="embedded" hover-treatment="surface" :aria-label="options[0].label + ', Surface embedded hover'" />
         </div>
       </div>
     `
