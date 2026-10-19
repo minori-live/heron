@@ -357,10 +357,11 @@ API is preferred over Rubber Band's internal C++ `Resampler` because it is
 exposed through the C ABI we already bind and can later host time-stretch or
 pitch-shift features. Streaming clip prefetch keeps one persistent real-time
 Rubber Band stretcher per rate-mismatched clip, feeding contiguous source across
-windows so phase stays continuous; seeks reset and re-prime with
-`getPreferredStartPad` / `getStartDelay`. Small clips still fully decode into
-memory when under the existing size threshold. Real-time device clock adaptation
-in the audio engine continues to use `rubato` and is out of scope for this path.
+windows so phase stays continuous (final input is sent once). Seeks reset and
+re-prime with `getPreferredStartPad` / `getStartDelay` plus source pre-roll so
+the first audible frames are settled. Small clips still fully decode into memory
+when under the existing size threshold. Real-time device clock adaptation in the
+audio engine continues to use `rubato` and is out of scope for this path.
 
 ## Media audition
 

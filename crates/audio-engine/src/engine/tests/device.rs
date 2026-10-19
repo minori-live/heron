@@ -650,12 +650,10 @@ fn streaming_src_seek_matches_full_decode_segment() {
 
     let mut mean_err = 0.0_f64;
     let compare = 1_024.min(reference.len().saturating_sub(seek_at));
-    // Skip a short settle window after start-pad re-prime.
-    let settle = 128usize;
-    let start = seek_at + settle;
-    let end = (start + compare).min(reference.len());
-    for (offset, expected) in reference[start..end].iter().enumerate() {
-        let frame = start + offset;
+    // Source pre-roll should leave the first audible frames settled.
+    let end = (seek_at + compare).min(reference.len());
+    for (offset, expected) in reference[seek_at..end].iter().enumerate() {
+        let frame = seek_at + offset;
         let sample = wait_for_stream_sample(&mut stream, frame)
             .unwrap_or_else(|| panic!("missing seek frame {frame}"));
         mean_err += f64::from((sample[0] - expected[0]).abs());

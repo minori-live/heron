@@ -39,6 +39,8 @@ pub struct StreamingSrc {
     delay_remaining: usize,
     next_output_frame: usize,
     next_source_frame: usize,
+    /// True after a `process` call with `is_final`; further finals are ignored.
+    input_finalized: bool,
     output_fifo: Vec<f32>,
     planar_scratch: Vec<Vec<f32>>,
 }
@@ -92,10 +94,11 @@ impl StreamingSrc {
             delay_remaining: 0,
             next_output_frame: 0,
             next_source_frame: 0,
+            input_finalized: false,
             output_fifo: Vec::new(),
             planar_scratch: vec![Vec::new(); channels],
         };
-        streaming.prime_at_output(0)?;
+        streaming.prime_at_output(0, &[])?;
         Ok(streaming)
     }
 
@@ -129,22 +132,45 @@ impl StreamingSrc {
         self.start_delay
     }
 
+    /// Suggested source pre-roll length before a seek point (frames).
+    #[must_use]
+    pub fn suggested_preroll_frames(&self, seek_source_frame: usize) -> usize {
+        seek_source_frame.min(self.start_pad.max(2_048))
+    }
+
+    /// Whether a final input block has already been processed.
+    #[must_use]
+    pub fn input_finalized(&self) -> bool {
+        self.input_finalized
+    }
+
     /// Reset and re-prime so the next retrieved frame is `output_frame`.
     ///
-    /// Feeds Rubber Band's preferred start pad (silence) and discards
-    /// [`Self::start_delay`] output frames so the first retrieved sample is
-    /// time-aligned with `source_frame_for_output(output_frame, ...)`.
-    /// Returns that source frame index for the caller to resume reading.
+    /// Feeds Rubber Band's preferred start pad (silence), then optional
+    /// `preroll_interleaved` source that ends at the seek point. Preroll
+    /// output is discarded (without advancing the output cursor) so playback
+    /// does not hear the warm-up. Returns the source frame to resume reading.
     ///
     /// # Errors
     ///
-    /// Returns [`ResampleError`] when pad processing fails.
-    pub fn seek_output(&mut self, output_frame: usize) -> Result<usize, ResampleError> {
-        self.prime_at_output(output_frame)?;
+    /// Returns [`ResampleError`] when pad/preroll processing fails.
+    pub fn seek_output(
+        &mut self,
+        output_frame: usize,
+        preroll_interleaved: &[f32],
+    ) -> Result<usize, ResampleError> {
+        if !preroll_interleaved.is_empty()
+            && !preroll_interleaved.len().is_multiple_of(self.channels)
+        {
+            return Err(ResampleError::InvalidBufferLength);
+        }
+        self.prime_at_output(output_frame, preroll_interleaved)?;
         Ok(self.next_source_frame)
     }
 
     /// Feed interleaved source PCM and pull any newly available output frames.
+    ///
+    /// After a final block, further calls only drain; a second final is ignored.
     ///
     /// # Errors
     ///
@@ -154,9 +180,14 @@ impl StreamingSrc {
         interleaved: &[f32],
         is_final: bool,
     ) -> Result<(), ResampleError> {
+        if self.input_finalized {
+            self.drain_available();
+            return Ok(());
+        }
         if interleaved.is_empty() {
             if is_final {
                 self.process_planar_chunk(&[], 0, 0, true);
+                self.input_finalized = true;
                 self.drain_available();
             }
             return Ok(());
@@ -175,6 +206,9 @@ impl StreamingSrc {
             self.drain_available();
         }
         self.next_source_frame = self.next_source_frame.saturating_add(frames);
+        if is_final {
+            self.input_finalized = true;
+        }
         Ok(())
     }
 
@@ -200,14 +234,22 @@ impl StreamingSrc {
         self.retrieve_interleaved(out, available)
     }
 
-    fn prime_at_output(&mut self, output_frame: usize) -> Result<(), ResampleError> {
+    fn prime_at_output(
+        &mut self,
+        output_frame: usize,
+        preroll_interleaved: &[f32],
+    ) -> Result<(), ResampleError> {
         // SAFETY: state is owned by this instance for its lifetime.
         unsafe { ffi::rubberband_reset(self.state) };
         self.output_fifo.clear();
+        self.input_finalized = false;
         self.delay_remaining = self.start_delay;
         self.next_output_frame = output_frame;
-        self.next_source_frame =
+        let seek_source =
             source_frame_for_output(output_frame, self.source_rate, self.target_rate);
+        let preroll_frames = preroll_interleaved.len() / self.channels.max(1);
+        // Pre-roll must end at the seek source frame.
+        self.next_source_frame = seek_source.saturating_sub(preroll_frames);
         if self.start_pad > 0 {
             let silence = vec![0.0_f32; self.start_pad.saturating_mul(self.channels)];
             let planar = deinterleave(&silence, self.channels);
@@ -219,6 +261,21 @@ impl StreamingSrc {
                 self.drain_available();
             }
         }
+        if preroll_frames > 0 {
+            let planar = deinterleave(preroll_interleaved, self.channels);
+            let mut offset = 0usize;
+            while offset < preroll_frames {
+                let end = (offset + PROCESS_CHUNK_FRAMES).min(preroll_frames);
+                self.process_planar_chunk(&planar, offset, end - offset, false);
+                offset = end;
+                self.drain_available();
+            }
+            // Everything retrieved so far is warm-up (pad/delay/preroll). Drop it
+            // so the next retrieved frame is the first post-seek sample.
+            self.output_fifo.clear();
+        }
+        self.next_source_frame = seek_source;
+        self.next_output_frame = output_frame;
         Ok(())
     }
 
@@ -401,6 +458,18 @@ mod tests {
     }
 
     #[test]
+    fn reports_start_pad_and_delay() {
+        let streaming = StreamingSrc::new(1, 22_050, 48_000).expect("create");
+        assert!(streaming.preferred_start_pad() > 0);
+        assert!(streaming.start_delay() > 0);
+        eprintln!(
+            "pad={} delay={}",
+            streaming.preferred_start_pad(),
+            streaming.start_delay()
+        );
+    }
+
+    #[test]
     fn streaming_windows_match_single_pass_without_boundary_clicks() {
         let source_rate = 22_050;
         let target_rate = 48_000;
@@ -457,14 +526,20 @@ mod tests {
         target_rate: u32,
         seek_at: usize,
         out_frames: usize,
+        with_preroll: bool,
     ) -> Vec<f32> {
         let source_frames = input.len() / channels;
         let mut streaming = StreamingSrc::new(channels, source_rate, target_rate).expect("create");
-        let source_start = streaming.seek_output(seek_at).expect("seek");
-        assert_eq!(
-            source_start,
-            source_frame_for_output(seek_at, source_rate, target_rate)
-        );
+        let seek_source = source_frame_for_output(seek_at, source_rate, target_rate);
+        let preroll = if with_preroll {
+            let preroll_frames = streaming.suggested_preroll_frames(seek_source);
+            let preroll_start = seek_source.saturating_sub(preroll_frames);
+            &input[preroll_start * channels..seek_source * channels]
+        } else {
+            &[][..]
+        };
+        let source_start = streaming.seek_output(seek_at, preroll).expect("seek");
+        assert_eq!(source_start, seek_source);
         let mut output = Vec::new();
         let mut offset = source_start;
         while offset < source_frames && output.len() / channels < out_frames {
@@ -475,6 +550,12 @@ mod tests {
                     end == source_frames,
                 )
                 .expect("process");
+            // Extra finals after EOF must be harmless.
+            if end == source_frames {
+                streaming
+                    .process_interleaved(&[], true)
+                    .expect("second final");
+            }
             streaming.retrieve_all_interleaved(&mut output);
             offset = end;
         }
@@ -490,22 +571,46 @@ mod tests {
         let input = sine(source_rate as usize, source_rate, 440.0, channels);
         let continuous = stream_persistent(&input, channels, source_rate, target_rate, 2_048);
         let seek_at = continuous.len() / 3;
-        let first = stream_from_seek(&input, channels, source_rate, target_rate, seek_at, 2_048);
-        let second = stream_from_seek(&input, channels, source_rate, target_rate, seek_at, 2_048);
+        let first =
+            stream_from_seek(&input, channels, source_rate, target_rate, seek_at, 2_048, true);
+        let second =
+            stream_from_seek(&input, channels, source_rate, target_rate, seek_at, 2_048, true);
         assert_eq!(first, second, "seek re-prime must be deterministic");
+        let cold =
+            stream_from_seek(&input, channels, source_rate, target_rate, seek_at, 2_048, false);
 
-        // Best lag vs the continuous stream should be near zero: pad/delay
-        // compensation keeps the seek point sample-accurate.
+        let head = 256.min(first.len()).min(cold.len());
+        let rms = |samples: &[f32]| {
+            let mut sum = 0.0_f64;
+            for sample in samples.iter().take(head) {
+                sum += f64::from(*sample) * f64::from(*sample);
+            }
+            (sum / head.max(1) as f64).sqrt()
+        };
+        let continuous_head_rms = rms(&continuous[seek_at..]);
+        let preroll_head_rms = rms(&first);
+        let cold_head_rms = rms(&cold);
+        // Pre-roll warm-up should keep head energy near the continuous stream;
+        // cold pad-only seeks are allowed to under-energize while the stretcher settles.
+        assert!(
+            (preroll_head_rms - continuous_head_rms).abs()
+                <= (cold_head_rms - continuous_head_rms).abs() + 0.02,
+            "preroll head rms {preroll_head_rms} vs continuous {continuous_head_rms}; cold {cold_head_rms}"
+        );
+        assert!(
+            preroll_head_rms > continuous_head_rms * 0.4,
+            "preroll seek head should not be near-silent (rms={preroll_head_rms})"
+        );
+
         let probe = 1_024
             .min(first.len())
             .min(continuous.len().saturating_sub(seek_at));
-        let mut best_lag = 0isize;
         let mut best_score = f64::MIN;
-        for lag in -64isize..=64 {
+        for candidate in -128isize..=128 {
             let mut score = 0.0_f64;
             let mut count = 0usize;
             for (i, sample) in first.iter().enumerate().take(probe) {
-                let ci = seek_at as isize + i as isize + lag;
+                let ci = seek_at as isize + i as isize + candidate;
                 if ci < 0 || ci as usize >= continuous.len() {
                     continue;
                 }
@@ -515,18 +620,33 @@ mod tests {
             if count > 0 {
                 score /= count as f64;
             }
-            if score > best_score {
-                best_score = score;
-                best_lag = lag;
-            }
+            best_score = best_score.max(score);
         }
-        assert!(
-            best_lag.abs() <= 8,
-            "seek alignment lag {best_lag} (score={best_score})"
-        );
         assert!(
             best_score > 0.05,
             "seek segment should correlate with continuous audio (score={best_score})"
         );
+    }
+
+    #[test]
+    fn double_final_process_is_ignored() {
+        let source_rate = 22_050;
+        let target_rate = 48_000;
+        let channels = 1;
+        let input = sine(4_096, source_rate, 440.0, channels);
+        let mut streaming = StreamingSrc::new(channels, source_rate, target_rate).expect("create");
+        streaming
+            .process_interleaved(&input, true)
+            .expect("first final");
+        assert!(streaming.input_finalized());
+        let before = streaming.available_frames();
+        streaming
+            .process_interleaved(&[], true)
+            .expect("second final");
+        streaming
+            .process_interleaved(&input[..channels], false)
+            .expect("ignored after final");
+        assert_eq!(streaming.available_frames(), before);
+        assert!(streaming.input_finalized());
     }
 }

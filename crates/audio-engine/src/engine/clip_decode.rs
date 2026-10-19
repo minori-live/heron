@@ -1,10 +1,55 @@
-use heron_dsp_resample::{StreamingSrc, expected_output_frames, resample_interleaved};
+use std::io::{Read, Seek};
+
+use bwavfile::AudioFrameReader;
+use heron_dsp_resample::{
+    StreamingSrc, expected_output_frames, resample_interleaved, source_frame_for_output,
+};
 
 use super::{
     Arc, ChannelKind, Duration, Ordering, Result, STREAM_WINDOW_SECONDS, StereoFrame,
     StreamControl, StreamTask, StreamWorkerPool, StreamingClip, WaveReader, audio_error,
     invalid_config, mpsc, thread,
 };
+
+struct SeekPrimeContext<'a, R: Read + Seek> {
+    src: &'a mut StreamingSrc,
+    frame_reader: &'a mut AudioFrameReader<R>,
+    preroll_buffer: &'a mut Vec<f32>,
+    source_channels: usize,
+    source_frames: usize,
+    source_rate: u32,
+    target_rate: u32,
+}
+
+/// Reset the stretcher at `output_frame`, warm it with source pre-roll ending
+/// at the seek point, and discard warm-up output so playback starts clean.
+fn prime_streaming_seek<R: Read + Seek>(
+    ctx: &mut SeekPrimeContext<'_, R>,
+    output_frame: usize,
+) -> std::result::Result<(), String> {
+    let seek_source = source_frame_for_output(output_frame, ctx.source_rate, ctx.target_rate)
+        .min(ctx.source_frames);
+    let preroll_frames = ctx.src.suggested_preroll_frames(seek_source);
+    let preroll_start = seek_source.saturating_sub(preroll_frames);
+    ctx.preroll_buffer.clear();
+    if preroll_frames > 0 {
+        ctx.preroll_buffer
+            .resize(preroll_frames.saturating_mul(ctx.source_channels), 0.0);
+        ctx.frame_reader
+            .locate(preroll_start as u64)
+            .map_err(|error| error.to_string())?;
+        let read = ctx
+            .frame_reader
+            .read_frames(ctx.preroll_buffer)
+            .map_err(|error| error.to_string())? as usize;
+        ctx.preroll_buffer
+            .truncate(read.saturating_mul(ctx.source_channels));
+    }
+    ctx.src
+        .seek_output(output_frame, ctx.preroll_buffer)
+        .map_err(|error| error.to_string())?;
+    Ok(())
+}
 
 fn interleaved_to_stereo(samples: &[f32], channels: usize) -> Vec<StereoFrame> {
     samples
@@ -111,11 +156,23 @@ pub(super) fn spawn_streaming_clip(
     };
     let mut source_buffer = Vec::<f32>::new();
     let mut output_buffer = Vec::<f32>::new();
+    let mut preroll_buffer = Vec::<f32>::new();
     if let Some(src) = streaming_src.as_mut()
         && initial_frame != 0
     {
-        src.seek_output(initial_frame)
-            .map_err(|error| audio_error("failed to prime streaming resampler", error))?;
+        prime_streaming_seek(
+            &mut SeekPrimeContext {
+                src,
+                frame_reader: &mut frame_reader,
+                preroll_buffer: &mut preroll_buffer,
+                source_channels,
+                source_frames,
+                source_rate: format.sample_rate,
+                target_rate: target_sample_rate,
+            },
+            initial_frame,
+        )
+        .map_err(|error| audio_error("failed to prime streaming resampler", error))?;
     }
     let mut ready_sender = Some(ready_sender);
     StreamWorkerPool::global()
@@ -169,18 +226,31 @@ pub(super) fn spawn_streaming_clip(
                     let mut written = 0usize;
                     if let Some(src) = streaming_src.as_mut() {
                         if window_start != src.next_output_frame() {
-                            src.seek_output(window_start)
-                                .map_err(|error| error.to_string())?;
+                            prime_streaming_seek(
+                                &mut SeekPrimeContext {
+                                    src,
+                                    frame_reader: &mut frame_reader,
+                                    preroll_buffer: &mut preroll_buffer,
+                                    source_channels,
+                                    source_frames,
+                                    source_rate: format.sample_rate,
+                                    target_rate: target_sample_rate,
+                                },
+                                window_start,
+                            )?;
                         }
-                        let mut reached_end = false;
+                        let mut reached_end = src.input_finalized();
                         while src.available_frames() < window_count && !reached_end {
                             if generation != worker_control.generation.load(Ordering::Acquire) {
                                 break;
                             }
                             let source_pos = src.next_source_frame();
                             if source_pos >= source_frames {
-                                src.process_interleaved(&[], true)
-                                    .map_err(|error| error.to_string())?;
+                                // Finalize at most once; later windows only drain.
+                                if !src.input_finalized() {
+                                    src.process_interleaved(&[], true)
+                                        .map_err(|error| error.to_string())?;
+                                }
                                 reached_end = true;
                                 continue;
                             }
@@ -197,7 +267,7 @@ pub(super) fn spawn_streaming_clip(
                             let is_final = source_pos.saturating_add(read_frames) >= source_frames;
                             src.process_interleaved(&source_buffer, is_final)
                                 .map_err(|error| error.to_string())?;
-                            if read_frames == 0 || is_final {
+                            if read_frames == 0 || is_final || src.input_finalized() {
                                 reached_end = true;
                             }
                         }
