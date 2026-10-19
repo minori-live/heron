@@ -245,8 +245,7 @@ impl StreamingSrc {
         self.input_finalized = false;
         self.delay_remaining = self.start_delay;
         self.next_output_frame = output_frame;
-        let seek_source =
-            source_frame_for_output(output_frame, self.source_rate, self.target_rate);
+        let seek_source = source_frame_for_output(output_frame, self.source_rate, self.target_rate);
         let preroll_frames = preroll_interleaved.len() / self.channels.max(1);
         // Pre-roll must end at the seek source frame.
         self.next_source_frame = seek_source.saturating_sub(preroll_frames);
@@ -571,13 +570,34 @@ mod tests {
         let input = sine(source_rate as usize, source_rate, 440.0, channels);
         let continuous = stream_persistent(&input, channels, source_rate, target_rate, 2_048);
         let seek_at = continuous.len() / 3;
-        let first =
-            stream_from_seek(&input, channels, source_rate, target_rate, seek_at, 2_048, true);
-        let second =
-            stream_from_seek(&input, channels, source_rate, target_rate, seek_at, 2_048, true);
+        let first = stream_from_seek(
+            &input,
+            channels,
+            source_rate,
+            target_rate,
+            seek_at,
+            2_048,
+            true,
+        );
+        let second = stream_from_seek(
+            &input,
+            channels,
+            source_rate,
+            target_rate,
+            seek_at,
+            2_048,
+            true,
+        );
         assert_eq!(first, second, "seek re-prime must be deterministic");
-        let cold =
-            stream_from_seek(&input, channels, source_rate, target_rate, seek_at, 2_048, false);
+        let cold = stream_from_seek(
+            &input,
+            channels,
+            source_rate,
+            target_rate,
+            seek_at,
+            2_048,
+            false,
+        );
 
         let head = 256.min(first.len()).min(cold.len());
         let rms = |samples: &[f32]| {
