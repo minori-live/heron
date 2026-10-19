@@ -1002,6 +1002,7 @@ dependencies = [
  "heron-audio-plugin",
  "heron-dsp-core",
  "heron-dsp-render",
+ "heron-dsp-resample",
  "heron-dsp-runtime",
  "libc",
  "midir",
@@ -1075,12 +1076,12 @@ dependencies = [
  "criterion",
  "heron-audio-host",
  "heron-dsp-core",
+ "heron-dsp-resample",
  "heron-dsp-runtime",
  "napi",
  "napi-build",
  "napi-derive",
  "rmp-serde",
- "rubato",
  "sha2",
  "symphonia",
 ]
@@ -1096,6 +1097,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "heron-dsp-resample"
+version = "0.8.2"
+dependencies = [
+ "heron-rubberband-sys",
+ "rustfft",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "heron-dsp-runtime"
 version = "0.8.2"
 dependencies = [
@@ -1105,6 +1115,14 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "ts-rs",
+]
+
+[[package]]
+name = "heron-rubberband-sys"
+version = "0.8.2"
+dependencies = [
+ "bindgen 0.73.2",
+ "cc",
 ]
 
 [[package]]

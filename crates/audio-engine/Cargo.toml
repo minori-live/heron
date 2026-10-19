@@ -21,6 +21,7 @@ rubato.workspace = true
 thiserror.workspace = true
 heron-dsp-core.workspace = true
 heron-dsp-render.workspace = true
+heron-dsp-resample.workspace = true
 heron-dsp-runtime.workspace = true
 heron-audio-plugin.workspace = true
 

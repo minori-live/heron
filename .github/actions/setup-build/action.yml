@@ -23,6 +23,7 @@ runs:
       run: |
         sudo apt-get update
         sudo apt-get install --yes --no-install-recommends \
+          g++ \
           libasound2-dev \
           libcairo2-dev \
           libfontconfig1-dev \

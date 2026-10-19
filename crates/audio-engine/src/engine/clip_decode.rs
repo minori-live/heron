@@ -1,8 +1,76 @@
+use std::io::{Read, Seek};
+
+use bwavfile::AudioFrameReader;
+use heron_dsp_resample::{
+    StreamingSrc, expected_output_frames, resample_interleaved, source_frame_for_output,
+};
+
 use super::{
     Arc, ChannelKind, Duration, Ordering, Result, STREAM_WINDOW_SECONDS, StereoFrame,
     StreamControl, StreamTask, StreamWorkerPool, StreamingClip, WaveReader, audio_error,
     invalid_config, mpsc, thread,
 };
+
+struct SeekPrimeContext<'a, R: Read + Seek> {
+    src: &'a mut StreamingSrc,
+    frame_reader: &'a mut AudioFrameReader<R>,
+    preroll_buffer: &'a mut Vec<f32>,
+    source_channels: usize,
+    source_frames: usize,
+    source_rate: u32,
+    target_rate: u32,
+}
+
+/// Reset the stretcher at `output_frame`, warm it with source pre-roll ending
+/// at the seek point, and discard warm-up output so playback starts clean.
+fn prime_streaming_seek<R: Read + Seek>(
+    ctx: &mut SeekPrimeContext<'_, R>,
+    output_frame: usize,
+) -> std::result::Result<(), String> {
+    let seek_source = source_frame_for_output(output_frame, ctx.source_rate, ctx.target_rate)
+        .min(ctx.source_frames);
+    let preroll_frames = ctx.src.suggested_preroll_frames(seek_source);
+    let preroll_start = seek_source.saturating_sub(preroll_frames);
+    ctx.preroll_buffer.clear();
+    if preroll_frames > 0 {
+        ctx.preroll_buffer
+            .resize(preroll_frames.saturating_mul(ctx.source_channels), 0.0);
+        ctx.frame_reader
+            .locate(preroll_start as u64)
+            .map_err(|error| error.to_string())?;
+        let read = ctx
+            .frame_reader
+            .read_frames(ctx.preroll_buffer)
+            .map_err(|error| error.to_string())? as usize;
+        ctx.preroll_buffer
+            .truncate(read.saturating_mul(ctx.source_channels));
+    }
+    ctx.src
+        .seek_output(output_frame, ctx.preroll_buffer)
+        .map_err(|error| error.to_string())?;
+    Ok(())
+}
+
+fn interleaved_to_stereo(samples: &[f32], channels: usize) -> Vec<StereoFrame> {
+    samples
+        .chunks_exact(channels)
+        .map(|frame| {
+            let left = frame[0];
+            let right = if channels > 1 { frame[1] } else { left };
+            [left, right]
+        })
+        .collect()
+}
+
+fn resample_clip_samples(
+    samples: &[f32],
+    channels: usize,
+    source_rate: u32,
+    target_rate: u32,
+) -> Result<Vec<f32>> {
+    resample_interleaved(samples, channels, source_rate, target_rate)
+        .map_err(|error| audio_error("failed to resample mixer clip", error))
+}
 
 pub fn decode_clip_audio(path: &str, target_sample_rate: u32) -> Result<Vec<StereoFrame>> {
     let mut reader =
@@ -27,40 +95,20 @@ pub fn decode_clip_audio(path: &str, target_sample_rate: u32) -> Result<Vec<Ster
         .map_err(|error| audio_error("failed to decode mixer clip", error))?
         as usize;
     samples.truncate(read_frames.saturating_mul(channels));
-    let decoded: Vec<StereoFrame> = samples
-        .chunks_exact(channels)
-        .map(|frame| {
-            let left = frame[0];
-            let right = if channels > 1 { frame[1] } else { left };
-            [left, right]
-        })
-        .collect();
-    if decoded.is_empty() {
-        return Ok(decoded);
+    if samples.is_empty() {
+        return Ok(Vec::new());
     }
-    if format.sample_rate == target_sample_rate {
-        return Ok(decoded);
-    }
-    let target_frames = ((decoded.len() as u128 * u128::from(target_sample_rate)
-        + u128::from(format.sample_rate) / 2)
-        / u128::from(format.sample_rate)) as usize;
-    let ratio = f64::from(format.sample_rate) / f64::from(target_sample_rate);
-    Ok((0..target_frames)
-        .map(|frame| {
-            let position = frame as f64 * ratio;
-            let base = position.floor() as usize;
-            let next = (base + 1).min(decoded.len().saturating_sub(1));
-            let fraction = (position - base as f64) as f32;
-            let first = decoded[base.min(decoded.len().saturating_sub(1))];
-            let second = decoded[next];
-            [
-                first[0] + (second[0] - first[0]) * fraction,
-                first[1] + (second[1] - first[1]) * fraction,
-            ]
-        })
-        .collect())
+    let resampled =
+        resample_clip_samples(&samples, channels, format.sample_rate, target_sample_rate)?;
+    Ok(interleaved_to_stereo(&resampled, channels))
 }
 
+/// Prefetch a mixer clip through the streaming window worker.
+///
+/// When the asset rate matches `target_sample_rate`, windows copy PCM directly.
+/// When rates differ, one persistent Rubber Band [`StreamingSrc`] is fed
+/// contiguous source across windows (seek resets and re-primes with start pad /
+/// delay). Work stays on the background I/O worker, not the audio callback.
 pub(super) fn spawn_streaming_clip(
     path: String,
     target_sample_rate: u32,
@@ -79,9 +127,11 @@ pub(super) fn spawn_streaming_clip(
     if source_channels == 0 || format.sample_rate == 0 {
         return Err(invalid_config("streaming mixer clip has an invalid format"));
     }
-    let target_frames = ((source_frames as u128 * u128::from(target_sample_rate)
-        + u128::from(format.sample_rate) / 2)
-        / u128::from(format.sample_rate)) as usize;
+    let target_frames = if format.sample_rate == target_sample_rate {
+        source_frames
+    } else {
+        expected_output_frames(source_frames, format.sample_rate, target_sample_rate)
+    };
     let capacity = (target_sample_rate as usize)
         .saturating_mul(STREAM_WINDOW_SECONDS)
         .max(1);
@@ -93,10 +143,37 @@ pub(super) fn spawn_streaming_clip(
     let mut frame_reader = reader
         .audio_frame_reader()
         .map_err(|error| audio_error("clip prefetch failed", error))?;
-    let source_ratio = f64::from(format.sample_rate) / f64::from(target_sample_rate);
     let prefetch_threshold = (target_sample_rate as usize / 2).max(1);
     let overlap = (target_sample_rate as usize / 4).max(1);
+    let needs_src = format.sample_rate != target_sample_rate;
+    let mut streaming_src = if needs_src {
+        Some(
+            StreamingSrc::new(source_channels, format.sample_rate, target_sample_rate)
+                .map_err(|error| audio_error("failed to create streaming resampler", error))?,
+        )
+    } else {
+        None
+    };
     let mut source_buffer = Vec::<f32>::new();
+    let mut output_buffer = Vec::<f32>::new();
+    let mut preroll_buffer = Vec::<f32>::new();
+    if let Some(src) = streaming_src.as_mut()
+        && initial_frame != 0
+    {
+        prime_streaming_seek(
+            &mut SeekPrimeContext {
+                src,
+                frame_reader: &mut frame_reader,
+                preroll_buffer: &mut preroll_buffer,
+                source_channels,
+                source_frames,
+                source_rate: format.sample_rate,
+                target_rate: target_sample_rate,
+            },
+            initial_frame,
+        )
+        .map_err(|error| audio_error("failed to prime streaming resampler", error))?;
+    }
     let mut ready_sender = Some(ready_sender);
     StreamWorkerPool::global()
         .submit(StreamTask {
@@ -120,12 +197,21 @@ pub(super) fn spawn_streaming_clip(
                         return Ok(());
                     }
 
+                    // SRC must not rewind into already-produced output; skip the
+                    // native-rate overlap refill and continue from active_end.
                     let window_start = if covered {
-                        active_end.saturating_sub(overlap)
+                        if needs_src {
+                            active_end
+                        } else {
+                            active_end.saturating_sub(overlap)
+                        }
                     } else {
                         requested
                     };
                     let window_count = capacity.min(target_frames.saturating_sub(window_start));
+                    if window_count == 0 {
+                        return Ok(());
+                    }
                     let inactive = 1 - active;
                     while worker_control.reader_window.load(Ordering::Acquire) == inactive + 1
                         && !worker_control.shutdown.load(Ordering::Acquire)
@@ -136,58 +222,94 @@ pub(super) fn spawn_streaming_clip(
                         return Ok(());
                     }
 
-                    let source_start = (window_start as f64 * source_ratio).floor() as usize;
-                    let source_end = (((window_start.saturating_add(window_count)) as f64
-                        * source_ratio)
-                        .ceil() as usize)
-                        .saturating_add(1)
-                        .min(source_frames);
-                    let requested_source_frames = source_end.saturating_sub(source_start);
-                    source_buffer
-                        .resize(requested_source_frames.saturating_mul(source_channels), 0.0);
-                    frame_reader
-                        .locate(source_start as u64)
-                        .map_err(|error| error.to_string())?;
-                    let read_frames = frame_reader
-                        .read_frames(&mut source_buffer)
-                        .map_err(|error| error.to_string())?
-                        as usize;
-                    source_buffer.truncate(read_frames.saturating_mul(source_channels));
-
                     let window = &worker_control.windows[inactive];
-                    let mut written = 0;
-                    for output_index in 0..window_count {
-                        if generation != worker_control.generation.load(Ordering::Acquire) {
-                            break;
+                    let mut written = 0usize;
+                    if let Some(src) = streaming_src.as_mut() {
+                        if window_start != src.next_output_frame() {
+                            prime_streaming_seek(
+                                &mut SeekPrimeContext {
+                                    src,
+                                    frame_reader: &mut frame_reader,
+                                    preroll_buffer: &mut preroll_buffer,
+                                    source_channels,
+                                    source_frames,
+                                    source_rate: format.sample_rate,
+                                    target_rate: target_sample_rate,
+                                },
+                                window_start,
+                            )?;
                         }
-                        let source_position = (window_start + output_index) as f64 * source_ratio;
-                        let base_source = source_position.floor() as usize;
-                        let local = base_source.saturating_sub(source_start);
-                        if local >= read_frames {
-                            break;
+                        let mut reached_end = src.input_finalized();
+                        while src.available_frames() < window_count && !reached_end {
+                            if generation != worker_control.generation.load(Ordering::Acquire) {
+                                break;
+                            }
+                            let source_pos = src.next_source_frame();
+                            if source_pos >= source_frames {
+                                // Finalize at most once; later windows only drain.
+                                if !src.input_finalized() {
+                                    src.process_interleaved(&[], true)
+                                        .map_err(|error| error.to_string())?;
+                                }
+                                reached_end = true;
+                                continue;
+                            }
+                            let want = 2_048.min(source_frames.saturating_sub(source_pos));
+                            source_buffer.resize(want.saturating_mul(source_channels), 0.0);
+                            frame_reader
+                                .locate(source_pos as u64)
+                                .map_err(|error| error.to_string())?;
+                            let read_frames = frame_reader
+                                .read_frames(&mut source_buffer)
+                                .map_err(|error| error.to_string())?
+                                as usize;
+                            source_buffer.truncate(read_frames.saturating_mul(source_channels));
+                            let is_final = source_pos.saturating_add(read_frames) >= source_frames;
+                            src.process_interleaved(&source_buffer, is_final)
+                                .map_err(|error| error.to_string())?;
+                            if read_frames == 0 || is_final || src.input_finalized() {
+                                reached_end = true;
+                            }
                         }
-                        let next = (local + 1).min(read_frames.saturating_sub(1));
-                        let fraction = (source_position - base_source as f64) as f32;
-                        let first_left = source_buffer[local * source_channels];
-                        let second_left = source_buffer[next * source_channels];
-                        let first_right = if source_channels > 1 {
-                            source_buffer[local * source_channels + 1]
-                        } else {
-                            first_left
-                        };
-                        let second_right = if source_channels > 1 {
-                            source_buffer[next * source_channels + 1]
-                        } else {
-                            second_left
-                        };
-                        window.store(
-                            output_index,
-                            [
-                                first_left + (second_left - first_left) * fraction,
-                                first_right + (second_right - first_right) * fraction,
-                            ],
-                        );
-                        written += 1;
+                        output_buffer.clear();
+                        src.retrieve_interleaved(&mut output_buffer, window_count);
+                        let stereo = interleaved_to_stereo(&output_buffer, source_channels);
+                        for output_index in 0..window_count {
+                            if generation != worker_control.generation.load(Ordering::Acquire) {
+                                break;
+                            }
+                            if output_index >= stereo.len() {
+                                break;
+                            }
+                            window.store(output_index, stereo[output_index]);
+                            written += 1;
+                        }
+                    } else {
+                        source_buffer.resize(window_count.saturating_mul(source_channels), 0.0);
+                        frame_reader
+                            .locate(window_start as u64)
+                            .map_err(|error| error.to_string())?;
+                        let read_frames = frame_reader
+                            .read_frames(&mut source_buffer)
+                            .map_err(|error| error.to_string())?
+                            as usize;
+                        source_buffer.truncate(read_frames.saturating_mul(source_channels));
+                        for output_index in 0..window_count {
+                            if generation != worker_control.generation.load(Ordering::Acquire) {
+                                break;
+                            }
+                            if output_index >= read_frames {
+                                break;
+                            }
+                            let left = source_buffer[output_index * source_channels];
+                            let right = if source_channels > 1 {
+                                source_buffer[output_index * source_channels + 1]
+                            } else {
+                                left
+                            };
+                            window.store(output_index, [left, right]);
+                            written += 1;
+                        }
                     }
                     if generation != worker_control.generation.load(Ordering::Acquire) {
                         return Ok(());

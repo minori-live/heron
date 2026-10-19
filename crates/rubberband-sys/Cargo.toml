@@ -1,0 +1,19 @@
+[package]
+name = "heron-rubberband-sys"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-2.0-or-later"
+description = "FFI bindings to a vendored Rubber Band Library v4 build"
+links = "heron-rubberband"
+build = "build.rs"
+
+[lib]
+path = "src/lib.rs"
+
+[build-dependencies]
+bindgen.workspace = true
+cc.workspace = true
+
+[lints]
+workspace = true
