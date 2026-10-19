@@ -14,6 +14,8 @@ Each release includes downloads and release notes for the plug-in suite.
 
 Also see the [Heron Revox](heron-revox.md) introduction. TODO: confirm when
 Revox ships in the published suite and document its install package names.
+The same suite includes [Heron Repitch](manual/heron-repitch.md)
+(`Heron Repitch.vst3`, and `Heron Repitch.component` in the macOS Audio Unit package).
 
 Heron Plugins has its own releases, separate from
 [Heron DAW releases](https://github.com/minori-live/heron/releases).

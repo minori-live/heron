@@ -30,10 +30,15 @@ plug-in source fallback. Use `pnpm plugins:prepare --offline` to require existin
 cached archives, or `--platform macos-universal` for universal packaging.
 The ordinary native mise tasks prepare plug-ins automatically.
 
-The suite must contain EQ, Gain, Sine, Metronome and Revox with their stable native
-identities. Revox is an effect with built-in ID `live.minori.heron.revox` and VST3
-Class ID `801E1EF7D1FBA46DD7EE039C0317622C`. Missing or malformed installed inventory
-exposes all five as unavailable entries in the application catalog.
+The suite must contain EQ, Gain, Sine, Metronome, Revox, and Repitch with their
+stable native identities. Revox is an effect with built-in ID
+`live.minori.heron.revox` and VST3 Class ID `801E1EF7D1FBA46DD7EE039C0317622C`.
+Repitch is an effect with built-in ID `live.minori.heron.repitch` and VST3 Class
+ID `B3C6C5BCC36E4A1173BC693A14112A03`. Repitch reports its latency from Rubber
+Band LiveShifter `getStartDelay()`; Heron reads that value from the loaded
+plug-in and does not store a separate latency formula. Missing or malformed
+installed inventory exposes all six as unavailable entries in the application
+catalog.
 
 Runtime archives contain only VST3 bundles, notices and inventory. AU and AAX
 are standalone producer assets. Heron never downloads them for its application.

@@ -75,6 +75,21 @@ overview. The [plug-in manual chapter](../plugins/manual/heron-revox.md) is a
 starter stub; TODO: expand control documentation when the editor UI is final,
 and confirm whether Revox ships as a bundled Studio effect.
 
+## Heron Repitch
+
+**Heron Repitch** is a bundled realtime pitch shifter based on Rubber Band
+LiveShifter. Add it through an **Audio FX** slot, then open its native editor.
+Semitones and cents set the shift, Formant preserves vocal formants, Quality
+chooses Faster or Finer, and Mix blends the shifted signal with latency-aligned
+dry audio.
+
+Heron delay-compensates the latency the plug-in reports. Repitch sets that
+value from Rubber Band LiveShifter's start delay for the active quality and
+pitch.
+
+The [Heron Repitch chapter of the plug-in manual](../plugins/manual/heron-repitch.md)
+covers the controls.
+
 ## Manage inserts
 
 An insert can be:

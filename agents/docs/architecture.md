@@ -34,7 +34,7 @@ main/native boundary is N-API within one process.
 
 ## Built-in plug-in dependency
 
-`heron-plugins` owns the Gain, Sine, Metronome and EQ sources, native UI,
+`heron-plugins` owns the Gain, Sine, Metronome, EQ, Revox, and Repitch sources, native UI,
 EQ DSP and format exports. Heron retains its runtime, host, metronome scheduling
 and tests that exercise the host against prepared VST3 bundles. Builds prepare
 an immutable producer release pinned by suite version, source commit and runtime asset filenames, while

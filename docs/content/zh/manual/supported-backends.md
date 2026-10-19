@@ -69,8 +69,8 @@ ASIO 驱动的输入与输出。WASAPI、CoreAudio 与 ALSA 可以独立选择�
 | Audio Unit（AU）  | macOS                 | 已计划 | 当前不会扫描或加载 `.component` 包；如产品提供 VST 3 版本，请改用该版本。 |
 | VST 2 与 AAX      | —                     | 不支持 | 不会扫描或加载这些格式。                                                  |
 
-当前插件目录只扫描 VST 3 位置。Heron 内置的 Gain、Sine 与 Metronome 处理器
-也以 VST 3 插件形式提供。如果只安装了某个产品的 Audio Unit 版本，它不会
+当前插件目录只扫描 VST 3 位置。Heron 内置的 EQ、Gain、Sine、Metronome、Revox 与
+Repitch 处理器也以 VST 3 插件形式提供。如果只安装了某个产品的 Audio Unit 版本，它不会
 出现在 Heron 中。
 
 ::: tip Linux 编辑器窗口

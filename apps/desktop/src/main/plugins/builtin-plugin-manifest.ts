@@ -46,6 +46,13 @@ export const BUILTIN_PLUGIN_BASELINE: readonly BuiltinPluginSpec[] = [
     classId: "801E1EF7D1FBA46DD7EE039C0317622C",
     name: "Heron Revox",
     kind: "effect"
+  },
+  {
+    id: "live.minori.heron.repitch",
+    bundleName: "Heron Repitch.vst3",
+    classId: "B3C6C5BCC36E4A1173BC693A14112A03",
+    name: "Heron Repitch",
+    kind: "effect"
   }
 ]
 

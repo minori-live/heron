@@ -78,7 +78,7 @@ uses adaptive resampling and drift correction when their clocks differ.
 | VST 2 and AAX    | —                     | Not supported | These formats are not scanned or loadable.                                                                            |
 
 The current catalog scans only VST 3 locations and includes Heron's built-in
-Gain, Sine, and Metronome processors as VST 3 plug-ins. Installing only the
+EQ, Gain, Sine, Metronome, Revox, and Repitch processors as VST 3 plug-ins. Installing only the
 Audio Unit edition of a product will not make it appear in Heron.
 
 ::: tip Linux editor windows
