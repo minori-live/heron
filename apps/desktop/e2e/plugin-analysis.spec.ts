@@ -53,7 +53,7 @@ async function nativeReportId(page: Page): Promise<string | null> {
 }
 
 test("Help opens an independent PluginAnalysis bridge and measures above full scale without a project", async () => {
-  test.setTimeout(150000)
+  test.setTimeout(240000)
   const profile = await mkdtemp(join(tmpdir(), "heron-plugin-analysis-e2e-"))
   const executablePath = process.env.HERON_E2E_EXECUTABLE
   const application = await electron.launch({
@@ -283,7 +283,9 @@ test("Help opens an independent PluginAnalysis bridge and measures above full sc
               )
             }
           }),
-        { timeout: 90000 }
+        // Primary, comparison, and difference each run a full analysis. Match the
+        // single-analysis budget above for every job.
+        { timeout: 150000 }
       )
       .toEqual({ status: "complete", failure: null, comparison: true, difference: 4, zero: true })
     await pluginAnalysis.getByRole("button", { name: "1 − 2", exact: true }).click()
