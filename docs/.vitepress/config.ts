@@ -169,7 +169,8 @@ export default defineConfig({
               items: [
                 { text: "Overview", link: "/plugins/manual/" },
                 { text: "Heron EQ", link: "/plugins/manual/heron-eq" },
-                { text: "Heron Revox", link: "/plugins/manual/heron-revox" }
+                { text: "Heron Revox", link: "/plugins/manual/heron-revox" },
+                { text: "Heron Repitch", link: "/plugins/manual/heron-repitch" }
               ]
             }
           ],
@@ -283,7 +284,8 @@ export default defineConfig({
               items: [
                 { text: "概览", link: "/zh/plugins/manual/" },
                 { text: "Heron EQ", link: "/zh/plugins/manual/heron-eq" },
-                { text: "Heron Revox", link: "/zh/plugins/manual/heron-revox" }
+                { text: "Heron Revox", link: "/zh/plugins/manual/heron-revox" },
+                { text: "Heron Repitch", link: "/zh/plugins/manual/heron-repitch" }
               ]
             }
           ],

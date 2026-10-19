@@ -307,8 +307,8 @@ describe("PluginCatalogService orchestration", () => {
 
     await service.initialize()
 
-    expect(service.list().plugins).toHaveLength(5)
-    expect(probeClient.probe).toHaveBeenCalledTimes(5)
+    expect(service.list().plugins).toHaveLength(6)
+    expect(probeClient.probe).toHaveBeenCalledTimes(6)
     expect(service.list().plugins).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -328,6 +328,14 @@ describe("PluginCatalogService orchestration", () => {
           source: { kind: "builtin", id: "live.minori.heron.revox" },
           locator: expect.objectContaining({ nativeId: "801E1EF7D1FBA46DD7EE039C0317622C" }),
           name: "Heron Revox",
+          kind: "effect",
+          compatibility: "load-error",
+          compatibilityReason: "probe unavailable"
+        }),
+        expect.objectContaining({
+          source: { kind: "builtin", id: "live.minori.heron.repitch" },
+          locator: expect.objectContaining({ nativeId: "B3C6C5BCC36E4A1173BC693A14112A03" }),
+          name: "Heron Repitch",
           kind: "effect",
           compatibility: "load-error",
           compatibilityReason: "probe unavailable"

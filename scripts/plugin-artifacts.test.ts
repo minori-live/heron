@@ -376,7 +376,11 @@ await test("manifest identities and binary architectures are verified before pub
       platform
     )
   )
-  for (const builtinId of ["live.minori.heron.eq", "live.minori.heron.revox"]) {
+  for (const builtinId of [
+    "live.minori.heron.eq",
+    "live.minori.heron.revox",
+    "live.minori.heron.repitch"
+  ]) {
     assert.throws(() =>
       parseBundleManifest(
         {
@@ -388,20 +392,20 @@ await test("manifest identities and binary architectures are verified before pub
       )
     )
   }
-  assert.throws(() =>
-    parseBundleManifest(
-      {
-        ...manifest,
-        plugins: REQUIRED_BUILTINS.map((entry) =>
-          entry.builtinId === "live.minori.heron.revox"
-            ? { ...entry, nativeId: "B".repeat(32) }
-            : entry
-        )
-      },
-      lock.release,
-      platform
+  for (const builtinId of ["live.minori.heron.revox", "live.minori.heron.repitch"]) {
+    assert.throws(() =>
+      parseBundleManifest(
+        {
+          ...manifest,
+          plugins: REQUIRED_BUILTINS.map((entry) =>
+            entry.builtinId === builtinId ? { ...entry, nativeId: "B".repeat(32) } : entry
+          )
+        },
+        lock.release,
+        platform
+      )
     )
-  )
+  }
   assert.throws(() =>
     parseBundleManifest(
       { ...manifest, plugins: [...REQUIRED_BUILTINS, REQUIRED_BUILTINS[0]] },

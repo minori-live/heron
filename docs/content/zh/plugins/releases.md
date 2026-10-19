@@ -13,6 +13,8 @@ vstTrademark: true
 每个版本都附有套件的下载文件和更新说明。
 
 另见 [Heron Revox](heron-revox.md) 介绍。TODO：确认 Revox 何时随已发布套件提供，并补充其安装包名称。
+同一套件还包含 [Heron Repitch](manual/heron-repitch.md)
+（`Heron Repitch.vst3`；macOS Audio Unit 安装包中为 `Heron Repitch.component`）。
 
 Heron Plugins 独立于 [Heron DAW](https://github.com/minori-live/heron/releases) 发布。
 要在其他 DAW 中使用 Heron EQ，请下载独立插件。

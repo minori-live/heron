@@ -28,3 +28,5 @@ plug-in installation.
   reference, and adjust processing and output settings.
 - [Heron Revox](heron-revox.md) — Neural network vocoder for vocal phase cleanup,
   pitch shifting with less loss, and harmony layers.
+- [Heron Repitch](heron-repitch.md) — Realtime Rubber Band pitch shifter with
+  formant preservation, a quality choice, and dry/wet mix.

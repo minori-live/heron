@@ -62,6 +62,14 @@ const expected = [
     audioOutputs: 1,
     eventInputs: 0,
     supportedAudioModes: ["mono", "stereo"]
+  },
+  {
+    bundle: "Heron Repitch.vst3",
+    classId: "B3C6C5BCC36E4A1173BC693A14112A03",
+    audioInputs: 1,
+    audioOutputs: 1,
+    eventInputs: 0,
+    supportedAudioModes: ["mono", "stereo"]
   }
 ] as const
 

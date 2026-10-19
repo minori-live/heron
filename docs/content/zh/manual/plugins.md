@@ -66,6 +66,18 @@ Heron 会在启动时扫描。安装新插件后要重新查找：
 功能概览见 [Heron Revox 介绍](../plugins/heron-revox.md)。
 [插件手册章节](../plugins/manual/heron-revox.md)目前为起步说明；TODO：待编辑器界面确定后补充控件文档，并确认 Revox 是否作为 Studio 内置效果提供。
 
+## Heron Repitch
+
+**Heron Repitch** 是内置的实时音高变换效果，基于 Rubber Band LiveShifter。
+通过**音频效果**插槽添加，然后打开原生编辑器。Semitones 与 Cents 设定音高，
+Formant 保留人声共振峰，Quality 在 Faster 与 Finer 之间选择，Mix 将变调信号
+与已按延迟对齐的干声混合。
+
+Heron 按插件上报的延迟做延迟补偿。Repitch 的上报值来自当前音质与音高下
+Rubber Band LiveShifter 的起始延迟。
+
+控件说明见[插件手册的 Heron Repitch 章节](../plugins/manual/heron-repitch.md)。
+
 ## 管理插入
 
 插入可以：
