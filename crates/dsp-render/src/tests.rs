@@ -1010,3 +1010,43 @@ fn render_block_calls_each_insert_once_with_the_starting_context() {
     assert_eq!(contexts[0].project_time_samples, 24_000);
     assert_eq!(runtime.diagnostic_snapshot().sample_position, 24_008);
 }
+
+struct SubnormalClip;
+
+impl AudioClipSource for SubnormalClip {
+    fn channels(&self) -> u32 {
+        2
+    }
+
+    fn frame_count(&self) -> u64 {
+        64
+    }
+
+    fn sample(&self, _frame: u64, channel: u32) -> f32 {
+        if channel == 0 { 1.0e-40 } else { -1.0e-40 }
+    }
+}
+
+#[test]
+fn render_block_flushes_subnormal_clip_samples_to_zero() {
+    let sample = 1.0e-40_f32;
+    assert!(sample.is_subnormal());
+    let mut graph = spec();
+    graph.plugins.clear();
+    graph.clips[0].length_frames = 64;
+    let mut resources = RenderResources::new();
+    resources.insert_clip("clip-source", Box::new(SubnormalClip));
+    let mut runtime = RenderRuntime::build(graph, resources).expect("subnormal graph should build");
+    runtime.set_transport(RenderTransport::Playing);
+    let mut output = [[0.0f32; 32]; 64];
+
+    runtime.render_block(&[], &mut output);
+
+    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    assert!(
+        output
+            .iter()
+            .all(|frame| frame[0] == 0.0 && frame[1] == 0.0),
+        "subnormal clip samples must flush to zero on block render"
+    );
+}

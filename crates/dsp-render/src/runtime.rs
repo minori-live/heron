@@ -434,9 +434,12 @@ impl RenderRuntime {
     /// clip that starts or ends inside the block matches [`Self::render_frame`].
     /// Inserts receive one `process_block` and the [`ProcessContext`] of the
     /// first frame. MIDI notes are dispatched at each frame before that call,
-    /// using the same tick test as `render_frame`. `render_frame` remains the
-    /// per-sample context path used by musical-position rendering.
+    /// using the same tick test as `render_frame`. Subnormals are flushed for
+    /// the call, the same guard the device callback and offline bounce use.
+    /// `render_frame` remains the per-sample context path used by musical-position
+    /// rendering.
     pub fn render_block(&mut self, hardware_input: &[f32], output: &mut [HardwareOutputFrame]) {
+        let _denormals = heron_dsp_core::denormal::DenormalGuard::enter();
         let frame_count = output.len();
         if frame_count == 0 {
             return;
