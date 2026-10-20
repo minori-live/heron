@@ -19,6 +19,34 @@ function selectChain(rows: unknown[]) {
 }
 
 describe("assertProjectCommandAllowed", () => {
+  it("rejects freezing a missing track or a system track", async () => {
+    await expect(
+      assertProjectCommandAllowed(selectChain([]) as never, {
+        type: "set-track-freeze",
+        trackId: "missing",
+        freeze: null
+      })
+    ).rejects.toThrow(/Project track 'missing' was not found/)
+
+    await expect(
+      assertProjectCommandAllowed(selectChain([{ systemRole: "metronome" }]) as never, {
+        type: "set-track-freeze",
+        trackId: "t1",
+        freeze: null
+      })
+    ).rejects.toThrow(/System tracks cannot be frozen/)
+  })
+
+  it("allows freezing an ordinary track", async () => {
+    await expect(
+      assertProjectCommandAllowed(selectChain([{ systemRole: null }]) as never, {
+        type: "set-track-freeze",
+        trackId: "t1",
+        freeze: null
+      })
+    ).resolves.toBeUndefined()
+  })
+
   it("rejects deleting system channels via delete-track", async () => {
     const tx = selectChain([{ systemRole: "metronome" }])
     await expect(
