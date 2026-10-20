@@ -28,6 +28,9 @@ pub(in crate::runtime) fn is_vst3_command(command: &ControlCommand) -> bool {
             | ControlCommand::StartBounceOutput { .. }
             | ControlCommand::BounceOutputStatus { .. }
             | ControlCommand::CancelBounceOutput { .. }
+            | ControlCommand::StartTrackFreeze { .. }
+            | ControlCommand::TrackFreezeStatus { .. }
+            | ControlCommand::CancelTrackFreeze { .. }
     )
 }
 

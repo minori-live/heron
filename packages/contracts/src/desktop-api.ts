@@ -38,6 +38,8 @@ import type {
   ProjectGraphSnapshot,
   MixerParameterPreview,
   MixerRuntimeSnapshot,
+  TrackFreezeRequest,
+  TrackFreezeStartResult,
   ProjectCommand,
   ProjectCommandResult,
   TransportCommand,
@@ -212,7 +214,8 @@ export const IPC_CHANNELS = {
   operationEvent: "operation:event",
   operationStatus: "operation:status",
   operationAcknowledge: "operation:acknowledge",
-  bounceOutputStart: "bounce-output:start"
+  bounceOutputStart: "bounce-output:start",
+  trackFreezeStart: "track-freeze:start"
 } as const
 
 export interface HeronSplashApi {
@@ -280,6 +283,10 @@ export interface HeronDesktopApi {
     meta: RpcRequestMeta,
     request: BounceOutputRequest
   ): Promise<RpcResult<BounceStartResult | null>>
+  startTrackFreeze(
+    meta: RpcRequestMeta,
+    request: TrackFreezeRequest
+  ): Promise<RpcResult<TrackFreezeStartResult | null>>
   transportCommand(
     meta: RpcRequestMeta,
     command: TransportCommand

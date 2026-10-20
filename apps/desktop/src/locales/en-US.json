@@ -292,6 +292,7 @@
     "finalizingRecording": "Finalizing recording",
     "recoveringRecording": "Recovering recording",
     "bouncingOutput": "Bouncing output",
+    "freezingTrack": "Freezing track",
     "tailTruncated": "tail truncated after 30 seconds",
     "recordingDropoutsInput": "{count} input frames were dropped during capture.",
     "recordingDropoutsCaptured": "{count} captured frames were dropped.",
@@ -1915,7 +1916,26 @@
       "armAria": "Arm {name}",
       "monitorAria": "Monitor {name}",
       "inputMonitoring": "Input monitoring",
-      "inputMonitoringDisabled": "Select a hardware or application input first"
+      "inputMonitoringDisabled": "Select a hardware or application input first",
+      "freeze": "Freeze",
+      "freezeAria": "Freeze {name}",
+      "unfreezeAria": "Unfreeze {name}",
+      "freezingAria": "Cancel freezing {name}",
+      "staleAria": "Refreeze {name}",
+      "cancelFreeze": "Cancel freeze",
+      "menuLabel": "{name} track header",
+      "freezeMode": "Freeze mode",
+      "preFader": "Pre-fader",
+      "sourceOnly": "Source only",
+      "showFreezeButton": "Show freeze button",
+      "modeLocked": "Unfreeze the track before changing the freeze mode",
+      "emptyTrack": "Add a region before freezing this track",
+      "systemTrack": "System tracks cannot be frozen"
+    },
+    "freeze": {
+      "lockedTitle": "{name} is frozen",
+      "lockedDescription": "{name} is frozen. Unfreeze it to edit regions or baked plug-in settings?",
+      "unfreeze": "Unfreeze"
     },
     "trackInspector": {
       "ariaLabel": "Selected track inspector",

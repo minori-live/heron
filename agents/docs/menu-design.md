@@ -397,6 +397,34 @@ OTT                    Dynamics / Xfer Records
 
 The path is metadata, not part of the action name. Choosing emits the stable plug-in ID.
 
+### Track header freeze
+
+The arrangement track header opens `UiContextMenu`. Freeze and unfreeze stay on the snowflake
+button. The menu chooses the tap and whether that button is shown:
+
+```text
+Freeze
+Freeze mode
+  ✓ Pre-fader
+    Source only
+────────────────
+✓ Show freeze button
+```
+
+Pre-fader bakes the source and insert chain. Source only bakes the source and leaves inserts
+live. Both choices are disabled while the track is frozen. Show freeze button is one application
+setting, so the same checkbox appears on every track header.
+
+### Menus left on their current primitive
+
+These surfaces are not right-click command menus, so they stay on the primitive they already use:
+
+- `MixerChannelMenu` is a button popover with a color input and a delete action.
+- `PluginAudioModeMenu` is a stepped picker inside the plug-in slot, not a pointer menu.
+- Mixer output and send editors use popovers because they hold persistent routing controls.
+- `MixerPluginPicker` already uses `UiDropdownMenu`.
+- Arrangement audio and MIDI clips already use `UiContextMenu`.
+
 ### Output routing selection
 
 Use `UiCascadingSelect` with radio semantics. Hardware outputs and buses may be categories; the

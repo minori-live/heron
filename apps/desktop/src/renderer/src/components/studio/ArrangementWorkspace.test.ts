@@ -18,6 +18,7 @@ import ArrangementTrackRailSource from "./ArrangementTrackRail.vue?raw"
 import InlineTrackNameEditor from "../InlineTrackNameEditor.vue"
 import MidiArrangementTrack from "./MidiArrangementTrack.vue"
 import TrackQuickControls from "./TrackQuickControls.vue"
+import { UiContextMenu } from "@heron/ui"
 import type { ArrangementTrackRow } from "./arrangementWorkspaceTypes"
 
 const recordingAsset: Asset = {
@@ -734,6 +735,35 @@ describe("ArrangementWorkspace presentational children", () => {
     expect(wrapper.emitted("reorder")).toEqual([[0, 1]])
     expect(wrapper.emitted("rename")).toEqual([[channel.id, "Lead"]])
     expect(wrapper.emitted("updateChannel")).toEqual([[channel.id, { muted: true }]])
+  })
+
+  it("keeps freeze mode and the freeze button in the track header menu", () => {
+    const wrapper = mount(ArrangementTrackRail, {
+      props: {
+        rows: [row()],
+        selectedChannelId: channel.id,
+        trackHeight: 88,
+        freezeButtonVisible: true
+      },
+      global: { plugins: [createPinia()] }
+    })
+
+    const menu = wrapper.getComponent(UiContextMenu)
+    expect(menu.props("entries")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "radio-group", id: "freeze-mode", value: "pre-fader" }),
+        expect.objectContaining({ kind: "checkbox", id: "show-freeze-button", checked: true })
+      ])
+    )
+    menu.vm.$emit("select", "source-only")
+    menu.vm.$emit("select", "show-freeze-button")
+    menu.vm.$emit("select", "freeze")
+    expect(wrapper.emitted("setFreezeMode")).toEqual([["track:audio", "source-only"]])
+    expect(wrapper.emitted("setFreezeButtonVisible")).toEqual([[false]])
+    expect(wrapper.emitted("toggleFreeze")).toEqual([["track:audio"]])
+    expect(wrapper.get('button[aria-label="Freeze Audio 1"]').attributes("aria-pressed")).toBe(
+      "false"
+    )
   })
 
   it("relays typed audio and MIDI lane contracts", () => {

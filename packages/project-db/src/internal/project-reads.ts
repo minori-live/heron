@@ -10,6 +10,7 @@ import {
   PROJECT_ID,
   project,
   tempoEvents,
+  trackFreezes,
   tracks,
   timeSignatureEvents
 } from "../schema"
@@ -40,6 +41,7 @@ export async function readProjectGraphSnapshot(
 ): Promise<ProjectGraphSnapshot> {
   const [
     trackRows,
+    freezeRows,
     clipRows,
     midiClipRows,
     midiNoteRows,
@@ -50,6 +52,7 @@ export async function readProjectGraphSnapshot(
     projectRows
   ] = await Promise.all([
     db.select().from(tracks).orderBy(asc(tracks.sortOrder), asc(tracks.id)),
+    db.select().from(trackFreezes).orderBy(asc(trackFreezes.trackId)),
     db
       .select({
         id: audioClips.id,
@@ -138,7 +141,31 @@ export async function readProjectGraphSnapshot(
     ...mixer,
     projectNotes: projectRow.notes,
     projectEndTick: projectRow.projectEndTick,
-    tracks: trackRows,
+    tracks: trackRows.map((track) => {
+      const freeze = freezeRows.find((row) => row.trackId === track.id)
+      return {
+        id: track.id,
+        channelId: track.channelId,
+        sortOrder: track.sortOrder,
+        notes: track.notes,
+        freezeMode: track.freezeMode,
+        ...(freeze
+          ? {
+              freeze: {
+                mode: freeze.mode,
+                status: freeze.status,
+                assetId: freeze.assetId,
+                fingerprint: freeze.fingerprint,
+                startFrame: Number(freeze.startFrame),
+                lengthFrames: Number(freeze.lengthFrames),
+                latencySamples: freeze.latencySamples,
+                tailFrames: Number(freeze.tailFrames),
+                sampleRate: freeze.sampleRate
+              }
+            }
+          : {})
+      }
+    }),
     audioClips: clipRows.map(({ assetFrameCount, ...clip }) => ({
       ...clip,
       startFrame: Number(clip.startFrame),

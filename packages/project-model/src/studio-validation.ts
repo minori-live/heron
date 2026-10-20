@@ -1,5 +1,6 @@
 import type { ProjectGraphSnapshot, TrackState } from "@heron/contracts"
 import { mixerChannelById, validateMixerGraph } from "./mixer-validation"
+import { validateTrackFreeze } from "./track-freeze"
 import { ProjectValidationError } from "./validation-error"
 
 function channelForTrack(graph: ProjectGraphSnapshot, trackId: string) {
@@ -46,6 +47,7 @@ export function validateGraph(graph: ProjectGraphSnapshot): void {
         "Project tracks must reference ordinary Audio or Instrument channels"
       )
     }
+    validateTrackFreeze(graph, track)
     trackIds.add(track.id)
     tracksByChannel.set(track.channelId, track)
   }

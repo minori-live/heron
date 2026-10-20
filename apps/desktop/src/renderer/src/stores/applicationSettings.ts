@@ -128,8 +128,8 @@ export const useApplicationSettingsStore = defineStore("application-settings", (
     return loadPromise
   }
 
-  async function update(patch: ApplicationSettingsPatch): Promise<void> {
-    await applyMutation("settings-update", (meta) =>
+  function update(patch: ApplicationSettingsPatch): Promise<boolean> {
+    return applyMutation("settings-update", (meta) =>
       window.heron.updateApplicationSettings(meta, patch)
     )
   }

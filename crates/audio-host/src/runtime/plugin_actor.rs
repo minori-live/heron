@@ -19,11 +19,14 @@ pub(super) struct Vst3ActorDeps {
     pub(super) graph_build_gate: Arc<tokio::sync::Mutex<()>>,
     pub(super) session_epoch: u64,
     pub(super) bounce_jobs: Arc<BounceJobRegistry>,
+    pub(super) freeze_jobs: Arc<TrackFreezeJobRegistry>,
     pub(super) plugin_analysis_jobs: Arc<crate::plugin_analysis::PluginAnalysisJobs>,
 }
 
 #[path = "plugin_actor/bounce_jobs.rs"]
 mod bounce_jobs;
+#[path = "plugin_actor/freeze_jobs.rs"]
+mod freeze_jobs;
 
 #[path = "plugin_actor/command_dispatch.rs"]
 mod command_dispatch;
@@ -36,6 +39,7 @@ mod plugin_analysis_dispatch;
 mod request_policy;
 
 pub(super) use bounce_jobs::BounceJobRegistry;
+pub(super) use freeze_jobs::TrackFreezeJobRegistry;
 pub(super) use command_dispatch::{audio_plugin_actor, dispatch_actor, dispatch_parameter};
 pub(super) use request_policy::{
     is_background_io_command, is_vst3_command, slow_request_threshold,

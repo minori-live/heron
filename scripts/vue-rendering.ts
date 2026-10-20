@@ -29,6 +29,7 @@ const vdomComponents = [
   "apps/desktop/src/renderer/src/components/performance/PerformanceMonitorPopover.vue",
   "apps/desktop/src/renderer/src/components/plugin-analysis/PluginAnalysisReport.vue",
   "apps/desktop/src/renderer/src/components/studio/AudioClipCard.vue",
+  "apps/desktop/src/renderer/src/components/studio/ArrangementTrackRail.vue",
   "apps/desktop/src/renderer/src/components/studio/MidiClipCard.vue"
 ]
 

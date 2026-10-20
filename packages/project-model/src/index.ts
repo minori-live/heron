@@ -18,12 +18,24 @@ export {
   meterFor,
   patchMixerGraph,
   projectContentEndSeconds,
+  projectTickToSeconds,
   sendsFor,
   systemChannels
 } from "./selectors"
 
 export { validateMixerGraph } from "./mixer-validation"
-export { ProjectValidationError, MixerValidationError } from "./validation-error"
+export { ProjectValidationError, MixerValidationError, TrackFrozenError } from "./validation-error"
+export {
+  refreshTrackFreezes,
+  trackFreezeContentRange,
+  trackFreezeEditBlock,
+  trackFreezeFingerprint,
+  trackFreezeLatencyDrift,
+  trackFreezeMode,
+  trackFreezePlayback,
+  validateTrackFreeze
+} from "./track-freeze"
+export type { TrackFreezeEditBlock, TrackFreezePlayback } from "./track-freeze"
 export {
   applyLiveCapture,
   applyLiveEdit,

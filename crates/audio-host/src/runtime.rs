@@ -59,7 +59,8 @@ use graph_transactions::{
     wait_for_graph_publication,
 };
 use plugin_actor::{
-    BounceJobRegistry, Vst3ActorDeps, audio_plugin_actor, dispatch_actor, dispatch_parameter,
+    BounceJobRegistry, TrackFreezeJobRegistry, Vst3ActorDeps, audio_plugin_actor, dispatch_actor,
+    dispatch_parameter,
     is_background_io_command, is_vst3_command, slow_request_threshold,
 };
 use runtime_config::RuntimeConfig;

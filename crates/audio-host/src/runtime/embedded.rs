@@ -21,6 +21,7 @@ use std::{
 
 use super::{
     ActorRequest, Arc as RuntimeArc, AtomicU64 as RuntimeAtomicU64, BounceJobRegistry,
+    TrackFreezeJobRegistry,
     EmbeddedUiHost, GraphParameterHandles, HashMap as RuntimeHashMap, MIDI_INPUT,
     Mutex as RuntimeMutex, NativeUiContext, RuntimeConfig, UiEvent, UiMailboxWaker, Vst3ActorDeps,
     audio_plugin_actor, background_io_actor, clap, dispatch_actor, dispatch_parameter,
@@ -761,6 +762,7 @@ async fn run_direct_actor(
             graph_build_gate: Arc::clone(&graph_build_gate),
             session_epoch,
             bounce_jobs,
+            freeze_jobs: Arc::new(TrackFreezeJobRegistry::default()),
             plugin_analysis_jobs: Arc::new(crate::plugin_analysis::PluginAnalysisJobs::default()),
         },
     ));

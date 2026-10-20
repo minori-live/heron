@@ -5,6 +5,7 @@ import {
   type MixerGraphSnapshot,
   type ProjectGraphSnapshot
 } from "@heron/contracts"
+import { trackFreezePlayback } from "@heron/project-model"
 import type { AudioHostGraph } from "../audio-host"
 
 export type RuntimeLatencyPolicy =
@@ -37,6 +38,15 @@ export class AudioGraphCompiler {
       if (!track) throw new Error(`Project track '${trackId}' was not found`)
       return track.channelId
     }
+    const freezePlayback = new Map(
+      (studio?.tracks ?? []).flatMap((track) => {
+        const playback = studio ? trackFreezePlayback(studio, track) : null
+        return playback ? [[track.id, playback] as const] : []
+      })
+    )
+    const omittedPluginIds = new Set(
+      [...freezePlayback.values()].flatMap((playback) => playback.omitPluginIds)
+    )
     return {
       sample_rate: graph.sampleRate,
       project_end_tick: studio?.projectEndTick ?? DEFAULT_PROJECT_END_TICK,
@@ -99,17 +109,31 @@ export class AudioGraphCompiler {
         tap: send.tap,
         level_db: send.levelDb
       })),
-      clips: (studio?.audioClips ?? []).map((clip) => ({
-        id: clip.id,
-        channel_id: channelIdForTrack(clip.trackId),
-        start_frame: clip.startFrame,
-        source_offset_frames: clip.sourceOffsetFrames,
-        length_frames: clip.lengthFrames,
-        fade_in_frames: clip.fadeInFrames,
-        fade_out_frames: clip.fadeOutFrames,
-        path: assetPaths.get(clip.assetId)!
-      })),
-      plugins: graph.plugins.map((plugin) => ({
+      clips: [
+        ...(studio?.audioClips ?? [])
+          .filter((clip) => !freezePlayback.has(clip.trackId))
+          .map((clip) => ({
+            id: clip.id,
+            channel_id: channelIdForTrack(clip.trackId),
+            start_frame: clip.startFrame,
+            source_offset_frames: clip.sourceOffsetFrames,
+            length_frames: clip.lengthFrames,
+            fade_in_frames: clip.fadeInFrames,
+            fade_out_frames: clip.fadeOutFrames,
+            path: assetPaths.get(clip.assetId)!
+          })),
+        ...[...freezePlayback.entries()].map(([trackId, playback]) => ({
+          id: `freeze:${trackId}`,
+          channel_id: channelIdForTrack(trackId),
+          start_frame: playback.startFrame,
+          source_offset_frames: 0,
+          length_frames: playback.lengthFrames,
+          fade_in_frames: 0,
+          fade_out_frames: 0,
+          path: assetPaths.get(playback.assetId)!
+        }))
+      ],
+      plugins: graph.plugins.filter((plugin) => !omittedPluginIds.has(plugin.id)).map((plugin) => ({
         instance_id: plugin.id,
         instance_generation: 1,
         channel_id: plugin.channelId,
@@ -138,7 +162,9 @@ export class AudioGraphCompiler {
         latency_samples: 0,
         tail_samples: 0
       })),
-      midi_clips: (studio?.midiClips ?? []).map((clip) => ({
+      midi_clips: (studio?.midiClips ?? [])
+        .filter((clip) => !freezePlayback.has(clip.trackId))
+        .map((clip) => ({
         id: clip.id,
         channel_id: channelIdForTrack(clip.trackId),
         start_tick: clip.startTick,

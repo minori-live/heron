@@ -24,6 +24,7 @@ pub(in crate::runtime) async fn audio_plugin_actor(
         graph_build_gate,
         session_epoch,
         bounce_jobs,
+        freeze_jobs,
         plugin_analysis_jobs,
     } = deps;
     let mut graph_snapshot: Option<LiveMixerGraph> = None;
@@ -182,6 +183,32 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                 ControlCommand::BounceOutputStatus { operation_id } => {
                     match bounce_jobs.status(&operation_id) {
                         Ok(status) => ControlResult::BounceOutput { status },
+                        Err(message) => control_error! { message },
+                    }
+                }
+                ControlCommand::StartTrackFreeze { request } => {
+                    let native = (|| {
+                        let slots = processors
+                            .lock()
+                            .map_err(|_| "plug-in processor registry is poisoned".to_owned())?
+                            .clone();
+                        audio_engine.set_plugin_processors(slots.clone());
+                        Ok(slots)
+                    })();
+                    match native.and_then(|slots| freeze_jobs.start(*request, slots)) {
+                        Ok(status) => ControlResult::TrackFreeze { status },
+                        Err(message) => control_error! { message },
+                    }
+                }
+                ControlCommand::TrackFreezeStatus { operation_id } => {
+                    match freeze_jobs.status(&operation_id) {
+                        Ok(status) => ControlResult::TrackFreeze { status },
+                        Err(message) => control_error! { message },
+                    }
+                }
+                ControlCommand::CancelTrackFreeze { operation_id } => {
+                    match freeze_jobs.cancel(&operation_id) {
+                        Ok(status) => ControlResult::TrackFreeze { status },
                         Err(message) => control_error! { message },
                     }
                 }

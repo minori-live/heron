@@ -214,6 +214,8 @@ mod resampling;
 mod resolve;
 #[path = "engine/spec.rs"]
 mod spec;
+#[path = "engine/track_freeze.rs"]
+mod track_freeze;
 #[path = "engine/transport_midi.rs"]
 mod transport_midi;
 
@@ -247,6 +249,9 @@ pub use benchmark::run_audio_benchmark;
 pub use bounce::{
     BounceChannelMode, BounceDither, BounceFormat, BounceNormalization, BounceProgress,
     BounceRequest, BounceResult, render_bounce_output,
+};
+pub use track_freeze::{
+    TrackFreezeProgress, TrackFreezeRequest, TrackFreezeResult, render_track_freeze,
 };
 pub use clip_decode::decode_clip_audio;
 pub use device_recovery::{

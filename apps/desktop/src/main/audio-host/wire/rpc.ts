@@ -21,6 +21,7 @@ import type {
 import type { BinaryPayloadWire } from "./binary"
 import type { AudioHostMidiInputSnapshot } from "./midi"
 import type { AudioHostBounceStatus } from "./bounce"
+import type { AudioHostTrackFreezeStatus } from "./freeze"
 import type { PluginAnalysisJobStatus } from "./generated/PluginAnalysisJobStatus"
 import type {
   AudioHostMidiRecordingResultWire,
@@ -95,6 +96,7 @@ export interface ControlResponse {
       | "plugin-editor"
       | "plugin-editor-toolbar"
       | "bounce-output"
+      | "track-freeze"
       | "error"
     error?: RpcError
     plugin_analysis_status?: PluginAnalysisJobStatus
@@ -199,7 +201,7 @@ export interface ControlResponse {
     recording?: AudioHostRecordingResultWire
     midi_recording?: AudioHostMidiRecordingResultWire
     waveform?: AudioHostWaveformWire
-    status?: AudioHostBounceStatus
+    status?: AudioHostBounceStatus | AudioHostTrackFreezeStatus
   }
 }
 

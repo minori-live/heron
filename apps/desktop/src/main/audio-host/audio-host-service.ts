@@ -68,6 +68,8 @@ import type {
   AudioHostGraph,
   AudioHostBounceRequest,
   AudioHostBounceStatus,
+  AudioHostTrackFreezeRequest,
+  AudioHostTrackFreezeStatus,
   AudioHostMidiRecordingConfig,
   AudioHostMidiRecordingResult,
   AudioHostRecordingConfig,
@@ -81,6 +83,8 @@ export type {
   AudioHostGraph,
   AudioHostBounceRequest,
   AudioHostBounceStatus,
+  AudioHostTrackFreezeRequest,
+  AudioHostTrackFreezeStatus,
   AudioHostMidiRecordingConfig,
   AudioHostMidiRecordingResult,
   AudioHostRecordingConfig,
@@ -838,7 +842,7 @@ export class AudioHostService {
     if (response.result.type !== "bounce-output" || !response.result.status) {
       throw new Error(response.result.error?.userMessageKey ?? "audio host rejected bounce")
     }
-    return response.result.status
+    return response.result.status as AudioHostBounceStatus
   }
 
   refreshDesiredProjectGraph(project: ProjectGraphSnapshot): void {
@@ -859,13 +863,47 @@ export class AudioHostService {
     if (response.result.type !== "bounce-output" || !response.result.status) {
       throw new Error(response.result.error?.userMessageKey ?? "bounce status is unavailable")
     }
-    return response.result.status
+    return response.result.status as AudioHostBounceStatus
   }
 
   async cancelBounceOutput(operationId: string): Promise<void> {
     const response = await this.request({ type: "cancel-bounce-output", operation_id: operationId })
     if (response.result.type !== "bounce-output") {
       throw new Error(response.result.error?.userMessageKey ?? "bounce cancellation failed")
+    }
+  }
+
+  async startTrackFreeze(
+    request: Omit<AudioHostTrackFreezeRequest, "graph" | "graph_revision">
+  ): Promise<AudioHostTrackFreezeStatus> {
+    const graph = this.lastGraph
+    if (!graph) throw new Error("project audio graph is unavailable")
+    const response = await this.request({
+      type: "start-track-freeze",
+      request: {
+        ...request,
+        graph_revision: graph.revision,
+        graph: structuredClone(graph.runtime)
+      }
+    })
+    if (response.result.type !== "track-freeze" || !response.result.status) {
+      throw new Error(response.result.error?.userMessageKey ?? "audio host rejected track freeze")
+    }
+    return response.result.status as AudioHostTrackFreezeStatus
+  }
+
+  async trackFreezeStatus(operationId: string): Promise<AudioHostTrackFreezeStatus> {
+    const response = await this.request({ type: "track-freeze-status", operation_id: operationId })
+    if (response.result.type !== "track-freeze" || !response.result.status) {
+      throw new Error(response.result.error?.userMessageKey ?? "track freeze status is unavailable")
+    }
+    return response.result.status as AudioHostTrackFreezeStatus
+  }
+
+  async cancelTrackFreeze(operationId: string): Promise<void> {
+    const response = await this.request({ type: "cancel-track-freeze", operation_id: operationId })
+    if (response.result.type !== "track-freeze") {
+      throw new Error(response.result.error?.userMessageKey ?? "track freeze cancellation failed")
     }
   }
 

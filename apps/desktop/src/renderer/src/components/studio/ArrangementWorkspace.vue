@@ -37,6 +37,7 @@ import { useMidiClipDrag } from "./useMidiClipDrag"
 import { useArrangementRecordingProjection } from "./useArrangementRecordingProjection"
 import { useArrangementTrackProjection } from "./useArrangementTrackProjection"
 import { useArrangementEditingCommands } from "./useArrangementEditingCommands"
+import { useTrackFreeze } from "./useTrackFreeze"
 
 const props = defineProps<{
   recordingId: string | null
@@ -56,6 +57,13 @@ const midiInputStore = useMidiInputStore()
 const pianoRollStore = usePianoRollStore()
 const workspaceStore = useStudioWorkspaceStore()
 const midiImportStore = useMidiImportStore()
+const {
+  freezingTrackIds,
+  buttonVisible: freezeButtonVisible,
+  toggle: toggleTrackFreeze,
+  setMode: setTrackFreezeMode,
+  setButtonVisible: setTrackFreezeButtonVisible
+} = useTrackFreeze()
 const { snap: pianoRollSnap } = storeToRefs(pianoRollStore)
 const { session } = storeToRefs(projectStore)
 const {
@@ -562,6 +570,8 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
               :rows="trackRows"
               :selected-channel-id="mixerStore.selectedChannelId"
               :track-height="trackHeight"
+              :freeze-button-visible="freezeButtonVisible"
+              :freezing-track-ids="freezingTrackIds"
               @select="mixerStore.selectedChannelId = $event"
               @reorder="reorderTrack"
               @rename="(channelId, name) => mixerStore.updateChannel(channelId, { name })"
@@ -569,6 +579,9 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
               @update-channel="mixerStore.updateChannel"
               @set-scale="viewStore.setTrackScale"
               @reset-scale="viewStore.resetTrackScale"
+              @toggle-freeze="toggleTrackFreeze"
+              @set-freeze-mode="setTrackFreezeMode"
+              @set-freeze-button-visible="setTrackFreezeButtonVisible"
             />
           </div>
           <div

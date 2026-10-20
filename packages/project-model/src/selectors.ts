@@ -103,7 +103,7 @@ export function meterFor(runtime: MixerRuntimeSnapshot, channelId: string) {
   )
 }
 
-function tickToSeconds(graph: ProjectGraphSnapshot, tick: number): number {
+export function projectTickToSeconds(graph: ProjectGraphSnapshot, tick: number): number {
   const map = graph.tempoMap
   let seconds = 0
   let previousTick = 0
@@ -128,7 +128,7 @@ export function projectContentEndSeconds(graph: ProjectGraphSnapshot): number {
     0
   )
   const midiEnd = graph.midiClips.reduce(
-    (latest, clip) => Math.max(latest, tickToSeconds(graph, clip.startTick + clip.lengthTicks)),
+    (latest, clip) => Math.max(latest, projectTickToSeconds(graph, clip.startTick + clip.lengthTicks)),
     0
   )
   return Math.max(audioEnd, midiEnd)

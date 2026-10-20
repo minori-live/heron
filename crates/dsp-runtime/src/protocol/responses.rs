@@ -4,6 +4,7 @@ use super::{
     ApplicationCaptureSnapshot, ApplicationCaptureTargetDescriptor, AudioBackend,
     AudioBenchmarkReport, AudioDeviceList, AudioDeviceRecovery, AudioRuntime, BinaryPayload,
     BounceJobStatus, CompiledAudioGraphSnapshot, GraphTransactionValue, MidiInputSnapshot,
+    TrackFreezeJobStatus,
     MidiRecordingResult, MixerChannelMeter, PluginEditorMode, PluginEditorToolbarState,
     PluginParameter, PluginStateEnvelope, RecordingResult, RecordingWaveform,
     RoundTripLatencyMeasurement, RpcError, RpcResult, TransportState,
@@ -122,6 +123,9 @@ pub enum ControlResult {
     },
     BounceOutput {
         status: BounceJobStatus,
+    },
+    TrackFreeze {
+        status: TrackFreezeJobStatus,
     },
     PluginLoaded {
         runtime_handle: u32,

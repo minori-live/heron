@@ -21,6 +21,7 @@ mod plugin_analysis;
 pub mod plugin_failure_fixture;
 mod recording;
 mod responses;
+mod track_freeze;
 mod rpc;
 mod transport;
 
@@ -35,6 +36,7 @@ pub use plugin::*;
 pub use plugin_analysis::*;
 pub use recording::*;
 pub use responses::*;
+pub use track_freeze::*;
 pub use rpc::*;
 pub use transport::*;
 // The tempo map is part of the graph wire contract; it lives in `crate::tempo`

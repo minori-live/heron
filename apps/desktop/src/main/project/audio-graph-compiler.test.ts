@@ -610,3 +610,47 @@ it("compiles main and Send formats independently of the source input format", ()
   })
   expect(compiled.sends[0]).toMatchObject({ target_bus: 3, target_format: "stereo" })
 })
+
+it("plays a frozen track from its freeze file and omits the baked plug-ins", () => {
+  const graph = snapshot({
+    plugins: [plugin],
+    tracks: [
+      {
+        id: "track:audio-1",
+        channelId: "audio-1",
+        sortOrder: 0,
+        freezeMode: "pre-fader",
+        freeze: {
+          mode: "pre-fader",
+          status: "stale",
+          assetId: "freeze-asset",
+          fingerprint: "fingerprint",
+          startFrame: 480,
+          lengthFrames: 1_024,
+          latencySamples: 32,
+          tailFrames: 64,
+          sampleRate: 48_000
+        }
+      },
+      { id: "track:instrument-1", channelId: "instrument-1", sortOrder: 1 }
+    ]
+  })
+  const compiled = new AudioGraphCompiler().compile(
+    graph,
+    new Map([
+      ["asset-1", "/assets/take.wav"],
+      ["freeze-asset", "/assets/freeze.wav"]
+    ]),
+    true
+  )
+  expect(compiled.clips).toEqual([
+    expect.objectContaining({
+      id: "freeze:track:audio-1",
+      channel_id: "audio-1",
+      start_frame: 480,
+      length_frames: 1_024,
+      path: "/assets/freeze.wav"
+    })
+  ])
+  expect(compiled.plugins).toEqual([])
+})

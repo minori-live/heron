@@ -7,20 +7,33 @@ import type {
 } from "@heron/contracts"
 import TrackGainControl from "./TrackGainControl.vue"
 import TrackPanControl from "./TrackPanControl.vue"
+import { Snowflake } from "@lucide/vue"
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { UiMixerStateButton } from "@heron/ui"
 
+export type TrackFreezeButtonState = "off" | "rendering" | "frozen" | "stale"
+
 const { t } = useI18n()
 
-const props = defineProps<{
-  channel: MixerChannelState
-  meter?: MixerChannelMeter
-}>()
+const props = withDefaults(
+  defineProps<{
+    channel: MixerChannelState
+    meter?: MixerChannelMeter
+    freezeVisible?: boolean
+    freezeState?: TrackFreezeButtonState
+  }>(),
+  {
+    meter: undefined,
+    freezeVisible: false,
+    freezeState: "off"
+  }
+)
 
 const emit = defineEmits<{
   preview: [preview: MixerParameterPreview]
   updateChannel: [channelId: string, patch: MixerChannelPatch]
+  toggleFreeze: []
 }>()
 
 const supportsRecording = computed(
@@ -42,6 +55,20 @@ const monitoringAvailable = computed(
         (props.channel.inputSource === "application" && props.channel.applicationCapture != null)))
 )
 const monitoringActive = computed(() => monitoringAvailable.value && props.channel.inputMonitoring)
+const freezeEngaged = computed(
+  () => props.freezeState === "frozen" || props.freezeState === "stale"
+)
+const freezeLabel = computed(() => {
+  if (props.freezeState === "rendering") {
+    return t("studio.trackControls.freezingAria", { name: props.channel.name })
+  }
+  if (props.freezeState === "stale") {
+    return t("studio.trackControls.staleAria", { name: props.channel.name })
+  }
+  return freezeEngaged.value
+    ? t("studio.trackControls.unfreezeAria", { name: props.channel.name })
+    : t("studio.trackControls.freezeAria", { name: props.channel.name })
+})
 
 function preview(parameter: "gainDb" | "pan", value: number): void {
   emit("preview", {
@@ -56,9 +83,10 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
 <template>
   <div
     class="track-quick-controls"
+    :class="{ 'shows-freeze': freezeVisible }"
     :aria-label="t('studio.trackControls.ariaLabel', { name: channel.name })"
   >
-    <div class="track-state-controls">
+    <div class="track-state-controls" :class="{ 'shows-freeze': freezeVisible }">
       <UiMixerStateButton
         tone="mute"
         size="track"
@@ -110,6 +138,20 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       >
         I
       </UiMixerStateButton>
+      <UiMixerStateButton
+        v-if="freezeVisible"
+        class="freeze-button"
+        :class="{ 'is-rendering': freezeState === 'rendering' }"
+        tone="bounce"
+        size="track"
+        stop-propagation
+        :pressed="freezeEngaged"
+        :label="freezeLabel"
+        :title="t('studio.trackControls.freeze')"
+        @click="emit('toggleFreeze')"
+      >
+        <Snowflake :size="11" />
+      </UiMixerStateButton>
     </div>
 
     <TrackGainControl
@@ -138,9 +180,31 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   min-width: 0;
   height: 23px;
 }
+.track-quick-controls.shows-freeze {
+  grid-template-columns: 93px minmax(64px, 1fr) 23px;
+}
 .track-state-controls {
   display: grid;
   grid-template-columns: repeat(4, 17px);
   gap: 2px;
+}
+.track-state-controls.shows-freeze {
+  grid-template-columns: repeat(5, 17px);
+}
+.freeze-button.is-rendering {
+  border-style: dashed;
+}
+.freeze-button.is-rendering :deep(svg) {
+  animation: freeze-spin 0.9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .freeze-button.is-rendering :deep(svg) {
+    animation: none;
+  }
+}
+@keyframes freeze-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{
     AudioEngineConfig, BinaryPayload, BounceOutputRenderRequest, GraphTransactionRequest,
     MidiRecordingStartConfig, MidiSyncPreferences, MixerParameterPreview, ParameterCommand,
+    TrackFreezeRenderRequest,
     ParameterGesture, PluginAudioMode, PluginAuxInputConfiguration, PluginEditorAction,
     PluginEditorAppearance, PluginEditorContext, PluginEditorPreference, PluginLocator,
     PluginStateEnvelope, PrepareGraphRequest, RecordingStartConfig,
@@ -149,6 +150,15 @@ pub enum ControlCommand {
         operation_id: String,
     },
     CancelBounceOutput {
+        operation_id: String,
+    },
+    StartTrackFreeze {
+        request: Box<TrackFreezeRenderRequest>,
+    },
+    TrackFreezeStatus {
+        operation_id: String,
+    },
+    CancelTrackFreeze {
         operation_id: String,
     },
     LoadPlugin {
