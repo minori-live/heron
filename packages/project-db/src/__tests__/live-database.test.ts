@@ -140,7 +140,9 @@ describe("Live database lineage", () => {
 
   it("rejects a missing Live marker before migration", async () => {
     const { root } = await fixture()
-    const unrelated = new PGlite(join(root, "unrelated"))
+    // close() takes the query mutex and then waits for startup. Those startup
+    // queries need the same mutex, so closing before the instance is ready deadlocks.
+    const unrelated = await PGlite.create(join(root, "unrelated"))
     await unrelated.close()
     await expect(LiveDatabase.open(join(root, "unrelated"))).rejects.toMatchObject({
       code: "format-mismatch"

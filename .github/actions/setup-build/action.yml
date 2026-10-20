@@ -48,9 +48,9 @@ runs:
           wayland-protocols
 
     - name: Install locked toolchain
-      uses: jdx/mise-action@v5.1.1
+      uses: jdx/mise-action@v5.2.1
       with:
-        version: 2026.10.8
+        version: 2026.10.15
         cache: true
         # Restore main's tool cache everywhere, but let only main and tags
         # write it; merge-ref copies only consume the shared cache quota.

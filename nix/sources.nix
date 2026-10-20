@@ -1,7 +1,7 @@
 {
   # Upstream inputs only; Heron itself is always built from this checkout.
   # Built-in plug-in archive hashes live in heron-plugins.lock.json.
-  pnpm = "sha256-2G6FhRgtd4Mr4c9dO8bRiTbTFbCcbIp0WhGGHO7OXAs=";
+  pnpm = "sha256-Sm4A5YqC0hwr1iXRbJjrTMKY4J5Se1QaysKQenVO7RQ=";
   vst3sdk = {
     rev = "9fad9770f2ae8542ab1a548a68c1ad1ac690abe0";
     hash = "sha256-ZGhhFic8l8xDwajTJgZPXl6M+S3QhrDX5zrCSu/Vfvg=";
