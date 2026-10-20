@@ -110,6 +110,9 @@ pub struct RenderRuntime {
     plugins_by_channel: Vec<Vec<usize>>,
     midi: Vec<RuntimeMidi>,
     meters: Vec<ChannelPeak>,
+    /// Channel-major scratch for [`Self::render_block`]: `channel_count * capacity` frames.
+    block_sources: Vec<StereoFrame>,
+    block_capacity: usize,
     sample_position: u64,
     transport: RenderTransport,
 }
@@ -134,6 +137,8 @@ impl RenderRuntime {
             plugins_by_channel: vec![Vec::new(); channel_count],
             midi: Vec::new(),
             meters: vec![ChannelPeak::default(); channel_count],
+            block_sources: Vec::new(),
+            block_capacity: 0,
             sample_position: 0,
             transport: RenderTransport::Stopped,
         }
@@ -254,6 +259,8 @@ impl RenderRuntime {
             plugins_by_channel,
             midi,
             meters: vec![ChannelPeak::default(); channel_count],
+            block_sources: Vec::new(),
+            block_capacity: 0,
             sample_position: 0,
             transport: RenderTransport::Stopped,
         })
@@ -333,6 +340,11 @@ impl RenderRuntime {
     /// Preallocates graph scratch for block processing before real-time publication.
     pub fn prepare_block_processing(&mut self, maximum_frames: usize) {
         self.mixer.prepare_block_processing(maximum_frames);
+        let needed = self.channel_sources.len().saturating_mul(maximum_frames);
+        if self.block_sources.len() < needed {
+            self.block_sources.resize(needed, [0.0; 2]);
+        }
+        self.block_capacity = self.block_capacity.max(maximum_frames);
     }
 
     /// Routes host-prepared channel sources through the shared graph kernel.
@@ -416,10 +428,109 @@ impl RenderRuntime {
         output
     }
 
+    /// Renders every requested frame and calls each channel insert once for the block.
+    ///
+    /// Clip and hardware sources still follow the playhead of each frame, so a
+    /// clip that starts or ends inside the block matches [`Self::render_frame`].
+    /// Inserts receive one `process_block` and the [`ProcessContext`] of the
+    /// first frame. MIDI notes are dispatched at each frame before that call,
+    /// using the same tick test as `render_frame`. `render_frame` remains the
+    /// per-sample context path used by musical-position rendering.
     pub fn render_block(&mut self, hardware_input: &[f32], output: &mut [HardwareOutputFrame]) {
-        for frame in output {
-            *frame = self.render_frame(hardware_input);
+        let frame_count = output.len();
+        if frame_count == 0 {
+            return;
         }
+        self.ensure_block_capacity(frame_count);
+        self.fill_block_sources(hardware_input, frame_count);
+        self.dispatch_block_midi(frame_count);
+        let context = self.process_context();
+        let advancing = self.transport != RenderTransport::Stopped;
+        let plugins = &mut self.plugins;
+        let plugins_by_channel = &self.plugins_by_channel;
+        self.mixer
+            .process_block_with_sources(
+                &mut self.block_sources,
+                output,
+                &mut |channel, frames, _post_pan| {
+                    for plugin in &plugins_by_channel[channel] {
+                        let _ = plugins[*plugin].processor.process_block(
+                            frames,
+                            &NoSidechains,
+                            &context,
+                        );
+                    }
+                },
+            )
+            .expect("block scratch is prepared for this frame count");
+        if advancing {
+            self.sample_position = self.sample_position.saturating_add(frame_count as u64);
+        }
+    }
+
+    fn ensure_block_capacity(&mut self, frame_count: usize) {
+        if frame_count > self.block_capacity {
+            self.prepare_block_processing(frame_count);
+        }
+    }
+
+    fn fill_block_sources(&mut self, hardware_input: &[f32], frame_count: usize) {
+        let channel_count = self.channel_sources.len();
+        let used = channel_count.saturating_mul(frame_count);
+        self.block_sources[..used].fill([0.0; 2]);
+        let advancing = self.transport != RenderTransport::Stopped;
+        let origin = self.sample_position;
+        for frame in 0..frame_count {
+            let position = if advancing {
+                origin.saturating_add(frame as u64)
+            } else {
+                origin
+            };
+            for (index, channels) in self.hardware_inputs.iter().enumerate() {
+                if let Some([left, right]) = *channels {
+                    self.block_sources[index * frame_count + frame] = [
+                        hardware_input.get(left).copied().unwrap_or(0.0),
+                        hardware_input.get(right).copied().unwrap_or(0.0),
+                    ];
+                }
+            }
+            for clip in &self.clips {
+                let Some(relative) = position.checked_sub(clip.spec.start_frame) else {
+                    continue;
+                };
+                if relative >= clip.spec.length_frames {
+                    continue;
+                }
+                let source_frame = clip.spec.source_offset_frames.saturating_add(relative);
+                if source_frame >= clip.source.frame_count() {
+                    continue;
+                }
+                let left = clip.source.sample(source_frame, 0);
+                let right = if clip.source.channels() > 1 {
+                    clip.source.sample(source_frame, 1)
+                } else {
+                    left
+                };
+                let slot = &mut self.block_sources[clip.channel_index * frame_count + frame];
+                slot[0] += left;
+                slot[1] += right;
+            }
+        }
+    }
+
+    fn dispatch_block_midi(&mut self, frame_count: usize) {
+        if self.midi.is_empty() {
+            return;
+        }
+        let origin = self.sample_position;
+        let advancing = self.transport != RenderTransport::Stopped;
+        for frame in 0..frame_count {
+            if advancing {
+                self.sample_position = origin.saturating_add(frame as u64);
+            }
+            self.dispatch_midi();
+        }
+        self.sample_position = origin;
     }
 
     pub fn write_meters(&mut self, target: &mut [RenderMeter]) {

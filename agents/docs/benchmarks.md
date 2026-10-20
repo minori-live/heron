@@ -22,7 +22,13 @@ mixer the device callback uses, including an idle-clip scan, a subnormal-sample
 case, one second of offline mix and single-track freeze, and the input-rate
 bridge. The audio callback flushes subnormals to zero, so the subnormal case
 should stay near the matching normal-sample cost. `render_runtime` adds the same buffer matrix plus a one-pole insert
-count. `rubberband_src` measures offline and streaming Rubber Band R3 conversion.
+count. `RenderRuntime::render_block` calls each insert once per block.
+`render_frame` still advances one sample at a time so musical position stays
+per frame. A multi-second insert sample runs past the one-million-frame clip;
+the one-pole tail then decays into subnormals and dominates that sample. The
+active portion of the clip is the insert-cost comparison. The audio callback
+already flushes subnormals, so this tail sits outside that guard.
+`rubberband_src` measures offline and streaming Rubber Band R3 conversion.
 `waveform_peaks` builds the multi-resolution peak pyramid. `project_graph`
 round-trips a named MessagePack `PrepareGraphRequest`.
 
