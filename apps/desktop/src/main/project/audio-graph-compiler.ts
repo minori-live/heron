@@ -19,6 +19,8 @@ export type RuntimeLatencyPolicy =
 export interface RuntimeGraphOptions {
   softwareMonitoringEnabled: boolean
   latencyPolicy: RuntimeLatencyPolicy
+  /** Render this track from its live source instead of a current freeze file. */
+  ignoreFreezeTrackId?: string
 }
 
 export class AudioGraphCompiler {
@@ -40,6 +42,7 @@ export class AudioGraphCompiler {
     }
     const freezePlayback = new Map(
       (studio?.tracks ?? []).flatMap((track) => {
+        if (track.id === runtimeOptions.ignoreFreezeTrackId) return []
         const playback = studio ? trackFreezePlayback(studio, track) : null
         return playback ? [[track.id, playback] as const] : []
       })
@@ -133,64 +136,66 @@ export class AudioGraphCompiler {
           path: assetPaths.get(playback.assetId)!
         }))
       ],
-      plugins: graph.plugins.filter((plugin) => !omittedPluginIds.has(plugin.id)).map((plugin) => ({
-        instance_id: plugin.id,
-        instance_generation: 1,
-        channel_id: plugin.channelId,
-        role: plugin.role,
-        slot_order: plugin.slotOrder,
-        audio_mode: plugin.audioMode,
-        duplicate_mono_output:
-          plugin.audioMode === "mono-to-stereo" &&
-          resolvePluginProcessorAudioMode(plugin.descriptor, plugin.audioMode) === "mono",
-        enabled: plugin.enabled,
-        aux_input_buses: plugin.descriptor.buses
-          .filter(
-            (bus) =>
-              bus.direction === "input" &&
-              bus.kind === "aux" &&
-              (bus.channels === 1 || bus.channels === 2)
-          )
-          .map((bus) => ({
-            input_port_key: bus.portKey,
-            name: bus.name,
-            channels: bus.channels,
-            source_channel_id:
-              plugin.sidechainInputs.find((route) => route.inputPortKey === bus.portKey)
-                ?.sourceChannelId ?? null
-          })),
-        latency_samples: 0,
-        tail_samples: 0
-      })),
+      plugins: graph.plugins
+        .filter((plugin) => !omittedPluginIds.has(plugin.id))
+        .map((plugin) => ({
+          instance_id: plugin.id,
+          instance_generation: 1,
+          channel_id: plugin.channelId,
+          role: plugin.role,
+          slot_order: plugin.slotOrder,
+          audio_mode: plugin.audioMode,
+          duplicate_mono_output:
+            plugin.audioMode === "mono-to-stereo" &&
+            resolvePluginProcessorAudioMode(plugin.descriptor, plugin.audioMode) === "mono",
+          enabled: plugin.enabled,
+          aux_input_buses: plugin.descriptor.buses
+            .filter(
+              (bus) =>
+                bus.direction === "input" &&
+                bus.kind === "aux" &&
+                (bus.channels === 1 || bus.channels === 2)
+            )
+            .map((bus) => ({
+              input_port_key: bus.portKey,
+              name: bus.name,
+              channels: bus.channels,
+              source_channel_id:
+                plugin.sidechainInputs.find((route) => route.inputPortKey === bus.portKey)
+                  ?.sourceChannelId ?? null
+            })),
+          latency_samples: 0,
+          tail_samples: 0
+        })),
       midi_clips: (studio?.midiClips ?? [])
         .filter((clip) => !freezePlayback.has(clip.trackId))
         .map((clip) => ({
-        id: clip.id,
-        channel_id: channelIdForTrack(clip.trackId),
-        start_tick: clip.startTick,
-        source_offset_ticks: clip.sourceOffsetTicks,
-        length_ticks: clip.lengthTicks,
-        notes: {
-          storage: "inline",
-          notes: clip.notes.map((note) => ({
-            start_tick: note.startTick,
-            duration_ticks: note.durationTicks,
-            channel: note.channel,
-            key: note.key,
-            velocity: note.velocity,
-            release_velocity: note.releaseVelocity
-          }))
-        },
-        events: {
-          storage: "inline",
-          events: clip.events.map((event) => ({
-            tick: event.tick,
-            channel: event.channel,
-            kind: event.kind,
-            data: { storage: "inline", bytes: event.data }
-          }))
-        }
-      })),
+          id: clip.id,
+          channel_id: channelIdForTrack(clip.trackId),
+          start_tick: clip.startTick,
+          source_offset_ticks: clip.sourceOffsetTicks,
+          length_ticks: clip.lengthTicks,
+          notes: {
+            storage: "inline",
+            notes: clip.notes.map((note) => ({
+              start_tick: note.startTick,
+              duration_ticks: note.durationTicks,
+              channel: note.channel,
+              key: note.key,
+              velocity: note.velocity,
+              release_velocity: note.releaseVelocity
+            }))
+          },
+          events: {
+            storage: "inline",
+            events: clip.events.map((event) => ({
+              tick: event.tick,
+              channel: event.channel,
+              kind: event.kind,
+              data: { storage: "inline", bytes: event.data }
+            }))
+          }
+        })),
       tempo_events: (studio?.tempoMap.tempoEvents ?? [{ tick: 0, beatsPerMinute: 120 }]).map(
         (event) => ({
           tick: event.tick,

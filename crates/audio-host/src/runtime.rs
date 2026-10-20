@@ -60,8 +60,7 @@ use graph_transactions::{
 };
 use plugin_actor::{
     BounceJobRegistry, TrackFreezeJobRegistry, Vst3ActorDeps, audio_plugin_actor, dispatch_actor,
-    dispatch_parameter,
-    is_background_io_command, is_vst3_command, slow_request_threshold,
+    dispatch_parameter, is_background_io_command, is_vst3_command, slow_request_threshold,
 };
 use runtime_config::RuntimeConfig;
 use ui_runtime::{EmbeddedUiHost, UiEvent, UiMailboxWaker};

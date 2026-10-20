@@ -58,9 +58,9 @@ const pianoRollStore = usePianoRollStore()
 const workspaceStore = useStudioWorkspaceStore()
 const midiImportStore = useMidiImportStore()
 const {
-  freezingTrackIds,
   buttonVisible: freezeButtonVisible,
   toggle: toggleTrackFreeze,
+  unfreeze: unfreezeTrack,
   setMode: setTrackFreezeMode,
   setButtonVisible: setTrackFreezeButtonVisible
 } = useTrackFreeze()
@@ -571,7 +571,6 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
               :selected-channel-id="mixerStore.selectedChannelId"
               :track-height="trackHeight"
               :freeze-button-visible="freezeButtonVisible"
-              :freezing-track-ids="freezingTrackIds"
               @select="mixerStore.selectedChannelId = $event"
               @reorder="reorderTrack"
               @rename="(channelId, name) => mixerStore.updateChannel(channelId, { name })"
@@ -580,6 +579,7 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
               @set-scale="viewStore.setTrackScale"
               @reset-scale="viewStore.resetTrackScale"
               @toggle-freeze="toggleTrackFreeze"
+              @unfreeze="unfreezeTrack"
               @set-freeze-mode="setTrackFreezeMode"
               @set-freeze-button-visible="setTrackFreezeButtonVisible"
             />

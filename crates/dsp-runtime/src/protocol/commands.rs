@@ -3,11 +3,10 @@ use serde::{Deserialize, Serialize};
 use super::{
     AudioEngineConfig, BinaryPayload, BounceOutputRenderRequest, GraphTransactionRequest,
     MidiRecordingStartConfig, MidiSyncPreferences, MixerParameterPreview, ParameterCommand,
-    TrackFreezeRenderRequest,
     ParameterGesture, PluginAudioMode, PluginAuxInputConfiguration, PluginEditorAction,
     PluginEditorAppearance, PluginEditorContext, PluginEditorPreference, PluginLocator,
     PluginStateEnvelope, PrepareGraphRequest, RecordingStartConfig,
-    RoundTripLatencyMeasurementRequest, RpcRequestMeta, TransportControl,
+    RoundTripLatencyMeasurementRequest, RpcRequestMeta, TrackFreezeRenderRequest, TransportControl,
 };
 
 #[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]

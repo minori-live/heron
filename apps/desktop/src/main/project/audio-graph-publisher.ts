@@ -12,6 +12,7 @@ import type { ProjectAssetReader } from "./asset-materializer"
 import { AudioGraphCompiler } from "./audio-graph-compiler"
 import type { RuntimeLatencyPolicy } from "./audio-graph-compiler"
 import type { AudioHostService } from "../audio-host"
+import type { AudioHostGraph } from "../audio-host/wire/graph"
 import type { PreparedGraphDeployment } from "../audio-host"
 import type { ApplicationSettingsStore } from "../settings"
 import type { PluginCatalogService } from "../plugins"
@@ -187,6 +188,23 @@ export class AudioGraphPublisher {
       options.awaitPublication ?? false
     )
     return graph
+  }
+
+  /** Compile one track from its live source so a refreeze does not rebake the freeze file. */
+  async compileWithoutFreeze(
+    source: ProjectGraphSnapshot,
+    trackId: string
+  ): Promise<AudioHostGraph> {
+    const graph = await this.resolveForRuntime(source)
+    validateGraph(graph)
+    const paths = await this.assets.materialize(graph)
+    const softwareMonitoringEnabled =
+      (await this.settings?.get())?.softwareMonitoringEnabled ?? false
+    return this.compiler.compile(graph, paths, {
+      softwareMonitoringEnabled,
+      latencyPolicy: { type: "normal" },
+      ignoreFreezeTrackId: trackId
+    })
   }
 
   compiledAudioGraphSnapshot() {

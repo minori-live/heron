@@ -3,8 +3,7 @@
 use super::*;
 use crate::runtime::{
     BounceJobRegistry, GraphParameterHandles, TrackFreezeJobRegistry, Vst3ActorDeps,
-    audio_plugin_actor, dispatch_actor,
-    engine_actor,
+    audio_plugin_actor, dispatch_actor, engine_actor,
 };
 use heron_dsp_runtime::protocol::{
     GraphDeploymentStatus, GraphOperationOutcome, GraphTransactionRequest, GraphTransactionValue,

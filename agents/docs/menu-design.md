@@ -413,7 +413,9 @@ Freeze mode
 
 Pre-fader bakes the source and insert chain. Source only bakes the source and leaves inserts
 live. Both choices are disabled while the track is frozen. Show freeze button is one application
-setting, so the same checkbox appears on every track header.
+setting, so the same checkbox appears on every track header. Render progress uses the shared
+operation dialog: the label names the track and shows the percent, and cancel stays on that
+dialog. The header snowflake only indicates that the track is frozen.
 
 ### Menus left on their current primitive
 

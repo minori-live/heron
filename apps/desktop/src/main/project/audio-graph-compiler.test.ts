@@ -653,4 +653,19 @@ it("plays a frozen track from its freeze file and omits the baked plug-ins", () 
     })
   ])
   expect(compiled.plugins).toEqual([])
+
+  const live = new AudioGraphCompiler().compile(
+    graph,
+    new Map([
+      ["asset-1", "/assets/take.wav"],
+      ["freeze-asset", "/assets/freeze.wav"]
+    ]),
+    {
+      softwareMonitoringEnabled: true,
+      latencyPolicy: { type: "normal" },
+      ignoreFreezeTrackId: "track:audio-1"
+    }
+  )
+  expect(live.clips.map((clip) => clip.id)).toEqual(["audio-clip-1"])
+  expect(live.plugins.map((entry) => entry.instance_id)).toEqual(["plugin-1"])
 })

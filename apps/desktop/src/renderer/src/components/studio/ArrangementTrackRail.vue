@@ -14,11 +14,9 @@ const props = withDefaults(
     selectedChannelId: string | null
     trackHeight: number
     freezeButtonVisible?: boolean
-    freezingTrackIds?: readonly string[]
   }>(),
   {
-    freezeButtonVisible: true,
-    freezingTrackIds: () => []
+    freezeButtonVisible: true
   }
 )
 
@@ -31,6 +29,7 @@ const emit = defineEmits<{
   setScale: [trackId: string, scale: number]
   resetScale: [trackId: string]
   toggleFreeze: [trackId: string]
+  unfreeze: [trackId: string]
   setFreezeMode: [trackId: string, mode: TrackFreezeMode]
   setFreezeButtonVisible: [visible: boolean]
 }>()
@@ -42,7 +41,6 @@ function relayChannelUpdate(channelId: string, patch: MixerChannelPatch): void {
 }
 
 function freezeState(track: ArrangementTimelineTrack): TrackFreezeButtonState {
-  if (props.freezingTrackIds.includes(track.trackId)) return "rendering"
   if (track.freeze?.status === "stale") return "stale"
   if (track.freeze) return "frozen"
   return "off"
@@ -54,7 +52,6 @@ function headerMenu(row: ArrangementTrackRow): readonly UiMenuEntry[] {
     {
       mode: track.freezeMode ?? "pre-fader",
       frozen: Boolean(track.freeze),
-      rendering: props.freezingTrackIds.includes(track.trackId),
       hasContent: row.audioClips.length > 0 || row.midiClips.length > 0,
       systemTrack: track.systemRole !== null,
       buttonVisible: props.freezeButtonVisible
@@ -62,7 +59,6 @@ function headerMenu(row: ArrangementTrackRow): readonly UiMenuEntry[] {
     {
       freeze: t("studio.trackControls.freeze"),
       unfreeze: t("studio.freeze.unfreeze"),
-      cancelFreeze: t("studio.trackControls.cancelFreeze"),
       freezeMode: t("studio.trackControls.freezeMode"),
       preFader: t("studio.trackControls.preFader"),
       sourceOnly: t("studio.trackControls.sourceOnly"),
@@ -75,8 +71,10 @@ function headerMenu(row: ArrangementTrackRow): readonly UiMenuEntry[] {
 }
 
 function selectHeaderMenu(track: ArrangementTimelineTrack, id: string): void {
-  if (id === "freeze" || id === "unfreeze" || id === "cancel-freeze") {
+  if (id === "freeze") {
     emit("toggleFreeze", track.trackId)
+  } else if (id === "unfreeze") {
+    emit("unfreeze", track.trackId)
   } else if (id === "pre-fader" || id === "source-only") {
     emit("setFreezeMode", track.trackId, id)
   } else if (id === "show-freeze-button") {

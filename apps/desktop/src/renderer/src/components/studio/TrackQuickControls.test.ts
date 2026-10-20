@@ -102,11 +102,6 @@ describe("TrackQuickControls", () => {
     expect(freeze.attributes("aria-pressed")).toBe("true")
     await freeze.trigger("click")
     expect(wrapper.emitted("toggleFreeze")).toEqual([[]])
-
-    await wrapper.setProps({ freezeState: "rendering" })
-    expect(wrapper.get('button[aria-label="Cancel freezing Vocal"]').classes()).toContain(
-      "is-rendering"
-    )
   })
 
   it("provides mixer actions, metered gain, and pan gestures", async () => {

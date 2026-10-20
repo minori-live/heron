@@ -4,10 +4,9 @@ use super::{
     ApplicationCaptureSnapshot, ApplicationCaptureTargetDescriptor, AudioBackend,
     AudioBenchmarkReport, AudioDeviceList, AudioDeviceRecovery, AudioRuntime, BinaryPayload,
     BounceJobStatus, CompiledAudioGraphSnapshot, GraphTransactionValue, MidiInputSnapshot,
-    TrackFreezeJobStatus,
     MidiRecordingResult, MixerChannelMeter, PluginEditorMode, PluginEditorToolbarState,
     PluginParameter, PluginStateEnvelope, RecordingResult, RecordingWaveform,
-    RoundTripLatencyMeasurement, RpcError, RpcResult, TransportState,
+    RoundTripLatencyMeasurement, RpcError, RpcResult, TrackFreezeJobStatus, TransportState,
 };
 
 #[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]

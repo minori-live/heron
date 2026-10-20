@@ -156,4 +156,29 @@ describe("OperationProgressDialog", () => {
     )
     expect(wrapper.find("button").exists()).toBe(false)
   })
+
+  it("shows the track name, percent, and cancel action while freezing", async () => {
+    const wrapper = mount(OperationProgressDialog, {
+      props: {
+        operation: {
+          id: "freeze-vocal",
+          title: "Freezing Vocal",
+          description: "Vocal",
+          phase: "rendering-offline",
+          state: "running",
+          completedUnits: 42,
+          totalUnits: 100,
+          cancellable: true,
+          error: null,
+          dropoutFrames: 0
+        }
+      }
+    })
+
+    expect(wrapper.get('[aria-atomic="true"]').text()).toBe("Freezing Vocal · Rendering offline")
+    expect(wrapper.get(".operation-percent").text()).toBe("42%")
+    expect(wrapper.get("[role=progressbar]").attributes("aria-valuenow")).toBe("42")
+    await wrapper.get("button").trigger("click")
+    expect(wrapper.emitted("cancel")).toHaveLength(1)
+  })
 })

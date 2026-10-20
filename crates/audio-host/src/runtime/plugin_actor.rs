@@ -39,8 +39,8 @@ mod plugin_analysis_dispatch;
 mod request_policy;
 
 pub(super) use bounce_jobs::BounceJobRegistry;
-pub(super) use freeze_jobs::TrackFreezeJobRegistry;
 pub(super) use command_dispatch::{audio_plugin_actor, dispatch_actor, dispatch_parameter};
+pub(super) use freeze_jobs::TrackFreezeJobRegistry;
 pub(super) use request_policy::{
     is_background_io_command, is_vst3_command, slow_request_threshold,
 };

@@ -4,7 +4,6 @@ import { trackHeaderMenu, type TrackHeaderMenuCopy } from "./trackHeaderMenu"
 const copy: TrackHeaderMenuCopy = {
   freeze: "Freeze",
   unfreeze: "Unfreeze",
-  cancelFreeze: "Cancel freeze",
   freezeMode: "Freeze mode",
   preFader: "Pre-fader",
   sourceOnly: "Source only",
@@ -20,7 +19,6 @@ describe("trackHeaderMenu", () => {
       {
         mode: "source-only",
         frozen: false,
-        rendering: false,
         hasContent: true,
         systemTrack: false,
         buttonVisible: true
@@ -51,7 +49,6 @@ describe("trackHeaderMenu", () => {
       {
         mode: "pre-fader",
         frozen: true,
-        rendering: false,
         hasContent: true,
         systemTrack: false,
         buttonVisible: false
@@ -70,7 +67,6 @@ describe("trackHeaderMenu", () => {
       {
         mode: "pre-fader",
         frozen: false,
-        rendering: false,
         hasContent: false,
         systemTrack: false,
         buttonVisible: true
@@ -78,18 +74,5 @@ describe("trackHeaderMenu", () => {
       copy
     )
     expect(empty[0]).toMatchObject({ id: "freeze", disabled: true, disabledReason: "empty" })
-
-    const rendering = trackHeaderMenu(
-      {
-        mode: "pre-fader",
-        frozen: false,
-        rendering: true,
-        hasContent: true,
-        systemTrack: false,
-        buttonVisible: true
-      },
-      copy
-    )
-    expect(rendering[0]).toMatchObject({ id: "cancel-freeze", label: "Cancel freeze" })
   })
 })

@@ -4,7 +4,6 @@ import type { UiMenuEntry } from "@heron/ui"
 export interface TrackHeaderMenuCopy {
   freeze: string
   unfreeze: string
-  cancelFreeze: string
   freezeMode: string
   preFader: string
   sourceOnly: string
@@ -17,7 +16,6 @@ export interface TrackHeaderMenuCopy {
 export interface TrackHeaderMenuState {
   mode: TrackFreezeMode
   frozen: boolean
-  rendering: boolean
   hasContent: boolean
   systemTrack: boolean
   buttonVisible: boolean
@@ -27,14 +25,13 @@ export function trackHeaderMenu(
   state: TrackHeaderMenuState,
   copy: TrackHeaderMenuCopy
 ): readonly UiMenuEntry[] {
-  const modeLocked = state.frozen || state.rendering
-  const freezeDisabled =
-    state.systemTrack || (!state.frozen && !state.rendering && !state.hasContent)
+  const modeLocked = state.frozen
+  const freezeDisabled = state.systemTrack || (!state.frozen && !state.hasContent)
   return [
     {
       kind: "item",
-      id: state.rendering ? "cancel-freeze" : state.frozen ? "unfreeze" : "freeze",
-      label: state.rendering ? copy.cancelFreeze : state.frozen ? copy.unfreeze : copy.freeze,
+      id: state.frozen ? "unfreeze" : "freeze",
+      label: state.frozen ? copy.unfreeze : copy.freeze,
       disabled: freezeDisabled,
       disabledReason: state.systemTrack
         ? copy.systemTrack

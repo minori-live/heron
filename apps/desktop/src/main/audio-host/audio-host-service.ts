@@ -874,7 +874,8 @@ export class AudioHostService {
   }
 
   async startTrackFreeze(
-    request: Omit<AudioHostTrackFreezeRequest, "graph" | "graph_revision">
+    request: Omit<AudioHostTrackFreezeRequest, "graph" | "graph_revision">,
+    runtime?: AudioHostGraph
   ): Promise<AudioHostTrackFreezeStatus> {
     const graph = this.lastGraph
     if (!graph) throw new Error("project audio graph is unavailable")
@@ -883,7 +884,7 @@ export class AudioHostService {
       request: {
         ...request,
         graph_revision: graph.revision,
-        graph: structuredClone(graph.runtime)
+        graph: structuredClone(runtime ?? graph.runtime)
       }
     })
     if (response.result.type !== "track-freeze" || !response.result.status) {

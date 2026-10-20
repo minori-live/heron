@@ -59,7 +59,11 @@ fn isolate_track(
     channel_id: &str,
     mode: TrackFreezeMode,
 ) -> EngineResult<u32> {
-    if !graph.channels.iter().any(|channel| channel.id == channel_id) {
+    if !graph
+        .channels
+        .iter()
+        .any(|channel| channel.id == channel_id)
+    {
         return Err(EngineError::InvalidConfiguration(
             "freeze track channel was not found".to_owned(),
         ));
@@ -99,7 +103,9 @@ fn isolate_track(
         .plugins
         .iter()
         .filter(|plugin| plugin.channel_id == channel_id)
-        .fold(0_u32, |sum, plugin| sum.saturating_add(plugin.latency_samples));
+        .fold(0_u32, |sum, plugin| {
+            sum.saturating_add(plugin.latency_samples)
+        });
     for channel in &mut graph.channels {
         channel.record_armed = false;
         channel.input_monitoring = false;
@@ -246,8 +252,8 @@ pub fn render_track_freeze(
     })
 }
 
-fn write_block(
-    output: &mut bwavfile::AudioFrameWriter<std::fs::File>,
+fn write_block<W: std::io::Write + std::io::Seek>(
+    output: &mut bwavfile::AudioFrameWriter<W>,
     frames: &[[f32; MAX_OUTPUT_CHANNELS]],
     interleaved: &mut Vec<f32>,
 ) -> EngineResult<()> {
@@ -261,7 +267,9 @@ fn write_block(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use heron_audio_plugin::{AudioPluginProcessor, ProcessContext, ProcessOutcome, SidechainSource};
+    use heron_audio_plugin::{
+        AudioPluginProcessor, ProcessContext, ProcessOutcome, SidechainSource,
+    };
     use heron_dsp_runtime::protocol::{
         LiveLatencyPolicy, LiveMixerChannel, LivePluginInstance, PluginAudioMode,
     };
@@ -364,7 +372,11 @@ mod tests {
             input_source: None,
             input_channels: Vec::new(),
             application_capture: None,
-            hardware_output_channels: if kind == "output" { vec![1, 2] } else { Vec::new() },
+            hardware_output_channels: if kind == "output" {
+                vec![1, 2]
+            } else {
+                Vec::new()
+            },
         }
     }
 
@@ -451,15 +463,28 @@ mod tests {
             std::process::id(),
             std::thread::current().id()
         ));
-        let result = render_track_freeze(request(TrackFreezeMode::PreFader, path.clone()), &AtomicBool::new(false), |_| {})
-            .expect("pre-fader freeze");
+        let result = render_track_freeze(
+            request(TrackFreezeMode::PreFader, path.clone()),
+            &AtomicBool::new(false),
+            |_| {},
+        )
+        .expect("pre-fader freeze");
         let left = read_left(&path);
         assert_eq!(result.latency_samples, 32);
         assert!(result.tail_frames >= 64);
         assert!(!result.tail_truncated);
-        assert!(left[255].abs() < 1.0e-4, "impulse must not stay at the source frame");
-        assert!((left[287] - 1.0).abs() < 1.0e-4, "impulse follows the plug-in delay once");
-        assert!(left[255 + 64].abs() < 1.0e-4, "delay must not be compensated twice");
+        assert!(
+            left[255].abs() < 1.0e-4,
+            "impulse must not stay at the source frame"
+        );
+        assert!(
+            (left[287] - 1.0).abs() < 1.0e-4,
+            "impulse follows the plug-in delay once"
+        );
+        assert!(
+            left[255 + 64].abs() < 1.0e-4,
+            "delay must not be compensated twice"
+        );
         std::fs::remove_file(path).expect("remove freeze file");
     }
 

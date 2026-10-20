@@ -250,9 +250,6 @@ pub use bounce::{
     BounceChannelMode, BounceDither, BounceFormat, BounceNormalization, BounceProgress,
     BounceRequest, BounceResult, render_bounce_output,
 };
-pub use track_freeze::{
-    TrackFreezeProgress, TrackFreezeRequest, TrackFreezeResult, render_track_freeze,
-};
 pub use clip_decode::decode_clip_audio;
 pub use device_recovery::{
     AudioDeviceFaultKind, AudioDeviceRecoveryPhase, AudioDeviceRecoverySnapshot,
@@ -268,6 +265,9 @@ pub use spec::{
     ResolvedMixerClip, ResolvedMixerGraph, ResolvedMixerSend, ResolvedPluginAuxInputBus,
     ResolvedPluginInstance, RoundTripLatencyMeasurement, RoundTripLatencyMeasurementRequest,
     TransportSnapshot,
+};
+pub use track_freeze::{
+    TrackFreezeProgress, TrackFreezeRequest, TrackFreezeResult, render_track_freeze,
 };
 
 #[cfg(test)]

@@ -766,6 +766,39 @@ describe("ArrangementWorkspace presentational children", () => {
     )
   })
 
+  it("unfreezes a stale track from the menu instead of starting another render", () => {
+    const stale = row()
+    stale.track = {
+      ...stale.track,
+      freeze: {
+        mode: "pre-fader",
+        status: "stale",
+        assetId: "freeze-asset",
+        fingerprint: "fingerprint",
+        startFrame: 0,
+        lengthFrames: 48_000,
+        latencySamples: 0,
+        tailFrames: 0,
+        sampleRate: 48_000
+      }
+    }
+    const wrapper = mount(ArrangementTrackRail, {
+      props: {
+        rows: [stale],
+        selectedChannelId: channel.id,
+        trackHeight: 88,
+        freezeButtonVisible: true
+      },
+      global: { plugins: [createPinia()] }
+    })
+
+    const menu = wrapper.getComponent(UiContextMenu)
+    expect(menu.props("entries")[0]).toMatchObject({ id: "unfreeze" })
+    menu.vm.$emit("select", "unfreeze")
+    expect(wrapper.emitted("unfreeze")).toEqual([["track:audio"]])
+    expect(wrapper.emitted("toggleFreeze")).toBeUndefined()
+  })
+
   it("relays typed audio and MIDI lane contracts", () => {
     const audio = shallowMount(ArrangementTimelineTrack, { props: timelineProps() })
     audio.getComponent(ArrangementTrack).vm.$emit("trim", "clip-1", "start", 120)

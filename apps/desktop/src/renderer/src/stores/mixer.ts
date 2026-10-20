@@ -148,7 +148,7 @@ export const useMixerStore = defineStore("mixer", () => {
     if (!prepared) return false
     const result = await graphStore.execute(prepared)
     if (!result) return false
-    if (recordHistory) historyStore.record({ forward: command, inverse: result.inverse })
+    if (recordHistory) historyStore.record({ forward: prepared, inverse: result.inverse })
     return true
   }
 

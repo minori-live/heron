@@ -12,7 +12,7 @@ import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { UiMixerStateButton } from "@heron/ui"
 
-export type TrackFreezeButtonState = "off" | "rendering" | "frozen" | "stale"
+export type TrackFreezeButtonState = "off" | "frozen" | "stale"
 
 const { t } = useI18n()
 
@@ -59,9 +59,6 @@ const freezeEngaged = computed(
   () => props.freezeState === "frozen" || props.freezeState === "stale"
 )
 const freezeLabel = computed(() => {
-  if (props.freezeState === "rendering") {
-    return t("studio.trackControls.freezingAria", { name: props.channel.name })
-  }
   if (props.freezeState === "stale") {
     return t("studio.trackControls.staleAria", { name: props.channel.name })
   }
@@ -141,7 +138,6 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
       <UiMixerStateButton
         v-if="freezeVisible"
         class="freeze-button"
-        :class="{ 'is-rendering': freezeState === 'rendering' }"
         tone="bounce"
         size="track"
         stop-propagation
@@ -190,21 +186,5 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
 }
 .track-state-controls.shows-freeze {
   grid-template-columns: repeat(5, 17px);
-}
-.freeze-button.is-rendering {
-  border-style: dashed;
-}
-.freeze-button.is-rendering :deep(svg) {
-  animation: freeze-spin 0.9s linear infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .freeze-button.is-rendering :deep(svg) {
-    animation: none;
-  }
-}
-@keyframes freeze-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 </style>
