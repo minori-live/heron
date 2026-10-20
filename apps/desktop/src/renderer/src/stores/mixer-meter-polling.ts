@@ -1,4 +1,4 @@
-import { useIntervalFn } from "@vueuse/core"
+import { bindSnapshotPoll } from "./snapshot-poll"
 
 export function useMixerMeterPolling(refresh: () => Promise<void>) {
   let active = false
@@ -21,19 +21,18 @@ export function useMixerMeterPolling(refresh: () => Promise<void>) {
     }
   }
 
-  const polling = useIntervalFn(() => void requestRefresh(), 33, { immediate: false })
+  const polling = bindSnapshotPoll(() => void requestRefresh())
 
   function start(): void {
     if (active) return
     active = true
-    void requestRefresh()
-    polling.resume()
+    polling.start()
   }
 
   function stop(): void {
     active = false
     pending = false
-    polling.pause()
+    polling.stop()
   }
 
   return { start, stop }

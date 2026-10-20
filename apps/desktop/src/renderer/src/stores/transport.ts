@@ -1,4 +1,3 @@
-import { useIntervalFn } from "@vueuse/core"
 import { acceptHMRUpdate, defineStore } from "pinia"
 import { computed, shallowRef, watch } from "vue"
 import {
@@ -13,6 +12,7 @@ import { mutationMeta, readMeta, rpcErrorMessage } from "../rpc"
 import { tickToSeconds } from "../utils/tempoMap"
 import { useAudioRuntimeStore } from "./audioRuntime"
 import { useMixerStore } from "./mixer"
+import { bindSnapshotPoll } from "./snapshot-poll"
 
 const MINIMUM_TIMELINE_SECONDS = 8
 const TIMELINE_TAIL_SECONDS = 8
@@ -202,15 +202,14 @@ export const useTransportStore = defineStore("transport", () => {
     }
   }
 
-  const polling = useIntervalFn(() => void refresh(), 33, { immediate: false })
+  const polling = bindSnapshotPoll(() => void refresh())
 
   function startPolling(): void {
-    void refresh()
-    polling.resume()
+    polling.start()
   }
 
   function stopPolling(): void {
-    polling.pause()
+    polling.stop()
   }
 
   async function play(): Promise<void> {
