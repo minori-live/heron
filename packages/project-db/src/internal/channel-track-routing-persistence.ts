@@ -46,10 +46,7 @@ function trackInsert(track: TrackState): typeof tracks.$inferInsert {
   }
 }
 
-function freezeInsert(
-  trackId: string,
-  freeze: TrackFreezeState
-): typeof trackFreezes.$inferInsert {
+function freezeInsert(trackId: string, freeze: TrackFreezeState): typeof trackFreezes.$inferInsert {
   return {
     trackId,
     mode: freeze.mode,

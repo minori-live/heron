@@ -128,7 +128,8 @@ export function projectContentEndSeconds(graph: ProjectGraphSnapshot): number {
     0
   )
   const midiEnd = graph.midiClips.reduce(
-    (latest, clip) => Math.max(latest, projectTickToSeconds(graph, clip.startTick + clip.lengthTicks)),
+    (latest, clip) =>
+      Math.max(latest, projectTickToSeconds(graph, clip.startTick + clip.lengthTicks)),
     0
   )
   return Math.max(audioEnd, midiEnd)

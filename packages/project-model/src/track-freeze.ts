@@ -104,7 +104,8 @@ export function trackFreezeFingerprint(
 ): string {
   const track = requireTrack(graph, trackId)
   const plugins = includedPlugins(graph, track, mode)
-  const includeTempo = plugins.some((plugin) => plugin.role === "instrument") || hasMidi(graph, track.id)
+  const includeTempo =
+    plugins.some((plugin) => plugin.role === "instrument") || hasMidi(graph, track.id)
   const sidechainChannelIds = new Set(
     plugins.flatMap((plugin) => plugin.sidechainInputs.map((route) => route.sourceChannelId))
   )
@@ -182,8 +183,7 @@ export function trackFreezeEditBlock(
       return blockTrack(graph, clipTrackId(graph, command.clipId))
     case "move-audio-clip":
       return (
-        blockTrack(graph, clipTrackId(graph, command.clipId)) ??
-        blockTrack(graph, command.trackId)
+        blockTrack(graph, clipTrackId(graph, command.clipId)) ?? blockTrack(graph, command.trackId)
       )
     case "create-midi-clip":
       return blockTrack(graph, command.clip.trackId)
@@ -257,7 +257,8 @@ function includedPlugins(
   return graph.plugins
     .filter(
       (plugin) =>
-        plugin.channelId === track.channelId && (mode === "pre-fader" || plugin.role === "instrument")
+        plugin.channelId === track.channelId &&
+        (mode === "pre-fader" || plugin.role === "instrument")
     )
     .sort((left, right) => left.slotOrder - right.slotOrder || left.id.localeCompare(right.id))
 }

@@ -53,7 +53,8 @@ fn freeze_error(context: &str, error: impl std::fmt::Display) -> EngineError {
 ///
 /// The returned latency is the sum of plug-ins that remain on the track. Those
 /// plug-ins are expected to delay internally; this render does not add another
-/// compensation offset.
+/// compensation offset. Hardware outputs are scaled by the master channel, so
+/// master stays unmuted at unity and is not printed into the freeze file.
 fn isolate_track(
     graph: &mut LiveMixerGraph,
     channel_id: &str,
@@ -118,11 +119,15 @@ fn isolate_track(
             channel.output_bus = None;
             channel.output_format = None;
             channel.hardware_output_channels.clear();
-        } else if channel.id == output_id {
+        } else if channel.id == output_id || channel.kind == "master" {
             channel.gain_db = 0.0;
             channel.pan = 0.0;
             channel.muted = false;
-            channel.hardware_output_channels = vec![1, 2];
+            if channel.id == output_id {
+                channel.hardware_output_channels = vec![1, 2];
+            } else {
+                channel.hardware_output_channels.clear();
+            }
         } else {
             channel.muted = true;
             channel.hardware_output_channels.clear();
