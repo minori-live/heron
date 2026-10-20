@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from "vue"
+import { computed, inject, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { UiContextMenu, UiTimelineClip, type UiGestureIntent, type UiMenuEntry } from "@heron/ui"
 import type { AudioClipState, TempoMapSnapshot, WaveformDisplayMode } from "@heron/contracts"
@@ -18,9 +18,11 @@ import {
 } from "../../utils/clipEditing"
 import ChannelFormatIcon from "./ChannelFormatIcon.vue"
 import WaveformCanvas from "./WaveformCanvas.vue"
+import { arrangementPlayheadKey, clipContainsPlayhead } from "./arrangement-playhead"
 import { useAudioClipEdit } from "./useAudioClipEdit"
 
 const { t } = useI18n()
+const playhead = inject(arrangementPlayheadKey, null)
 
 const props = defineProps<{
   clip: TimelineClip
@@ -161,11 +163,16 @@ const { data: waveformData, loading: waveformLoading } = useClipWaveform({
   endFrame,
   pixelWidth: waveformSourceResolution
 })
-const canEditAtPlayhead = computed(
-  () =>
-    props.playheadFrame > props.clip.startFrame &&
-    props.playheadFrame < props.clip.startFrame + props.clip.lengthFrames
+const canEditAtPlayhead = computed(() =>
+  playhead
+    ? clipContainsPlayhead(playhead.audioMembership.value, props.clip.id)
+    : props.playheadFrame > props.clip.startFrame &&
+      props.playheadFrame < props.clip.startFrame + props.clip.lengthFrames
 )
+
+function currentFrame(): number {
+  return playhead?.frame() ?? props.playheadFrame
+}
 const menuEntries = computed<readonly UiMenuEntry[]>(() => [
   {
     kind: "item",
@@ -217,8 +224,8 @@ watch(
 
 function selectMenuAction(id: string): void {
   if (id === "split") emit("split", props.clip.id)
-  else if (id === "trim-start") emit("trim", props.clip.id, "start", props.playheadFrame)
-  else if (id === "trim-end") emit("trim", props.clip.id, "end", props.playheadFrame)
+  else if (id === "trim-start") emit("trim", props.clip.id, "start", currentFrame())
+  else if (id === "trim-end") emit("trim", props.clip.id, "end", currentFrame())
   else if (id === "reset-fades") emit("resetFades", props.clip.id)
   else if (id === "delete") emit("remove", props.clip.id)
 }

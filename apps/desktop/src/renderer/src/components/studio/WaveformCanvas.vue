@@ -23,6 +23,9 @@ const props = defineProps<{
 
 const canvas = useTemplateRef<HTMLCanvasElement>("canvas")
 const size = { width: 0, height: 0 }
+let colorKey = ""
+let guideColor = ""
+let peakColor = ""
 const accessibleLabel = computed(() => {
   if (props.loading && !props.window) return t("rendererErrors.waveformLoading")
   if (!props.window) return t("rendererErrors.waveformUnavailable")
@@ -32,9 +35,21 @@ const accessibleLabel = computed(() => {
   })
 })
 
-function canvasColor(element: HTMLCanvasElement, property: string): string {
-  const style = window.getComputedStyle(element)
-  return style.getPropertyValue(property).trim() || style.color || "currentColor"
+function canvasColors(
+  element: HTMLCanvasElement,
+  recording: boolean
+): { guide: string; peak: string } {
+  const key = `${recording ? 1 : 0}:${document.documentElement.className}`
+  if (key !== colorKey) {
+    colorKey = key
+    const style = window.getComputedStyle(element)
+    const read = (property: string) => style.getPropertyValue(property).trim() || style.color
+    guideColor = read(
+      recording ? "--ui-domain-waveform-record-guide" : "--ui-domain-waveform-guide"
+    )
+    peakColor = read(recording ? "--ui-domain-waveform-record-peak" : "--ui-domain-waveform-peak")
+  }
+  return { guide: guideColor || "currentColor", peak: peakColor || "currentColor" }
 }
 
 function draw(): void {
@@ -45,11 +60,16 @@ function draw(): void {
   const ratio = Math.max(1, window.devicePixelRatio || 1)
   const width = Math.max(1, size.width || element.clientWidth)
   const height = Math.max(1, size.height || element.clientHeight)
-  element.width = Math.round(width * ratio)
-  element.height = Math.round(height * ratio)
+  const bitmapWidth = Math.round(width * ratio)
+  const bitmapHeight = Math.round(height * ratio)
+  if (element.width !== bitmapWidth || element.height !== bitmapHeight) {
+    element.width = bitmapWidth
+    element.height = bitmapHeight
+  }
   context.setTransform(ratio, 0, 0, ratio, 0, 0)
   context.clearRect(0, 0, width, height)
   if (!props.window) return
+  const colors = canvasColors(element, Boolean(props.recording))
   const canWarp =
     props.tempoMap !== undefined &&
     props.pixelsPerQuarter !== undefined &&
@@ -68,9 +88,7 @@ function draw(): void {
           props.window!.sampleRate
       )
     : buildWaveformGeometry(props.window, props.displayMode, width, height, props.amplitudeScale)
-  context.strokeStyle = props.recording
-    ? canvasColor(element, "--ui-domain-waveform-record-guide")
-    : canvasColor(element, "--ui-domain-waveform-guide")
+  context.strokeStyle = colors.guide
   context.globalAlpha = 0.28
   context.lineWidth = 1
   context.beginPath()
@@ -80,9 +98,7 @@ function draw(): void {
     context.lineTo(width, center)
   }
   context.stroke()
-  context.strokeStyle = props.recording
-    ? canvasColor(element, "--ui-domain-waveform-record-peak")
-    : canvasColor(element, "--ui-domain-waveform-peak")
+  context.strokeStyle = colors.peak
   context.globalAlpha = 0.86
   context.lineWidth = 1
   context.beginPath()

@@ -8,6 +8,7 @@ import {
 } from "@heron/contracts"
 import type { ProjectAssetSummary as Asset } from "@heron/contracts"
 import { projectContentEndSeconds } from "@heron/project-model"
+import { recordIpcTraffic, transportSnapshotBytes } from "../ipc-traffic"
 import { mutationMeta, readMeta, rpcErrorMessage } from "../rpc"
 import { tickToSeconds } from "../utils/tempoMap"
 import { useAudioRuntimeStore } from "./audioRuntime"
@@ -62,6 +63,21 @@ export function assetsToTimelineClips(assets: Asset[]): TimelineClip[] {
       cursor = clip.endSeconds
       return clip
     })
+}
+
+function sameTransport(current: TransportSnapshot, next: TransportSnapshot): boolean {
+  return (
+    current.state === next.state &&
+    current.positionFrames === next.positionFrames &&
+    current.positionTicks === next.positionTicks &&
+    current.sampleRate === next.sampleRate &&
+    current.effectiveBpm === next.effectiveBpm &&
+    current.clockSource === next.clockSource &&
+    current.waitingFor === next.waitingFor &&
+    current.loopEnabled === next.loopEnabled &&
+    current.loopRange?.startTick === next.loopRange?.startTick &&
+    current.loopRange?.endTick === next.loopRange?.endTick
+  )
 }
 
 const EMPTY_TRANSPORT: TransportSnapshot = {
@@ -177,7 +193,10 @@ export const useTransportStore = defineStore("transport", () => {
     }
     const next = await window.heron.transportSnapshot(readMeta(target))
     if (!next.ok) return
-    if (generation === requestGeneration) snapshot.value = next.value
+    recordIpcTraffic("transport-snapshot", transportSnapshotBytes())
+    if (generation === requestGeneration && !sameTransport(snapshot.value, next.value)) {
+      snapshot.value = next.value
+    }
     if (next.resourceRevision !== undefined) {
       audioRuntimeStore.advanceTransportRevision(next.resourceRevision)
     }

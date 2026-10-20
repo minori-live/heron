@@ -4,6 +4,20 @@ import { METER_RETURN_RATE_DB_PER_SECOND } from "@heron/contracts"
 import type { MeterPeakHold, MeterReturnRate, MixerChannelMeter } from "@heron/contracts"
 import { dbToLevelPercent, METER_MAX_DB, METER_MIN_DB } from "../utils/mixerDbScale"
 
+type StereoValue<T> = [T, T]
+
+function paintBucket(db: number): number {
+  if (!Number.isFinite(db)) return -1
+  return Math.round(dbToLevelPercent(db, METER_MIN_DB, METER_MAX_DB))
+}
+
+function samePaint(previous: StereoValue<number>, next: StereoValue<number>): boolean {
+  return (
+    paintBucket(previous[0]) === paintBucket(next[0]) &&
+    paintBucket(previous[1]) === paintBucket(next[1])
+  )
+}
+
 const PEAK_HOLD_DURATION_MS: Record<MeterPeakHold, number> = {
   "800ms": 800,
   "2s": 2_000,
@@ -20,8 +34,6 @@ function decay(db: number, elapsedSeconds: number, rate: number): number {
   const next = db - elapsedSeconds * rate
   return next <= METER_MIN_DB ? Number.NEGATIVE_INFINITY : next
 }
-
-type StereoValue<T> = [T, T]
 
 function maximum(values: StereoValue<number>): number {
   return Math.max(...values)
@@ -53,6 +65,8 @@ export function usePeakMeterDisplay(options: {
   let lastUpdate = now()
   const holdUntil: StereoValue<number> = [0, 0]
   let ignoreClipUntilCleared = false
+  let preciseDisplayed: StereoValue<number> = [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY]
+  let preciseHeld: StereoValue<number> = [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY]
 
   watch(
     [options.meter, options.peakHold, options.returnRate],
@@ -62,9 +76,10 @@ export function usePeakMeterDisplay(options: {
       const inputPeakDb = currentPeakDbByChannel.value
       const rate = METER_RETURN_RATE_DB_PER_SECOND[returnRate]
 
-      latchedPeakDb.value = Math.max(latchedPeakDb.value, maximum(inputPeakDb))
-      const nextDisplayedPeakDb: StereoValue<number> = [...displayedPeakDbByChannel.value]
-      const nextHeldPeakDb: StereoValue<number> = [...heldPeakDbByChannel.value]
+      const nextLatched = Math.max(latchedPeakDb.value, maximum(inputPeakDb))
+      if (nextLatched !== latchedPeakDb.value) latchedPeakDb.value = nextLatched
+      const nextDisplayedPeakDb: StereoValue<number> = [...preciseDisplayed]
+      const nextHeldPeakDb: StereoValue<number> = [...preciseHeld]
       for (const channel of [0, 1] as const) {
         nextDisplayedPeakDb[channel] =
           !Number.isFinite(nextDisplayedPeakDb[channel]) ||
@@ -92,8 +107,15 @@ export function usePeakMeterDisplay(options: {
           )
         }
       }
-      displayedPeakDbByChannel.value = nextDisplayedPeakDb
-      heldPeakDbByChannel.value = nextHeldPeakDb
+      preciseDisplayed = nextDisplayedPeakDb
+      preciseHeld = nextHeldPeakDb
+      if (
+        !samePaint(displayedPeakDbByChannel.value, nextDisplayedPeakDb) ||
+        !samePaint(heldPeakDbByChannel.value, nextHeldPeakDb)
+      ) {
+        displayedPeakDbByChannel.value = nextDisplayedPeakDb
+        heldPeakDbByChannel.value = nextHeldPeakDb
+      }
 
       if (!meter.clipped) {
         ignoreClipUntilCleared = false

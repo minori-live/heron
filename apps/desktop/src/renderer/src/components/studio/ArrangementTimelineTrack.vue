@@ -12,31 +12,38 @@ import ArrangementTrack from "./ArrangementTrack.vue"
 import MidiArrangementTrack from "./MidiArrangementTrack.vue"
 import type { ArrangementTrackRow } from "./arrangementWorkspaceTypes"
 
-defineProps<{
-  row: ArrangementTrackRow
-  tempoMap: TempoMapSnapshot
-  contentWidth: number
-  pixelsPerQuarter: number
-  amplitudeScale: number
-  displayMode: WaveformDisplayMode
-  viewportStartSeconds: number
-  viewportEndSeconds: number
-  selectedAudioClipId: string | null
-  selectedMidiClipIds: string[]
-  keyboardInsertionTick: number
-  playheadTick: number
-  playheadFrame: number
-  snap: PianoRollSnap
-  audioDragPreview: TimelineClip | null
-  draggingAudioClipId: string | null
-  midiDragPreview: MidiClipState | null
-  draggingMidiClipId: string | null
-  liveAudioClip: TimelineClip | null
-  recordingMidi: boolean
-  recordingStartTick: number
-  recordingPositionTick: number
-  liveMidiTake: MidiRecordingPreviewTake | null
-}>()
+withDefaults(
+  defineProps<{
+    row: ArrangementTrackRow
+    tempoMap: TempoMapSnapshot
+    contentWidth: number
+    pixelsPerQuarter: number
+    amplitudeScale: number
+    displayMode: WaveformDisplayMode
+    viewportStartSeconds: number
+    viewportEndSeconds: number
+    selectedAudioClipId: string | null
+    selectedMidiClipIds: string[]
+    keyboardInsertionTick?: number
+    playheadTick?: number
+    playheadFrame?: number
+    snap: PianoRollSnap
+    audioDragPreview: TimelineClip | null
+    draggingAudioClipId: string | null
+    midiDragPreview: MidiClipState | null
+    draggingMidiClipId: string | null
+    liveAudioClip: TimelineClip | null
+    recordingMidi: boolean
+    recordingStartTick: number
+    recordingPositionTick: number
+    liveMidiTake: MidiRecordingPreviewTake | null
+  }>(),
+  {
+    keyboardInsertionTick: 0,
+    playheadTick: 0,
+    playheadFrame: 0
+  }
+)
 
 const emit = defineEmits<{
   seek: [seconds: number]

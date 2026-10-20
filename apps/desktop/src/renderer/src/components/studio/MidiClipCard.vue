@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, inject } from "vue"
 import { useI18n } from "vue-i18n"
 import { UiContextMenu, UiTimelineClip, type UiGestureIntent, type UiMenuEntry } from "@heron/ui"
 import type { MidiClipState, TempoMapSnapshot } from "@heron/contracts"
 import type { PianoRollSnap } from "../../utils/pianoRoll"
 import type { ClipTrimEdge } from "../../utils/clipEditing"
+import { arrangementPlayheadKey, clipContainsPlayhead } from "./arrangement-playhead"
 import { useMidiClipTrim } from "./useMidiClipTrim"
 
 const props = defineProps<{
@@ -29,12 +30,18 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const playhead = inject(arrangementPlayheadKey, null)
 const selected = computed(() => props.selectedClipIds.includes(props.clip.id))
-const canEditAtPlayhead = computed(
-  () =>
-    props.playheadTick > props.clip.startTick &&
-    props.playheadTick < props.clip.startTick + props.clip.lengthTicks
+const canEditAtPlayhead = computed(() =>
+  playhead
+    ? clipContainsPlayhead(playhead.midiMembership.value, props.clip.id)
+    : props.playheadTick > props.clip.startTick &&
+      props.playheadTick < props.clip.startTick + props.clip.lengthTicks
 )
+
+function currentTick(): number {
+  return playhead?.tick() ?? props.playheadTick
+}
 const menuEntries = computed<readonly UiMenuEntry[]>(() => [
   { kind: "item", id: "open", label: t("studio.arrangement.openMidiClip"), shortcut: "Enter" },
   {
@@ -97,8 +104,8 @@ function selectMenuAction(id: string): void {
   if (id === "open")
     emit("open", props.clip.id, selected.value ? props.selectedClipIds : [props.clip.id])
   else if (id === "split") emit("split", props.clip.id)
-  else if (id === "trim-start") emit("trim", props.clip.id, "start", props.playheadTick)
-  else if (id === "trim-end") emit("trim", props.clip.id, "end", props.playheadTick)
+  else if (id === "trim-start") emit("trim", props.clip.id, "start", currentTick())
+  else if (id === "trim-end") emit("trim", props.clip.id, "end", currentTick())
   else if (id === "delete") emit("remove", props.clip.id)
 }
 </script>

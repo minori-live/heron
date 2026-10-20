@@ -196,6 +196,19 @@ describe("transport store", () => {
     expect(transport.snapshot).toMatchObject({ state: "playing", positionFrames: 200 })
   })
 
+  it("keeps the current snapshot when a poll repeats the same transport", async () => {
+    window.heron.transportSnapshot = vi
+      .fn()
+      .mockResolvedValue(success({ state: "playing", positionFrames: 128, sampleRate: 48_000 }))
+    const transport = useTransportStore()
+    await transport.refresh()
+    const current = transport.snapshot
+
+    await transport.refresh()
+
+    expect(transport.snapshot).toBe(current)
+  })
+
   it("reconciles the transport revision from a read before the next mutation", async () => {
     window.heron.transportSnapshot = vi
       .fn()

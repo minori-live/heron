@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, inject } from "vue"
 import { useI18n } from "vue-i18n"
 import { UiArrangementTrackSurface } from "@heron/ui"
 import type { MidiClipState, MidiRecordingPreviewTake, TempoMapSnapshot } from "@heron/contracts"
@@ -7,6 +7,7 @@ import type { PianoRollSnap } from "../../utils/pianoRoll"
 import type { ClipTrimEdge } from "../../utils/clipEditing"
 import { barTicksThroughTick, beatTicksThroughTick } from "../../utils/tempoMap"
 import { timelineXToTick, tickToTimelineX } from "../../utils/timelineCoordinates"
+import { arrangementPlayheadKey } from "./arrangement-playhead"
 import MidiClipCard from "./MidiClipCard.vue"
 import MidiRecordingPreview from "./MidiRecordingPreview.vue"
 
@@ -71,9 +72,12 @@ const beatLines = computed(() =>
     (tick) => (tick / props.tempoMap.ticksPerQuarter) * props.pixelsPerQuarter
   )
 )
-const keyboardInsertionX = computed(() =>
-  tickToTimelineX(props.tempoMap, props.keyboardInsertionTick, props.pixelsPerQuarter)
-)
+const playhead = inject(arrangementPlayheadKey, null)
+
+function keyboardPosition(): number {
+  const tick = playhead?.tick() ?? props.keyboardInsertionTick
+  return tickToTimelineX(props.tempoMap, tick, props.pixelsPerQuarter)
+}
 const dragPreviewStyle = computed(() => {
   if (!props.dragPreview) return {}
   const pixelsPerTick = props.pixelsPerQuarter / props.tempoMap.ticksPerQuarter
@@ -126,7 +130,7 @@ function relayDragStart(clipId: string, offsetPixels: number): void {
     data-track-kind="instrument"
     :label="t('studio.arrangement.instrumentLaneAria')"
     focusable
-    :keyboard-position="keyboardInsertionX"
+    :keyboard-position="keyboardPosition"
     @create="createClipAtPosition"
   >
     <span v-if="clips.length === 0 && !dragPreview && !recording" class="empty-hint">
