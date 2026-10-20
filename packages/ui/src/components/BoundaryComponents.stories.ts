@@ -147,7 +147,7 @@ export const OrdinaryControls: Story = {
           <template #project><p>Project notes</p></template>
           <template #track><p>Track notes</p></template>
         </UiTabs>
-        <UiInlineTextEdit :value="renamed" label="Rename track" @commit="renamed = $event" />
+        <UiInlineTextEdit :value="renamed" :label="renamed + ', Rename track'" @commit="renamed = $event" />
         <UiChoiceCard label="Dark" description="Use the dark studio theme" selected @select="tab = 'project'" />
         <UiActionRow label="Midnight Session" description="Modified 12 minutes ago" @activate="tab = 'track'" />
         <UiActionRow label="Alchemy" description="Apple · Instrument" density="compact" appearance="plain">
@@ -164,11 +164,11 @@ export const OrdinaryControls: Story = {
   }),
   async play({ canvasElement }) {
     const canvas = within(canvasElement)
-    await userEvent.dblClick(canvas.getByRole("button", { name: "Rename track" }))
-    const editor = canvas.getByRole("textbox", { name: "Rename track" })
+    await userEvent.dblClick(canvas.getByRole("button", { name: /Rename track/ }))
+    const editor = canvas.getByRole("textbox", { name: /Rename track/ })
     await userEvent.clear(editor)
     await userEvent.type(editor, "Bass DI{Enter}")
-    await expect(canvas.getByRole("button", { name: "Rename track" })).toHaveTextContent("Bass DI")
+    await expect(canvas.getByRole("button", { name: /Rename track/ })).toHaveTextContent("Bass DI")
     await userEvent.click(canvas.getByRole("button", { name: /Midnight Session/ }))
     await expect(canvas.getByText("Track notes")).toBeVisible()
     const compactPlugin = canvas.getByRole("button", { name: /Alchemy/ })
