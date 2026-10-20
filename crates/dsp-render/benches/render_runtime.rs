@@ -25,10 +25,11 @@ impl AudioPluginProcessor for OnePole {
         _sidechains: &dyn SidechainSource,
         _context: &heron_dsp_render::ProcessContext,
     ) -> ProcessOutcome {
+        let coefficient = self.coefficient;
         for frame in frames {
-            for channel in 0..2 {
-                self.state[channel] += self.coefficient * (frame[channel] - self.state[channel]);
-                frame[channel] = self.state[channel];
+            for (state, sample) in self.state.iter_mut().zip(frame.iter_mut()) {
+                *state += coefficient * (*sample - *state);
+                *sample = *state;
             }
         }
         ProcessOutcome::Processed

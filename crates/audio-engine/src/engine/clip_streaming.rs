@@ -15,6 +15,7 @@ impl StreamingClip {
         self.sample_at(frame)
     }
 
+    #[cfg_attr(not(any(test, feature = "bench-internals")), allow(dead_code))]
     pub(super) fn sample_at(&mut self, frame: usize) -> Option<StereoFrame> {
         if self.expected_frame != Some(frame) {
             self.control.generation.fetch_add(1, Ordering::AcqRel);
