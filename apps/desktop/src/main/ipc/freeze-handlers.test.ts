@@ -27,6 +27,7 @@ vi.mock("electron", () => ({
 
 import { IPC_CHANNELS } from "@heron/contracts"
 import type { MixerChannelState, ProjectGraphSnapshot } from "@heron/contracts"
+import type { AudioHostTrackFreezeStatus } from "../audio-host"
 import {
   createContext,
   createWorkspace,
@@ -75,9 +76,9 @@ function freezeGraph(
 }
 
 function status(
-  state: "running" | "completed" | "failed" | "cancelled",
+  state: AudioHostTrackFreezeStatus["state"],
   error: string | null = null
-) {
+): AudioHostTrackFreezeStatus {
   return {
     operation_id: "op-1",
     state,
