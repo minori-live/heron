@@ -314,6 +314,81 @@ fn bench_block_sizes_and_branches(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_realtime_budget(c: &mut Criterion) {
+    let mut group = c.benchmark_group("dsp-core/mixer_graph/realtime_budget");
+    group
+        .warm_up_time(Duration::from_secs(1))
+        .measurement_time(Duration::from_secs(3))
+        .sample_size(50)
+        .noise_threshold(0.03);
+
+    for &(tracks, buses, sends_per_track, topology) in &[
+        (8_usize, 0, 0, Topology::Direct),
+        (32, 0, 0, Topology::Direct),
+        (32, 4, 1, Topology::SendHeavy),
+        (128, 0, 0, Topology::Direct),
+        (128, 16, 4, Topology::SendHeavy),
+    ] {
+        for &block_frames in &[64_usize, 128, 512] {
+            group.throughput(Throughput::Elements(block_frames as u64));
+            let (channels, sends) = scenario(tracks, buses, sends_per_track, topology, false);
+            let mut graph = prepared_block_graph(48_000, channels, sends, block_frames);
+            let mut channel_sources = channel_major_sources(&graph, tracks, block_frames);
+            let mut output = vec![[0.0; 32]; block_frames];
+            let budget_us = (block_frames as u64) * 1_000_000 / 48_000;
+            group.bench_function(
+                format!(
+                    "48kHz/{}/tracks={tracks}/buses={buses}/sends-per-track={sends_per_track}/block={block_frames}/budget={budget_us}us",
+                    topology.label()
+                ),
+                |bencher| {
+                    bencher.iter(|| {
+                        process_block_api(&mut graph, &mut channel_sources, &mut output);
+                        black_box(&output);
+                    });
+                },
+            );
+        }
+    }
+    group.finish();
+}
+
+fn bench_automation(c: &mut Criterion) {
+    let mut group = c.benchmark_group("dsp-core/mixer_graph/automation");
+    group
+        .warm_up_time(Duration::from_secs(1))
+        .measurement_time(Duration::from_secs(3))
+        .sample_size(50)
+        .noise_threshold(0.03)
+        .throughput(Throughput::Elements(128));
+
+    for &tracks in &[8_usize, 32, 128] {
+        let (channels, sends) = scenario(tracks, 0, 0, Topology::Direct, false);
+        let mut settled = MixerGraph::new(48_000, channels.clone(), sends.clone()).expect("graph");
+        let mut automated = MixerGraph::new(48_000, channels, sends).expect("graph");
+        let inputs = vec![[0.125, -0.125]; tracks];
+        group.bench_function(format!("settled/tracks={tracks}/block=128"), |bencher| {
+            bencher.iter(|| black_box(process_block(&mut settled, &inputs, 128)));
+        });
+        let mut gain = -12.0_f32;
+        group.bench_function(
+            format!("ramp-all-faders/tracks={tracks}/block=128"),
+            |bencher| {
+                bencher.iter(|| {
+                    gain = if gain < -6.0 { -3.0 } else { -12.0 };
+                    for index in 0..tracks {
+                        automated
+                            .set_channel_gain(index, gain)
+                            .expect("gain is in range");
+                    }
+                    black_box(process_block(&mut automated, &inputs, 128))
+                });
+            },
+        );
+    }
+    group.finish();
+}
+
 fn bench_parameters_and_meters(c: &mut Criterion) {
     let (channels, sends) = scenario(128, 16, 1, Topology::SendHeavy, false);
     let mut graph = MixerGraph::new(48_000, channels, sends).expect("benchmark graph");
@@ -347,6 +422,8 @@ criterion_group!(
     bench_graph_build,
     bench_process_complexity,
     bench_process_block_api,
+    bench_realtime_budget,
+    bench_automation,
     bench_block_sizes_and_branches,
     bench_parameters_and_meters
 );

@@ -188,6 +188,8 @@ mod clip_decode;
 mod clip_streaming;
 #[path = "engine/compiled_graph.rs"]
 mod compiled_graph;
+#[path = "engine/denormal.rs"]
+mod denormal;
 #[path = "engine/device_recovery.rs"]
 mod device_recovery;
 #[path = "engine/device_streams.rs"]

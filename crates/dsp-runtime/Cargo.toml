@@ -12,8 +12,13 @@ serde_bytes.workspace = true
 ts-rs = { workspace = true, optional = true }
 
 [dev-dependencies]
+criterion.workspace = true
 rmp-serde.workspace = true
 serde_json.workspace = true
+
+[[bench]]
+name = "project_graph"
+harness = false
 
 [lints]
 workspace = true

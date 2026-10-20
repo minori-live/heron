@@ -43,3 +43,8 @@ required-features = ["bench-internals"]
 name = "recording"
 harness = false
 required-features = ["bench-internals"]
+
+[[bench]]
+name = "waveform_peaks"
+harness = false
+required-features = ["bench-internals"]

@@ -454,6 +454,7 @@ where
         .build_output_stream(
             *config,
             move |data: &mut [T], info| {
+                let _denormals = super::denormal::DenormalGuard::enter();
                 let callback_started_ns = round_trip_probe.shared.now_ns();
                 let timestamp = info.timestamp();
                 callback_metrics.output_latency_us.store(

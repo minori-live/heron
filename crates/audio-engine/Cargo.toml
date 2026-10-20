@@ -61,5 +61,13 @@ default = []
 bench-internals = []
 test-support = []
 
+[dev-dependencies]
+criterion.workspace = true
+
+[[bench]]
+name = "playback_graph"
+harness = false
+required-features = ["bench-internals"]
+
 [lints]
 workspace = true

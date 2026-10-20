@@ -30,7 +30,9 @@ main/native boundary is N-API within one process.
 - `@heron/dsp-node` owns `EmbeddedAudioHost`, its bounded Tokio control queues,
   audio engine, AudioPlugin actors, and telemetry.
 - The audio callback owns only real-time-safe state. It must not perform N-API,
-  Electron IPC, filesystem I/O, allocation, logging, or blocking locks.
+  Electron IPC, filesystem I/O, allocation, logging, or blocking locks. For the
+  duration of the call it flushes subnormal floats to zero (x86_64 FTZ+DAZ,
+  AArch64 FZ) so quiet tails cannot stall the mix.
 
 ## Built-in plug-in dependency
 

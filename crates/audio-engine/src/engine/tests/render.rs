@@ -161,6 +161,128 @@ fn clip_fades_apply_fixed_equal_power_gain_without_state() {
 }
 
 #[test]
+fn block_mix_applies_fades_and_stays_silent_after_the_clip() {
+    let mut runtime = transport_test_runtime(48_000, 16, 0, TRANSPORT_PLAYING);
+    runtime.clips[0].length_frames = 8;
+    runtime.clips[0].fade_in_frames = 4;
+    runtime.clips[0].fade_out_frames = 2;
+    runtime.clips[0].samples = ClipSamples::Memory(vec![[1.0, -1.0]; 8]);
+    let inputs = [[0.0; MAX_INPUT_CHANNELS]; 16];
+    let mut outputs = [[0.0; MAX_OUTPUT_CHANNELS]; 16];
+
+    assert!(!runtime.render_block(&inputs, &mut outputs, None, None));
+
+    for (frame, output) in outputs.iter().enumerate().take(8) {
+        let gain = runtime.clips[0].gain_at(frame);
+        assert_eq!(output[0], gain);
+        assert_eq!(output[1], -gain);
+    }
+    assert!(
+        outputs[8..]
+            .iter()
+            .all(|frame| frame[0] == 0.0 && frame[1] == 0.0)
+    );
+}
+
+#[test]
+fn block_mix_starts_and_ends_a_clip_inside_one_buffer() {
+    let mut runtime = transport_test_runtime(48_000, 16, 0, TRANSPORT_PLAYING);
+    runtime.clips[0].start_frame = 4;
+    runtime.clips[0].length_frames = 4;
+    runtime.clips[0].samples = ClipSamples::Memory(vec![[0.5, -0.25]; 4]);
+    let inputs = [[0.0; MAX_INPUT_CHANNELS]; 16];
+    let mut outputs = [[0.0; MAX_OUTPUT_CHANNELS]; 16];
+
+    assert!(!runtime.render_block(&inputs, &mut outputs, None, None));
+
+    assert!(
+        outputs[..4]
+            .iter()
+            .all(|frame| frame[0] == 0.0 && frame[1] == 0.0)
+    );
+    for frame in &outputs[4..8] {
+        assert_eq!(frame[0], 0.5);
+        assert_eq!(frame[1], -0.25);
+    }
+    assert!(
+        outputs[8..]
+            .iter()
+            .all(|frame| frame[0] == 0.0 && frame[1] == 0.0)
+    );
+}
+
+#[test]
+fn subnormal_clip_samples_flush_to_zero_while_rendering() {
+    let sample = 1.0e-40_f32;
+    assert!(sample.is_subnormal());
+    let mut runtime = transport_test_runtime(48_000, 64, 0, TRANSPORT_PLAYING);
+    runtime.clips[0].length_frames = 64;
+    runtime.clips[0].samples = ClipSamples::Memory(vec![[sample, -sample]; 64]);
+    let inputs = [[0.0; MAX_INPUT_CHANNELS]; 64];
+    let mut outputs = [[0.0; MAX_OUTPUT_CHANNELS]; 64];
+
+    assert!(!runtime.render_block(&inputs, &mut outputs, None, None));
+
+    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    assert!(
+        outputs
+            .iter()
+            .all(|frame| frame[0] == 0.0 && frame[1] == 0.0),
+        "subnormal clip samples must flush to zero on the audio path"
+    );
+}
+
+#[test]
+fn streaming_block_mix_copies_a_pinned_window_and_reports_the_tail_miss() {
+    let control = Arc::new(StreamControl::new(32, 0));
+    let window = &control.windows[0];
+    for frame in 0..8 {
+        window.store(frame, [frame as f32 * 0.1, -0.5]);
+    }
+    window.start_frame.store(0, Ordering::Relaxed);
+    window.frame_count.store(8, Ordering::Relaxed);
+    window.generation.store(
+        control.generation.load(Ordering::Acquire),
+        Ordering::Release,
+    );
+
+    let mut clip = LoadedClip {
+        channel_index: 0,
+        start_frame: 0,
+        source_offset_frames: 0,
+        length_frames: 32,
+        fade_in_frames: 0,
+        fade_out_frames: 0,
+        samples: ClipSamples::Streaming(StreamingClip {
+            control: Arc::clone(&control),
+            expected_frame: Some(0),
+        }),
+    };
+    let mut block = vec![[0.0, 0.0]; 12];
+
+    assert!(clip.mix_into(0, 12, &mut block));
+
+    for (frame, sample) in block.iter().enumerate().take(8) {
+        assert_eq!(*sample, [frame as f32 * 0.1, -0.5]);
+    }
+    assert!(block[8..].iter().all(|sample| *sample == [0.0, 0.0]));
+    let ClipSamples::Streaming(stream) = &clip.samples else {
+        panic!("streaming clip");
+    };
+    assert_eq!(stream.expected_frame, Some(12));
+    assert_eq!(control.requested_frame.load(Ordering::Acquire), 11);
+    assert_eq!(control.reader_window.load(Ordering::Acquire), 0);
+    assert_eq!(control.generation.load(Ordering::Acquire), 1);
+
+    let mut missed = vec![[1.0, 1.0]; 4];
+    assert!(clip.mix_into(20, 4, &mut missed));
+    assert!(missed.iter().all(|sample| *sample == [1.0, 1.0]));
+    assert_eq!(control.generation.load(Ordering::Acquire), 2);
+    assert_eq!(control.requested_frame.load(Ordering::Acquire), 23);
+    assert_eq!(control.reader_window.load(Ordering::Acquire), 0);
+}
+
+#[test]
 fn frames_until_timing_boundary_stops_at_tempo_and_signature_changes() {
     let mut runtime = transport_test_runtime(48_000, 100_000, 0, TRANSPORT_STOPPED);
     runtime.tempo_map = TempoMap::new(
