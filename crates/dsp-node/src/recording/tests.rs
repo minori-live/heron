@@ -199,3 +199,10 @@ fn rubberband_resampling_preserves_sine_length_frequency_and_all_final_formats()
     }
     fs::remove_file(source).unwrap();
 }
+
+#[cfg(feature = "bench-internals")]
+#[test]
+fn benchmark_helper_counts_peak_pyramid_levels() {
+    let samples = vec![0.25_f32; 128];
+    assert_eq!(super::benchmark_waveform_levels(&samples, 2), 1);
+}
