@@ -5,6 +5,19 @@ const electronMocks = vi.hoisted(() => ({
   showSaveDialog: vi.fn(),
   getAllWindows: vi.fn(() => [])
 }))
+vi.mock("@heron/dsp-node", () => ({
+  AudioHostRuntime: class {},
+  analyzeWaveform: vi.fn(),
+  engineInfo: vi.fn(),
+  finalizeRecording: vi.fn(),
+  importAudioFile: vi.fn(),
+  parseMidiData: vi.fn(),
+  parseMidiFile: vi.fn(),
+  processGain: vi.fn(),
+  recoverMidiJournalTake: vi.fn(),
+  repairRecordingHeader: vi.fn(),
+  writeDeterministicTestRecording: vi.fn()
+}))
 vi.mock("electron", () => ({
   app: { isPackaged: false },
   ipcMain: { handle: electronMocks.handle },
@@ -153,7 +166,7 @@ describe("registerFreezeHandlers", () => {
       prepareOfflineBounce: vi.fn(async () => undefined),
       deployTrackFreezeSource: vi.fn(async () => renderGraph),
       startTrackFreeze: vi.fn(async () => status("running")),
-      trackFreezeStatus: vi.fn(async () => status("completed")),
+      trackFreezeStatus: vi.fn(async () => ({ ...status("completed"), tail_truncated: true })),
       restartAfterOfflineBounce: vi.fn(async () => undefined)
     })
     context.transport.snapshot = vi.fn(async () => ({
@@ -353,5 +366,255 @@ describe("registerFreezeHandlers", () => {
         result: { ok: false, error: { code: "resource-unavailable" } }
       })
     })
+  })
+
+  it("rejects an exclusive bounce, a duplicate operation, and a second freeze", async () => {
+    const context = createContext()
+    const graph = freezeGraph()
+    const workspace = installHost(context, graph, {
+      audioEngineSnapshot: vi.fn(async () => ({ state: "stopped", sampleRate: 48_000 })),
+      refreshDesiredProjectGraph: vi.fn(),
+      prepareOfflineBounce: vi.fn(async () => undefined),
+      deployTrackFreezeSource: vi.fn(async () => ({ sample_rate: 48_000 })),
+      startTrackFreeze: vi.fn(async () => status("running")),
+      trackFreezeStatus: vi.fn(async () => status("running"))
+    })
+    registerFreezeHandlers(context)
+    const meta = mutationMeta(workspace.projectGraph, { expectedRevision: workspace.revision })
+    context.lifecycle.beginExclusiveOfflineOperation("bounce")
+    expect(
+      await invoke(electronMocks as never, IPC_CHANNELS.trackFreezeStart, meta, {
+        trackId: "track-vocal"
+      })
+    ).toMatchObject({ ok: false })
+    context.lifecycle.endExclusiveOfflineOperation("bounce")
+
+    vi.spyOn(context.operations.registry, "begin").mockReturnValueOnce({
+      ok: false,
+      error: { code: "operation-busy" }
+    } as never)
+    expect(
+      await invoke(electronMocks as never, IPC_CHANNELS.trackFreezeStart, meta, {
+        trackId: "track-vocal"
+      })
+    ).toMatchObject({ ok: false })
+
+    const running = await invoke(electronMocks as never, IPC_CHANNELS.trackFreezeStart, meta, {
+      trackId: "track-vocal"
+    })
+    expect(running).toMatchObject({ ok: true, value: { operationId: "op-1" } })
+    expect(
+      await invoke(
+        electronMocks as never,
+        IPC_CHANNELS.trackFreezeStart,
+        mutationMeta(workspace.projectGraph, {
+          expectedRevision: workspace.revision,
+          mutation: { operationId: "op-2", idempotencyKey: "idem-2" }
+        }),
+        { trackId: "track-vocal" }
+      )
+    ).toMatchObject({
+      ok: false,
+      error: { code: "resource-busy", details: { activeOperationId: "op-1" } }
+    })
+    vi.mocked(context.audioHost.trackFreezeStatus).mockResolvedValue(
+      status("cancelled", "track freeze cancelled")
+    )
+    Object.assign(context.audioHost, {
+      restartAfterOfflineBounce: vi.fn(async () => undefined)
+    })
+    await vi.waitFor(() => {
+      expect(context.operations.operationStatus("op-1")?.state).toBe("not-committed")
+    })
+  })
+
+  it("fails when plugin sync removes the track being frozen", async () => {
+    const missingSource = createContext()
+    const graph = freezeGraph()
+    const missingWorkspace = installHost(missingSource, graph, {
+      audioEngineSnapshot: vi.fn(async () => ({ state: "stopped", sampleRate: 48_000 })),
+      refreshDesiredProjectGraph: vi.fn(),
+      prepareOfflineBounce: vi.fn(),
+      deployTrackFreezeSource: vi.fn(),
+      startTrackFreeze: vi.fn(),
+      restartAfterOfflineBounce: vi.fn(async () => undefined)
+    })
+    vi.mocked(missingSource.projectGraph.snapshot).mockResolvedValue({ ...graph, tracks: [] })
+    registerFreezeHandlers(missingSource)
+    await invoke(
+      electronMocks as never,
+      IPC_CHANNELS.trackFreezeStart,
+      mutationMeta(missingWorkspace.projectGraph, {
+        expectedRevision: missingWorkspace.revision
+      }),
+      { trackId: "track-vocal" }
+    )
+    await vi.waitFor(() => {
+      expect(missingSource.operations.operationStatus("op-1")?.state).toBe("not-committed")
+    })
+    expect(missingSource.audioHost.deployTrackFreezeSource).not.toHaveBeenCalled()
+  })
+
+  it("fails when the rendered file is not imported", async () => {
+    const emptyImport = createContext()
+    const graph = freezeGraph()
+    const importWorkspace = installHost(emptyImport, graph, {
+      audioEngineSnapshot: vi.fn(async () => ({ state: "stopped", sampleRate: 48_000 })),
+      refreshDesiredProjectGraph: vi.fn(),
+      prepareOfflineBounce: vi.fn(async () => undefined),
+      deployTrackFreezeSource: vi.fn(async () => ({ sample_rate: 48_000 })),
+      startTrackFreeze: vi.fn(async () => status("completed")),
+      trackFreezeStatus: vi.fn(async () => status("completed")),
+      restartAfterOfflineBounce: vi.fn(async () => undefined)
+    })
+    emptyImport.audioImport.import = vi.fn(async () => ({
+      selectedAssetIds: [],
+      importedAssetIds: []
+    }))
+    registerFreezeHandlers(emptyImport)
+    await invoke(
+      electronMocks as never,
+      IPC_CHANNELS.trackFreezeStart,
+      mutationMeta(importWorkspace.projectGraph, { expectedRevision: importWorkspace.revision }),
+      { trackId: "track-vocal" }
+    )
+    await vi.waitFor(() => {
+      expect(emptyImport.operations.operationStatus("op-1")).toMatchObject({
+        state: "not-committed",
+        result: { ok: false, error: { code: "resource-unavailable" } }
+      })
+    })
+  })
+
+  it("deletes the imported asset when the freeze commit is rejected", async () => {
+    const rejected = createContext()
+    const graph = freezeGraph()
+    const rejectedWorkspace = installHost(rejected, graph, {
+      audioEngineSnapshot: vi.fn(async () => ({ state: "stopped", sampleRate: 48_000 })),
+      refreshDesiredProjectGraph: vi.fn(),
+      prepareOfflineBounce: vi.fn(async () => undefined),
+      deployTrackFreezeSource: vi.fn(async () => ({ sample_rate: 48_000 })),
+      startTrackFreeze: vi.fn(async () => ({
+        ...status("completed"),
+        rendered_frames: null,
+        tail_truncated: true
+      })),
+      trackFreezeStatus: vi.fn(async () => ({
+        ...status("completed"),
+        rendered_frames: null,
+        tail_truncated: true
+      })),
+      restartAfterOfflineBounce: vi.fn(async () => undefined)
+    })
+    Object.assign(rejected.projectCommands, {
+      currentWorkspace: () => rejectedWorkspace,
+      execute: vi.fn(async () => ({
+        ok: false,
+        error: { userMessageKey: "errors.commit" }
+      }))
+    })
+    rejected.audioImport.import = vi.fn(async () => ({
+      selectedAssetIds: ["freeze-asset"],
+      importedAssetIds: ["freeze-asset"]
+    }))
+    const deleteAssets = vi.fn(async () => undefined)
+    Object.assign(rejected.projects, { deleteAssets })
+    registerFreezeHandlers(rejected)
+    await invoke(
+      electronMocks as never,
+      IPC_CHANNELS.trackFreezeStart,
+      mutationMeta(rejectedWorkspace.projectGraph, {
+        expectedRevision: rejectedWorkspace.revision
+      }),
+      { trackId: "track-vocal" }
+    )
+    await vi.waitFor(() => {
+      expect(deleteAssets).toHaveBeenCalledWith(["freeze-asset"])
+    })
+    expect(rejected.projectCommands.execute).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        freeze: expect.objectContaining({ lengthFrames: 256 })
+      })
+    )
+    expect(rejected.operations.operationStatus("op-1")).toMatchObject({
+      state: "not-committed",
+      result: { ok: false, error: { code: "resource-unavailable" } }
+    })
+  })
+
+  it("reports failure when restoring the playhead throws", async () => {
+    const context = createContext()
+    const graph = freezeGraph()
+    const workspace = installHost(context, graph, {
+      audioEngineSnapshot: vi.fn(async () => ({ state: "running", sampleRate: 48_000 })),
+      stopAudioEngine: vi.fn(async () => undefined),
+      refreshDesiredProjectGraph: vi.fn(),
+      prepareOfflineBounce: vi.fn(async () => undefined),
+      deployTrackFreezeSource: vi.fn(async () => ({ sample_rate: 48_000 })),
+      startTrackFreeze: vi.fn(async () => status("failed", "render failed")),
+      trackFreezeStatus: vi.fn(async () => status("failed", "render failed")),
+      restartAfterOfflineBounce: vi.fn(async () => undefined)
+    })
+    context.transport.snapshot = vi.fn(async () => ({
+      state: "stopped" as const,
+      positionFrames: 8,
+      sampleRate: 48_000,
+      loopEnabled: false,
+      loopRange: null
+    }))
+    context.transport.command = vi.fn(async () => {
+      throw new Error("seek failed")
+    })
+    registerFreezeHandlers(context)
+    await invoke(
+      electronMocks as never,
+      IPC_CHANNELS.trackFreezeStart,
+      mutationMeta(workspace.projectGraph, { expectedRevision: workspace.revision }),
+      { trackId: "track-vocal" }
+    )
+    await vi.waitFor(() => {
+      expect(context.operations.operationStatus("op-1")).toMatchObject({
+        state: "not-committed",
+        result: { ok: false, error: { code: "resource-unavailable" } }
+      })
+    })
+    expect(context.transport.command).toHaveBeenCalled()
+  })
+
+  it("ignores a cancel status error and still records cancellation", async () => {
+    const context = createContext()
+    const graph = freezeGraph()
+    const workspace = installHost(context, graph, {
+      audioEngineSnapshot: vi.fn(async () => ({ state: "stopped", sampleRate: 48_000 })),
+      refreshDesiredProjectGraph: vi.fn(),
+      prepareOfflineBounce: vi.fn(async () => undefined),
+      deployTrackFreezeSource: vi.fn(async () => ({ sample_rate: 48_000 })),
+      startTrackFreeze: vi.fn(async () => status("running")),
+      trackFreezeStatus: vi
+        .fn()
+        .mockImplementationOnce(async () => {
+          await context.operations.cancel("op-1")
+          return status("running")
+        })
+        .mockRejectedValueOnce(new Error("status unavailable"))
+        .mockResolvedValue(status("cancelled", "track freeze cancelled")),
+      cancelTrackFreeze: vi.fn(async () => undefined),
+      restartAfterOfflineBounce: vi.fn(async () => undefined)
+    })
+    registerFreezeHandlers(context)
+    await invoke(
+      electronMocks as never,
+      IPC_CHANNELS.trackFreezeStart,
+      mutationMeta(workspace.projectGraph, { expectedRevision: workspace.revision }),
+      { trackId: "track-vocal" }
+    )
+    await vi.waitFor(() => {
+      expect(context.operations.operationStatus("op-1")).toMatchObject({
+        state: "not-committed",
+        result: { ok: false, error: { code: "operation-cancelled" } }
+      })
+    })
+    expect(context.audioHost.cancelTrackFreeze).not.toHaveBeenCalled()
   })
 })

@@ -297,15 +297,33 @@ describe("AudioHostService graph", () => {
     ).lastGraph
     expect(rendered.plugins.map((plugin) => plugin.instance_id)).toEqual(["insert"])
     expect(stored.runtime.plugins).toEqual([])
-    expect(stored.revision).toBe(6)
+    expect(stored.revision).toBe(4)
     const client = fakeHost.Client.instances[0]!
     const prepared = client.commands.filter((command) => command.type === "prepare-graph").at(-1)
     expect(prepared).toMatchObject({
-      request: { graph: { plugins: [{ instance_id: "insert" }] } }
+      request: { graphRevision: 5, graph: { plugins: [{ instance_id: "insert" }] } }
     })
+    expect(client.graphRevision).toBe(5)
     expect(client.commands).toContainEqual(
       expect.objectContaining({ type: "load-plugin", instance_id: "insert" })
     )
+
+    await service.restartAfterOfflineBounce(false)
+    const restored = fakeHost.Client.instances.at(-1)!
+    expect(restored).not.toBe(client)
+    expect(restored.graphRevision).toBe(4)
+    expect(
+      restored.commands.filter((command) => command.type === "prepare-graph").at(-1)
+    ).toMatchObject({
+      request: { baseRevision: 0, graphRevision: 4 }
+    })
+    await service.loadGraph(5, session.project, session.runtime)
+    expect(restored.graphRevision).toBe(5)
+    expect(
+      restored.commands.filter((command) => command.type === "prepare-graph").at(-1)
+    ).toMatchObject({
+      request: { baseRevision: 4, graphRevision: 5 }
+    })
     await service.stop()
   })
 })

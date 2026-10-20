@@ -909,8 +909,12 @@ export class AudioHostService {
     const activated = await this.graphTransactions.activate(prepared.value)
     if (!activated.ok) throw new Error(activated.error.userMessageKey)
     const rendered = structuredClone(prepared.value.runtime)
+    // Activation commits the live source on this client only. The offline
+    // restart republishes `lastGraph`, so that stored revision must stay the
+    // session revision the project publisher already owns. Advancing it here
+    // would put the restored host ahead of the later freeze commit.
     this.lastGraph = {
-      revision: revision + 1,
+      revision: session.revision,
       project: sessionGraph.project,
       runtime: sessionGraph.runtime
     }

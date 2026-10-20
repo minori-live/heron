@@ -74,5 +74,23 @@ describe("trackHeaderMenu", () => {
       copy
     )
     expect(empty[0]).toMatchObject({ id: "freeze", disabled: true, disabledReason: "empty" })
+
+    const system = trackHeaderMenu(
+      {
+        mode: "pre-fader",
+        frozen: false,
+        hasContent: true,
+        systemTrack: true,
+        buttonVisible: true
+      },
+      copy
+    )
+    expect(system[0]).toMatchObject({ id: "freeze", disabled: true, disabledReason: "system" })
+    expect(system[1]).toMatchObject({
+      options: [
+        expect.objectContaining({ disabled: false }),
+        expect.objectContaining({ disabled: false })
+      ]
+    })
   })
 })
