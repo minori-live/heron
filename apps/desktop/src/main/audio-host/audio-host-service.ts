@@ -873,6 +873,50 @@ export class AudioHostService {
     }
   }
 
+  /**
+   * Activate one track's live source on the offline client.
+   *
+   * Graph activation keeps processor handles only for plug-ins in the runtime
+   * that was just published. A frozen session graph omits the baked chain, so
+   * the freeze worker would clone that reduced set. This publication loads the
+   * live chain, then puts the session graph back as the graph a later offline
+   * restart republishes.
+   */
+  async deployTrackFreezeSource(
+    project: MixerGraphSnapshot,
+    runtime: AudioHostGraph
+  ): Promise<AudioHostGraph> {
+    const session = this.lastGraph
+    if (!session) throw new Error("project audio graph is unavailable")
+    const sessionGraph = {
+      project: structuredClone(session.project),
+      runtime: structuredClone(session.runtime)
+    }
+    const revision = session.revision + 1
+    const operationId = randomUUID()
+    const prepared = await this.graphTransactions.prepare(
+      {
+        protocolVersion: IPC_PROTOCOL_VERSION,
+        requestId: operationId,
+        mutation: { operationId, idempotencyKey: operationId }
+      },
+      this.publicationGraph,
+      revision,
+      project,
+      runtime
+    )
+    if (!prepared.ok) throw new Error(prepared.error.userMessageKey)
+    const activated = await this.graphTransactions.activate(prepared.value)
+    if (!activated.ok) throw new Error(activated.error.userMessageKey)
+    const rendered = structuredClone(prepared.value.runtime)
+    this.lastGraph = {
+      revision: revision + 1,
+      project: sessionGraph.project,
+      runtime: sessionGraph.runtime
+    }
+    return rendered
+  }
+
   async startTrackFreeze(
     request: Omit<AudioHostTrackFreezeRequest, "graph" | "graph_revision">,
     runtime?: AudioHostGraph
