@@ -12,7 +12,7 @@ import type {
   TransportSnapshot
 } from "@heron/contracts"
 import type { AudioHostTrackFreezeStatus } from "../audio-host"
-import { publishExternalProjectCommand } from "../app/audio-host-application-events"
+import { publishExternalProjectCommand } from "../app"
 import {
   trackFreezeContentRange,
   trackFreezeFingerprint,
@@ -168,6 +168,7 @@ export function registerFreezeHandlers(context: IpcHandlerContext): void {
         if (transportBefore.state !== "stopped") await transport.command({ type: "pause" })
         if (audioBefore.state === "running") await audioHost.stopAudioEngine()
         await audioHost.prepareOfflineBounce()
+        const offlineGraph = await audioHost.deployTrackFreezeSource(synced, renderGraph)
         await audioHost.startTrackFreeze(
           {
             operation_id: operationId,
@@ -177,7 +178,7 @@ export function registerFreezeHandlers(context: IpcHandlerContext): void {
             end_frame: syncedRange.endFrame,
             output_path: outputPath
           },
-          renderGraph
+          offlineGraph
         )
         let status: AudioHostTrackFreezeStatus
         do {

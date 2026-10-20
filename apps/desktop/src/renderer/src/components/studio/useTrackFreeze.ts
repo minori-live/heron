@@ -1,16 +1,15 @@
 import { computed, watch } from "vue"
 import { storeToRefs } from "pinia"
 import type { TrackFreezeMode } from "@heron/contracts"
-import { mutationMeta } from "../../rpc"
 import { useApplicationSettingsStore } from "../../stores/applicationSettings"
 import { useMixerStore } from "../../stores/mixer"
 import { useOperationStore } from "../../stores/operations"
-import { useProjectStore } from "../../stores/project"
+import { useTrackFreezeStore } from "../../stores/trackFreeze"
 
 /** Starts and clears track freezes. A second start waits until the shared operation finishes. */
 export function useTrackFreeze() {
   const mixerStore = useMixerStore()
-  const projectStore = useProjectStore()
+  const freezeStore = useTrackFreezeStore()
   const settingsStore = useApplicationSettingsStore()
   const operationStore = useOperationStore()
   const { operations } = storeToRefs(operationStore)
@@ -52,14 +51,9 @@ export function useTrackFreeze() {
       await unfreeze(trackId)
       return
     }
-    const target = projectStore.projectGraphRef
-    if (!target) return
-    const result = await window.heron.startTrackFreeze(
-      mutationMeta(target, "track-freeze", projectStore.projectRevision),
-      { trackId }
-    )
-    if (!result.ok || !result.value) return
-    jobs.set(result.value.operationId, trackId)
+    const started = await freezeStore.start(trackId)
+    if (!started) return
+    jobs.set(started.operationId, trackId)
   }
 
   function setMode(trackId: string, mode: TrackFreezeMode): Promise<boolean> {

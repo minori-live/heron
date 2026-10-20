@@ -1,3 +1,4 @@
+export type { AudioHostGraph } from "./wire"
 export * from "./audio-host-events"
 export * from "./audio-host-editor-windows"
 export * from "./audio-host-graph-transactions"
