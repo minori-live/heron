@@ -58,6 +58,7 @@ export class SnapshotPayloadCache {
         return
       case "create-track":
       case "update-track":
+      case "set-track-freeze":
       case "create-channel":
       case "update-channel":
       case "create-send":

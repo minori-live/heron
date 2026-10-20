@@ -13,6 +13,17 @@ export async function assertProjectCommandAllowed(
         throw new Error("Project end must be a positive safe-integer tick")
       }
       return
+    case "set-track-freeze": {
+      const rows = await tx
+        .select({ systemRole: mixerChannels.systemRole })
+        .from(tracks)
+        .innerJoin(mixerChannels, eq(mixerChannels.id, tracks.channelId))
+        .where(eq(tracks.id, command.trackId))
+        .limit(1)
+      if (!rows[0]) throw new Error(`Project track '${command.trackId}' was not found`)
+      if (rows[0].systemRole !== null) throw new Error("System tracks cannot be frozen")
+      return
+    }
     case "delete-track": {
       const rows = await tx
         .select({ systemRole: mixerChannels.systemRole })

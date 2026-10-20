@@ -92,6 +92,27 @@ describe("TrackQuickControls", () => {
     now.mockRestore()
   })
 
+  it("toggles freeze from the snowflake and shows a frozen press state", async () => {
+    const wrapper = mount(TrackQuickControls, {
+      props: { channel, freezeVisible: true, freezeState: "frozen" },
+      global: { plugins: [createPinia()] }
+    })
+
+    const freeze = wrapper.get('button[aria-label="Unfreeze Vocal"]')
+    expect(freeze.attributes("aria-pressed")).toBe("true")
+    await freeze.trigger("click")
+    expect(wrapper.emitted("toggleFreeze")).toEqual([[]])
+
+    await wrapper.setProps({ freezeState: "stale" })
+    expect(wrapper.get('button[aria-label="Refreeze Vocal"]').attributes("aria-pressed")).toBe(
+      "true"
+    )
+    await wrapper.setProps({ freezeState: "off" })
+    expect(wrapper.get('button[aria-label="Freeze Vocal"]').attributes("aria-pressed")).toBe(
+      "false"
+    )
+  })
+
   it("provides mixer actions, metered gain, and pan gestures", async () => {
     const wrapper = mount(TrackQuickControls, {
       props: {

@@ -33,7 +33,12 @@ export class AssetMaterializer {
     graph: ProjectGraphSnapshot,
     source: ProjectAssetReader = this.projects
   ): Promise<Map<string, string>> {
-    const ids = [...new Set(graph.audioClips.map((clip) => clip.assetId))]
+    const ids = [
+      ...new Set([
+        ...graph.audioClips.map((clip) => clip.assetId),
+        ...graph.tracks.flatMap((track) => (track.freeze ? [track.freeze.assetId] : []))
+      ])
+    ]
     return this.materializeIds(ids, source)
   }
 

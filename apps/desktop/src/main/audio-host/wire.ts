@@ -1,5 +1,6 @@
 export * from "./wire/audio"
 export * from "./wire/bounce"
+export * from "./wire/freeze"
 export * from "./wire/binary"
 export * from "./wire/graph"
 export * from "./wire/midi"

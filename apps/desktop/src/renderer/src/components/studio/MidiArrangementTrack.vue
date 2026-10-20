@@ -31,6 +31,7 @@ const props = withDefaults(
     recordingStartTick?: number
     recordingPositionTick?: number
     liveTake?: MidiRecordingPreviewTake | null
+    frozen?: boolean
   }>(),
   {
     playheadTick: 0,
@@ -155,6 +156,7 @@ function relayDragStart(clipId: string, offsetPixels: number): void {
       :playhead-tick="playheadTick"
       :snap="snap"
       :dragging="clip.id === draggingClipId"
+      :frozen="frozen"
       @remove="emit('remove', $event)"
       @select="relaySelect"
       @open="relayOpen"

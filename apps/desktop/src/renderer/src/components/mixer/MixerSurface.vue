@@ -10,7 +10,8 @@ import type {
   MixerParameterPreview,
   MixerRouteTarget,
   PluginDescriptor,
-  PluginRuntimeStatus
+  PluginRuntimeStatus,
+  TrackFreezeMode
 } from "@heron/contracts"
 import {
   MIXER_BUSES,
@@ -49,6 +50,7 @@ const props = withDefaults(
     lowLatencyTargetOutputChannelId?: string | null
     lowLatencyTargetDisabled?: boolean
     error?: string
+    freezeByChannel?: Readonly<Record<string, TrackFreezeMode>>
   }>(),
   {
     selectedChannelId: null,
@@ -64,7 +66,8 @@ const props = withDefaults(
     meterSource: undefined,
     displayOptions: undefined,
     lowLatencyTargetOutputChannelId: null,
-    error: ""
+    error: "",
+    freezeByChannel: () => ({})
   }
 )
 const emit = defineEmits<{
@@ -263,6 +266,7 @@ const sectionStyle = computed(() => ({
         :display-options="displayOptions"
         :low-latency-target="channel.id === lowLatencyTargetOutputChannelId"
         :low-latency-target-disabled="lowLatencyTargetDisabled"
+        :freeze-mode="freezeByChannel[channel.id] ?? null"
         @select="emit('select', $event)"
         @preview="emit('preview', $event)"
         @update-channel="

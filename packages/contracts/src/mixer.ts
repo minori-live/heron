@@ -82,14 +82,35 @@ export type MixerRouteTarget =
   | { kind: "bus"; bus: number; format?: MixerInputFormat }
   | { kind: "output"; channelId: string; format?: MixerInputFormat }
 
+/** Where a track freeze taps the signal. Pre-fader includes inserts; source-only does not. */
+export type TrackFreezeMode = "pre-fader" | "source-only"
+export type TrackFreezeStatus = "frozen" | "stale"
+
+/** Offline render that replaces live source playback until the track is unfrozen. */
+export interface TrackFreezeState {
+  mode: TrackFreezeMode
+  status: TrackFreezeStatus
+  assetId: string
+  fingerprint: string
+  startFrame: number
+  lengthFrames: number
+  latencySamples: number
+  tailFrames: number
+  sampleRate: number
+}
+
 export interface TrackState {
   id: string
   channelId: string
   sortOrder: number
   notes?: string
+  /** Selected freeze tap. Omitted means pre-fader. */
+  freezeMode?: TrackFreezeMode
+  /** Present while a freeze file should play back, including when that file is stale. */
+  freeze?: TrackFreezeState | null
 }
 
-export type TrackPatch = Partial<Pick<TrackState, "sortOrder" | "notes">>
+export type TrackPatch = Partial<Pick<TrackState, "sortOrder" | "notes" | "freezeMode">>
 
 export interface AudioClipState {
   id: string
@@ -259,6 +280,7 @@ export type ProjectCommand =
   | { type: "create-track"; track: TrackState; channel: MixerChannelState }
   | { type: "delete-track"; trackId: string }
   | { type: "update-track"; trackId: string; patch: TrackPatch }
+  | { type: "set-track-freeze"; trackId: string; freeze: TrackFreezeState | null }
   | { type: "create-channel"; channel: MixerChannelState }
   | { type: "delete-channel"; channelId: string }
   | { type: "update-channel"; channelId: string; patch: MixerChannelPatch }
@@ -301,6 +323,14 @@ export type ProjectCommand =
 export interface ProjectCommandResult {
   graph: ProjectGraphSnapshot
   inverse: ProjectCommand
+}
+
+export interface TrackFreezeRequest {
+  trackId: string
+}
+
+export interface TrackFreezeStartResult {
+  operationId: string
 }
 
 export type MixerParameterPreview =

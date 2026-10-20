@@ -71,6 +71,13 @@
       "when": 1791744293496,
       "tag": "0009_route_formats",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792496369607,
+      "tag": "0010_dusty_the_leader",
+      "breakpoints": true
     }
   ]
 }

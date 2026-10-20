@@ -6,7 +6,7 @@ use super::{
     ParameterGesture, PluginAudioMode, PluginAuxInputConfiguration, PluginEditorAction,
     PluginEditorAppearance, PluginEditorContext, PluginEditorPreference, PluginLocator,
     PluginStateEnvelope, PrepareGraphRequest, RecordingStartConfig,
-    RoundTripLatencyMeasurementRequest, RpcRequestMeta, TransportControl,
+    RoundTripLatencyMeasurementRequest, RpcRequestMeta, TrackFreezeRenderRequest, TransportControl,
 };
 
 #[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
@@ -149,6 +149,15 @@ pub enum ControlCommand {
         operation_id: String,
     },
     CancelBounceOutput {
+        operation_id: String,
+    },
+    StartTrackFreeze {
+        request: Box<TrackFreezeRenderRequest>,
+    },
+    TrackFreezeStatus {
+        operation_id: String,
+    },
+    CancelTrackFreeze {
         operation_id: String,
     },
     LoadPlugin {

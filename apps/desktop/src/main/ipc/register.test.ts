@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 const registrations = vi.hoisted(() => ({
   audio: vi.fn(),
   bounce: vi.fn(),
+  freeze: vi.fn(),
   diagnostic: vi.fn(),
   pluginAnalysisDispose: vi.fn(),
   pluginAnalysis: vi.fn(),
@@ -26,6 +27,7 @@ vi.mock("./live-document-coordinator", () => ({ LiveDocumentCoordinator: class {
 vi.mock("./live-performance-session", () => ({ LivePerformanceSession: class {} }))
 vi.mock("./audio-handlers", () => ({ registerAudioHandlers: registrations.audio }))
 vi.mock("./bounce-handlers", () => ({ registerBounceHandlers: registrations.bounce }))
+vi.mock("./freeze-handlers", () => ({ registerFreezeHandlers: registrations.freeze }))
 vi.mock("./diagnostic-handlers", () => ({ registerDiagnosticHandlers: registrations.diagnostic }))
 vi.mock("./plugin-analysis-handlers", () => ({
   registerPluginAnalysisHandlers: registrations.pluginAnalysis.mockImplementation(
@@ -72,6 +74,7 @@ describe("registerIpcHandlers", () => {
     for (const register of [
       registrations.audio,
       registrations.bounce,
+      registrations.freeze,
       registrations.diagnostic,
       registrations.pluginAnalysis,
       registrations.midi,

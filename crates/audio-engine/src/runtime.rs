@@ -214,6 +214,8 @@ mod resampling;
 mod resolve;
 #[path = "engine/spec.rs"]
 mod spec;
+#[path = "engine/track_freeze.rs"]
+mod track_freeze;
 #[path = "engine/transport_midi.rs"]
 mod transport_midi;
 
@@ -263,6 +265,9 @@ pub use spec::{
     ResolvedMixerClip, ResolvedMixerGraph, ResolvedMixerSend, ResolvedPluginAuxInputBus,
     ResolvedPluginInstance, RoundTripLatencyMeasurement, RoundTripLatencyMeasurementRequest,
     TransportSnapshot,
+};
+pub use track_freeze::{
+    TrackFreezeProgress, TrackFreezeRequest, TrackFreezeResult, render_track_freeze,
 };
 
 #[cfg(test)]

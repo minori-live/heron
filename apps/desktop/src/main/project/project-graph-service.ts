@@ -120,6 +120,10 @@ export class ProjectGraphService {
     return this.snapshotNow()
   }
 
+  compileTrackFreezeSource(graph: ProjectGraphSnapshot, trackId: string) {
+    return this.publisher.compileWithoutFreeze(graph, trackId)
+  }
+
   load(): Promise<ProjectGraphSnapshot> {
     return this.refreshFromDatabase(true)
   }

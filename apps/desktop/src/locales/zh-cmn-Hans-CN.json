@@ -292,6 +292,7 @@
     "finalizingRecording": "正在完成录音",
     "recoveringRecording": "正在恢复录音",
     "bouncingOutput": "正在导出输出",
+    "freezingTrack": "正在冻结 {name}",
     "tailTruncated": "尾音已在 30 秒后截断",
     "recordingDropoutsInput": "捕获期间丢弃了 {count} 个输入帧。",
     "recordingDropoutsCaptured": "丢弃了 {count} 个已捕获帧。",
@@ -1470,7 +1471,24 @@
       "armAria": "预备录音 {name}",
       "monitorAria": "监听 {name}",
       "inputMonitoring": "输入监听",
-      "inputMonitoringDisabled": "请先选择硬件或应用输入"
+      "inputMonitoringDisabled": "请先选择硬件或应用输入",
+      "freeze": "冻结",
+      "freezeAria": "冻结 {name}",
+      "unfreezeAria": "解冻 {name}",
+      "staleAria": "重新冻结 {name}",
+      "menuLabel": "{name} 轨道头",
+      "freezeMode": "冻结模式",
+      "preFader": "推子前",
+      "sourceOnly": "仅音源",
+      "showFreezeButton": "显示冻结按钮",
+      "modeLocked": "更改冻结模式前请先解冻轨道",
+      "emptyTrack": "冻结前请先添加片段",
+      "systemTrack": "系统轨道不能冻结"
+    },
+    "freeze": {
+      "lockedTitle": "{name} 已冻结",
+      "lockedDescription": "{name} 已冻结。要解冻后才能编辑片段或已烘焙的插件设置吗？",
+      "unfreeze": "解冻"
     },
     "trackInspector": {
       "ariaLabel": "所选轨道检查器",

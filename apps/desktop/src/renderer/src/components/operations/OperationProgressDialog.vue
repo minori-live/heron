@@ -84,6 +84,7 @@ const description = computed(() => `${props.operation.title} · ${detailLabel.va
       >
         {{ description }}
       </p>
+      <span v-if="progressLabel" class="operation-percent">{{ progressLabel }}</span>
       <UiButton
         v-if="operation.state === 'running' && operation.cancellable"
         size="sm"
@@ -124,5 +125,12 @@ const description = computed(() => `${props.operation.title} · ${detailLabel.va
 }
 .operation-description--warning {
   color: var(--ui-color-warning);
+}
+.operation-percent {
+  flex: none;
+  color: var(--ui-color-text);
+  font-size: var(--ui-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--ui-type-leading-tight);
 }
 </style>

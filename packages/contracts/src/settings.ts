@@ -68,6 +68,8 @@ export interface ApplicationSettings {
   meterReturnRate: MeterReturnRate
   midiCenterCStandard: MidiCenterCStandard
   softwareMonitoringEnabled: boolean
+  /** Undefined keeps the track-header freeze button visible. */
+  trackHeaderFreezeVisible?: boolean
   lowLatencyPluginBudgetMs?: number
   midiSync: MidiSyncPreferences
   midiControl: MidiControlPreferences
@@ -95,6 +97,7 @@ export type ApplicationSettingsPatch = Partial<
     | "meterPeakHold"
     | "meterReturnRate"
     | "midiCenterCStandard"
+    | "trackHeaderFreezeVisible"
     | "lowLatencyPluginBudgetMs"
     | "tutorials"
   >
