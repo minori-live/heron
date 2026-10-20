@@ -80,13 +80,14 @@ fn write_mxcsr(mxcsr: u32) {
 #[cfg(target_arch = "aarch64")]
 fn read_fpcr() -> u64 {
     let fpcr: u64;
-    // SAFETY: `mrs` reads this thread's FPCR into a register. It does not
-    // access memory or change floating-point state.
+    // SAFETY: `mrs` reads this thread's FPCR into a register. `nomem` is
+    // omitted so the compiler cannot move buffer loads or stores across the
+    // control-register access.
     unsafe {
         std::arch::asm!(
             "mrs {fpcr}, fpcr",
             fpcr = out(reg) fpcr,
-            options(nomem, nostack, preserves_flags)
+            options(nostack, preserves_flags)
         );
     }
     fpcr
@@ -95,12 +96,13 @@ fn read_fpcr() -> u64 {
 #[cfg(target_arch = "aarch64")]
 fn write_fpcr(fpcr: u64) {
     // SAFETY: `msr` writes this thread's FPCR. Callers pass either the value
-    // just read, or that value with the documented FZ bit set.
+    // just read, or that value with the documented FZ bit set. `nomem` is
+    // omitted so floating-point buffer traffic cannot move outside the guard.
     unsafe {
         std::arch::asm!(
             "msr fpcr, {fpcr}",
             fpcr = in(reg) fpcr,
-            options(nomem, nostack, preserves_flags)
+            options(nostack, preserves_flags)
         );
     }
 }
