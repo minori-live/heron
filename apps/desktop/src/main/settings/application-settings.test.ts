@@ -235,6 +235,22 @@ describe("ApplicationSettingsStore", () => {
     ).rejects.toThrow("Worker threads")
   })
 
+  it("persists whether the track header shows the freeze button", async () => {
+    const userData = await mkdtemp(join(tmpdir(), "heron-freeze-settings-"))
+    await writeFile(
+      join(userData, "settings.json"),
+      JSON.stringify({ trackHeaderFreezeVisible: false }),
+      "utf8"
+    )
+    const store = new ApplicationSettingsStore(userData)
+    expect((await store.get()).trackHeaderFreezeVisible).toBe(false)
+    await store.update({ trackHeaderFreezeVisible: true })
+    expect((await new ApplicationSettingsStore(userData).get()).trackHeaderFreezeVisible).toBe(true)
+    await expect(store.update({ trackHeaderFreezeVisible: "no" as never })).rejects.toThrow(
+      "trackHeaderFreezeVisible must be a boolean"
+    )
+  })
+
   it("defaults legacy files to disabled and persists software monitoring through its named path", async () => {
     const userData = await mkdtemp(join(tmpdir(), "heron-monitoring-settings-"))
     await writeFile(

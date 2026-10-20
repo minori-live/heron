@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest"
-import type { ProjectGraphSnapshot, TrackFreezeState } from "@heron/contracts"
+import type {
+  MidiClipState,
+  ProjectCommand,
+  ProjectGraphSnapshot,
+  TrackFreezeState
+} from "@heron/contracts"
 import { applyToGraph, inverseFor } from "./graph"
-import { TrackFrozenError } from "./validation-error"
+import { ProjectValidationError, TrackFrozenError } from "./validation-error"
 import {
   trackFreezeContentRange,
   trackFreezeEditBlock,
   trackFreezeFingerprint,
   trackFreezeLatencyDrift,
+  trackFreezeMode,
   trackFreezePlayback
 } from "./track-freeze"
 
@@ -277,5 +283,196 @@ describe("track freeze", () => {
     const source = graph()
     source.audioClips = source.audioClips.filter((clip) => clip.trackId !== "track-audio")
     expect(trackFreezeContentRange(source, "track-audio")).toBeNull()
+  })
+
+  it("rejects an invalid freeze and blocks every baked edit", () => {
+    const source = graph()
+    source.tracks.push({ id: "track-midi", channelId: "midi", sortOrder: 2 })
+    source.channels.push(channel("midi", "instrument", "Keys"))
+    source.audioClips.push(clip("clip-b", "asset-b", "track-audio", 0, 40))
+    const midiClip: MidiClipState = {
+      id: "midi-1",
+      sourceId: "source",
+      trackId: "track-midi",
+      name: "Keys",
+      startTick: 0,
+      lengthTicks: 960,
+      sourceOffsetTicks: 0,
+      sourceLengthTicks: 960,
+      notes: [
+        {
+          id: "note",
+          startTick: 0,
+          durationTicks: 120,
+          channel: 1,
+          key: 60,
+          velocity: 100,
+          releaseVelocity: 0
+        }
+      ],
+      events: [
+        {
+          id: "event",
+          tick: 10,
+          channel: 1,
+          kind: "control-change",
+          data: new Uint8Array([1, 2])
+        }
+      ]
+    }
+    source.midiClips = [midiClip]
+    source.plugins.push({
+      ...source.plugins[0]!,
+      id: "keys",
+      channelId: "midi",
+      role: "instrument",
+      slotOrder: 1
+    })
+    source.tracks[2]!.freezeMode = "source-only"
+    expect(trackFreezeMode({})).toBe("pre-fader")
+    expect(trackFreezeContentRange(source, "track-midi")?.endFrame).toBeGreaterThan(0)
+    expect(trackFreezeFingerprint(source, "track-midi")).toContain("keys")
+    expect(trackFreezePlayback(source, source.tracks[0]!)).toBeNull()
+
+    const fingerprint = trackFreezeFingerprint(source, "track-audio")
+    const frozen = applyToGraph(source, {
+      type: "set-track-freeze",
+      trackId: "track-audio",
+      freeze: freeze(fingerprint)
+    })
+    const midiFrozen = applyToGraph(frozen, {
+      type: "set-track-freeze",
+      trackId: "track-midi",
+      freeze: {
+        ...freeze(trackFreezeFingerprint(frozen, "track-midi", "source-only")),
+        mode: "source-only"
+      }
+    })
+
+    const blocked: ProjectCommand[] = [
+      { type: "create-audio-clip", clip: clip("new", "asset", "track-audio", 0, 1) },
+      { type: "move-audio-clip", clipId: "clip-a", trackId: "track-side", startFrame: 0 },
+      { type: "create-midi-clip", clip: { ...midiClip, id: "midi-2" } },
+      { type: "delete-midi-clip", clipId: "midi-1" },
+      { type: "move-midi-clip", clipId: "midi-1", trackId: "track-audio", startTick: 0 },
+      { type: "update-midi-clip-range", clipId: "midi-1", patch: { startTick: 10 } },
+      { type: "create-midi-notes", clipId: "midi-1", notes: midiClip.notes },
+      { type: "delete-midi-notes", clipId: "midi-1", noteIds: ["note"] },
+      { type: "update-midi-notes", clipId: "midi-1", updates: [] },
+      { type: "rebase-midi-clip-content", clipId: "midi-1", deltaTicks: 1 },
+      { type: "create-plugin", plugin: source.plugins[0]! },
+      { type: "delete-plugin", pluginId: "insert" },
+      { type: "replace-plugin", pluginId: "insert", plugin: source.plugins[0]! },
+      {
+        type: "move-plugin",
+        pluginId: "insert",
+        channelId: "audio",
+        role: "insert",
+        slotOrder: 1
+      },
+      { type: "create-plugin", plugin: { ...source.plugins[1]!, id: "extra" } }
+    ]
+    for (const command of blocked) {
+      expect(trackFreezeEditBlock(midiFrozen, command)?.trackId).toBeTruthy()
+      expect(() => applyToGraph(midiFrozen, command)).toThrow(TrackFrozenError)
+    }
+    expect(
+      trackFreezeEditBlock(midiFrozen, {
+        type: "update-plugin",
+        pluginId: "keys",
+        patch: { enabled: false }
+      })
+    ).toEqual({ trackId: "track-midi" })
+    expect(
+      trackFreezeEditBlock(midiFrozen, {
+        type: "update-track",
+        trackId: "track-audio",
+        patch: { notes: "live" }
+      })
+    ).toBeNull()
+    expect(
+      trackFreezeEditBlock(midiFrozen, {
+        type: "delete-audio-clip",
+        clipId: "missing"
+      })
+    ).toBeNull()
+    expect(
+      trackFreezeEditBlock(midiFrozen, { type: "delete-plugin", pluginId: "missing" })
+    ).toBeNull()
+    expect(
+      trackFreezeEditBlock(midiFrozen, {
+        type: "move-midi-clip",
+        clipId: "missing",
+        trackId: "track-side",
+        startTick: 0
+      })
+    ).toBeNull()
+    expect(
+      trackFreezeEditBlock(midiFrozen, {
+        type: "update-plugin",
+        pluginId: "insert",
+        patch: {}
+      })
+    ).toBeNull()
+    expect(trackFreezeLatencyDrift(midiFrozen, "missing", new Map())).toBe(false)
+    expect(trackFreezeLatencyDrift(midiFrozen, "track-audio", new Map([["insert", -1]]))).toBe(
+      false
+    )
+    midiFrozen.tracks[0]!.freeze!.status = "stale"
+    expect(trackFreezeLatencyDrift(midiFrozen, "track-audio", new Map([["insert", 64]]))).toBe(
+      false
+    )
+
+    const invalid = freeze(fingerprint)
+    const rejects = [
+      { ...invalid, mode: "wet" },
+      { ...invalid, status: "cold" },
+      { ...invalid, assetId: "" },
+      { ...invalid, fingerprint: "" },
+      { ...invalid, startFrame: -1 },
+      { ...invalid, lengthFrames: 0 },
+      { ...invalid, latencySamples: -1 },
+      { ...invalid, tailFrames: -1 },
+      { ...invalid, sampleRate: 44_100 },
+      { ...invalid, mode: "source-only" }
+    ]
+    for (const value of rejects) {
+      expect(() =>
+        applyToGraph(source, {
+          type: "set-track-freeze",
+          trackId: "track-audio",
+          freeze: value as TrackFreezeState
+        })
+      ).toThrow(ProjectValidationError)
+    }
+    expect(() =>
+      applyToGraph(source, { type: "set-track-freeze", trackId: "missing", freeze: null })
+    ).toThrow(ProjectValidationError)
+    source.tracks[0]!.channelId = "missing"
+    expect(() =>
+      applyToGraph(source, {
+        type: "set-track-freeze",
+        trackId: "track-audio",
+        freeze: invalid
+      })
+    ).toThrow(ProjectValidationError)
+    source.tracks[0]!.channelId = "audio"
+    source.channels[0]!.systemRole = "metronome"
+    expect(() =>
+      applyToGraph(source, {
+        type: "set-track-freeze",
+        trackId: "track-audio",
+        freeze: invalid
+      })
+    ).toThrow("System tracks cannot be frozen")
+    const unmarked = graph()
+    unmarked.tracks[0]!.freezeMode = "wet" as never
+    expect(() =>
+      applyToGraph(unmarked, {
+        type: "set-track-freeze",
+        trackId: "track-audio",
+        freeze: { ...invalid, mode: "wet" as never }
+      })
+    ).toThrow(ProjectValidationError)
   })
 })
