@@ -834,3 +834,219 @@ fn clearing_delays_leaves_the_graph_renderable() {
     let output = runtime.render_frame(&[]);
     assert!((output[0] - 0.25).abs() < 1.0e-6);
 }
+
+#[derive(Clone)]
+struct OnePole {
+    coefficient: f32,
+    state: [f32; 2],
+}
+
+impl AudioPluginProcessor for OnePole {
+    fn clone_box(&self) -> Box<dyn AudioPluginProcessor> {
+        Box::new(self.clone())
+    }
+
+    fn process_block(
+        &mut self,
+        frames: &mut [[f32; 2]],
+        _sidechains: &dyn SidechainSource,
+        _context: &ProcessContext,
+    ) -> ProcessOutcome {
+        for frame in frames {
+            for (state, sample) in self.state.iter_mut().zip(frame.iter_mut()) {
+                *state += self.coefficient * (*sample - *state);
+                *sample = *state;
+            }
+        }
+        ProcessOutcome::Processed
+    }
+}
+
+fn assert_block_matches_frames(
+    spec: &RenderGraphSpec,
+    resources: impl Fn() -> RenderResources,
+    transport: RenderTransport,
+    frames: usize,
+    hardware: &[f32],
+) {
+    let mut block_runtime =
+        RenderRuntime::build(spec.clone(), resources()).expect("block graph should build");
+    let mut frame_runtime =
+        RenderRuntime::build(spec.clone(), resources()).expect("frame graph should build");
+    block_runtime.set_transport(transport);
+    frame_runtime.set_transport(transport);
+    let mut block_output = vec![[0.0f32; 32]; frames];
+    block_runtime.render_block(hardware, &mut block_output);
+    for (index, frame) in block_output.iter().enumerate() {
+        let rendered = frame_runtime.render_frame(hardware);
+        for channel in 0..2 {
+            assert!(
+                (frame[channel] - rendered[channel]).abs() < 1.0e-5,
+                "frame {index} channel {channel}: block {} != frame {}",
+                frame[channel],
+                rendered[channel]
+            );
+        }
+    }
+    assert_eq!(
+        block_runtime.diagnostic_snapshot().sample_position,
+        frame_runtime.diagnostic_snapshot().sample_position
+    );
+}
+
+#[test]
+fn render_block_matches_render_frame_for_a_gain_insert() {
+    let graph = spec();
+    assert_block_matches_frames(&graph, resources, RenderTransport::Playing, 16, &[]);
+}
+
+#[test]
+fn render_block_matches_render_frame_for_a_stateful_insert_across_a_clip_edge() {
+    let mut graph = spec();
+    graph.clips[0].start_frame = 3;
+    graph.clips[0].length_frames = 5;
+    graph.plugins[0].processor_id = "pole".into();
+    let resources = || {
+        let mut resources = RenderResources::new();
+        resources.insert_clip("clip-source", Box::new(ConstantClip));
+        resources.insert_plugin(
+            "pole",
+            AudioPluginProcessorHandle::new(OnePole {
+                coefficient: 0.2,
+                state: [0.0; 2],
+            }),
+        );
+        resources
+    };
+    assert_block_matches_frames(&graph, resources, RenderTransport::Playing, 16, &[]);
+}
+
+#[test]
+fn render_block_matches_render_frame_while_stopped_and_for_hardware_input() {
+    let mut graph = spec();
+    graph.clips.clear();
+    graph.channels[0].hardware_input = Some([0, 1]);
+    graph.plugins.push(RenderPluginSpec {
+        id: "second".into(),
+        processor_id: "gain".into(),
+        channel_id: "audio".into(),
+        slot_order: 1,
+        enabled: true,
+    });
+    assert_block_matches_frames(
+        &graph,
+        resources,
+        RenderTransport::Stopped,
+        8,
+        &[0.4, -0.2, 9.0],
+    );
+    assert_eq!(
+        RenderRuntime::build(graph, resources())
+            .expect("graph should build")
+            .diagnostic_snapshot()
+            .sample_position,
+        0
+    );
+}
+
+#[test]
+fn render_block_dispatches_the_same_midi_edges_as_render_frame() {
+    let plugin = RecordingPlugin::default();
+    let resources = || {
+        let mut resources = RenderResources::new();
+        resources.insert_clip("clip-source", Box::new(ConstantClip));
+        resources.insert_plugin("gain", AudioPluginProcessorHandle::new(plugin.clone()));
+        resources
+    };
+    let mut graph = spec();
+    graph.midi = vec![RenderMidiSpec {
+        plugin_id: "plugin".into(),
+        notes: vec![RenderMidiNote {
+            start_tick: 0,
+            duration_ticks: 1,
+            channel: 1,
+            key: 60,
+            velocity: 100,
+            release_velocity: 40,
+        }],
+    }];
+    let mut block_runtime =
+        RenderRuntime::build(graph.clone(), resources()).expect("block graph should build");
+    let mut frame_runtime =
+        RenderRuntime::build(graph, resources()).expect("frame graph should build");
+    block_runtime.set_transport(RenderTransport::Playing);
+    frame_runtime.set_transport(RenderTransport::Playing);
+    plugin.take_notes();
+    let mut output = [[0.0f32; 32]; 16];
+    block_runtime.render_block(&[], &mut output);
+    let block_notes = plugin.take_notes();
+    for _ in 0..16 {
+        let _ = frame_runtime.render_frame(&[]);
+    }
+    assert_eq!(block_notes, plugin.take_notes());
+    assert_eq!(block_runtime.diagnostic_snapshot().sample_position, 16);
+}
+
+#[test]
+fn render_block_calls_each_insert_once_with_the_starting_context() {
+    let probe = ContextProbe::default();
+    let mut resources = RenderResources::new();
+    resources.insert_clip("clip-source", Box::new(ConstantClip));
+    resources.insert_plugin("gain", AudioPluginProcessorHandle::new(probe.clone()));
+    let mut runtime = RenderRuntime::build(spec(), resources).expect("graph should build");
+    runtime.set_transport(RenderTransport::Playing);
+    runtime.seek(24_000);
+    probe
+        .0
+        .lock()
+        .expect("context log should not be poisoned")
+        .clear();
+    let mut output = [[0.0f32; 32]; 8];
+
+    runtime.render_block(&[], &mut output);
+
+    let contexts = probe.0.lock().expect("context log should not be poisoned");
+    assert_eq!(contexts.len(), 1);
+    assert_eq!(contexts[0].project_time_samples, 24_000);
+    assert_eq!(runtime.diagnostic_snapshot().sample_position, 24_008);
+}
+
+struct SubnormalClip;
+
+impl AudioClipSource for SubnormalClip {
+    fn channels(&self) -> u32 {
+        2
+    }
+
+    fn frame_count(&self) -> u64 {
+        64
+    }
+
+    fn sample(&self, _frame: u64, channel: u32) -> f32 {
+        if channel == 0 { 1.0e-40 } else { -1.0e-40 }
+    }
+}
+
+#[test]
+fn render_block_flushes_subnormal_clip_samples_to_zero() {
+    let sample = 1.0e-40_f32;
+    assert!(sample.is_subnormal());
+    let mut graph = spec();
+    graph.plugins.clear();
+    graph.clips[0].length_frames = 64;
+    let mut resources = RenderResources::new();
+    resources.insert_clip("clip-source", Box::new(SubnormalClip));
+    let mut runtime = RenderRuntime::build(graph, resources).expect("subnormal graph should build");
+    runtime.set_transport(RenderTransport::Playing);
+    let mut output = [[0.0f32; 32]; 64];
+
+    runtime.render_block(&[], &mut output);
+
+    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    assert!(
+        output
+            .iter()
+            .all(|frame| frame[0] == 0.0 && frame[1] == 0.0),
+        "subnormal clip samples must flush to zero on block render"
+    );
+}

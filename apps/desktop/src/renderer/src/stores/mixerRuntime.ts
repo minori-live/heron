@@ -3,6 +3,7 @@ import { acceptHMRUpdate, defineStore } from "pinia"
 import { computed, shallowRef } from "vue"
 import type { MixerChannelMeter, MixerRuntimeSnapshot } from "@heron/contracts"
 import { useMixerMeterPolling } from "./mixer-meter-polling"
+import { mixerSnapshotBytes, recordIpcTraffic } from "../ipc-traffic"
 import { mutationMeta, readMeta, rpcErrorMessage } from "../rpc"
 import { useAudioRuntimeStore } from "./audioRuntime"
 
@@ -39,8 +40,10 @@ export const useMixerRuntimeStore = defineStore("mixer-runtime", () => {
       const target = audioRuntime.audioEngineRef
       if (!target) return
       const result = await window.heron.mixerSnapshot(readMeta(target))
-      if (result.ok) runtime.value = result.value
-      else error.value = rpcErrorMessage(result.error)
+      if (result.ok) {
+        recordIpcTraffic("mixer-snapshot", mixerSnapshotBytes(result.value.meters))
+        runtime.value = result.value
+      } else error.value = rpcErrorMessage(result.error)
     } catch {
       // Device-level errors remain owned by the audio runtime store.
     }

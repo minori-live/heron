@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { resetSnapshotPollForTests } from "./snapshot-poll"
 import { useMixerMeterPolling } from "./mixer-meter-polling"
 
 describe("useMixerMeterPolling", () => {
@@ -7,6 +8,7 @@ describe("useMixerMeterPolling", () => {
   })
 
   afterEach(() => {
+    resetSnapshotPollForTests()
     vi.useRealTimers()
   })
 

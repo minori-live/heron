@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef, watch } from "vue"
+import { computed, provide, shallowRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { storeToRefs } from "pinia"
 import { UiArrangementViewport, UiNumberInput, UiSelect, type UiDropIntent } from "@heron/ui"
@@ -36,6 +36,7 @@ import { useGlobalLaneSelection } from "./useGlobalLaneSelection"
 import { useMidiClipDrag } from "./useMidiClipDrag"
 import { useArrangementRecordingProjection } from "./useArrangementRecordingProjection"
 import { useArrangementTrackProjection } from "./useArrangementTrackProjection"
+import { arrangementPlayheadKey } from "./arrangement-playhead"
 import { useArrangementEditingCommands } from "./useArrangementEditingCommands"
 import { useTrackFreeze } from "./useTrackFreeze"
 
@@ -131,6 +132,32 @@ const playheadTick = computed(() => secondsToTick(mixerStore.graph.tempoMap, pla
 const playheadFrame = computed(() =>
   Math.round(playheadSeconds.value * mixerStore.graph.sampleRate)
 )
+const audioPlayheadMembership = computed(() => {
+  const frame = playheadFrame.value
+  let membership = ""
+  for (const clip of clips.value) {
+    if (frame > clip.startFrame && frame < clip.startFrame + clip.lengthFrames) {
+      membership = membership.length === 0 ? clip.id : `${membership}\0${clip.id}`
+    }
+  }
+  return membership
+})
+const midiPlayheadMembership = computed(() => {
+  const tick = playheadTick.value
+  let membership = ""
+  for (const clip of mixerStore.graph.midiClips) {
+    if (tick > clip.startTick && tick < clip.startTick + clip.lengthTicks) {
+      membership = membership.length === 0 ? clip.id : `${membership}\0${clip.id}`
+    }
+  }
+  return membership
+})
+provide(arrangementPlayheadKey, {
+  frame: () => playheadFrame.value,
+  tick: () => playheadTick.value,
+  audioMembership: audioPlayheadMembership,
+  midiMembership: midiPlayheadMembership
+})
 const { rows: trackRows } = useArrangementTrackProjection({
   tracks: () => mixerStore.timelineTracks,
   audioClips: () => clips.value,
@@ -643,9 +670,6 @@ function resolveDroppedFiles(files: readonly unknown[]): string[] {
               :viewport-end-seconds="viewportEndSeconds"
               :selected-audio-clip-id="selectedClipId"
               :selected-midi-clip-ids="pianoRollStore.arrangementClipIds"
-              :keyboard-insertion-tick="playheadTick"
-              :playhead-tick="playheadTick"
-              :playhead-frame="playheadFrame"
               :snap="pianoRollSnap"
               :audio-drag-preview="dragPreview?.trackId === row.track.trackId ? dragPreview : null"
               :dragging-audio-clip-id="clipDrag?.clipId ?? null"

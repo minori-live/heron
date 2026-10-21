@@ -9,7 +9,7 @@ const props = withDefaults(
     trackKind?: string
     selected?: boolean
     focusable?: boolean
-    keyboardPosition?: number
+    keyboardPosition?: number | (() => number)
   }>(),
   {
     trackId: undefined,
@@ -30,6 +30,11 @@ function gesture(intent: UiGestureIntent): void {
   if (intent.phase === "start") emit("select")
   emit("gesture", intent)
 }
+
+function keyboardCreatePosition(): number {
+  const position = props.keyboardPosition
+  return typeof position === "function" ? position() : position
+}
 </script>
 
 <template>
@@ -42,7 +47,7 @@ function gesture(intent: UiGestureIntent): void {
     :data-track-kind="props.trackKind"
     @gesture="gesture"
     @double-activate="emit('create', $event.x)"
-    @activate="emit('create', props.keyboardPosition)"
+    @activate="emit('create', keyboardCreatePosition())"
     @reorder="emit('reorder', $event)"
   >
     <slot />

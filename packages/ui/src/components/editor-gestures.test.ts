@@ -62,6 +62,22 @@ describe("editor gesture contracts", () => {
     expect(track.emitted("reorder")).toEqual([[-1], [1]])
   })
 
+  it("reads a keyboard create position when the track supplies it as a function", async () => {
+    const track = mount(UiArrangementTrackSurface, {
+      props: {
+        label: "Audio track",
+        trackId: "track-1",
+        selected: true,
+        focusable: true,
+        keyboardPosition: () => 128
+      }
+    })
+
+    await track.trigger("keydown", { key: "Enter" })
+
+    expect(track.emitted("create")).toEqual([[128]])
+  })
+
   it("cancels on Escape and lost capture, ignores unrelated pointers, and respects disabled descendants", async () => {
     const surface = mount(UiGestureSurface, {
       props: { label: "Gesture", as: "button" },

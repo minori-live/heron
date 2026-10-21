@@ -123,6 +123,28 @@ describe("usePeakMeterDisplay", () => {
     scope.stop()
   })
 
+  it("keeps the painted meter steady when a poll stays inside the same percent", async () => {
+    let timestamp = 0
+    const meterSample = shallowRef(meter(1))
+    const scope = effectScope()
+    const display = scope.run(() =>
+      usePeakMeterDisplay({
+        meter: meterSample,
+        peakHold: shallowRef<MeterPeakHold>("800ms"),
+        returnRate: shallowRef<MeterReturnRate>("iec-type-i"),
+        now: () => timestamp
+      })
+    )!
+    const painted = display.displayedPeakDbByChannel.value
+
+    timestamp = 16
+    meterSample.value = meter(1)
+    await nextTick()
+
+    expect(display.displayedPeakDbByChannel.value).toBe(painted)
+    scope.stop()
+  })
+
   it("clears a latched clip until the native meter reports its cleared state", async () => {
     const meterSample = shallowRef(meter(1, true))
     const scope = effectScope()
