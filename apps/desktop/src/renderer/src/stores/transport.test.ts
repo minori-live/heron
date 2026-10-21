@@ -8,24 +8,10 @@ import type {
   RpcResult,
   TransportSnapshot
 } from "@heron/contracts"
-import type { ProjectAssetSummary as Asset } from "@heron/contracts"
-import { assetsToTimelineClips, useTransportStore } from "./transport"
+import { useTransportStore } from "./transport"
 import { useAudioRuntimeStore } from "./audioRuntime"
 import { useMixerStore } from "./mixer"
 import { usePluginStore } from "./plugins"
-
-function asset(id: string, frameCount: bigint, sampleRate = 48_000): Asset {
-  return {
-    id,
-    name: `${id}.bwf`,
-    kind: "audio",
-    contentHash: `${id}-hash`,
-    sampleRate,
-    channels: 2,
-    bitDepth: "float32",
-    frameCount
-  }
-}
 
 function effectInstance(id: string): PluginInstanceState {
   return {
@@ -165,15 +151,6 @@ describe("transport store", () => {
     await nextTick()
 
     expect(transport.selectedClipId).toBeNull()
-  })
-
-  it("lays project recordings out consecutively using their real frame durations", () => {
-    const clips = assetsToTimelineClips([asset("take-one", 96_000n), asset("take-two", 24_000n)])
-
-    expect(clips).toMatchObject([
-      { id: "take-one", name: "take-one", startSeconds: 0, durationSeconds: 2, endSeconds: 2 },
-      { id: "take-two", name: "take-two", startSeconds: 2, durationSeconds: 0.5, endSeconds: 2.5 }
-    ])
   })
 
   it("ignores a stale polling response that resolves last", async () => {

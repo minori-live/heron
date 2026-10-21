@@ -1,5 +1,4 @@
 import type { AudioResourceSnapshot, DesktopLifecycleSnapshot } from "./audio.ts"
-import type { OfflineToolsResourceSnapshot } from "./application.ts"
 import type { ProjectWorkspaceSnapshot } from "./project.ts"
 import type { LiveWorkspaceSnapshot } from "./live.ts"
 import type { RecordingResourceSnapshot } from "./recording.ts"
@@ -13,7 +12,6 @@ export interface ApplicationBootstrapSnapshot {
   desktopSession: DesktopSessionRef
   applicationSettings: ApplicationSettingsRef
   revision: number
-  offlineTools: OfflineToolsResourceSnapshot
   lifecycle: DesktopLifecycleSnapshot
   audioResources: AudioResourceSnapshot
   recordingResource: RecordingResourceSnapshot | null

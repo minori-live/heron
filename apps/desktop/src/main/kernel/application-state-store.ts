@@ -22,8 +22,6 @@ import type {
   MidiInputSnapshot,
   MidiRuntimeResourceSnapshot,
   PluginInstanceRef,
-  OfflineToolsResourceSnapshot,
-  OfflineWorkerRef,
   PluginInstanceResourceSnapshot,
   ProjectAssetSummary,
   ProjectGraphSnapshot,
@@ -52,7 +50,6 @@ export interface ApplicationStateSnapshot {
   revision: number
   lifecycle: DesktopLifecycleSnapshot
   resources: ResourceRecord[]
-  offlineWorker: OfflineWorkerRef
   operations: {
     active: number
     retainedTerminal: number
@@ -111,7 +108,6 @@ export class ApplicationStateStore {
     audioHost: AudioHostRef,
     midiRuntime: MidiRuntimeRef,
     project: ProjectSession | null,
-    readonly offlineWorker: OfflineWorkerRef,
     runtime?: AudioRuntimeSnapshot
   ) {
     this.project = project
@@ -140,15 +136,6 @@ export class ApplicationStateStore {
     })
     if (!settingsCandidate.ok) return settingsCandidate
     const settings = resources.commit(settingsCandidate.value.ref, { loaded: true })
-    const offlineCandidate = resources.create({
-      kind: "offline-worker",
-      id: "offline-tools",
-      epoch: generateEpoch(),
-      parent: desktop.value.ref
-    })
-    if (!offlineCandidate.ok) return offlineCandidate
-    const offline = resources.commit(offlineCandidate.value.ref, { status: "ready" })
-    if (!offline.ok) return offline
     if (!settings.ok) return settings
     const audioHostCandidate = resources.create({
       kind: "audio-host",
@@ -177,7 +164,6 @@ export class ApplicationStateStore {
         audioHost.value.ref as AudioHostRef,
         midiRuntime.value.ref as MidiRuntimeRef,
         options.project,
-        offline.value.ref as OfflineWorkerRef,
         options.runtime
       )
     )
@@ -214,24 +200,6 @@ export class ApplicationStateStore {
       revision: updated.value.revision,
       value: structuredClone(value)
     }
-  }
-
-  applicationSettingsSnapshot(): ApplicationSettingsResourceSnapshot | null {
-    const resolved = this.resources.resolve<ApplicationSettings>(this.applicationSettings)
-    if (!resolved.ok || !resolved.value.committedSnapshot) return null
-    const value = resolved.value.committedSnapshot
-    if (typeof value.swapDirectory !== "string") return null
-    return {
-      settings: structuredClone(this.applicationSettings),
-      revision: resolved.value.revision,
-      value: structuredClone(value)
-    }
-  }
-
-  offlineToolsSnapshot(): OfflineToolsResourceSnapshot {
-    const resolved = this.resources.resolve(this.offlineWorker)
-    if (!resolved.ok) throw new Error(resolved.error.code)
-    return { worker: structuredClone(this.offlineWorker), revision: resolved.value.revision }
   }
 
   recordingResourceSnapshot(): RecordingResourceSnapshot | null {
@@ -552,7 +520,6 @@ export class ApplicationStateStore {
       revision: this.revision,
       lifecycle: this.lifecycleSnapshot(),
       resources: this.resources.snapshot(),
-      offlineWorker: structuredClone(this.offlineWorker),
       operations: {
         active: operations.activeCount,
         retainedTerminal: operations.retainedTerminalCount

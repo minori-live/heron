@@ -135,7 +135,7 @@ reporting.initialize({ isPackaged: true, getPath: name => app.getPath(name),
   setPath: (name, value) => app.setPath(name, value), getVersion: () => app.getVersion(),
   whenReady: () => app.whenReady() }, {});
 const native = createRequire(import.meta.url)(${JSON.stringify(require.resolve("@heron/dsp-node"))});
-if (!native.engineInfo().version) throw new Error("native addon unavailable");
+if (typeof native.AudioHostRuntime !== "function") throw new Error("native addon unavailable");
 console.log("HERON_NATIVE_LOADED");
 const mode = process.argv.at(-1);
 app.whenReady().then(async () => {

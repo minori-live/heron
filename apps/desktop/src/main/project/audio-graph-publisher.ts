@@ -161,13 +161,8 @@ export class AudioGraphPublisher {
 
   async publish(
     source: ProjectGraphSnapshot,
-    input: GraphPublicationOptions | boolean = {},
-    legacyAwaitPublication = false
+    options: GraphPublicationOptions = {}
   ): Promise<ProjectGraphSnapshot> {
-    const options: GraphPublicationOptions =
-      typeof input === "boolean"
-        ? { softwareMonitoringOverride: input, awaitPublication: legacyAwaitPublication }
-        : input
     const graph = await this.resolveForRuntime(source)
     validateGraph(graph)
     const softwareMonitoringEnabled =

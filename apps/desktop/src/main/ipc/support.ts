@@ -12,7 +12,6 @@ import type {
   AudioPreferences,
   AudioRuntimeSnapshot,
   CreateProjectRequest,
-  ProcessGainRequest,
   ProjectConfiguration,
   RoundTripLatencyMeasurementRequest,
   StorageSpaceSnapshot,
@@ -243,26 +242,6 @@ export function assertTrustedSender(event: IpcMainInvokeEvent): void {
   }
 
   throw new Error("Rejected IPC call from an untrusted renderer")
-}
-
-export function validateGainRequest(value: unknown): ProcessGainRequest {
-  if (typeof value !== "object" || value === null) {
-    throw new TypeError("Gain request must be an object")
-  }
-
-  const { samples, gain } = value as Partial<ProcessGainRequest>
-  if (
-    !Array.isArray(samples) ||
-    samples.length > 1_000_000 ||
-    samples.some((sample) => typeof sample !== "number" || !Number.isFinite(sample))
-  ) {
-    throw new TypeError("Samples must be a finite numeric array of at most 1,000,000 items")
-  }
-  if (typeof gain !== "number" || !Number.isFinite(gain) || Math.abs(gain) > 16) {
-    throw new TypeError("Gain must be a finite number between -16 and 16")
-  }
-
-  return { samples, gain }
 }
 
 export function validateAudioBackend(value: unknown): AudioBackend {

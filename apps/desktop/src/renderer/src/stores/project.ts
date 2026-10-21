@@ -5,7 +5,6 @@ import type {
   CreateProjectRequest,
   DocumentOpenPreparation,
   DesktopSessionRef,
-  OfflineWorkerRef,
   ProjectAssetSummary,
   ProjectConfiguration,
   ProjectGraphRef,
@@ -27,7 +26,6 @@ export const useProjectStore = defineStore("project", () => {
   const lifecycle = shallowRef<ProjectLifecycleState>({ status: "closed", error: null })
   const projectAssets = ref<ProjectAssetSummary[]>([])
   const desktopSession = shallowRef<DesktopSessionRef | null>(null)
-  const offlineWorkerRef = shallowRef<OfflineWorkerRef | null>(null)
   const projectRef = shallowRef<ProjectSessionRef | null>(null)
   const projectGraphRef = shallowRef<ProjectGraphRef | null>(null)
   const projectRevision = shallowRef(0)
@@ -77,7 +75,6 @@ export const useProjectStore = defineStore("project", () => {
   }
 
   function applyBootstrap(snapshot: ApplicationBootstrapSnapshot): void {
-    offlineWorkerRef.value = structuredClone(snapshot.offlineTools.worker)
     applyDesktopSession(snapshot.desktopSession)
     applyLifecycleState(snapshot.lifecycle.project)
     if (snapshot.workspace) applyWorkspace(snapshot.workspace)
@@ -373,7 +370,6 @@ export const useProjectStore = defineStore("project", () => {
     lifecycle,
     session,
     desktopSession,
-    offlineWorkerRef,
     projectRef,
     projectGraphRef,
     projectRevision,

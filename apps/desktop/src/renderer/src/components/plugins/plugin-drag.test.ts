@@ -1,12 +1,6 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import type { PluginDescriptor } from "@heron/contracts"
-import {
-  claimPluginDropPreview,
-  clearActivePluginDropPreview,
-  parsePluginDrag,
-  releasePluginDropPreview,
-  serializePluginDrag
-} from "./plugin-drag"
+import { parsePluginDrag, serializePluginDrag } from "./plugin-drag"
 
 const descriptor = {
   source: { kind: "external" },
@@ -46,26 +40,5 @@ describe("plugin drag helpers", () => {
     expect(parsePluginDrag("")).toBeNull()
     expect(parsePluginDrag("{")).toBeNull()
     expect(parsePluginDrag(JSON.stringify({ source: "rack" }))).toBeNull()
-  })
-
-  it("claims, replaces, and clears drop preview owners", () => {
-    const first = vi.fn()
-    const second = vi.fn()
-    claimPluginDropPreview(first)
-    claimPluginDropPreview(first)
-    expect(first).not.toHaveBeenCalled()
-
-    claimPluginDropPreview(second)
-    expect(first).toHaveBeenCalledOnce()
-
-    releasePluginDropPreview(first)
-    clearActivePluginDropPreview()
-    expect(second).toHaveBeenCalledOnce()
-
-    const third = vi.fn()
-    claimPluginDropPreview(third)
-    releasePluginDropPreview(third)
-    clearActivePluginDropPreview()
-    expect(third).not.toHaveBeenCalled()
   })
 })

@@ -117,14 +117,6 @@ export function musicalPositionAtTick(
   }
 }
 
-export function barTicksWithinSeconds(
-  map: TempoMapSnapshot,
-  durationSeconds: number,
-  limit = 2_048
-): number[] {
-  return barTicksThroughTick(map, secondsToTick(map, durationSeconds), limit)
-}
-
 export function barTicksThroughTick(
   map: TempoMapSnapshot,
   maximumTick: number,

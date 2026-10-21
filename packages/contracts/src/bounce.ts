@@ -1,7 +1,4 @@
 export const BOUNCE_SAMPLE_RATES = [44_100, 48_000, 88_200, 96_000] as const
-export const MP3_BOUNCE_SAMPLE_RATES = [44_100, 48_000] as const
-
-export type BounceFormat = "wav" | "flac" | "mp3"
 export type BounceSampleRate = "project" | (typeof BOUNCE_SAMPLE_RATES)[number]
 export type BounceChannelMode = "stereo" | "mono"
 export type BounceDither = "off" | "tpdf"

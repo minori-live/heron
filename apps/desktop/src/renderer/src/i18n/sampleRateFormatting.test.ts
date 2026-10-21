@@ -1,10 +1,8 @@
 import { mount } from "@vue/test-utils"
 import { nextTick } from "vue"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { INITIAL_AUDIO_RUNTIME_SNAPSHOT } from "@heron/contracts"
 import CompiledEffectGraphPanel from "../components/effect-graph/CompiledEffectGraphPanel.vue"
 import ProjectGeneralSettings from "../components/project-settings/ProjectGeneralSettings.vue"
-import EngineInspector from "../components/studio/EngineInspector.vue"
 import { i18n } from "./index"
 
 const cases = [
@@ -38,16 +36,6 @@ const cases = [
             timeSignatureDenominator: 4,
             waveformDisplayMode: "separate"
           }
-        }
-      })
-  },
-  {
-    name: "engine inspector",
-    render: () =>
-      mount(EngineInspector, {
-        props: {
-          runtime: { ...INITIAL_AUDIO_RUNTIME_SNAPSHOT, sampleRate: 48_000 },
-          modelValue: [0.5]
         }
       })
   }

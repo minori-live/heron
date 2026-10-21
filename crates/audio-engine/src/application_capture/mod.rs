@@ -288,7 +288,7 @@ pub struct PreparedApplicationCapture {
 }
 
 impl PreparedApplicationCapture {
-    #[cfg(any(test, feature = "bench-internals", feature = "test-support"))]
+    #[cfg(any(test, feature = "bench-internals"))]
     pub(crate) fn for_test(
         sample_rate: u32,
     ) -> Result<(Self, HeapProd<ApplicationCaptureFrame>), ApplicationCaptureError> {

@@ -343,7 +343,10 @@ describe("AudioGraphPublisher", () => {
       null
     )
 
-    const published = await publisher.publish(graph, false, true)
+    const published = await publisher.publish(graph, {
+      softwareMonitoringOverride: false,
+      awaitPublication: true
+    })
     expect(published.sampleRate).toBe(48_000)
     expect(audioHost.loadGraph).toHaveBeenCalledWith(1, expect.anything(), expect.anything(), true)
   })

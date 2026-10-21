@@ -1535,11 +1535,6 @@
     }
   },
   "plugins": {
-    "rack": {
-      "ariaLabel": "Plugin insert rack",
-      "inserts": "INSERTS",
-      "emptyHint": "Use an empty insert slot in the Mixer to add an effect."
-    },
     "failure": {
       "plugin-rejected": "The plug-in rejected an audio processing block.",
       "invalid-output": "The plug-in produced non-finite audio.",
@@ -1549,25 +1544,11 @@
       "host-state": "The plug-in host is not in a valid state for this operation."
     },
     "instrumentSlot": {
-      "ariaLabel": "Instrument slot",
-      "heading": "INSTRUMENT",
-      "vst3": "VST3",
-      "empty": "EMPTY",
-      "openEditor": "Open instrument editor",
-      "retry": "Retry instrument",
-      "remove": "Remove instrument",
-      "chooseHint": "Use the instrument slot in the Mixer to choose an instrument."
+      "retry": "Retry instrument"
     },
     "pluginSlot": {
       "move": "Move {name}",
-      "audioMode": "Audio mode: {mode}",
-      "araTitle": "ARA 2 document processing is active for this insert",
-      "bypass": "Bypass",
-      "enable": "Enable",
-      "toggle": "{action} {name}",
-      "retry": "Retry {name}",
-      "openEditor": "Open {name} editor",
-      "remove": "Remove {name}"
+      "retry": "Retry {name}"
     },
     "audioModeMenu": {
       "ariaLabel": "Choose plugin audio mode",
@@ -1993,18 +1974,7 @@
       "saving": "Saving…"
     },
     "inspector": {
-      "eyebrow": "SIGNAL LAB",
-      "title": "Engine probe",
-      "description": "Trace a test signal through Vue, Electron, N-API, and the Rust DSP core.",
-      "outputPeak": "Output peak",
-      "outputPeakMeter": "Output peak meter",
-      "offlineGain": "Offline gain",
-      "runSignalCheck": "Run signal check",
-      "nativeTelemetry": "Native telemetry",
-      "input": "Input",
-      "audioIo": "Audio I/O",
-      "sampleRate": "Sample rate",
-      "clockSync": "Clock sync"
+      "sampleRate": "Sample rate"
     },
     "lanes": {
       "tempo": "Tempo",
@@ -2018,15 +1988,6 @@
     "rename": {
       "renameAria": "Rename {name}",
       "doubleClickTitle": "{name} — Double-click to rename"
-    },
-    "placeholder": {
-      "libraryEyebrow": "LIBRARY",
-      "inspectorEyebrow": "INSPECTOR",
-      "browserTitle": "Browser",
-      "propertiesTitle": "Properties",
-      "leftBody": "Sounds and devices will live here.",
-      "rightBody": "Clip and track controls will live here.",
-      "badge": "PLACEHOLDER"
     },
     "clip": {
       "midiLabel": "{name}, MIDI clip",
@@ -2261,7 +2222,6 @@
     "resetClipping": "Unable to reset mixer clipping indicators.",
     "restoreLifecycle": "Unable to restore native lifecycle state.",
     "engineUnavailable": "Native engine unavailable",
-    "previewFailed": "Native preview failed",
     "projectChange": "Project change could not be applied.",
     "mixerPreview": "Mixer preview failed.",
     "recordingDependencies": "Recording dependencies are unavailable.",

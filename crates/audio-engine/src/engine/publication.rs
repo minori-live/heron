@@ -279,11 +279,6 @@ impl AudioEngine {
         self.publish_build(input)
     }
 
-    pub(super) fn load_resolved_mixer_graph(&self, graph: ResolvedMixerGraph) -> Result<()> {
-        let input = self.begin_resolved_build(graph)?;
-        self.publish_build(input)
-    }
-
     fn publish_build(&self, input: GraphBuildInput) -> Result<()> {
         let built = compile_graph_build(input)?;
         match self.publish_mixer_runtime(built)? {
@@ -371,22 +366,6 @@ impl AudioEngine {
             return Ok(None);
         }
         Ok(Some(graph.clone()))
-    }
-
-    /// Synchronous timing rebuild for the MessagePack compatibility path.
-    pub fn update_plugin_timing(
-        &self,
-        instance_id: &str,
-        latency_samples: u32,
-        tail_samples: Option<u32>,
-    ) -> Result<bool> {
-        let Some(replacement) =
-            self.apply_plugin_timing(instance_id, latency_samples, tail_samples)?
-        else {
-            return Ok(false);
-        };
-        self.load_resolved_mixer_graph(replacement)?;
-        Ok(true)
     }
 
     pub fn preview_mixer_parameter(&self, preview: MixerParameterPreview) -> Result<()> {

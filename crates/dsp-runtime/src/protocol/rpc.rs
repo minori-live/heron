@@ -21,7 +21,6 @@ pub enum ResourceKind {
     Transport,
     MidiRuntime,
     ProjectWorker,
-    OfflineWorker,
 }
 
 #[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
@@ -114,7 +113,6 @@ pub enum RpcComponent {
     Preload,
     ProjectWorker,
     AudioHost,
-    OfflineWorker,
 }
 
 #[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]

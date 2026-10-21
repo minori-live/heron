@@ -1,10 +1,9 @@
 import { app, BrowserWindow } from "electron"
 import { IPC_CHANNELS } from "@heron/contracts"
-import { engineInfo, processGain } from "@heron/dsp-node"
 import type { IpcHandlerContext } from "./context"
 import { registerRpcHandler } from "./rpc"
-import { validateMutationTarget, validateReadTarget } from "./resource-validation"
-import { validateApplicationWindowCommand, validateGainRequest } from "./support"
+import { validateMutationTarget } from "./resource-validation"
+import { validateApplicationWindowCommand } from "./support"
 
 export function registerSystemHandlers(context: IpcHandlerContext): void {
   const state = context.lifecycle.applicationState
@@ -30,12 +29,6 @@ export function registerSystemHandlers(context: IpcHandlerContext): void {
       }) ?? { status: "blocked" as const }
     )
   })
-  registerRpcHandler(IPC_CHANNELS.engineInfo, ({ meta }) => {
-    const invalid = validateReadTarget(meta, state.offlineWorker)
-    if (invalid) return invalid
-    return engineInfo()
-  })
-
   registerRpcHandler(IPC_CHANNELS.applicationWindowCommand, ({ event, meta }, value: unknown) => {
     const invalid = validateMutationTarget(meta, state.desktopSession)
     if (invalid) return invalid
@@ -100,12 +93,5 @@ export function registerSystemHandlers(context: IpcHandlerContext): void {
       symbolColor: value === "dark" ? "#e8e8e8" : "#202224",
       height: 38
     })
-  })
-
-  registerRpcHandler(IPC_CHANNELS.processGain, ({ meta }, value: unknown) => {
-    const invalid = validateReadTarget(meta, state.offlineWorker)
-    if (invalid) return invalid
-    const request = validateGainRequest(value)
-    return processGain(request.samples, request.gain)
   })
 }

@@ -15,8 +15,7 @@ export const RESOURCE_KINDS = [
   "graph-deployment",
   "transport",
   "midi-runtime",
-  "project-worker",
-  "offline-worker"
+  "project-worker"
 ] as const
 
 export type ResourceKind = (typeof RESOURCE_KINDS)[number]
@@ -39,7 +38,6 @@ export type AudioHostRef = ResourceRef<"audio-host">
 export type AudioDeviceRecoveryRef = ResourceRef<"audio-device-recovery">
 export type AudioEngineRef = ResourceRef<"audio-engine">
 export type ProjectWorkerRef = ResourceRef<"project-worker">
-export type OfflineWorkerRef = ResourceRef<"offline-worker">
 export type GraphDeploymentRef = ResourceRef<"graph-deployment">
 export type TransportRef = ResourceRef<"transport">
 export type MidiRuntimeRef = ResourceRef<"midi-runtime">
@@ -126,7 +124,7 @@ export interface RpcCancelledDetails {
 
 export interface RpcUnavailableDetails {
   type: "resource-unavailable" | "transport-unavailable"
-  component: "main" | "preload" | "project-worker" | "audio-host" | "offline-worker"
+  component: "main" | "preload" | "project-worker" | "audio-host"
   dispatched: boolean
 }
 
@@ -142,7 +140,7 @@ export interface RpcDependencyFailedDetails {
 
 export interface RpcInvariantViolationDetails {
   type: "invariant-violation"
-  component: "main" | "project-worker" | "audio-host" | "offline-worker"
+  component: "main" | "project-worker" | "audio-host"
 }
 
 export interface RpcPluginOperationDetails {

@@ -8,12 +8,10 @@ const electronMocks = vi.hoisted(() => ({
 vi.mock("@heron/dsp-node", () => ({
   AudioHostRuntime: class {},
   analyzeWaveform: vi.fn(),
-  engineInfo: vi.fn(),
   finalizeRecording: vi.fn(),
   importAudioFile: vi.fn(),
   parseMidiData: vi.fn(),
   parseMidiFile: vi.fn(),
-  processGain: vi.fn(),
   recoverMidiJournalTake: vi.fn(),
   repairRecordingHeader: vi.fn(),
   writeDeterministicTestRecording: vi.fn()

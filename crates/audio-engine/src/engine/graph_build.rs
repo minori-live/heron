@@ -252,7 +252,6 @@ pub(super) fn build_mixer_runtime(
         content_end_frame: midi_build.content_end_frame,
         project_end_frame,
         tail_end_frame,
-        has_infinite_tail: plugin_build.has_infinite_tail,
         input_peaks,
         input_meter_routes,
         monitor_input_routes,

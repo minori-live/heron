@@ -1,9 +1,3 @@
-export interface AudioHostMidiInputRoute {
-  port_id: string | null
-  port_name: string | null
-  channel: number | null
-}
-
 export interface AudioHostMidiInputSnapshot {
   ports: Array<{ id: string; name: string; connected: boolean }>
   sync: {

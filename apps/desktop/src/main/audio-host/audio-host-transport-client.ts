@@ -69,7 +69,6 @@ function applicationCaptureLogicalTarget(
 export class AudioHostTransportClient {
   private lastAudioPreferences: AudioPreferences | null = null
   private lastAudioRuntime: AudioRuntimeSnapshot | null = null
-  private audioEngineExpectedRunning = false
   private lastTransport: TransportSnapshot = {
     state: "stopped",
     positionFrames: 0,
@@ -95,10 +94,6 @@ export class AudioHostTransportClient {
 
   audioPreferences(): AudioPreferences | null {
     return this.lastAudioPreferences ? structuredClone(this.lastAudioPreferences) : null
-  }
-
-  engineExpectedRunning(): boolean {
-    return this.audioEngineExpectedRunning
   }
 
   transportIntent(): TransportSnapshot {
@@ -190,7 +185,6 @@ export class AudioHostTransportClient {
     const runtime = this.runtimeResult(response)
     if (runtime.state === "running") {
       this.lastAudioPreferences = structuredClone(preferences)
-      this.audioEngineExpectedRunning = true
     }
     return runtime
   }
@@ -216,8 +210,6 @@ export class AudioHostTransportClient {
   }
 
   async stopAudioEngine(): Promise<AudioRuntimeSnapshot> {
-    // Stopping is user intent; record it before awaiting the native runtime.
-    this.audioEngineExpectedRunning = false
     const runtime = this.runtimeResult(await this.request({ type: "stop-audio-engine" }))
     return runtime
   }
@@ -247,7 +239,6 @@ export class AudioHostTransportClient {
     )
     if (result.runtime?.state === "running") {
       this.lastAudioPreferences = structuredClone(preferences)
-      this.audioEngineExpectedRunning = true
     }
     return result
   }
@@ -571,10 +562,6 @@ export class AudioHostTransportClient {
   private rememberTransport(snapshot: TransportSnapshot): TransportSnapshot {
     this.lastTransport = { ...snapshot }
     return snapshot
-  }
-
-  rememberTransportResponse(response: ControlResponse): TransportSnapshot {
-    return this.rememberTransport(this.transportResult(response))
   }
 
   captureTransport(client: AudioHostRuntime): void {
