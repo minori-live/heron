@@ -129,6 +129,20 @@ impl AudioEngine {
             plugin_slots: self.plugin_slots()?,
         })
     }
+
+    /// Rebuild the retained committed runtime after a stream restart, including
+    /// runtime-only latency and parameter updates at that same document revision.
+    pub fn begin_committed_graph_restoration(&self, revision: u64) -> Result<GraphBuildInput> {
+        let graph = self
+            .last_native_graph
+            .lock()
+            .map_err(|_| audio_error("last mixer graph lock", "poisoned"))?
+            .as_ref()
+            .filter(|graph| graph.generation == revision)
+            .cloned()
+            .ok_or_else(|| invalid_config("committed mixer graph revision is unavailable"))?;
+        self.begin_resolved_build(graph)
+    }
 }
 
 /// Compile routing, PDC, clip storage, and callback buffers. Safe to run on a
@@ -674,6 +688,14 @@ impl AudioEngine {
                 })
             })
             .unwrap_or(0)
+    }
+
+    /// An accepted graph waiting for the next audio-stream startup.
+    pub fn pending_graph_build_generation(&self) -> Option<u64> {
+        self.pending_mixer
+            .lock()
+            .ok()
+            .and_then(|runtime| runtime.as_ref().map(|runtime| runtime.build_generation))
     }
 
     pub fn compiled_audio_graph_snapshot(&self) -> Option<CompiledAudioGraphSnapshot> {

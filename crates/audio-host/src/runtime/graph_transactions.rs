@@ -364,6 +364,22 @@ pub(super) async fn wait_for_graph_publication(
     audio_engine: &engine::AudioEngine,
     revision: u64,
 ) -> bool {
+    wait_for_graph_observation(audio_engine, revision, None).await
+}
+
+pub(super) async fn wait_for_graph_build_publication(
+    audio_engine: &engine::AudioEngine,
+    revision: u64,
+    build_generation: u64,
+) -> bool {
+    wait_for_graph_observation(audio_engine, revision, Some(build_generation)).await
+}
+
+async fn wait_for_graph_observation(
+    audio_engine: &engine::AudioEngine,
+    revision: u64,
+    build_generation: Option<u64>,
+) -> bool {
     let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(2);
     loop {
         // A stopped engine owns the accepted graph in pending_mixer; no callback can
@@ -372,9 +388,21 @@ pub(super) async fn wait_for_graph_publication(
             .audio_engine_snapshot()
             .is_ok_and(|snapshot| snapshot.state == "stopped")
         {
-            return true;
+            // A stream stop can discard a queued runtime. Restoration must still
+            // own its exact pending build before acknowledging a stopped engine.
+            return build_generation.is_none_or(|expected| {
+                audio_engine
+                    .pending_graph_build_generation()
+                    .is_some_and(|pending| pending >= expected)
+            });
         }
-        if audio_engine.published_graph_generation() >= revision {
+        if audio_engine.published_graph_generation() >= revision
+            && build_generation.is_none_or(|expected| {
+                audio_engine
+                    .compiled_audio_graph_snapshot()
+                    .is_some_and(|snapshot| snapshot.build_generation >= expected)
+            })
+        {
             return true;
         }
         if tokio::time::Instant::now() >= deadline {

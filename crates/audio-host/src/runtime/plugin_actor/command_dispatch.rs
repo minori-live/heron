@@ -666,6 +666,17 @@ pub(in crate::runtime) async fn audio_plugin_actor(
                         Err(error) => graph_failure(&meta, error),
                     }
                 }
+                ControlCommand::RestoreCommittedGraph { meta, request } => {
+                    super::graph_deployment::CommittedGraphRestoration {
+                        transactions: &mut graph_transactions,
+                        audio_engine: &audio_engine,
+                        engine_sender: &engine_sender,
+                        graph_build_gate: &graph_build_gate,
+                        processors: &processors,
+                    }
+                    .restore(&meta, &request)
+                    .await
+                }
                 ControlCommand::RunAudioBenchmark {
                     plugin_instance_ids,
                 } => {

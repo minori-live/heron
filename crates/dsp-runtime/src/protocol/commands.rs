@@ -107,6 +107,11 @@ pub enum ControlCommand {
         meta: RpcRequestMeta,
         request: GraphTransactionRequest,
     },
+    /// Rebuild the committed runtime after a stream restart without changing its revision.
+    RestoreCommittedGraph {
+        meta: RpcRequestMeta,
+        request: GraphTransactionRequest,
+    },
     GraphDeploymentSnapshot {
         meta: RpcRequestMeta,
     },

@@ -7,8 +7,8 @@ use crate::runtime::{
 };
 use heron_dsp_runtime::protocol::{
     GraphDeploymentStatus, GraphOperationOutcome, GraphTransactionRequest, GraphTransactionValue,
-    IPC_PROTOCOL_VERSION, PrepareGraphRequest, ResourceKind, ResourceRef, RpcMutationMeta,
-    RpcRequestMeta, RpcResult,
+    IPC_PROTOCOL_VERSION, PrepareGraphRequest, ResourceKind, ResourceRef, RpcErrorCode,
+    RpcMutationMeta, RpcRequestMeta, RpcResult,
 };
 
 pub(super) fn empty_graph() -> LiveMixerGraph {
@@ -138,6 +138,14 @@ fn graph_activation_rollback_and_competing_refreshes_preserve_the_commit_boundar
                     graph_revision: 1, graph: empty_graph(),
                 }),
             };
+            let empty_restore = dispatch_actor(&sender, ControlCommand::RestoreCommittedGraph {
+                meta: meta(), request: GraphTransactionRequest { helper_epoch: "42".into(), project_graph: project(), base_revision: 0 },
+            }).await;
+            let ControlResult::GraphTransaction { result } = empty_restore else { panic!("transaction response") };
+            let RpcResult::Success(result) = *result else { panic!("empty restoration success") };
+            let GraphTransactionValue::Snapshot { snapshot } = result.value else { panic!("snapshot value") };
+            assert_eq!(Some(snapshot.engine), meta().target);
+            assert_eq!(audio_engine.latest_build_generation_for_test(), 0);
             assert!(matches!(dispatch_actor(&sender, prepare.clone()).await, ControlResult::GraphTransaction { result } if matches!(*result, RpcResult::Success(_))));
             let failed = dispatch_actor(&sender, ControlCommand::ActivateGraph {
                 meta: meta(), request: GraphTransactionRequest { helper_epoch: "42".into(), project_graph: project(), base_revision: 0 },
@@ -187,6 +195,10 @@ fn graph_activation_rollback_and_competing_refreshes_preserve_the_commit_boundar
             assert!(matches!(dispatch_actor(&sender, next_prepare.clone()).await, ControlResult::GraphTransaction { result } if matches!(*result, RpcResult::Success(_))));
             // Replaying preparation does not create another candidate or acquire its gate again.
             assert!(matches!(dispatch_actor(&sender, next_prepare).await, ControlResult::GraphTransaction { result } if matches!(*result, RpcResult::Success(_))));
+            let blocked_restore = dispatch_actor(&sender, ControlCommand::RestoreCommittedGraph {
+                meta: next_meta.clone(), request: next_request.clone(),
+            }).await;
+            assert!(matches!(blocked_restore, ControlResult::GraphTransaction { result } if matches!(&*result, RpcResult::Failure(failure) if failure.error.code == RpcErrorCode::ResourceBusy)));
             let abort = ControlCommand::AbortGraph { meta: next_meta, request: next_request };
             for expected_existed in [true, false] {
                 let aborted = dispatch_actor(&sender, abort.clone()).await;
@@ -198,6 +210,7 @@ fn graph_activation_rollback_and_competing_refreshes_preserve_the_commit_boundar
                 assert_eq!(snapshot.committed_revision, 1);
             }
             assert_eq!(audio_engine.last_native_graph_generation_for_test(), Some(1));
+            assert_committed_runtime_restoration(&sender, &audio_engine).await;
             drop(sender);
             drop(background_sender);
             actor.await.unwrap();
@@ -205,4 +218,104 @@ fn graph_activation_rollback_and_competing_refreshes_preserve_the_commit_boundar
             engine_task.await.unwrap();
             ui.join().unwrap();
         }));
+}
+
+async fn assert_committed_runtime_restoration(
+    sender: &mpsc::Sender<ActorRequest>,
+    audio_engine: &engine::AudioEngine,
+) {
+    let mut restore_meta = meta();
+    restore_meta.expected_revision = Some(1);
+    restore_meta.mutation.as_mut().unwrap().operation_id = "restore-runtime".into();
+    let restore_request = GraphTransactionRequest {
+        helper_epoch: "42".into(),
+        project_graph: project(),
+        base_revision: 1,
+    };
+    let restore = ControlCommand::RestoreCommittedGraph {
+        meta: restore_meta.clone(),
+        request: restore_request.clone(),
+    };
+    let mut wrong_project = restore_request.clone();
+    wrong_project.project_graph.id = "other-project".into();
+    let rejected = dispatch_actor(
+        sender,
+        ControlCommand::RestoreCommittedGraph {
+            meta: restore_meta,
+            request: wrong_project,
+        },
+    )
+    .await;
+    assert!(
+        matches!(rejected, ControlResult::GraphTransaction { result } if matches!(&*result, RpcResult::Failure(failure) if failure.error.code == RpcErrorCode::ValidationFailed))
+    );
+
+    let config = |sample_rate| engine::AudioEngineConfig {
+        backend: "mock".into(),
+        input_device_id: "custom:mock-duplex".into(),
+        output_device_id: "custom:mock-duplex".into(),
+        buffer_size: 128,
+        session_sample_rate: Some(sample_rate),
+    };
+    audio_engine.start_audio_engine(config(48_000)).unwrap();
+    assert!(crate::runtime::wait_for_graph_publication(audio_engine, 1).await);
+    assert_eq!(audio_engine.mixer_snapshot().unwrap().meters.len(), 2);
+
+    // A rate change destroys the old callback mixer. Restoring only the device
+    // session leaves silence even though the logical graph still has revision 1.
+    audio_engine.start_audio_engine(config(44_100)).unwrap();
+    assert_eq!(audio_engine.published_graph_generation(), 0);
+    assert!(audio_engine.mixer_snapshot().unwrap().meters.is_empty());
+    let mismatched = dispatch_actor(sender, restore.clone()).await;
+    assert!(
+        matches!(mismatched, ControlResult::GraphTransaction { result } if matches!(&*result, RpcResult::Failure(failure) if failure.error.code == RpcErrorCode::DependencyFailed))
+    );
+
+    audio_engine.start_audio_engine(config(48_000)).unwrap();
+    assert!(audio_engine.mixer_snapshot().unwrap().meters.is_empty());
+    for _ in 0..2 {
+        let previous_build = audio_engine.latest_build_generation_for_test();
+        let restored = dispatch_actor(sender, restore.clone()).await;
+        let ControlResult::GraphTransaction { result } = restored else {
+            panic!("transaction response")
+        };
+        let RpcResult::Success(result) = *result else {
+            panic!("restoration success")
+        };
+        let GraphTransactionValue::Snapshot { snapshot } = result.value else {
+            panic!("snapshot value")
+        };
+        assert_eq!(snapshot.committed_revision, 1);
+        assert_eq!(snapshot.observed_revision, 1);
+        assert_eq!(snapshot.committed_project_graph, Some(project()));
+        assert!(snapshot.candidate.is_none());
+        let operation = snapshot.last_operation.unwrap();
+        assert_eq!(operation.operation_id, "next-graph");
+        assert_eq!(operation.outcome, GraphOperationOutcome::NotCommitted);
+        assert_eq!(audio_engine.mixer_snapshot().unwrap().meters.len(), 2);
+        assert!(
+            audio_engine
+                .compiled_audio_graph_snapshot()
+                .unwrap()
+                .build_generation
+                > previous_build
+        );
+    }
+    audio_engine.stop_audio_engine().unwrap();
+    assert!(
+        !crate::runtime::wait_for_graph_build_publication(
+            audio_engine,
+            1,
+            audio_engine.latest_build_generation_for_test(),
+        )
+        .await
+    );
+    let stopped_restore = dispatch_actor(sender, restore).await;
+    assert!(
+        matches!(stopped_restore, ControlResult::GraphTransaction { result } if matches!(*result, RpcResult::Success(_)))
+    );
+    assert_eq!(
+        audio_engine.pending_graph_build_generation(),
+        Some(audio_engine.latest_build_generation_for_test())
+    );
 }
