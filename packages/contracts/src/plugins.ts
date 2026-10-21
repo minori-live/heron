@@ -285,21 +285,6 @@ export interface PluginStateEnvelope {
   chunks: PluginStateChunk[]
 }
 
-export function vst3StateEnvelope(
-  component: Uint8Array,
-  controller: Uint8Array,
-  araDocument?: Uint8Array
-): PluginStateEnvelope {
-  const chunks: PluginStateChunk[] = [
-    { key: "component", bytes: component },
-    { key: "controller", bytes: controller }
-  ]
-  if (araDocument && araDocument.byteLength > 0) {
-    chunks.push({ key: "ara-document", bytes: araDocument })
-  }
-  return { version: 1, chunks }
-}
-
 export type PluginRuntimeState =
   | "unloaded"
   | "loading"

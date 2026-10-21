@@ -8,7 +8,6 @@ import type {
   AudioPreferences,
   RoundTripLatencyMeasurementRequest,
   CreateProjectRequest,
-  ProcessGainRequest,
   MidiControlPreferences,
   ProjectCloseDisposition,
   ProjectConfiguration,
@@ -33,9 +32,6 @@ const api: HeronDesktopApi = {
   platform: process.platform as HeronDesktopApi["platform"],
   resolveDroppedFilePath: (file) => webUtils.getPathForFile(file as File),
   bootstrap: (meta) => invokeRpc(IPC_CHANNELS.bootstrap, meta),
-  engineInfo: (meta) => invokeRpc(IPC_CHANNELS.engineInfo, meta),
-  processGain: (meta, request: ProcessGainRequest) =>
-    invokeRpc(IPC_CHANNELS.processGain, meta, request),
   listAudioBackends: (meta) => invokeRpc(IPC_CHANNELS.audioBackends, meta),
   listAudioDevices: (meta, backend: AudioBackend) =>
     invokeRpc(IPC_CHANNELS.audioDevices, meta, backend),

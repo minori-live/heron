@@ -394,8 +394,6 @@ export const UI_COMPONENT_CATALOG = {
   VstCompatibleLogo: entry("VstCompatibleLogo.stories.ts", ["Default"], false, [], "brand")
 } as const satisfies Record<string, UiComponentCatalogEntry>
 
-export type UiCatalogComponentName = keyof typeof UI_COMPONENT_CATALOG
-
 function entry(
   storyFile: string,
   stories: readonly string[],

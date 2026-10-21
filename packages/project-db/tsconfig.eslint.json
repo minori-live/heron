@@ -1,4 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "include": ["drizzle.config.ts", "vitest.config.ts", "src/**/*.ts"]
-}

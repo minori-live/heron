@@ -7,10 +7,6 @@ export interface ProjectMediaDragPayload {
   kind: ProjectAssetSummary["kind"]
 }
 
-export function serializeProjectMediaDrag(asset: ProjectAssetSummary): string {
-  return JSON.stringify({ assetId: asset.id, kind: asset.kind } satisfies ProjectMediaDragPayload)
-}
-
 export function parseProjectMediaDrag(value: string): ProjectMediaDragPayload | null {
   if (!value) return null
   try {

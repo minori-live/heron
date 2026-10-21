@@ -15,7 +15,6 @@ import WorkspaceStatusbar from "../components/workspace/WorkspaceStatusbar.vue"
 import StudioTopbar from "../components/studio/StudioTopbar.vue"
 import StudioWorkspace from "../components/studio/StudioWorkspace.vue"
 import RightPanelHost from "../components/studio/RightPanelHost.vue"
-import { useEngineStore } from "../stores/engine"
 import { useAudioRuntimeStore } from "../stores/audioRuntime"
 import { useProjectStore } from "../stores/project"
 import { useRecordingStore } from "../stores/recording"
@@ -37,7 +36,6 @@ import { defaultCycleRange } from "../utils/cycleRange"
 
 const router = useRouter()
 const { t } = useI18n()
-const engineStore = useEngineStore()
 const audioRuntimeStore = useAudioRuntimeStore()
 const {
   runtime: audioRuntime,
@@ -99,8 +97,6 @@ onMounted(async () => {
     await router.replace({ name: "welcome" })
     return
   }
-  await engineStore.initialize()
-  if (!mounted || !projectAvailable()) return
   await lowLatencyModeStore.refresh()
   if (!mounted || !projectAvailable()) return
   mixerStore.startMetering()

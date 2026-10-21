@@ -53,15 +53,6 @@ function bootstrap(lifecycle: DesktopLifecycleSnapshot): ApplicationBootstrapSna
       epoch: "main-epoch",
       generation: 1
     },
-    offlineTools: {
-      worker: {
-        kind: "offline-worker",
-        id: "offline-tools",
-        epoch: "offline-epoch",
-        generation: 1
-      },
-      revision: 1
-    },
     audioResources: {
       recovery: null,
       host: {

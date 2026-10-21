@@ -9,10 +9,7 @@ import type {
   ApplicationCommandId,
   ApplicationRestartResult,
   ApplicationWindowCommandId,
-  DesktopPlatform,
-  NativeEngineInfo,
-  ProcessGainRequest,
-  ProcessGainResult
+  DesktopPlatform
 } from "./application.ts"
 import type {
   AudioBackend,
@@ -120,8 +117,6 @@ export const IPC_CHANNELS = {
   updateCommand: "application-update:command",
   updateEvent: "application-update:event",
   bootstrap: "application:bootstrap",
-  engineInfo: "engine:info",
-  processGain: "engine:process-gain",
   audioBackends: "audio:list-backends",
   audioDevices: "audio:list-devices",
   applicationCaptureTargets: "audio:list-application-capture-targets",
@@ -233,11 +228,6 @@ export interface HeronDesktopApi {
   readonly platform: DesktopPlatform
   resolveDroppedFilePath(file: unknown): string
   bootstrap(meta: RpcRequestMeta): Promise<RpcResult<ApplicationBootstrapSnapshot>>
-  engineInfo(meta: RpcRequestMeta): Promise<RpcResult<NativeEngineInfo>>
-  processGain(
-    meta: RpcRequestMeta,
-    request: ProcessGainRequest
-  ): Promise<RpcResult<ProcessGainResult>>
   listAudioBackends(meta: RpcRequestMeta): Promise<RpcResult<AudioBackendDescriptor[]>>
   listAudioDevices(meta: RpcRequestMeta, backend: AudioBackend): Promise<RpcResult<AudioDeviceList>>
   listApplicationCaptureTargets(

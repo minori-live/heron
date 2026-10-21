@@ -246,7 +246,9 @@ fn same_revision_rebuild_preserves_a_newer_plugin_bypass_preview() {
         tail_samples: Some(0),
     });
     engine
-        .load_resolved_mixer_graph(stale_graph.clone())
+        .begin_resolved_build(stale_graph.clone())
+        .and_then(compile_graph_build)
+        .and_then(|built| engine.publish_mixer_runtime(built))
         .expect("publish initial graph");
     engine
         .preview_mixer_parameter(MixerParameterPreview {

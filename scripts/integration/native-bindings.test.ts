@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { createRequire } from "node:module"
-import { mkdtemp, readFile, rm } from "node:fs/promises"
+import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import test from "node:test"
@@ -49,8 +49,6 @@ type NativeBindings = {
     timeReference: number
     waveformLevels: unknown[]
   }>
-  engineInfo: () => { backend: string; nodeApi: number; version: string }
-  processGain: (samples: number[], gain: number) => { samples: number[]; peak: number }
   writeDeterministicTestRecording: (
     config: {
       path: string
@@ -71,24 +69,8 @@ const { decode, encode } = desktopRequire("@msgpack/msgpack") as {
   decode: (value: Uint8Array) => unknown
   encode: (value: unknown) => Uint8Array
 }
-const {
-  AudioHostRuntime,
-  analyzeWaveform,
-  engineInfo,
-  finalizeRecording,
-  processGain,
-  writeDeterministicTestRecording
-} = require("../../crates/dsp-node") as NativeBindings
-const expectedVersion = (await readFile(new URL("../../VERSION", import.meta.url), "utf8")).trim()
-
-await test("native DSP binding processes values across the napi boundary", () => {
-  assert.deepEqual(engineInfo(), {
-    backend: "rust+napi-rs",
-    nodeApi: 8,
-    version: expectedVersion
-  })
-  assert.deepEqual(processGain([1, -0.5, 0], 2), { samples: [2, -1, 0], peak: 2 })
-})
+const { AudioHostRuntime, analyzeWaveform, finalizeRecording, writeDeterministicTestRecording } =
+  require("../../crates/dsp-node") as NativeBindings
 
 await test("native DSP binding writes, finalizes and analyzes a deterministic recording", async () => {
   const directory = await mkdtemp(join(tmpdir(), "heron-native-bindings-"))

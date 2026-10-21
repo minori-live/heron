@@ -813,33 +813,102 @@ fn midi_input_actor_configure_rejects_invalid_preferences_and_snapshots() {
     let _guard = GLOBAL_MIDI_TEST_LOCK
         .lock()
         .unwrap_or_else(|error| error.into_inner());
-    let actor = MidiInputActor::start_with_wake(
+    // Exercise the real command loop without depending on OS MIDI discovery or devices.
+    let actor = MidiInputActor::start_with_port_enumerator(
         prefs(false, None, BTreeMap::new(), BTreeSet::new(), false),
         Arc::new(|| {}),
+        || Ok(Vec::new()),
     );
-    let invalid = actor.configure(MidiSyncPreferences {
-        enabled: true,
-        source_port_id: Some("id".into()),
-        source_port_name: None,
-        input_offsets_ms: BTreeMap::new(),
-        control_port_ids: BTreeSet::new(),
-        capture_all_controls: false,
-    });
-    assert!(invalid.is_err());
-
     let snap = actor
         .configure(prefs(
             false,
-            None,
+            Some(("missing", "Missing input")),
             BTreeMap::from([("p".into(), 12.5)]),
             BTreeSet::new(),
             false,
         ))
         .expect("valid configure");
     assert_eq!(snap.sync.state, "internal");
+    assert_eq!(
+        snap.ports,
+        vec![WireMidiInputPort {
+            id: "missing".into(),
+            name: "Missing input".into(),
+            connected: false,
+        }]
+    );
+    let invalid_preferences = MidiSyncPreferences {
+        enabled: true,
+        source_port_id: Some("id".into()),
+        source_port_name: None,
+        input_offsets_ms: BTreeMap::new(),
+        control_port_ids: BTreeSet::new(),
+        capture_all_controls: false,
+    };
+    let expected_error =
+        validate_preferences(&invalid_preferences).expect_err("invalid preferences");
+    let invalid = actor.configure(invalid_preferences);
+    assert_eq!(
+        invalid.expect_err("reject invalid preferences"),
+        expected_error
+    );
     actor.update_routes(true, BTreeSet::from(["missing".into()]));
     actor.set_control_wake(Arc::new(|| {}));
     assert!(actor.drain_control_events().is_empty());
     let snapshot = actor.snapshot();
     assert_eq!(snapshot.sync.state, "internal");
+    assert_eq!(snapshot.sync.source_port_id.as_deref(), Some("missing"));
+    assert_eq!(
+        snapshot.sync.source_port_name.as_deref(),
+        Some("Missing input")
+    );
+    assert_eq!(snapshot.ports, snap.ports);
+}
+
+#[test]
+fn midi_input_actor_reports_enumeration_errors_and_recovers() {
+    let _guard = GLOBAL_MIDI_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
+    let unavailable = Arc::new(AtomicBool::new(true));
+    let actor = MidiInputActor::start_with_port_enumerator(
+        prefs(false, None, BTreeMap::new(), BTreeSet::new(), false),
+        Arc::new(|| {}),
+        {
+            let unavailable = Arc::clone(&unavailable);
+            move || {
+                if unavailable.load(Ordering::Acquire) {
+                    Err("MIDI discovery unavailable".to_owned())
+                } else {
+                    Ok(Vec::new())
+                }
+            }
+        },
+    );
+    assert_eq!(
+        actor.snapshot().sync.error.as_deref(),
+        Some("MIDI discovery unavailable")
+    );
+
+    unavailable.store(false, Ordering::Release);
+    let recovered = actor
+        .configure(prefs(
+            false,
+            Some(("missing", "Missing input")),
+            BTreeMap::new(),
+            BTreeSet::new(),
+            false,
+        ))
+        .expect("configure after discovery recovers");
+    assert_eq!(recovered.sync.error, None);
+    assert_eq!(recovered.sync.state, "internal");
+    assert_eq!(recovered.sync.source_port_id.as_deref(), Some("missing"));
+    assert_eq!(
+        recovered.ports,
+        vec![WireMidiInputPort {
+            id: "missing".into(),
+            name: "Missing input".into(),
+            connected: false,
+        }]
+    );
 }

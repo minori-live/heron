@@ -141,7 +141,6 @@ export class ProjectLifecycleService {
   async bootstrap(): Promise<ApplicationBootstrapSnapshot> {
     const state = this.lifecycle.applicationState
     const settings = state.synchronizeApplicationSettings(await this.settings.get())
-    const offlineTools = state.offlineToolsSnapshot()
     const snapshot = state.snapshot(this.operations.registry)
     return {
       protocolVersion: snapshot.protocolVersion,
@@ -149,7 +148,6 @@ export class ProjectLifecycleService {
       desktopSession: snapshot.desktopSession,
       applicationSettings: snapshot.applicationSettings,
       revision: snapshot.revision,
-      offlineTools,
       lifecycle: snapshot.lifecycle,
       audioResources: state.audioResourceSnapshot(),
       recordingResource: state.recordingResourceSnapshot(),

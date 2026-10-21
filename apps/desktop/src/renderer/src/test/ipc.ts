@@ -24,13 +24,6 @@ export const TEST_SETTINGS_REF = {
   generation: 1
 } as const
 
-export const TEST_OFFLINE_WORKER_REF = {
-  kind: "offline-worker",
-  id: "offline-worker",
-  epoch: "test-offline-epoch",
-  generation: 1
-} as const
-
 export const TEST_AUDIO_HOST_REF = {
   kind: "audio-host",
   id: "audio-host",
@@ -135,7 +128,6 @@ export function testBootstrap(
     desktopSession: TEST_DESKTOP_REF,
     applicationSettings: TEST_SETTINGS_REF,
     revision: 1,
-    offlineTools: { worker: TEST_OFFLINE_WORKER_REF, revision: 0 },
     lifecycle: {
       revision: 1,
       project: { status: "closed", error: null },

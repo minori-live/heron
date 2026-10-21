@@ -103,10 +103,6 @@ export class AudioHostEventDispatcher {
     )
   }
 
-  resetHelper(): void {
-    this.araSequences.clear()
-  }
-
   async settle(): Promise<void> {
     await Promise.allSettled([...this.pending])
     this.araSequences.clear()

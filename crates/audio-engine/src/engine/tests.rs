@@ -225,7 +225,6 @@ fn transport_test_runtime(
         content_end_frame,
         project_end_frame: content_end_frame.max(1),
         tail_end_frame: Some(content_end_frame),
-        has_infinite_tail: false,
         input_peaks: Arc::new(InputPeakBank::new()),
         input_meter_routes: vec![None; 3],
         monitor_input_routes: vec![None; 3],

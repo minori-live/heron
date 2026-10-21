@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest"
 import type { TempoMapSnapshot } from "@heron/contracts"
 import { defaultCycleRange, previewCycleRange, snapTickToBeat } from "./cycleRange"
-import { clipStartSecondsFromPointer, findNearestTrackId } from "./clipDrag"
+import { clipStartSecondsFromPointer } from "./clipDrag"
 import {
   barLengthTicksAtTick,
-  barTicksWithinSeconds,
+  barTicksThroughTick,
   beatTicksThroughTick,
   musicalPositionAtTick,
   replaceTempoEventAtTick,
@@ -150,7 +150,7 @@ describe("tempo map", () => {
   })
 
   it("places bar guides using both tempo and time-signature changes", () => {
-    expect(barTicksWithinSeconds(map, 5)).toEqual([0, 3_840, 6_720])
+    expect(barTicksThroughTick(map, secondsToTick(map, 5))).toEqual([0, 3_840, 6_720])
   })
 
   it("places beat guides between bars and follows the active denominator", () => {
@@ -175,24 +175,6 @@ describe("clip drag snapping", () => {
     tempoEvents: [{ tick: 0, beatsPerMinute: 120 }],
     timeSignatureEvents: [{ tick: 0, numerator: 4, denominator: 4 }]
   }
-  const lanes = [
-    { trackId: "audio-1", top: 127, bottom: 227 },
-    { trackId: "audio-2", top: 227, bottom: 347 },
-    { trackId: "audio-3", top: 347, bottom: 427 }
-  ]
-
-  it("keeps the clip on the lane under the pointer", () => {
-    expect(findNearestTrackId(lanes, 180)).toBe("audio-1")
-    expect(findNearestTrackId(lanes, 300)).toBe("audio-2")
-    expect(findNearestTrackId(lanes, 400)).toBe("audio-3")
-  })
-
-  it("snaps to the nearest edge outside the track rows", () => {
-    expect(findNearestTrackId(lanes, 40)).toBe("audio-1")
-    expect(findNearestTrackId(lanes, 500)).toBe("audio-3")
-    expect(findNearestTrackId([], 200)).toBeNull()
-  })
-
   it("preserves the grabbed point while clamping the clip to the timeline start", () => {
     expect(clipStartSecondsFromPointer(450, 100, tempoMap, 50, 50)).toBe(3)
     expect(clipStartSecondsFromPointer(110, 100, tempoMap, 50, 50)).toBe(0)

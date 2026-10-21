@@ -4,7 +4,6 @@ import { createMemoryHistory, createRouter } from "vue-router"
 import { defineComponent } from "vue"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { ProjectSession } from "@heron/contracts"
-import { useEngineStore } from "../stores/engine"
 import { useLowLatencyModeStore } from "../stores/lowLatencyMode"
 import { useMixerStore } from "../stores/mixer"
 import { usePianoRollStore } from "../stores/pianoRoll"
@@ -48,19 +47,16 @@ function deferred<T>() {
 
 function mountStudio(
   options: {
-    initialize?: () => Promise<void>
     refresh?: () => Promise<boolean>
   } = {}
 ) {
   const navigation = router()
   const project = useProjectStore()
   project.applyLifecycleState({ status: "open", session, error: null })
-  const engine = useEngineStore()
   const lowLatency = useLowLatencyModeStore()
   const mixer = useMixerStore()
   const transport = useTransportStore()
   const workflow = useStudioWorkflowStore()
-  vi.spyOn(engine, "initialize").mockImplementation(options.initialize ?? (() => Promise.resolve()))
   vi.spyOn(lowLatency, "refresh").mockImplementation(
     options.refresh ?? (() => Promise.resolve(true))
   )
@@ -96,16 +92,15 @@ function mountStudio(
       }
     }
   })
-  return { wrapper, navigation, engine, lowLatency, mixer, transport, workflow }
+  return { wrapper, navigation, lowLatency, mixer, transport, workflow }
 }
 
 describe("StudioView", () => {
   beforeEach(() => setActivePinia(createPinia()))
 
   it("initializes and tears down studio-owned polling", async () => {
-    const { wrapper, engine, lowLatency, mixer, transport } = mountStudio()
+    const { wrapper, lowLatency, mixer, transport } = mountStudio()
     await flushPromises()
-    expect(engine.initialize).toHaveBeenCalledOnce()
     expect(lowLatency.refresh).toHaveBeenCalledOnce()
     expect(mixer.startMetering).toHaveBeenCalledOnce()
     expect(transport.startPolling).toHaveBeenCalledOnce()
@@ -117,39 +112,20 @@ describe("StudioView", () => {
   })
 
   it("continues deferred initialization while the project is saving", async () => {
-    const initialization = deferred<void>()
-    const { wrapper, engine, lowLatency, mixer, transport } = mountStudio({
-      initialize: () => initialization.promise
+    const refresh = deferred<boolean>()
+    const { wrapper, lowLatency, mixer, transport } = mountStudio({
+      refresh: () => refresh.promise
     })
-    await vi.waitFor(() => expect(engine.initialize).toHaveBeenCalledOnce())
+    await vi.waitFor(() => expect(lowLatency.refresh).toHaveBeenCalledOnce())
     useProjectStore().applyLifecycleState({ status: "saving", session, error: null })
 
-    initialization.resolve(undefined)
+    refresh.resolve(true)
     await flushPromises()
 
     expect(lowLatency.refresh).toHaveBeenCalledOnce()
     expect(mixer.startMetering).toHaveBeenCalledOnce()
     expect(transport.startPolling).toHaveBeenCalledOnce()
     wrapper.unmount()
-  })
-
-  it("does not start studio services after unmount during engine initialization", async () => {
-    const initialization = deferred<void>()
-    const { wrapper, engine, lowLatency, mixer, transport } = mountStudio({
-      initialize: () => initialization.promise
-    })
-    await vi.waitFor(() => expect(engine.initialize).toHaveBeenCalledOnce())
-
-    wrapper.unmount()
-    initialization.resolve(undefined)
-    await flushPromises()
-
-    expect(lowLatency.refresh).not.toHaveBeenCalled()
-    expect(mixer.startMetering).not.toHaveBeenCalled()
-    expect(transport.startPolling).not.toHaveBeenCalled()
-    expect(mixer.stopMetering).toHaveBeenCalledOnce()
-    expect(transport.stopPolling).toHaveBeenCalledOnce()
-    expect(lowLatency.reset).toHaveBeenCalledOnce()
   })
 
   it("does not start studio services after unmount during low-latency refresh", async () => {
@@ -238,8 +214,6 @@ describe("StudioView", () => {
   it("redirects to welcome when the project session disappears", async () => {
     const navigation = router()
     await navigation.push("/studio")
-    const engine = useEngineStore()
-    vi.spyOn(engine, "initialize").mockResolvedValue()
     vi.spyOn(useLowLatencyModeStore(), "refresh").mockResolvedValue(true)
     const wrapper = mount(StudioView, { global: { plugins: [navigation] } })
     await flushPromises()

@@ -179,7 +179,6 @@ fn runtime_for(scenario: RenderScenario) -> Box<MixerRuntime> {
         content_end_frame: u64::MAX,
         project_end_frame: u64::MAX,
         tail_end_frame: Some(u64::MAX),
-        has_infinite_tail: false,
         input_peaks,
         input_meter_routes: vec![None; scenario.tracks + 2],
         monitor_input_routes: vec![None; scenario.tracks + 2],
@@ -262,10 +261,6 @@ impl RenderHarness {
             rendered += block_frames;
         }
         output
-    }
-
-    pub fn publish_meters(&mut self, elapsed_frames: usize) {
-        self.runtime.publish_peaks(elapsed_frames);
     }
 }
 
@@ -391,30 +386,6 @@ impl ParameterQueueHarness {
 impl Default for ParameterQueueHarness {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-pub struct GraphSwapHarness {
-    current: Option<Box<MixerRuntime>>,
-    replacement: Option<Box<MixerRuntime>>,
-}
-
-impl GraphSwapHarness {
-    pub fn new(scenario: RenderScenario) -> Self {
-        Self {
-            current: Some(runtime_for(scenario)),
-            replacement: Some(runtime_for(scenario)),
-        }
-    }
-
-    pub fn swap_at_block_boundary(&mut self) {
-        let mut current = self.current.take().expect("current graph");
-        let replacement = self.replacement.take().expect("replacement graph");
-        let incoming = current
-            .handle_command(EngineCommand::LoadMixer(replacement))
-            .expect("load command returns replacement");
-        self.current = Some(incoming);
-        self.replacement = Some(current);
     }
 }
 

@@ -382,7 +382,6 @@ fn build_mixer_runtime_compiles_a_simple_graph_with_monitoring_and_pdc() {
     ));
     assert!(runtime.monitor_input_routes[0].is_some());
     assert_eq!(runtime.tail_end_frame, Some(64));
-    assert!(!runtime.has_infinite_tail);
 }
 
 #[test]

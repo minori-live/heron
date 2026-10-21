@@ -23,14 +23,6 @@ export interface MixerControlOverlayInput {
   soloed?: boolean
 }
 
-export interface MixerControlOverlayInput {
-  id: string
-  gainDb?: number
-  pan?: number
-  muted?: boolean
-  soloed?: boolean
-}
-
 export interface AssetContentHash {
   id: string
   contentHash: string
@@ -222,7 +214,3 @@ export interface WorkerProgress {
   completed: number
   total: number
 }
-
-export type ProjectWorkerConfiguration = ProjectConfiguration
-export type ProjectWorkerAssetSummary = ProjectAssetSummary
-export type ProjectWorkerMixerSnapshot = ProjectGraphSnapshot

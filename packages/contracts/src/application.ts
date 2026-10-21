@@ -1,10 +1,3 @@
-import type { OfflineWorkerRef } from "./rpc.ts"
-
-export interface OfflineToolsResourceSnapshot {
-  worker: OfflineWorkerRef
-  revision: number
-}
-
 export const APPLICATION_COMMAND_IDS = [
   "project.new",
   "project.open",
@@ -57,19 +50,3 @@ export const APPLICATION_WINDOW_COMMAND_IDS = [
 ] as const
 
 export type ApplicationWindowCommandId = (typeof APPLICATION_WINDOW_COMMAND_IDS)[number]
-
-export interface NativeEngineInfo {
-  backend: string
-  version: string
-  nodeApi: number
-}
-
-export interface ProcessGainRequest {
-  samples: number[]
-  gain: number
-}
-
-export interface ProcessGainResult {
-  samples: number[]
-  peak: number
-}

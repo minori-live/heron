@@ -34,86 +34,16 @@ import { IPC_CHANNELS } from "@heron/contracts"
 import {
   createContext,
   invoke,
-  meta,
   mutationMeta,
   registeredHandler,
   trustedEvent
 } from "./test-harness"
 import { registerSystemHandlers } from "./system-handlers"
 
-const { engineInfo, processGain } = vi.hoisted(() => ({
-  engineInfo: vi.fn(() => ({ name: "dsp", version: "1" })),
-  processGain: vi.fn((samples: number[], gain: number) => samples.map((s) => s * gain))
-}))
-
-vi.mock("@heron/dsp-node", () => ({
-  engineInfo,
-  processGain
-}))
-
 describe("registerSystemHandlers", () => {
   beforeEach(() => {
     electronMocks.handle.mockReset()
-    engineInfo.mockClear()
-    processGain.mockClear()
     electronMocks.fromWebContents.mockReset()
-  })
-
-  it("returns engine info for the offline worker target", async () => {
-    const context = createContext()
-    registerSystemHandlers(context)
-
-    const result = await invoke(
-      electronMocks,
-      IPC_CHANNELS.engineInfo,
-      meta({ target: context.lifecycle.applicationState.offlineWorker })
-    )
-
-    expect(result).toMatchObject({ ok: true, value: { name: "dsp", version: "1" } })
-  })
-
-  it("rejects engine info for a stale target", async () => {
-    const context = createContext()
-    registerSystemHandlers(context)
-
-    const result = await invoke(
-      electronMocks,
-      IPC_CHANNELS.engineInfo,
-      meta({
-        target: { kind: "offline-worker", id: "offline-tools", epoch: "other", generation: 1 }
-      })
-    )
-
-    expect(result).toMatchObject({ ok: false, error: { code: "stale-resource" } })
-  })
-
-  it("processes gain for the offline worker", async () => {
-    const context = createContext()
-    registerSystemHandlers(context)
-
-    const result = await invoke(
-      electronMocks,
-      IPC_CHANNELS.processGain,
-      meta({ target: context.lifecycle.applicationState.offlineWorker }),
-      { samples: [1, -1], gain: 2 }
-    )
-
-    expect(processGain).toHaveBeenCalledWith([1, -1], 2)
-    expect(result).toMatchObject({ ok: true, value: [2, -2] })
-  })
-
-  it("rejects invalid gain requests", async () => {
-    const context = createContext()
-    registerSystemHandlers(context)
-
-    const result = await invoke(
-      electronMocks,
-      IPC_CHANNELS.processGain,
-      meta({ target: context.lifecycle.applicationState.offlineWorker }),
-      { samples: [1], gain: 100 }
-    )
-
-    expect(result).toMatchObject({ ok: false, error: { code: "invariant-violation" } })
   })
 
   it("dispatches window commands to the owning BrowserWindow", async () => {

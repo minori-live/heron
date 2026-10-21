@@ -87,7 +87,6 @@ describe("AudioHostTransportClient direct-telemetry fallback", () => {
       runtime: { state: "running" }
     })
     expect(client.audioPreferences()).toEqual(preferences)
-    expect(client.engineExpectedRunning()).toBe(true)
     await expect(client.keepRestoredDevice(7)).resolves.toMatchObject({ recovery: null })
     await expect(client.deviceRecoverySnapshot()).resolves.toEqual({
       recovery: null,

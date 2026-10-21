@@ -11,7 +11,6 @@ import {
   validateAudioBackend,
   validateAudioPreferences,
   validateCreateProject,
-  validateGainRequest,
   validateProjectConfiguration,
   validateRoundTripLatencyMeasurementRequest,
   validateSettingsPatch,
@@ -240,36 +239,6 @@ describe("validateSettingsPatch", () => {
     for (const [patch, message] of cases) {
       expect(() => validateSettingsPatch(patch), message).toThrow(message)
     }
-  })
-})
-
-describe("validateGainRequest", () => {
-  it("accepts a finite sample array within the gain range", () => {
-    expect(validateGainRequest({ samples: [-1, 0, 1], gain: -16 })).toEqual({
-      samples: [-1, 0, 1],
-      gain: -16
-    })
-  })
-
-  it("rejects non-objects", () => {
-    expect(() => validateGainRequest(null)).toThrow("Gain request must be an object")
-  })
-
-  it("rejects sample arrays that are the wrong shape, too long, or non-finite", () => {
-    expect(() => validateGainRequest({ samples: "0,1", gain: 1 })).toThrow(/Samples must be/)
-    expect(() => validateGainRequest({ samples: [Number.NaN], gain: 1 })).toThrow(/Samples must be/)
-    expect(() => validateGainRequest({ samples: [Number.POSITIVE_INFINITY], gain: 1 })).toThrow(
-      /Samples must be/
-    )
-    expect(() => validateGainRequest({ samples: new Array(1_000_001).fill(0), gain: 1 })).toThrow(
-      /Samples must be/
-    )
-  })
-
-  it("bounds the gain to the range the preview stage supports", () => {
-    expect(() => validateGainRequest({ samples: [], gain: 16.5 })).toThrow(/Gain must be/)
-    expect(() => validateGainRequest({ samples: [], gain: Number.NaN })).toThrow(/Gain must be/)
-    expect(() => validateGainRequest({ samples: [], gain: "1" })).toThrow(/Gain must be/)
   })
 })
 

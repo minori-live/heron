@@ -12,15 +12,6 @@ interface ArrangementViewportOptions {
   zoomAmplitude: (direction: -1 | 1) => void
 }
 
-export function clampTimelineViewportX(
-  clientX: number,
-  viewportLeft: number,
-  railWidth: number,
-  viewportWidth: number
-): number {
-  return Math.max(0, Math.min(viewportWidth, clientX - viewportLeft - railWidth))
-}
-
 export function zoomedViewportScrollLeft(
   tempoMap: TempoMapSnapshot,
   anchorSeconds: number,

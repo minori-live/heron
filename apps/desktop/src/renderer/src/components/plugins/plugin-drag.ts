@@ -6,27 +6,6 @@ export type PluginDragPayload =
   | { source: "catalog"; descriptor: PluginDescriptor }
   | { source: "rack"; instanceId: string }
 
-type PluginDropPreviewOwner = () => void
-
-let activePluginDropPreview: PluginDropPreviewOwner | null = null
-
-export function claimPluginDropPreview(owner: PluginDropPreviewOwner): void {
-  if (activePluginDropPreview === owner) return
-  const previousOwner = activePluginDropPreview
-  activePluginDropPreview = owner
-  previousOwner?.()
-}
-
-export function releasePluginDropPreview(owner: PluginDropPreviewOwner): void {
-  if (activePluginDropPreview === owner) activePluginDropPreview = null
-}
-
-export function clearActivePluginDropPreview(): void {
-  const owner = activePluginDropPreview
-  activePluginDropPreview = null
-  owner?.()
-}
-
 export function serializePluginDrag(payload: PluginDragPayload): string {
   return JSON.stringify(payload)
 }

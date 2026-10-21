@@ -11,11 +11,6 @@ import type {
 import type { PluginInstanceRole, PluginInstanceState } from "./plugins.ts"
 
 export const MIXER_BUS_COUNT = 256
-export const DEFAULT_LIVE_CHANNEL_COLORS = {
-  audio: "#4F8CFF",
-  instrument: "#73D6A2",
-  aux: "#B889F2"
-} as const
 export const DEFAULT_PROJECT_END_TICK = 61_440
 
 export type MixerChannelKind = "audio" | "instrument" | "aux" | "master" | "output"

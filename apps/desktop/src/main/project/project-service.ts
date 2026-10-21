@@ -600,10 +600,6 @@ export class ProjectService {
     return true
   }
 
-  async abortOpen(): Promise<void> {
-    await this.abortCandidate()
-  }
-
   async shutdown(strict = false): Promise<void> {
     const contexts = this.workspaces.drain()
     const results = await Promise.allSettled(contexts.map((context) => context.worker.terminate()))
