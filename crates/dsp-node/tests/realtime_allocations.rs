@@ -161,6 +161,7 @@ fn realtime_mixer_render_preview_and_capture_do_not_allocate() {
         total_clips: 64,
         active_clips: 32,
         clip_frames: 256,
+        amplitude: 0.25,
     });
     let _ = render.render_block(256);
     assert_no_thread_allocations("NativeMixerRuntime::render_frame", || {

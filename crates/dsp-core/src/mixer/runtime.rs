@@ -508,16 +508,13 @@ impl MixerGraph {
             if let Some(route) = output_route.filter(|_| output_audible[index]) {
                 let delay_empty = channel_runtime[index].output_delay.is_empty();
                 if delay_empty {
-                    // Copy post-pan into send-tap scratch so bus accumulation can
-                    // borrow mutably without overlapping `post_pan`.
-                    block.send_tap[..frame_count].copy_from_slice(&block.post_pan[start..end]);
                     Self::route_block_tap(
                         route,
                         frame_count,
                         simd_level,
                         &mut block.bus_accumulation,
                         channel_sources,
-                        &block.send_tap[..frame_count],
+                        &block.post_pan[start..end],
                     );
                 } else {
                     for frame in 0..frame_count {

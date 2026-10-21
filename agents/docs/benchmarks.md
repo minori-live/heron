@@ -12,7 +12,23 @@ The mixer pilot uses `fearless_simd` for bus accumulation and peak metering in
 (outside the real-time path), keep block scratch behind that prepare step so
 `process_frame` does not carry SIMD state, and keep scalar parity tests beside
 the kernels. The Criterion `mixer_graph` suite covers both `process_frame` and
-`process_block_with_sources` at matching track counts.
+`process_block_with_sources` at matching track counts. Its `realtime_budget`
+group is the block mixer at 8/32/128 tracks and buffer sizes 64/128/512.
+`automation` compares settled faders with a gain change on every track.
+
+`playback_graph` (in `heron-audio-engine`, behind `bench-internals`) is the
+live `MixerRuntime::render_block` path: in-memory clips through the same block
+mixer the device callback uses, including an idle-clip scan, a subnormal-sample
+case, one second of offline mix and single-track freeze, and the input-rate
+bridge. The audio callback flushes subnormals to zero, so the subnormal case
+should stay near the matching normal-sample cost. `render_runtime` adds the same buffer matrix plus a one-pole insert
+count. `rubberband_src` measures offline and streaming Rubber Band R3 conversion.
+`waveform_peaks` builds the multi-resolution peak pyramid. `project_graph`
+round-trips a named MessagePack `PrepareGraphRequest`.
+
+Real-time ids carry `budget=<microseconds>us`, the 48 kHz callback deadline for
+that buffer (`frames * 1_000_000 / 48_000`). Deadline utilization is the
+measured mean divided by that budget. A value above 1 overruns the buffer.
 
 For native analysis stages, plug-in preparation, report transport, and chart
 latency, see [Plugin Analysis performance measurements](plugin-analysis-performance.md).
@@ -77,12 +93,11 @@ regression suite. The bundled gain workload measures realistic hosting overhead,
 not the algorithmic cost of arbitrary third-party synthesis, convolution, or
 oversampling plug-ins.
 
-Criterion writes HTML indexes to
-`crates/dsp-core/target/criterion/report/index.html` and
-`crates/dsp-node/target/criterion/report/index.html`; CSV measurements sit below
-the corresponding benchmark directories. CPU groups report audio frames per
-second. Media groups also report bytes per second where the whole file is
-processed.
+Criterion writes an HTML index under each bench crate's `target/criterion`
+directory (`dsp-core`, `dsp-render`, `dsp-resample`, `dsp-runtime`, `dsp-node`,
+and `audio-engine`). CSV measurements sit below the corresponding benchmark
+directories. CPU groups report audio frames per second. Media and project-graph
+groups also report bytes per second where the whole buffer is processed.
 
 ## Preparing a measurement
 

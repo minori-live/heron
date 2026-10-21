@@ -42,6 +42,8 @@ pub struct RenderScenario {
     pub total_clips: usize,
     pub active_clips: usize,
     pub clip_frames: usize,
+    /// Deterministic peak level written into every active clip sample.
+    pub amplitude: f32,
 }
 
 fn runtime_for(scenario: RenderScenario) -> Box<MixerRuntime> {
@@ -126,7 +128,7 @@ fn runtime_for(scenario: RenderScenario) -> Box<MixerRuntime> {
                 fade_in_frames: 0,
                 fade_out_frames: 0,
                 samples: ClipSamples::Memory(if active {
-                    vec![[0.03125, -0.015625]; clip_frames]
+                    vec![[scenario.amplitude, -scenario.amplitude]; clip_frames]
                 } else {
                     vec![[0.0, 0.0]]
                 }),
@@ -357,6 +359,7 @@ impl ParameterQueueHarness {
                 total_clips: 32,
                 active_clips: 32,
                 clip_frames: 1_024,
+                amplitude: 0.03125,
             }),
             producer,
             consumer,

@@ -997,6 +997,7 @@ version = "0.8.3"
 dependencies = [
  "bwavfile",
  "cpal",
+ "criterion",
  "ebur128",
  "flac-bound",
  "heron-audio-plugin",
@@ -1100,6 +1101,7 @@ dependencies = [
 name = "heron-dsp-resample"
 version = "0.8.3"
 dependencies = [
+ "criterion",
  "heron-rubberband-sys",
  "rustfft",
  "thiserror 2.0.21",
@@ -1109,6 +1111,7 @@ dependencies = [
 name = "heron-dsp-runtime"
 version = "0.8.3"
 dependencies = [
+ "criterion",
  "midly",
  "rmp-serde",
  "serde",

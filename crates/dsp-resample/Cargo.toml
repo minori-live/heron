@@ -14,7 +14,12 @@ heron-rubberband-sys.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+criterion.workspace = true
 rustfft.workspace = true
+
+[[bench]]
+name = "rubberband_src"
+harness = false
 
 [lints]
 workspace = true

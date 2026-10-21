@@ -1,5 +1,5 @@
 use super::{
-    AuditionPlayback, BlockMidiEvent, ChannelPeak, ClipSamples, CountInState, EngineCommand,
+    AuditionPlayback, BlockMidiEvent, ChannelPeak, CountInState, EngineCommand,
     HardwareOutputFrame, HeapProd, InputFrame, MAX_OUTPUT_CHANNELS, MAX_PLUGIN_BLOCK_FRAMES,
     MUSICAL_TICKS_PER_QUARTER, MixerRuntime, Ordering, ProcessContext, RealtimeParameter,
     RecordingTap, ScheduledMidiEvent, ScheduledMidiEventKind, SignalWidth, StereoFrame,
@@ -15,6 +15,7 @@ impl MixerRuntime {
         mut midi_input: Option<&mut crate::midi_input::RealtimeMidiConsumer>,
         mut recording_tap: Option<&mut RecordingTap>,
     ) -> bool {
+        let _denormals = super::denormal::DenormalGuard::enter();
         if inputs.len() != outputs.len() || outputs.len() > MAX_PLUGIN_BLOCK_FRAMES {
             outputs.fill([0.0; MAX_OUTPUT_CHANNELS]);
             return true;
@@ -244,26 +245,8 @@ impl MixerRuntime {
             TRANSPORT_PLAYING | TRANSPORT_RECORDING | TRANSPORT_COUNTING_IN
         ) {
             for clip in &mut self.clips {
-                for frame in 0..frame_count {
-                    let project_frame = position.saturating_add(frame as u64);
-                    let Some(relative) = project_frame.checked_sub(clip.start_frame) else {
-                        continue;
-                    };
-                    let relative = relative as usize;
-                    if relative >= clip.length_frames {
-                        continue;
-                    }
-                    let is_streaming = matches!(&clip.samples, ClipSamples::Streaming(_));
-                    if let Some(sample) = clip.sample_at(relative) {
-                        let gain = clip.gain_at(relative);
-                        let target = &mut self.channel_source_block
-                            [clip.channel_index * frame_count + frame];
-                        target[0] += sample[0] * gain;
-                        target[1] += sample[1] * gain;
-                    } else if is_streaming {
-                        stream_underrun = true;
-                    }
-                }
+                stream_underrun |=
+                    clip.mix_into(position, frame_count, &mut self.channel_source_block);
             }
         }
         if matches!(

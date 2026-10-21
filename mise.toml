@@ -85,7 +85,7 @@ run = "node scripts/cargo-host.ts test --workspace --features heron-dsp-node/ben
 [tasks."rust:bench:check"]
 hide = true
 wait_for = ["native:bindings:debug", "codegen:wire-types:check", "rust:clippy", "rust:test"]
-run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench media_streaming --bench recording --features heron-dsp-node/bench-internals --no-run"
+run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench playback_graph --bench media_streaming --bench recording --bench waveform_peaks --bench rubberband_src --bench project_graph --features heron-dsp-node/bench-internals --no-run"
 
 [tasks."native:bindings:debug"]
 hide = true
@@ -267,19 +267,19 @@ run = "pnpm --filter @heron/desktop run pack"
 
 [tasks.bench]
 description = "Run Rust performance benchmarks"
-run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench media_streaming --bench recording --features heron-dsp-node/bench-internals"
+run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench playback_graph --bench media_streaming --bench recording --bench waveform_peaks --bench rubberband_src --bench project_graph --features heron-dsp-node/bench-internals"
 
 [tasks."bench:quick"]
 description = "Run shortened Rust performance benchmarks"
-run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench media_streaming --bench recording --features heron-dsp-node/bench-internals -- --quick"
+run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench playback_graph --bench media_streaming --bench recording --bench waveform_peaks --bench rubberband_src --bench project_graph --features heron-dsp-node/bench-internals -- --quick"
 
 [tasks."bench:save"]
 description = "Save the main Rust benchmark baseline"
-run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench media_streaming --bench recording --features heron-dsp-node/bench-internals -- --save-baseline main"
+run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench playback_graph --bench media_streaming --bench recording --bench waveform_peaks --bench rubberband_src --bench project_graph --features heron-dsp-node/bench-internals -- --save-baseline main"
 
 [tasks."bench:compare"]
 description = "Compare Rust benchmarks with the saved main baseline"
-run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench media_streaming --bench recording --features heron-dsp-node/bench-internals -- --baseline main"
+run = "node scripts/cargo-host.ts bench --workspace --bench mixer_graph --bench render_runtime --bench playback_graph --bench media_streaming --bench recording --bench waveform_peaks --bench rubberband_src --bench project_graph --features heron-dsp-node/bench-internals -- --baseline main"
 
 [tasks."soak:device-recovery"]
 description = "Cycle mock audio device loss, return, keep, and replacement decisions"

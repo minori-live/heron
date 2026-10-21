@@ -15,6 +15,7 @@ impl StreamingClip {
         self.sample_at(frame)
     }
 
+    #[cfg_attr(not(any(test, feature = "bench-internals")), allow(dead_code))]
     pub(super) fn sample_at(&mut self, frame: usize) -> Option<StereoFrame> {
         if self.expected_frame != Some(frame) {
             self.control.generation.fetch_add(1, Ordering::AcqRel);
@@ -43,6 +44,113 @@ impl StreamingClip {
             .then(|| window.load(frame - start));
             self.control.reader_window.store(0, Ordering::Release);
             return sample;
+        }
+        None
+    }
+
+    /// Mix `dest.len()` source frames starting at `source_frame`.
+    ///
+    /// The reader pins the active window and copies every frame that window
+    /// still covers, then releases the pin. A later frame takes a second pin so
+    /// a window swap in the middle of the block stays visible. `requested_frame`
+    /// ends on the last frame of the range, which is the prefetch cursor a
+    /// per-sample walk would leave behind.
+    fn mix_range(
+        &mut self,
+        source_frame: usize,
+        relative: usize,
+        fade_in: usize,
+        fade_out: usize,
+        length: usize,
+        dest: &mut [StereoFrame],
+    ) -> bool {
+        let count = dest.len();
+        if count == 0 {
+            return false;
+        }
+        let Some(end_frame) = source_frame.checked_add(count) else {
+            return true;
+        };
+        if self.expected_frame != Some(source_frame) {
+            self.control.generation.fetch_add(1, Ordering::AcqRel);
+        }
+        self.control
+            .requested_frame
+            .store(source_frame as u64, Ordering::Release);
+
+        let mut consumed = 0usize;
+        let mut underrun = false;
+        while consumed < count {
+            let frame = source_frame + consumed;
+            let Some(active) = self.pin_matching_window() else {
+                underrun = true;
+                consumed += 1;
+                continue;
+            };
+            let window = &self.control.windows[active];
+            let start = window.start_frame.load(Ordering::Relaxed) as usize;
+            let window_count = window.frame_count.load(Ordering::Relaxed);
+            let window_end = start.saturating_add(window_count);
+            if frame < start || frame >= window_end {
+                self.control.reader_window.store(0, Ordering::Release);
+                underrun = true;
+                consumed += 1;
+                continue;
+            }
+            let run = (window_end - frame).min(count - consumed);
+            if fade_in == 0 && fade_out == 0 {
+                for index in 0..run {
+                    let sample = window.load(frame + index - start);
+                    let out = &mut dest[consumed + index];
+                    out[0] += sample[0];
+                    out[1] += sample[1];
+                }
+            } else {
+                for index in 0..run {
+                    let sample = window.load(frame + index - start);
+                    accumulate_with_gain(
+                        &mut dest[consumed + index],
+                        sample,
+                        relative + consumed + index,
+                        fade_in,
+                        fade_out,
+                        length,
+                    );
+                }
+            }
+            self.control.reader_window.store(0, Ordering::Release);
+            consumed += run;
+        }
+
+        self.expected_frame = Some(end_frame);
+        self.control
+            .requested_frame
+            .store(end_frame as u64 - 1, Ordering::Release);
+        underrun
+    }
+
+    /// Pin the active window when its generation matches the reader's.
+    ///
+    /// The pin stays held on `Some`. The caller copies out of that window, then
+    /// stores `reader_window` back to zero.
+    fn pin_matching_window(&self) -> Option<usize> {
+        for _ in 0..2 {
+            let active = self.control.active_window.load(Ordering::Acquire);
+            self.control
+                .reader_window
+                .store(active + 1, Ordering::Release);
+            if active != self.control.active_window.load(Ordering::Acquire) {
+                self.control.reader_window.store(0, Ordering::Release);
+                continue;
+            }
+            let generation = self.control.windows[active]
+                .generation
+                .load(Ordering::Acquire);
+            if generation == self.control.generation.load(Ordering::Acquire) {
+                return Some(active);
+            }
+            self.control.reader_window.store(0, Ordering::Release);
+            return None;
         }
         None
     }
@@ -127,26 +235,141 @@ pub(super) struct LoadedClip {
 }
 
 impl LoadedClip {
-    pub(super) fn sample_at(&mut self, relative: usize) -> Option<StereoFrame> {
-        let source_frame = self.source_offset_frames.checked_add(relative)?;
-        match &mut self.samples {
-            ClipSamples::Memory(samples) => samples.get(source_frame).copied(),
-            ClipSamples::Streaming(stream) => stream.sample_at(source_frame),
-        }
+    #[cfg(test)]
+    pub(super) fn gain_at(&self, relative: usize) -> f32 {
+        clip_gain(
+            self.fade_in_frames,
+            self.fade_out_frames,
+            self.length_frames,
+            relative,
+        )
     }
 
-    pub(super) fn gain_at(&self, relative: usize) -> f32 {
-        let fade_in = if self.fade_in_frames == 0 || relative >= self.fade_in_frames {
-            1.0
-        } else {
-            ((relative as f32) / (self.fade_in_frames as f32)).sqrt()
+    /// Add the clip's overlap with `[position, position + frame_count)` into the
+    /// channel-major block. Streaming misses report an underrun. A memory read
+    /// past the end of the buffer stays silent.
+    pub(super) fn mix_into(
+        &mut self,
+        position: u64,
+        frame_count: usize,
+        channel_sources: &mut [StereoFrame],
+    ) -> bool {
+        if frame_count == 0 {
+            return false;
+        }
+        let block_end = position.saturating_add(frame_count as u64);
+        let clip_end = self.start_frame.saturating_add(self.length_frames as u64);
+        let overlap_start = position.max(self.start_frame);
+        let overlap_end = block_end.min(clip_end);
+        if overlap_start >= overlap_end {
+            return false;
+        }
+        let dest_offset = (overlap_start - position) as usize;
+        let relative = (overlap_start - self.start_frame) as usize;
+        let count = (overlap_end - overlap_start) as usize;
+        let base = self
+            .channel_index
+            .saturating_mul(frame_count)
+            .saturating_add(dest_offset);
+        let Some(end) = base
+            .checked_add(count)
+            .filter(|end| *end <= channel_sources.len())
+        else {
+            return false;
         };
-        let remaining = self.length_frames.saturating_sub(relative);
-        let fade_out = if self.fade_out_frames == 0 || remaining > self.fade_out_frames {
-            1.0
-        } else {
-            ((remaining as f32) / (self.fade_out_frames as f32)).sqrt()
-        };
-        fade_in * fade_out
+        let dest = &mut channel_sources[base..end];
+        let fade_in = self.fade_in_frames;
+        let fade_out = self.fade_out_frames;
+        let length = self.length_frames;
+        let source_offset = self.source_offset_frames;
+        match &mut self.samples {
+            ClipSamples::Memory(samples) => {
+                mix_memory(
+                    samples,
+                    source_offset,
+                    relative,
+                    fade_in,
+                    fade_out,
+                    length,
+                    dest,
+                );
+                false
+            }
+            ClipSamples::Streaming(stream) => {
+                let Some(source_frame) = source_offset.checked_add(relative) else {
+                    return true;
+                };
+                stream.mix_range(source_frame, relative, fade_in, fade_out, length, dest)
+            }
+        }
+    }
+}
+
+fn clip_gain(
+    fade_in_frames: usize,
+    fade_out_frames: usize,
+    length_frames: usize,
+    relative: usize,
+) -> f32 {
+    let fade_in = if fade_in_frames == 0 || relative >= fade_in_frames {
+        1.0
+    } else {
+        ((relative as f32) / (fade_in_frames as f32)).sqrt()
+    };
+    let remaining = length_frames.saturating_sub(relative);
+    let fade_out = if fade_out_frames == 0 || remaining > fade_out_frames {
+        1.0
+    } else {
+        ((remaining as f32) / (fade_out_frames as f32)).sqrt()
+    };
+    fade_in * fade_out
+}
+
+fn mix_memory(
+    samples: &[StereoFrame],
+    source_offset: usize,
+    relative: usize,
+    fade_in: usize,
+    fade_out: usize,
+    length: usize,
+    dest: &mut [StereoFrame],
+) {
+    let Some(source_start) = source_offset.checked_add(relative) else {
+        return;
+    };
+    let available = samples.len().saturating_sub(source_start).min(dest.len());
+    if available == 0 {
+        return;
+    }
+    let src = &samples[source_start..source_start + available];
+    let dest = &mut dest[..available];
+    if fade_in == 0 && fade_out == 0 {
+        for (out, sample) in dest.iter_mut().zip(src) {
+            out[0] += sample[0];
+            out[1] += sample[1];
+        }
+        return;
+    }
+    for (index, (out, sample)) in dest.iter_mut().zip(src).enumerate() {
+        accumulate_with_gain(out, *sample, relative + index, fade_in, fade_out, length);
+    }
+}
+
+fn accumulate_with_gain(
+    dest: &mut StereoFrame,
+    sample: StereoFrame,
+    relative: usize,
+    fade_in: usize,
+    fade_out: usize,
+    length: usize,
+) {
+    let unity_end = length.saturating_sub(fade_out);
+    if relative >= fade_in && relative < unity_end {
+        dest[0] += sample[0];
+        dest[1] += sample[1];
+    } else {
+        let gain = clip_gain(fade_in, fade_out, length, relative);
+        dest[0] += sample[0] * gain;
+        dest[1] += sample[1] * gain;
     }
 }

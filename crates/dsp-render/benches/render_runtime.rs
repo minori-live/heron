@@ -2,9 +2,39 @@ use std::{hint::black_box, time::Duration};
 
 use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use heron_dsp_render::{
-    AudioClipSource, RenderChannelKind, RenderChannelSpec, RenderClipSpec, RenderGraphSpec,
-    RenderResources, RenderRoute, RenderRuntime, RenderTransport, TempoEvent, TimeSignatureEvent,
+    AudioClipSource, AudioPluginProcessor, AudioPluginProcessorHandle, ProcessOutcome,
+    RenderChannelKind, RenderChannelSpec, RenderClipSpec, RenderGraphSpec, RenderPluginSpec,
+    RenderResources, RenderRoute, RenderRuntime, RenderTransport, SidechainSource, TempoEvent,
+    TimeSignatureEvent,
 };
+
+#[derive(Clone)]
+struct OnePole {
+    coefficient: f32,
+    state: [f32; 2],
+}
+
+impl AudioPluginProcessor for OnePole {
+    fn clone_box(&self) -> Box<dyn AudioPluginProcessor> {
+        Box::new(self.clone())
+    }
+
+    fn process_block(
+        &mut self,
+        frames: &mut [[f32; 2]],
+        _sidechains: &dyn SidechainSource,
+        _context: &heron_dsp_render::ProcessContext,
+    ) -> ProcessOutcome {
+        let coefficient = self.coefficient;
+        for frame in frames {
+            for (state, sample) in self.state.iter_mut().zip(frame.iter_mut()) {
+                *state += coefficient * (*sample - *state);
+                *sample = *state;
+            }
+        }
+        ProcessOutcome::Processed
+    }
+}
 
 struct ConstantClip {
     frames: u64,
@@ -25,7 +55,13 @@ impl AudioClipSource for ConstantClip {
     }
 }
 
-fn runtime(sample_rate: u32, tracks: usize, clips: usize, clip_frames: u64) -> RenderRuntime {
+fn runtime(
+    sample_rate: u32,
+    tracks: usize,
+    clips: usize,
+    clip_frames: u64,
+    plugins_per_track: usize,
+) -> RenderRuntime {
     let mut resources = RenderResources::new();
     let mut channels = Vec::with_capacity(tracks + 2);
     let mut clip_specs = Vec::with_capacity(clips);
@@ -67,6 +103,27 @@ fn runtime(sample_rate: u32, tracks: usize, clips: usize, clip_frames: u64) -> R
         hardware_input: None,
         hardware_output: Some([0, 1]),
     });
+    if plugins_per_track > 0 {
+        resources.insert_plugin(
+            "one-pole",
+            AudioPluginProcessorHandle::new(OnePole {
+                coefficient: 0.05,
+                state: [0.0; 2],
+            }),
+        );
+    }
+    let mut plugin_specs = Vec::with_capacity(tracks.saturating_mul(plugins_per_track));
+    for track in 0..tracks {
+        for slot in 0..plugins_per_track {
+            plugin_specs.push(RenderPluginSpec {
+                id: format!("plugin-{track}-{slot}"),
+                processor_id: "one-pole".to_owned(),
+                channel_id: format!("track-{track}"),
+                slot_order: slot as u32,
+                enabled: true,
+            });
+        }
+    }
     for clip in 0..clips {
         let source_id = format!("source-{clip}");
         resources.insert_clip(
@@ -90,7 +147,7 @@ fn runtime(sample_rate: u32, tracks: usize, clips: usize, clip_frames: u64) -> R
             channels,
             sends: vec![],
             clips: clip_specs,
-            plugins: vec![],
+            plugins: plugin_specs,
             midi: vec![],
             tempo_events: vec![TempoEvent {
                 tick: 0,
@@ -127,7 +184,7 @@ fn timeline_complexity(c: &mut Criterion) {
     let block_frames = 256_usize;
     group.throughput(Throughput::Elements(block_frames as u64));
     for &(tracks, clips) in &[(1, 1), (16, 64), (32, 128), (64, 512)] {
-        let mut runtime = runtime(48_000, tracks, clips, 1_000_000);
+        let mut runtime = runtime(48_000, tracks, clips, 1_000_000, 0);
         let mut output = vec![[0.0; 32]; block_frames];
         group.bench_with_input(
             BenchmarkId::new("block=256", format!("tracks={tracks}/clips={clips}")),
@@ -145,7 +202,7 @@ fn sample_rates_and_blocks(c: &mut Criterion) {
     for &sample_rate in &[48_000_u32, 96_000] {
         for &block_frames in &[64_usize, 256, 1_024] {
             group.throughput(Throughput::Elements(block_frames as u64));
-            let mut runtime = runtime(sample_rate, 32, 64, 1_000_000);
+            let mut runtime = runtime(sample_rate, 32, 64, 1_000_000, 0);
             let mut output = vec![[0.0; 32]; block_frames];
             group.bench_function(format!("{sample_rate}Hz/block={block_frames}"), |bencher| {
                 bencher.iter(|| runtime.render_block(&[], black_box(&mut output)));
@@ -155,9 +212,51 @@ fn sample_rates_and_blocks(c: &mut Criterion) {
     group.finish();
 }
 
+fn plugin_inserts(c: &mut Criterion) {
+    let mut group = group(c, "dsp-render/runtime/plugin_inserts");
+    for &plugins_per_track in &[0_usize, 1, 4] {
+        for &block_frames in &[64_usize, 128, 512] {
+            group.throughput(Throughput::Elements(block_frames as u64));
+            let mut runtime = runtime(48_000, 32, 32, 1_000_000, plugins_per_track);
+            let mut output = vec![[0.0; 32]; block_frames];
+            let budget_us = (block_frames as u64) * 1_000_000 / 48_000;
+            group.bench_function(
+                format!(
+                    "48kHz/tracks=32/inserts={plugins_per_track}/block={block_frames}/budget={budget_us}us"
+                ),
+                |bencher| {
+                    bencher.iter(|| runtime.render_block(&[], black_box(&mut output)));
+                },
+            );
+        }
+    }
+    group.finish();
+}
+
+fn realtime_budget(c: &mut Criterion) {
+    let mut group = group(c, "dsp-render/runtime/realtime_budget");
+    for &tracks in &[8_usize, 32, 128] {
+        for &block_frames in &[64_usize, 128, 512] {
+            group.throughput(Throughput::Elements(block_frames as u64));
+            let mut runtime = runtime(48_000, tracks, tracks, 1_000_000, 0);
+            let mut output = vec![[0.0; 32]; block_frames];
+            let budget_us = (block_frames as u64) * 1_000_000 / 48_000;
+            group.bench_function(
+                format!(
+                    "48kHz/tracks={tracks}/clips={tracks}/block={block_frames}/budget={budget_us}us"
+                ),
+                |bencher| {
+                    bencher.iter(|| runtime.render_block(&[], black_box(&mut output)));
+                },
+            );
+        }
+    }
+    group.finish();
+}
+
 fn control_and_meter(c: &mut Criterion) {
     let mut group = group(c, "dsp-render/runtime/control_and_meter");
-    let mut runtime = runtime(48_000, 128, 128, 1_000_000);
+    let mut runtime = runtime(48_000, 128, 128, 1_000_000, 0);
     let mut gain = -18.0_f32;
     group.bench_function("parameter-preview", |bencher| {
         bencher.iter(|| {
@@ -184,6 +283,8 @@ criterion_group!(
     benches,
     timeline_complexity,
     sample_rates_and_blocks,
+    realtime_budget,
+    plugin_inserts,
     control_and_meter
 );
 criterion_main!(benches);

@@ -28,4 +28,11 @@ pub use waveform::{
     NativeAnalyzedWaveform, NativeFinalizeRecordingConfig, NativeFinalizedRecording,
     NativeRecordingResult, NativeRecordingStartConfig, NativeWaveformLevel,
 };
+
+/// Peak-pyramid size for Criterion. The bench target cannot see `pub(super)` helpers.
+#[cfg(feature = "bench-internals")]
+#[must_use]
+pub fn benchmark_waveform_levels(samples: &[f32], channels: usize) -> usize {
+    waveform::build_waveform_levels(samples, channels).len()
+}
 pub use waveform_analysis::{FinalizeRecordingTask, analyze_waveform, finalize_recording};
