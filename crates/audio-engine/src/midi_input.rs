@@ -22,7 +22,7 @@ use heron_dsp_runtime::{
         MidiSyncRuntime,
     },
 };
-use midir::{Ignore, MidiInput, MidiInputConnection, MidiInputPort};
+use midir::{Ignore, MidiInput, MidiInputConnection};
 use ringbuf::{
     Cons, HeapCons, HeapProd, HeapRb, Prod,
     traits::{Consumer, Observer, Producer, Split},
@@ -345,10 +345,18 @@ impl MidiInputActor {
         preferences: MidiSyncPreferences,
         control_wake: Arc<dyn Fn() + Send + Sync + 'static>,
     ) -> Self {
+        Self::start_with_port_enumerator(preferences, control_wake, enumerate_ports)
+    }
+
+    fn start_with_port_enumerator(
+        preferences: MidiSyncPreferences,
+        control_wake: Arc<dyn Fn() + Send + Sync + 'static>,
+        enumerate_ports: impl FnMut() -> Result<Vec<WireMidiInputPort>, String> + Send + 'static,
+    ) -> Self {
         let (sender, receiver) = mpsc::channel();
         let thread = thread::Builder::new()
             .name("heron-midi-input".to_owned())
-            .spawn(move || run_actor(receiver, preferences, control_wake))
+            .spawn(move || run_actor(receiver, preferences, control_wake, enumerate_ports))
             .ok();
         Self { sender, thread }
     }
@@ -466,6 +474,7 @@ fn run_actor(
     receiver: mpsc::Receiver<Command>,
     preferences: MidiSyncPreferences,
     control_wake: Arc<dyn Fn() + Send + Sync + 'static>,
+    mut enumerate_ports: impl FnMut() -> Result<Vec<WireMidiInputPort>, String>,
 ) {
     let realtime_shared = RealtimeInputShared::get();
     let mut state = ActorState {
@@ -494,7 +503,7 @@ fn run_actor(
         .external_sync_enabled
         .store(state.preferences.enabled, Ordering::Release);
     state.clock.set_enabled(state.preferences.enabled);
-    enumerate_and_reconcile(&mut state);
+    enumerate_and_reconcile(&mut state, &mut enumerate_ports);
     let mut last_enumeration = Instant::now();
     loop {
         match receiver.recv_timeout(ACTOR_POLL_INTERVAL) {
@@ -509,7 +518,7 @@ fn run_actor(
                     .external_sync_enabled
                     .store(state.preferences.enabled, Ordering::Release);
                 state.clock.set_enabled(state.preferences.enabled);
-                enumerate_and_reconcile(&mut state);
+                enumerate_and_reconcile(&mut state, &mut enumerate_ports);
                 let _ = reply.send(Ok(snapshot(&state)));
             }
             Ok(Command::Routes {
@@ -518,7 +527,7 @@ fn run_actor(
             }) => {
                 state.all_inputs = all_inputs;
                 state.route_port_ids = port_ids;
-                enumerate_and_reconcile(&mut state);
+                enumerate_and_reconcile(&mut state, &mut enumerate_ports);
             }
             Ok(Command::Snapshot(reply)) => {
                 let _ = reply.send(snapshot(&state));
@@ -566,7 +575,7 @@ fn run_actor(
             Err(mpsc::RecvTimeoutError::Timeout) => {}
         }
         if last_enumeration.elapsed() >= PORT_POLL_INTERVAL {
-            enumerate_and_reconcile(&mut state);
+            enumerate_and_reconcile(&mut state, &mut enumerate_ports);
             last_enumeration = Instant::now();
         }
         drain_connections(&mut state);
@@ -603,26 +612,26 @@ fn validate_preferences(preferences: &MidiSyncPreferences) -> Result<(), String>
     Ok(())
 }
 
-fn enumerate_ports() -> Result<Vec<(MidiInputPort, WireMidiInputPort)>, String> {
+fn enumerate_ports() -> Result<Vec<WireMidiInputPort>, String> {
     let input = MidiInput::new("Heron MIDI enumeration").map_err(|error| error.to_string())?;
     Ok(input
         .ports()
         .into_iter()
         .filter_map(|port| {
             let name = input.port_name(&port).ok()?;
-            Some((
-                port.clone(),
-                WireMidiInputPort {
-                    id: port.id(),
-                    name,
-                    connected: true,
-                },
-            ))
+            Some(WireMidiInputPort {
+                id: port.id(),
+                name,
+                connected: true,
+            })
         })
         .collect())
 }
 
-fn enumerate_and_reconcile(state: &mut ActorState) {
+fn enumerate_and_reconcile(
+    state: &mut ActorState,
+    enumerate_ports: &mut impl FnMut() -> Result<Vec<WireMidiInputPort>, String>,
+) {
     let ports = match enumerate_ports() {
         Ok(ports) => ports,
         Err(error) => {
@@ -631,7 +640,7 @@ fn enumerate_and_reconcile(state: &mut ActorState) {
         }
     };
     state.error = None;
-    state.ports = ports.iter().map(|(_, port)| port.clone()).collect();
+    state.ports = ports;
     let available: BTreeSet<_> = state.ports.iter().map(|port| port.id.clone()).collect();
     let mut wanted = state.route_port_ids.clone();
     if state.all_inputs {
