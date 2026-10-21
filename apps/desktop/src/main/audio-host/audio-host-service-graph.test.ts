@@ -261,4 +261,69 @@ describe("AudioHostService graph", () => {
     ])
     await service.stop()
   })
+
+  it("loads live freeze processors and keeps the session graph for the later restore", async () => {
+    const service = new AudioHostService(
+      { workerThreads: "auto", maxBlockingThreads: "auto" },
+      undefined,
+      () => {},
+      async () => {}
+    )
+    service.start()
+    const session = graph(48_000)
+    await service.loadGraph(4, session.project, session.runtime)
+    const live = graph(48_000)
+    live.project.plugins = [pluginInstance("insert")]
+    live.runtime.plugins = [
+      {
+        instance_id: "insert",
+        instance_generation: 1,
+        channel_id: "audio-1",
+        role: "insert",
+        slot_order: 1,
+        audio_mode: "stereo",
+        duplicate_mono_output: false,
+        enabled: true,
+        aux_input_buses: [],
+        latency_samples: 32,
+        tail_samples: 64
+      }
+    ]
+    const rendered = await service.deployTrackFreezeSource(live.project, live.runtime)
+    const stored = (
+      service as unknown as {
+        lastGraph: { revision: number; runtime: { plugins: { instance_id: string }[] } }
+      }
+    ).lastGraph
+    expect(rendered.plugins.map((plugin) => plugin.instance_id)).toEqual(["insert"])
+    expect(stored.runtime.plugins).toEqual([])
+    expect(stored.revision).toBe(4)
+    const client = fakeHost.Client.instances[0]!
+    const prepared = client.commands.filter((command) => command.type === "prepare-graph").at(-1)
+    expect(prepared).toMatchObject({
+      request: { graphRevision: 5, graph: { plugins: [{ instance_id: "insert" }] } }
+    })
+    expect(client.graphRevision).toBe(5)
+    expect(client.commands).toContainEqual(
+      expect.objectContaining({ type: "load-plugin", instance_id: "insert" })
+    )
+
+    await service.restartAfterOfflineBounce(false)
+    const restored = fakeHost.Client.instances.at(-1)!
+    expect(restored).not.toBe(client)
+    expect(restored.graphRevision).toBe(4)
+    expect(
+      restored.commands.filter((command) => command.type === "prepare-graph").at(-1)
+    ).toMatchObject({
+      request: { baseRevision: 0, graphRevision: 4 }
+    })
+    await service.loadGraph(5, session.project, session.runtime)
+    expect(restored.graphRevision).toBe(5)
+    expect(
+      restored.commands.filter((command) => command.type === "prepare-graph").at(-1)
+    ).toMatchObject({
+      request: { baseRevision: 4, graphRevision: 5 }
+    })
+    await service.stop()
+  })
 })

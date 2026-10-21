@@ -68,6 +68,8 @@ import type {
   AudioHostGraph,
   AudioHostBounceRequest,
   AudioHostBounceStatus,
+  AudioHostTrackFreezeRequest,
+  AudioHostTrackFreezeStatus,
   AudioHostMidiRecordingConfig,
   AudioHostMidiRecordingResult,
   AudioHostRecordingConfig,
@@ -81,6 +83,8 @@ export type {
   AudioHostGraph,
   AudioHostBounceRequest,
   AudioHostBounceStatus,
+  AudioHostTrackFreezeRequest,
+  AudioHostTrackFreezeStatus,
   AudioHostMidiRecordingConfig,
   AudioHostMidiRecordingResult,
   AudioHostRecordingConfig,
@@ -838,7 +842,7 @@ export class AudioHostService {
     if (response.result.type !== "bounce-output" || !response.result.status) {
       throw new Error(response.result.error?.userMessageKey ?? "audio host rejected bounce")
     }
-    return response.result.status
+    return response.result.status as AudioHostBounceStatus
   }
 
   refreshDesiredProjectGraph(project: ProjectGraphSnapshot): void {
@@ -859,13 +863,96 @@ export class AudioHostService {
     if (response.result.type !== "bounce-output" || !response.result.status) {
       throw new Error(response.result.error?.userMessageKey ?? "bounce status is unavailable")
     }
-    return response.result.status
+    return response.result.status as AudioHostBounceStatus
   }
 
   async cancelBounceOutput(operationId: string): Promise<void> {
     const response = await this.request({ type: "cancel-bounce-output", operation_id: operationId })
     if (response.result.type !== "bounce-output") {
       throw new Error(response.result.error?.userMessageKey ?? "bounce cancellation failed")
+    }
+  }
+
+  /**
+   * Activate one track's live source on the offline client.
+   *
+   * Graph activation keeps processor handles only for plug-ins in the runtime
+   * that was just published. A frozen session graph omits the baked chain, so
+   * the freeze worker would clone that reduced set. This publication loads the
+   * live chain, then puts the session graph back as the graph a later offline
+   * restart republishes.
+   */
+  async deployTrackFreezeSource(
+    project: MixerGraphSnapshot,
+    runtime: AudioHostGraph
+  ): Promise<AudioHostGraph> {
+    const session = this.lastGraph
+    if (!session) throw new Error("project audio graph is unavailable")
+    const sessionGraph = {
+      project: structuredClone(session.project),
+      runtime: structuredClone(session.runtime)
+    }
+    const revision = session.revision + 1
+    const operationId = randomUUID()
+    const prepared = await this.graphTransactions.prepare(
+      {
+        protocolVersion: IPC_PROTOCOL_VERSION,
+        requestId: operationId,
+        mutation: { operationId, idempotencyKey: operationId }
+      },
+      this.publicationGraph,
+      revision,
+      project,
+      runtime
+    )
+    if (!prepared.ok) throw new Error(prepared.error.userMessageKey)
+    const activated = await this.graphTransactions.activate(prepared.value)
+    if (!activated.ok) throw new Error(activated.error.userMessageKey)
+    const rendered = structuredClone(prepared.value.runtime)
+    // Activation commits the live source on this client only. The offline
+    // restart republishes `lastGraph`, so that stored revision must stay the
+    // session revision the project publisher already owns. Advancing it here
+    // would put the restored host ahead of the later freeze commit.
+    this.lastGraph = {
+      revision: session.revision,
+      project: sessionGraph.project,
+      runtime: sessionGraph.runtime
+    }
+    return rendered
+  }
+
+  async startTrackFreeze(
+    request: Omit<AudioHostTrackFreezeRequest, "graph" | "graph_revision">,
+    runtime?: AudioHostGraph
+  ): Promise<AudioHostTrackFreezeStatus> {
+    const graph = this.lastGraph
+    if (!graph) throw new Error("project audio graph is unavailable")
+    const response = await this.request({
+      type: "start-track-freeze",
+      request: {
+        ...request,
+        graph_revision: graph.revision,
+        graph: structuredClone(runtime ?? graph.runtime)
+      }
+    })
+    if (response.result.type !== "track-freeze" || !response.result.status) {
+      throw new Error(response.result.error?.userMessageKey ?? "audio host rejected track freeze")
+    }
+    return response.result.status as AudioHostTrackFreezeStatus
+  }
+
+  async trackFreezeStatus(operationId: string): Promise<AudioHostTrackFreezeStatus> {
+    const response = await this.request({ type: "track-freeze-status", operation_id: operationId })
+    if (response.result.type !== "track-freeze" || !response.result.status) {
+      throw new Error(response.result.error?.userMessageKey ?? "track freeze status is unavailable")
+    }
+    return response.result.status as AudioHostTrackFreezeStatus
+  }
+
+  async cancelTrackFreeze(operationId: string): Promise<void> {
+    const response = await this.request({ type: "cancel-track-freeze", operation_id: operationId })
+    if (response.result.type !== "track-freeze") {
+      throw new Error(response.result.error?.userMessageKey ?? "track freeze cancellation failed")
     }
   }
 

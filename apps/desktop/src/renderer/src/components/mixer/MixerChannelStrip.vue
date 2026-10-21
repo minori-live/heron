@@ -10,7 +10,8 @@ import type {
   MixerParameterPreview,
   MixerRouteTarget,
   MixerSendPatch,
-  MixerSendState
+  MixerSendState,
+  TrackFreezeMode
 } from "@heron/contracts"
 import type { PluginDescriptor, PluginInstanceState, PluginRuntimeStatus } from "@heron/contracts"
 import {
@@ -53,6 +54,7 @@ const props = withDefaults(
     pluginEditorsEnabled?: boolean
     hardwareInputCount?: number
     hardwareOutputCount?: number
+    freezeMode?: TrackFreezeMode | null
   }>(),
   {
     meter: undefined,
@@ -62,7 +64,8 @@ const props = withDefaults(
     applicationCaptureEnabled: true,
     pluginEditorsEnabled: true,
     hardwareInputCount: 32,
-    hardwareOutputCount: 32
+    hardwareOutputCount: 32,
+    freezeMode: null
   }
 )
 
@@ -123,6 +126,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
     @select="emit('select', channel.id)"
   >
     <MixerInputSection
+      :class="{ 'freeze-locked': freezeMode !== null && channel.kind === 'instrument' }"
       :structure-enabled="structureEnabled"
       :channel="channel"
       :instrument="instrument"
@@ -139,6 +143,7 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
     />
 
     <MixerPluginSection
+      :class="{ 'freeze-locked': freezeMode === 'pre-fader' }"
       :channel="channel"
       :inserts="inserts"
       :runtime="pluginRuntime"
@@ -277,6 +282,10 @@ function preview(parameter: "gainDb" | "pan", value: number): void {
   box-shadow:
     inset 0 0 0 1px var(--ui-domain-mixer-strip-master-edge),
     -12px 0 22px var(--ui-domain-mixer-strip-master-cast);
+}
+
+.freeze-locked {
+  opacity: 0.55;
 }
 
 .channel-strip.selected {

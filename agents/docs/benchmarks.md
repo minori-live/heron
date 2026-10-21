@@ -20,14 +20,14 @@ group is the block mixer at 8/32/128 tracks and buffer sizes 64/128/512.
 live `MixerRuntime::render_block` path: in-memory clips through the same block
 mixer the device callback uses, including an idle-clip scan, a subnormal-sample
 case, one second of offline mix and single-track freeze, and the input-rate
-bridge. Offline bounce and that freeze/mix render enter the same denormal-flush
-guard as the device callback, so the subnormal case should stay near the
-matching normal-sample cost. `render_runtime` adds the same buffer matrix plus
-a one-pole insert count. `RenderRuntime::render_block` calls each insert once
-per block and flushes subnormals for the block, including the tail after the
-one-million-frame clip ends. `render_frame` still advances one sample at a time
-so musical position stays per frame; it is not the device or offline path.
-`rubberband_src` measures offline and streaming Rubber Band R3 conversion.
+bridge. Offline bounce, track freeze, and that freeze/mix render enter the same
+denormal-flush guard as the device callback, so the subnormal case should stay
+near the matching normal-sample cost. `render_runtime` adds the same buffer
+matrix plus a one-pole insert count. `RenderRuntime::render_block` calls each
+insert once per block and flushes subnormals for the block, including the tail
+after the one-million-frame clip ends. `render_frame` still advances one sample
+at a time so musical position stays per frame; it is not the device or offline
+path. `rubberband_src` measures offline and streaming Rubber Band R3 conversion.
 `waveform_peaks` builds the multi-resolution peak pyramid. `project_graph`
 round-trips a named MessagePack `PrepareGraphRequest`.
 

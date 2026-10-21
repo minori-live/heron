@@ -1,6 +1,7 @@
 import { t } from "../settings"
 import { randomUUID } from "node:crypto"
 import { IPC_CHANNELS, IPC_PROTOCOL_VERSION } from "@heron/contracts"
+import type { ProjectCommandResult } from "@heron/contracts"
 import type { PluginRuntimeFailure } from "@heron/contracts"
 import type { AudioHostService, PluginSidechainRouteRequest } from "../audio-host"
 import type { PluginCatalogService } from "../plugins"
@@ -196,8 +197,20 @@ export class AudioHostApplicationEventBridge {
     })
   }
 
+  publishProjectCommand(result: ProjectCommandResult, resourceRevision: number): void {
+    this.projectCommandSequence += 1
+    this.broadcast(IPC_CHANNELS.projectCommandExternalEvent, {
+      protocolVersion: IPC_PROTOCOL_VERSION,
+      sourceEpoch: this.options.sourceEpoch,
+      sequence: this.projectCommandSequence,
+      resourceRevision,
+      payload: { result, warnings: [] }
+    })
+  }
+
   dispose(): void {
     this.disposed = true
+    if (currentBridge === this) currentBridge = null
   }
 
   private async rejectSidechainDuringShutdown(request: PluginSidechainRouteRequest): Promise<void> {
@@ -215,10 +228,20 @@ export class AudioHostApplicationEventBridge {
   }
 }
 
+let currentBridge: AudioHostApplicationEventBridge | null = null
+
+export function publishExternalProjectCommand(
+  result: ProjectCommandResult,
+  resourceRevision: number
+): void {
+  currentBridge?.publishProjectCommand(result, resourceRevision)
+}
+
 export function bindAudioHostApplicationEvents(
   options: AudioHostApplicationEventOptions
 ): AudioHostApplicationEventBridge {
   const bridge = new AudioHostApplicationEventBridge(options)
   bridge.bind()
+  currentBridge = bridge
   return bridge
 }

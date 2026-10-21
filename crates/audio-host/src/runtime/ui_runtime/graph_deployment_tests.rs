@@ -2,8 +2,8 @@
 
 use super::*;
 use crate::runtime::{
-    BounceJobRegistry, GraphParameterHandles, Vst3ActorDeps, audio_plugin_actor, dispatch_actor,
-    engine_actor,
+    BounceJobRegistry, GraphParameterHandles, TrackFreezeJobRegistry, Vst3ActorDeps,
+    audio_plugin_actor, dispatch_actor, engine_actor,
 };
 use heron_dsp_runtime::protocol::{
     GraphDeploymentStatus, GraphOperationOutcome, GraphTransactionRequest, GraphTransactionValue,
@@ -129,6 +129,7 @@ fn graph_activation_rollback_and_competing_refreshes_preserve_the_commit_boundar
                 ui_proxy: UiMailboxWaker::new(Arc::new(|| {})), ui_sender, processors, handles,
                 engine_sender, audio_engine: Arc::clone(&audio_engine), graph_build_gate, session_epoch: 42,
                 bounce_jobs: Arc::new(BounceJobRegistry::default()),
+                freeze_jobs: Arc::new(TrackFreezeJobRegistry::default()),
                 plugin_analysis_jobs: Arc::new(crate::plugin_analysis::PluginAnalysisJobs::default()),
             }));
             let prepare = ControlCommand::PrepareGraph {

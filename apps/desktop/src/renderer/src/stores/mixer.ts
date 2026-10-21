@@ -8,7 +8,8 @@ import type {
   MixerRouteTarget,
   MixerSendPatch,
   MixerSendState,
-  ProjectCommand
+  ProjectCommand,
+  ProjectGraphSnapshot
 } from "@heron/contracts"
 import { DEFAULT_INSTRUMENT_COLOR } from "@heron/contracts"
 import {
@@ -18,9 +19,11 @@ import {
   availableSendTargets as selectAvailableSendTargets,
   instrumentTracks as selectInstrumentTracks,
   sendsFor as selectSendsFor,
-  systemChannels as selectSystemChannels
+  systemChannels as selectSystemChannels,
+  trackFreezeEditBlock
 } from "@heron/project-model"
 import { UI_DOMAIN_COLORS } from "@heron/ui"
+import { useGlobalDialog } from "../composables/useGlobalDialog"
 import { useMixerRuntimeStore } from "./mixerRuntime"
 import { useProjectGraphStore } from "./projectGraph"
 import { useProjectHistoryStore } from "./projectHistory"
@@ -31,6 +34,28 @@ const DEFAULT_CHANNEL_COLORS: Record<MixerChannelKind, string> = {
   aux: UI_DOMAIN_COLORS.busChannel,
   master: UI_DOMAIN_COLORS.masterChannel,
   output: UI_DOMAIN_COLORS.outputChannel
+}
+
+async function releaseFrozenEdit(
+  graph: ProjectGraphSnapshot,
+  command: ProjectCommand
+): Promise<ProjectCommand | null> {
+  const block = trackFreezeEditBlock(graph, command)
+  if (!block) return command
+  const track = graph.tracks.find((candidate) => candidate.id === block.trackId)
+  const name =
+    graph.channels.find((channel) => channel.id === track?.channelId)?.name ?? block.trackId
+  const accepted = await useGlobalDialog().confirm({
+    title: t("studio.freeze.lockedTitle", { name }),
+    description: t("studio.freeze.lockedDescription", { name }),
+    confirmLabel: t("studio.freeze.unfreeze"),
+    tone: "warning"
+  })
+  if (!accepted) return null
+  return {
+    type: "batch",
+    commands: [{ type: "set-track-freeze", trackId: block.trackId, freeze: null }, command]
+  }
 }
 
 export const useMixerStore = defineStore("mixer", () => {
@@ -60,7 +85,17 @@ export const useMixerStore = defineStore("mixer", () => {
     graph.value.tracks
       .flatMap((track) => {
         const channel = graph.value.channels.find((candidate) => candidate.id === track.channelId)
-        return channel ? [{ ...channel, trackId: track.id, sortOrder: track.sortOrder }] : []
+        return channel
+          ? [
+              {
+                ...channel,
+                trackId: track.id,
+                sortOrder: track.sortOrder,
+                freezeMode: track.freezeMode ?? "pre-fader",
+                freeze: track.freeze ?? null
+              }
+            ]
+          : []
       })
       .sort((left, right) => left.sortOrder - right.sortOrder)
   )
@@ -109,9 +144,11 @@ export const useMixerStore = defineStore("mixer", () => {
   }
 
   async function execute(command: ProjectCommand, recordHistory = true): Promise<boolean> {
-    const result = await graphStore.execute(command)
+    const prepared = await releaseFrozenEdit(graph.value, command)
+    if (!prepared) return false
+    const result = await graphStore.execute(prepared)
     if (!result) return false
-    if (recordHistory) historyStore.record({ forward: command, inverse: result.inverse })
+    if (recordHistory) historyStore.record({ forward: prepared, inverse: result.inverse })
     return true
   }
 

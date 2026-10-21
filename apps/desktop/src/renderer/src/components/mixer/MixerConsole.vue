@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { computed } from "vue"
 import { useMixerConfirmations } from "../../composables/useMixerConfirmations"
 import { useMixerStore } from "../../stores/mixer"
 import { usePluginStore } from "../../stores/plugins"
 import { useLowLatencyModeStore } from "../../stores/lowLatencyMode"
 import { useBounceStore } from "../../stores/bounce"
-import type { MixerChannelPatch } from "@heron/contracts"
+import type { MixerChannelPatch, TrackFreezeMode } from "@heron/contracts"
 import type { PluginSelection } from "../plugins/plugin-audio-mode"
 import MixerSurface from "./MixerSurface.vue"
 import BounceOutputDialog from "../bounce/BounceOutputDialog.vue"
@@ -14,6 +15,13 @@ const pluginStore = usePluginStore()
 const lowLatencyModeStore = useLowLatencyModeStore()
 const bounceStore = useBounceStore()
 const { confirmChannelDeletion, confirmInstrumentReplacement } = useMixerConfirmations()
+const freezeByChannel = computed(() => {
+  const locks: Record<string, TrackFreezeMode> = {}
+  for (const track of mixerStore.graph.tracks) {
+    if (track.freeze) locks[track.channelId] = track.freeze.mode
+  }
+  return locks
+})
 
 function updateChannel(channelId: string, patch: MixerChannelPatch, settle?: () => void): void {
   void mixerStore.updateChannel(channelId, patch).then(
@@ -83,6 +91,7 @@ function bounceOutput(channel: { id: string }): void {
     :low-latency-target-output-channel-id="lowLatencyModeStore.targetOutputChannelId"
     :low-latency-target-disabled="!lowLatencyModeStore.canConfigure"
     :error="mixerStore.error"
+    :freeze-by-channel="freezeByChannel"
     @create-channel="createChannel"
     @undo="mixerStore.undo"
     @redo="mixerStore.redo"

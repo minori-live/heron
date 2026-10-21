@@ -3,9 +3,12 @@ import type {
   MixerChannelPatch,
   MixerSendPatch,
   ProjectCommand,
-  TrackPatch
+  TrackFreezeState,
+  TrackPatch,
+  TrackState
 } from "@heron/contracts"
-import { mixerChannels, mixerSends, tracks } from "../schema"
+import { unlinkLargeObject } from "../large-object"
+import { assets, audioClips, mixerChannels, mixerSends, trackFreezes, tracks } from "../schema"
 import type { ProjectTransaction } from "./database-types"
 
 type ChannelCommand = Extract<
@@ -15,6 +18,7 @@ type ChannelCommand = Extract<
       | "create-track"
       | "delete-track"
       | "update-track"
+      | "set-track-freeze"
       | "create-channel"
       | "delete-channel"
       | "update-channel"
@@ -28,7 +32,55 @@ function trackPatch(patch: TrackPatch): Partial<typeof tracks.$inferInsert> {
   const result: Partial<typeof tracks.$inferInsert> = {}
   if (patch.sortOrder !== undefined) result.sortOrder = patch.sortOrder
   if (patch.notes !== undefined) result.notes = patch.notes
+  if (patch.freezeMode !== undefined) result.freezeMode = patch.freezeMode
   return result
+}
+
+function trackInsert(track: TrackState): typeof tracks.$inferInsert {
+  return {
+    id: track.id,
+    channelId: track.channelId,
+    sortOrder: track.sortOrder,
+    notes: track.notes ?? "",
+    freezeMode: track.freezeMode ?? "pre-fader"
+  }
+}
+
+function freezeInsert(trackId: string, freeze: TrackFreezeState): typeof trackFreezes.$inferInsert {
+  return {
+    trackId,
+    mode: freeze.mode,
+    status: freeze.status,
+    assetId: freeze.assetId,
+    fingerprint: freeze.fingerprint,
+    startFrame: BigInt(freeze.startFrame),
+    lengthFrames: BigInt(freeze.lengthFrames),
+    latencySamples: freeze.latencySamples,
+    tailFrames: BigInt(freeze.tailFrames),
+    sampleRate: freeze.sampleRate
+  }
+}
+
+async function deleteFreezeAsset(tx: ProjectTransaction, assetId: string): Promise<void> {
+  const [clip] = await tx
+    .select({ id: audioClips.id })
+    .from(audioClips)
+    .where(eq(audioClips.assetId, assetId))
+    .limit(1)
+  const [otherFreeze] = await tx
+    .select({ trackId: trackFreezes.trackId })
+    .from(trackFreezes)
+    .where(eq(trackFreezes.assetId, assetId))
+    .limit(1)
+  if (clip || otherFreeze) return
+  const rows = await tx
+    .select({ oid: assets.largeObjectOid })
+    .from(assets)
+    .where(eq(assets.id, assetId))
+    .limit(1)
+  await tx.delete(assets).where(eq(assets.id, assetId))
+  const oid = rows[0]?.oid
+  if (oid !== undefined) await unlinkLargeObject(tx, oid)
 }
 
 function channelPatch(patch: MixerChannelPatch): Partial<typeof mixerChannels.$inferInsert> {
@@ -129,6 +181,7 @@ export function isChannelTrackRoutingCommand(command: ProjectCommand): command i
     "create-track",
     "delete-track",
     "update-track",
+    "set-track-freeze",
     "create-channel",
     "delete-channel",
     "update-channel",
@@ -146,22 +199,49 @@ export async function persistChannelTrackRoutingCommand(
   switch (command.type) {
     case "create-track":
       await tx.insert(mixerChannels).values(channelValue(command.channel))
-      await tx.insert(tracks).values(command.track)
+      await tx.insert(tracks).values(trackInsert(command.track))
+      if (command.track.freeze) {
+        await tx.insert(trackFreezes).values(freezeInsert(command.track.id, command.track.freeze))
+      }
       return
     case "delete-track": {
       const rows = await tx
-        .select({ channelId: tracks.channelId })
+        .select({ channelId: tracks.channelId, assetId: trackFreezes.assetId })
         .from(tracks)
+        .leftJoin(trackFreezes, eq(trackFreezes.trackId, tracks.id))
         .where(eq(tracks.id, command.trackId))
         .limit(1)
       const channelId = rows[0]?.channelId
       if (!channelId) throw new Error(`Project track '${command.trackId}' was not found`)
+      const freezeAssetId = rows[0]?.assetId
       await tx
         .update(mixerChannels)
         .set({ outputChannelId: fallbackOutputId, outputBus: null })
         .where(eq(mixerChannels.outputChannelId, channelId))
       await tx.delete(tracks).where(eq(tracks.id, command.trackId))
       await tx.delete(mixerChannels).where(eq(mixerChannels.id, channelId))
+      if (freezeAssetId) await deleteFreezeAsset(tx, freezeAssetId)
+      return
+    }
+    case "set-track-freeze": {
+      const previous = await tx
+        .select({ assetId: trackFreezes.assetId })
+        .from(trackFreezes)
+        .where(eq(trackFreezes.trackId, command.trackId))
+        .limit(1)
+      const previousAssetId = previous[0]?.assetId
+      if (command.freeze === null) {
+        await tx.delete(trackFreezes).where(eq(trackFreezes.trackId, command.trackId))
+      } else {
+        const value = freezeInsert(command.trackId, command.freeze)
+        await tx
+          .insert(trackFreezes)
+          .values(value)
+          .onConflictDoUpdate({ target: trackFreezes.trackId, set: value })
+      }
+      if (previousAssetId && previousAssetId !== command.freeze?.assetId) {
+        await deleteFreezeAsset(tx, previousAssetId)
+      }
       return
     }
     case "update-track": {

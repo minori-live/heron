@@ -38,6 +38,7 @@ const props = defineProps<{
   dragging?: boolean
   playheadFrame: number
   splitShortcut?: string
+  frozen?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -248,6 +249,7 @@ function editGesture(action: string, intent: UiGestureIntent): void {
   >
     <UiTimelineClip
       class="audio-clip"
+      :class="{ 'is-frozen': frozen }"
       kind="audio"
       :model="{
         id: clip.id,
@@ -332,6 +334,10 @@ function editGesture(action: string, intent: UiGestureIntent): void {
 </template>
 
 <style scoped>
+.audio-clip.is-frozen {
+  filter: grayscale(0.85);
+  opacity: 0.72;
+}
 .clip-heading {
   display: contents;
 }

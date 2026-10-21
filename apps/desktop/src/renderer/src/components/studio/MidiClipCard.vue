@@ -17,6 +17,7 @@ const props = defineProps<{
   playheadTick: number
   snap: PianoRollSnap
   dragging: boolean
+  frozen?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -120,6 +121,7 @@ function selectMenuAction(id: string): void {
   >
     <UiTimelineClip
       class="midi-clip"
+      :class="{ 'is-frozen': frozen }"
       kind="midi"
       :model="{
         id: clip.id,
@@ -155,6 +157,10 @@ function selectMenuAction(id: string): void {
 </template>
 
 <style scoped>
+.midi-clip.is-frozen {
+  filter: grayscale(0.85);
+  opacity: 0.72;
+}
 .midi-clip {
   position: absolute;
   top: 5px;

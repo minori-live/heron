@@ -12,6 +12,7 @@ import { useProjectStore } from "./project"
 import { useAudioRuntimeStore } from "./audioRuntime"
 import { useMixerStore } from "./mixer"
 import { useProjectHistoryStore } from "./projectHistory"
+import { useGlobalDialog } from "../composables/useGlobalDialog"
 import { applyToGraph, inverseFor } from "@heron/project-model"
 import { planAudioClipSplit, planMidiClipSplits } from "../utils/clipEditing"
 
@@ -369,6 +370,51 @@ describe("mixer store", () => {
       }
     )
     expect(mixer.canRedo).toBe(true)
+  })
+
+  it("redoes an unfreeze-and-edit as the same batch that cleared the freeze", async () => {
+    const initial = graph()
+    initial.tracks[0]!.freeze = {
+      mode: "pre-fader",
+      status: "frozen",
+      assetId: "freeze-asset",
+      fingerprint: "fingerprint",
+      startFrame: 0,
+      lengthFrames: 48_000,
+      latencySamples: 0,
+      tailFrames: 0,
+      sampleRate: 48_000
+    }
+    initial.plugins.push(effectPlugin())
+    const batch = {
+      type: "batch" as const,
+      commands: [
+        { type: "set-track-freeze" as const, trackId: "track:audio", freeze: null },
+        { type: "update-plugin" as const, pluginId: "effect", patch: { enabled: false } }
+      ]
+    }
+    window.heron.loadProjectGraph = vi.fn().mockResolvedValue(success(initial))
+    window.heron.previewMixerParameter = vi.fn(async () => success(undefined))
+    window.heron.executeProjectCommand = vi.fn(async (_meta, command: ProjectCommand) =>
+      success(
+        {
+          graph: initial,
+          inverse: inverseFor(initial, command)
+        },
+        2
+      )
+    )
+    const mixer = useMixerStore()
+    await mixer.load()
+
+    const pending = mixer.setPluginEnabled("effect", false)
+    useGlobalDialog().selectDialogAction("confirm")
+    await expect(pending).resolves.toBe(true)
+    expect(window.heron.executeProjectCommand).toHaveBeenLastCalledWith(expect.any(Object), batch)
+
+    await mixer.undo()
+    await mixer.redo()
+    expect(window.heron.executeProjectCommand).toHaveBeenLastCalledWith(expect.any(Object), batch)
   })
 
   it("keeps input monitoring in project history through undo and redo", async () => {

@@ -136,12 +136,48 @@ export const tracks = pgTable(
       .notNull()
       .references(() => mixerChannels.id, { onDelete: "cascade" }),
     sortOrder: integer("sort_order").notNull(),
-    notes: text("notes").notNull().default("")
+    notes: text("notes").notNull().default(""),
+    freezeMode: text("freeze_mode")
+      .$type<"pre-fader" | "source-only">()
+      .notNull()
+      .default("pre-fader")
   },
   (table) => [
     uniqueIndex("tracks_channel_id_unique").on(table.channelId),
     index("tracks_sort_order_index").on(table.sortOrder, table.id),
-    check("tracks_sort_order_check", sql`${table.sortOrder} >= 0`)
+    check("tracks_sort_order_check", sql`${table.sortOrder} >= 0`),
+    check("tracks_freeze_mode_check", sql`${table.freezeMode} in ('pre-fader', 'source-only')`)
+  ]
+)
+
+export const trackFreezes = pgTable(
+  "track_freezes",
+  {
+    trackId: text("track_id")
+      .primaryKey()
+      .references(() => tracks.id, { onDelete: "cascade" }),
+    mode: text("mode").$type<"pre-fader" | "source-only">().notNull(),
+    status: text("status").$type<"frozen" | "stale">().notNull(),
+    assetId: text("asset_id")
+      .notNull()
+      .references(() => assets.id, { onDelete: "restrict" }),
+    fingerprint: text("fingerprint").notNull(),
+    startFrame: int8BigInt("start_frame").notNull(),
+    lengthFrames: int8BigInt("length_frames").notNull(),
+    latencySamples: integer("latency_samples").notNull(),
+    tailFrames: int8BigInt("tail_frames").notNull(),
+    sampleRate: integer("sample_rate").notNull()
+  },
+  (table) => [
+    index("track_freezes_asset_id_index").on(table.assetId),
+    check("track_freezes_mode_check", sql`${table.mode} in ('pre-fader', 'source-only')`),
+    check("track_freezes_status_check", sql`${table.status} in ('frozen', 'stale')`),
+    check("track_freezes_fingerprint_check", sql`length(${table.fingerprint}) > 0`),
+    check("track_freezes_start_frame_check", sql`${table.startFrame} >= 0`),
+    check("track_freezes_length_frames_check", sql`${table.lengthFrames} > 0`),
+    check("track_freezes_latency_samples_check", sql`${table.latencySamples} >= 0`),
+    check("track_freezes_tail_frames_check", sql`${table.tailFrames} >= 0`),
+    check("track_freezes_sample_rate_check", sql`${table.sampleRate} > 0`)
   ]
 )
 
@@ -456,6 +492,7 @@ export type Asset = typeof assets.$inferSelect
 export type AssetWaveformLevel = typeof assetWaveformLevels.$inferSelect
 export type MixerChannel = typeof mixerChannels.$inferSelect
 export type Track = typeof tracks.$inferSelect
+export type TrackFreeze = typeof trackFreezes.$inferSelect
 export type AudioClip = typeof audioClips.$inferSelect
 export type MixerSend = typeof mixerSends.$inferSelect
 export type PluginInstance = typeof pluginInstances.$inferSelect

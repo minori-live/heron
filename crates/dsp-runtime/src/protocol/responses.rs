@@ -6,7 +6,7 @@ use super::{
     BounceJobStatus, CompiledAudioGraphSnapshot, GraphTransactionValue, MidiInputSnapshot,
     MidiRecordingResult, MixerChannelMeter, PluginEditorMode, PluginEditorToolbarState,
     PluginParameter, PluginStateEnvelope, RecordingResult, RecordingWaveform,
-    RoundTripLatencyMeasurement, RpcError, RpcResult, TransportState,
+    RoundTripLatencyMeasurement, RpcError, RpcResult, TrackFreezeJobStatus, TransportState,
 };
 
 #[cfg_attr(feature = "ts-export", derive(ts_rs::TS))]
@@ -122,6 +122,9 @@ pub enum ControlResult {
     },
     BounceOutput {
         status: BounceJobStatus,
+    },
+    TrackFreeze {
+        status: TrackFreezeJobStatus,
     },
     PluginLoaded {
         runtime_handle: u32,

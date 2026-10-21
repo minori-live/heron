@@ -1,6 +1,7 @@
 import type { ApplicationServices, IpcHandlerContext } from "./context"
 import { registerAudioHandlers } from "./audio-handlers"
 import { registerBounceHandlers } from "./bounce-handlers"
+import { registerFreezeHandlers } from "./freeze-handlers"
 import { registerDiagnosticHandlers } from "./diagnostic-handlers"
 import { registerPluginAnalysisHandlers } from "./plugin-analysis-handlers"
 import { registerMidiHandlers } from "./midi-handlers"
@@ -42,6 +43,7 @@ export function registerIpcHandlers(services: ApplicationServices): DisposableRe
     registerSystemHandlers(context)
     registerAudioHandlers(context)
     registerBounceHandlers(context)
+    registerFreezeHandlers(context)
     registerMixerHandlers(context)
     registerPluginHandlers(context)
     registerMidiHandlers(context)

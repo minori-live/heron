@@ -213,7 +213,7 @@ test("settings retain persistent selection outlines, dense buttons and stacked p
     await page.screenshot({ path: testInfo.outputPath("studio-typography.png") })
     const quickControls = page.locator(".track-quick-controls").first()
     const stateButtons = quickControls.locator(".ui-mixer-state-button")
-    await expect(stateButtons).toHaveCount(4)
+    await expect(stateButtons).toHaveCount(5)
     let previousRight = 0
     for (const button of await stateButtons.all()) {
       const box = (await button.boundingBox())!

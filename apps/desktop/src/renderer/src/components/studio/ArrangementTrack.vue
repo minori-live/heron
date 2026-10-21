@@ -33,6 +33,7 @@ const props = defineProps<{
   draggingClipId: string | null
   playheadFrame: number
   splitShortcut?: string
+  frozen?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -144,6 +145,7 @@ function relayFade(clipId: string, edge: AudioFadeEdge, frames: number): void {
       :dragging="clip.id === draggingClipId"
       :playhead-frame="playheadFrame"
       :split-shortcut="splitShortcut"
+      :frozen="frozen"
       @select="emit('selectClip', $event)"
       @waveform-frame-count="relayWaveformFrameCount"
       @drag-start="relayClipDragStart"

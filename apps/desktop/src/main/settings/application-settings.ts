@@ -358,6 +358,9 @@ export class ApplicationSettingsStore {
           typeof raw.softwareMonitoringEnabled === "boolean"
             ? raw.softwareMonitoringEnabled
             : value.softwareMonitoringEnabled,
+        ...(typeof raw.trackHeaderFreezeVisible === "boolean"
+          ? { trackHeaderFreezeVisible: raw.trackHeaderFreezeVisible }
+          : {}),
         lowLatencyPluginBudgetMs:
           typeof raw.lowLatencyPluginBudgetMs === "number" &&
           Number.isInteger(raw.lowLatencyPluginBudgetMs) &&
@@ -453,6 +456,12 @@ export class ApplicationSettingsStore {
       if (!isMidiCenterCStandard(patch.midiCenterCStandard))
         throw new TypeError("Unsupported MIDI center C standard")
       current.midiCenterCStandard = patch.midiCenterCStandard
+    }
+    if (patch.trackHeaderFreezeVisible !== undefined) {
+      if (typeof patch.trackHeaderFreezeVisible !== "boolean") {
+        throw new TypeError("trackHeaderFreezeVisible must be a boolean")
+      }
+      current.trackHeaderFreezeVisible = patch.trackHeaderFreezeVisible
     }
     if (patch.lowLatencyPluginBudgetMs !== undefined) {
       if (

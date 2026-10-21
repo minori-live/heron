@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { pluginDescriptorKey } from "@heron/contracts"
 import type { ProjectGraphSnapshot } from "@heron/contracts"
-import type { AudioHostBounceStatus } from "./wire"
+import type { AudioHostBounceStatus, AudioHostTrackFreezeStatus } from "./wire"
 import {
   AudioHostService,
   fakeHost,
@@ -203,4 +203,98 @@ describe("AudioHostService bounce", () => {
       await service.stop()
     }
   )
+})
+
+const frozen: AudioHostTrackFreezeStatus = {
+  operation_id: "freeze-1",
+  state: "completed",
+  phase: "rendering",
+  completed_units: 256,
+  total_units: 256,
+  rendered_frames: 256,
+  tail_frames: 0,
+  latency_samples: 0,
+  tail_truncated: false,
+  error: null
+}
+
+const freezeRequest = {
+  operation_id: "freeze-1",
+  channel_id: "audio",
+  mode: "pre-fader" as const,
+  start_frame: 0,
+  end_frame: 256,
+  output_path: "freeze.wav"
+}
+
+describe("AudioHostService track freeze", () => {
+  beforeEach(resetFakeHost)
+
+  it("sends the live runtime and reads status and cancellation", async () => {
+    const service = createService()
+    const desired = installGraph(service)
+    const request = vi.fn(async (command: { type: string }) => ({
+      request_id: 1,
+      result:
+        command.type === "cancel-track-freeze"
+          ? { type: "track-freeze" as const }
+          : { type: "track-freeze" as const, status: frozen }
+    }))
+    ;(service as unknown as { request: typeof request }).request = request
+
+    await expect(service.startTrackFreeze(freezeRequest, desired.runtime)).resolves.toEqual(frozen)
+    await expect(service.trackFreezeStatus("freeze-1")).resolves.toEqual(frozen)
+    await expect(service.cancelTrackFreeze("freeze-1")).resolves.toBeUndefined()
+    expect(request.mock.calls[0]?.[0]).toEqual({
+      type: "start-track-freeze",
+      request: { ...freezeRequest, graph_revision: 7, graph: desired.runtime }
+    })
+  })
+
+  it("rejects a missing graph and a host that does not accept the freeze", async () => {
+    const service = createService()
+    const desired = graph(48_000)
+    await expect(service.deployTrackFreezeSource(desired.project, desired.runtime)).rejects.toThrow(
+      "project audio graph is unavailable"
+    )
+    await expect(service.startTrackFreeze(freezeRequest)).rejects.toThrow(
+      "project audio graph is unavailable"
+    )
+
+    installGraph(service)
+    const transactions = {
+      prepare: vi.fn(async () => ({
+        ok: false as const,
+        error: { userMessageKey: "errors.prepare" }
+      })),
+      activate: vi.fn(async () => ({
+        ok: false as const,
+        error: { userMessageKey: "errors.activate" }
+      }))
+    }
+    ;(service as unknown as { graphTransactions: typeof transactions }).graphTransactions =
+      transactions
+    await expect(service.deployTrackFreezeSource(desired.project, desired.runtime)).rejects.toThrow(
+      "errors.prepare"
+    )
+    transactions.prepare.mockResolvedValue({
+      ok: true,
+      value: { runtime: desired.runtime }
+    } as never)
+    await expect(service.deployTrackFreezeSource(desired.project, desired.runtime)).rejects.toThrow(
+      "errors.activate"
+    )
+
+    const request = vi.fn(async () => ({ request_id: 1, result: { type: "accepted" as const } }))
+    ;(service as unknown as { request: typeof request }).request = request
+    await expect(service.startTrackFreeze(freezeRequest)).rejects.toThrow(
+      "audio host rejected track freeze"
+    )
+    await expect(service.trackFreezeStatus("freeze-1")).rejects.toThrow(
+      "track freeze status is unavailable"
+    )
+    await expect(service.cancelTrackFreeze("freeze-1")).rejects.toThrow(
+      "track freeze cancellation failed"
+    )
+  })
 })

@@ -347,4 +347,29 @@ describe("AudioGraphPublisher", () => {
     expect(published.sampleRate).toBe(48_000)
     expect(audioHost.loadGraph).toHaveBeenCalledWith(1, expect.anything(), expect.anything(), true)
   })
+
+  it("compiles one track from its live source without publishing the graph", async () => {
+    const compiler = {
+      compile: vi.fn(() => ({ sample_rate: 48_000, plugins: [{ instance_id: "insert" }] }))
+    }
+    const assets = { materialize: vi.fn(async () => new Map([["asset", "/tmp/asset.wav"]])) }
+    const settings = { get: vi.fn(async () => ({ softwareMonitoringEnabled: true })) }
+    const publisher = new AudioGraphPublisher(
+      compiler as never,
+      assets as never,
+      { loadGraph: vi.fn() } as never,
+      null,
+      settings as never
+    )
+
+    await expect(publisher.compileWithoutFreeze(graph, "track-audio")).resolves.toEqual({
+      sample_rate: 48_000,
+      plugins: [{ instance_id: "insert" }]
+    })
+    expect(compiler.compile).toHaveBeenCalledWith(expect.anything(), expect.any(Map), {
+      softwareMonitoringEnabled: true,
+      latencyPolicy: { type: "normal" },
+      ignoreFreezeTrackId: "track-audio"
+    })
+  })
 })

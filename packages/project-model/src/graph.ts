@@ -9,7 +9,8 @@ import type {
   TrackState
 } from "@heron/contracts"
 import { DEFAULT_PROJECT_END_TICK } from "@heron/contracts"
-import { ProjectValidationError } from "./validation-error"
+import { applyTrackFreeze, refreshTrackFreezes, trackFreezeEditBlock } from "./track-freeze"
+import { ProjectValidationError, TrackFrozenError } from "./validation-error"
 export { validateGraph } from "./studio-validation"
 export { finiteRange } from "./mixer-validation"
 
@@ -183,6 +184,14 @@ export function inverseFor(graph: ProjectGraphSnapshot, command: ProjectCommand)
         type: "update-track",
         trackId: command.trackId,
         patch: patchFromKeys(track, command.patch)
+      }
+    }
+    case "set-track-freeze": {
+      const track = trackById(graph, command.trackId)
+      return {
+        type: "set-track-freeze",
+        trackId: command.trackId,
+        freeze: track.freeze ? structuredClone(track.freeze) : null
       }
     }
     case "create-channel":
@@ -400,6 +409,8 @@ export function applyToGraph(
   graph: ProjectGraphSnapshot,
   command: ProjectCommand
 ): ProjectGraphSnapshot {
+  const block = command.type === "batch" ? null : trackFreezeEditBlock(graph, command)
+  if (block) throw new TrackFrozenError(block.trackId)
   const next = cloneGraph(graph)
   switch (command.type) {
     case "update-project-notes":
@@ -421,6 +432,9 @@ export function applyToGraph(
     }
     case "update-track":
       Object.assign(trackById(next, command.trackId), command.patch)
+      break
+    case "set-track-freeze":
+      applyTrackFreeze(next, command.trackId, command.freeze)
       break
     case "create-channel":
       next.channels.push(structuredClone(command.channel))
@@ -566,6 +580,7 @@ export function applyToGraph(
     case "batch":
       return command.commands.reduce(applyToGraph, next)
   }
+  refreshTrackFreezes(next)
   return next
 }
 

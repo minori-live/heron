@@ -1,17 +1,24 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
-import { UiArrangementTrackSurface } from "@heron/ui"
-import type { MixerChannelPatch, MixerParameterPreview } from "@heron/contracts"
+import { UiArrangementTrackSurface, UiContextMenu, type UiMenuEntry } from "@heron/ui"
+import type { MixerChannelPatch, MixerParameterPreview, TrackFreezeMode } from "@heron/contracts"
 import InlineTrackNameEditor from "../InlineTrackNameEditor.vue"
 import TrackHeightResizeHandle from "./TrackHeightResizeHandle.vue"
-import TrackQuickControls from "./TrackQuickControls.vue"
-import type { ArrangementTrackRow } from "./arrangementWorkspaceTypes"
+import TrackQuickControls, { type TrackFreezeButtonState } from "./TrackQuickControls.vue"
+import type { ArrangementTimelineTrack, ArrangementTrackRow } from "./arrangementWorkspaceTypes"
+import { trackHeaderMenu } from "./trackHeaderMenu"
 
-defineProps<{
-  rows: readonly ArrangementTrackRow[]
-  selectedChannelId: string | null
-  trackHeight: number
-}>()
+const props = withDefaults(
+  defineProps<{
+    rows: readonly ArrangementTrackRow[]
+    selectedChannelId: string | null
+    trackHeight: number
+    freezeButtonVisible?: boolean
+  }>(),
+  {
+    freezeButtonVisible: true
+  }
+)
 
 const emit = defineEmits<{
   select: [channelId: string]
@@ -21,6 +28,10 @@ const emit = defineEmits<{
   updateChannel: [channelId: string, patch: MixerChannelPatch]
   setScale: [trackId: string, scale: number]
   resetScale: [trackId: string]
+  toggleFreeze: [trackId: string]
+  unfreeze: [trackId: string]
+  setFreezeMode: [trackId: string, mode: TrackFreezeMode]
+  setFreezeButtonVisible: [visible: boolean]
 }>()
 
 const { t } = useI18n()
@@ -28,44 +39,96 @@ const { t } = useI18n()
 function relayChannelUpdate(channelId: string, patch: MixerChannelPatch): void {
   emit("updateChannel", channelId, patch)
 }
+
+function freezeState(track: ArrangementTimelineTrack): TrackFreezeButtonState {
+  if (track.freeze?.status === "stale") return "stale"
+  if (track.freeze) return "frozen"
+  return "off"
+}
+
+function headerMenu(row: ArrangementTrackRow): readonly UiMenuEntry[] {
+  const track = row.track
+  return trackHeaderMenu(
+    {
+      mode: track.freezeMode ?? "pre-fader",
+      frozen: Boolean(track.freeze),
+      hasContent: row.audioClips.length > 0 || row.midiClips.length > 0,
+      systemTrack: track.systemRole !== null,
+      buttonVisible: props.freezeButtonVisible
+    },
+    {
+      freeze: t("studio.trackControls.freeze"),
+      unfreeze: t("studio.freeze.unfreeze"),
+      freezeMode: t("studio.trackControls.freezeMode"),
+      preFader: t("studio.trackControls.preFader"),
+      sourceOnly: t("studio.trackControls.sourceOnly"),
+      showFreezeButton: t("studio.trackControls.showFreezeButton"),
+      modeLocked: t("studio.trackControls.modeLocked"),
+      emptyTrack: t("studio.trackControls.emptyTrack"),
+      systemTrack: t("studio.trackControls.systemTrack")
+    }
+  )
+}
+
+function selectHeaderMenu(track: ArrangementTimelineTrack, id: string): void {
+  if (id === "freeze") {
+    emit("toggleFreeze", track.trackId)
+  } else if (id === "unfreeze") {
+    emit("unfreeze", track.trackId)
+  } else if (id === "pre-fader" || id === "source-only") {
+    emit("setFreezeMode", track.trackId, id)
+  } else if (id === "show-freeze-button") {
+    emit("setFreezeButtonVisible", !props.freezeButtonVisible)
+  }
+}
 </script>
 
 <template>
-  <UiArrangementTrackSurface
-    v-for="({ track, scale }, index) in rows"
-    :key="track.id"
-    :class="['track-header', { selected: track.id === selectedChannelId }]"
-    :label="track.name"
-    :selected="track.id === selectedChannelId"
-    focusable
-    @select="emit('select', track.id)"
-    @reorder="emit('reorder', index, $event)"
+  <UiContextMenu
+    v-for="(row, index) in rows"
+    :key="row.track.id"
+    :entries="headerMenu(row)"
+    :menu-label="t('studio.trackControls.menuLabel', { name: row.track.name })"
+    :empty-message="t('common.noCommands')"
+    @select="selectHeaderMenu(row.track, $event)"
   >
-    <span class="track-color" :style="{ background: track.color }" /><strong>{{
-      String(index + 1).padStart(2, "0")
-    }}</strong>
-    <div class="track-copy">
-      <InlineTrackNameEditor
-        class="track-name-editor"
-        :name="track.name"
-        :label="t('studio.arrangement.trackRenameLabel', { name: track.name })"
-        @rename="emit('rename', track.id, $event)"
+    <UiArrangementTrackSurface
+      :class="['track-header', { selected: row.track.id === selectedChannelId }]"
+      :label="row.track.name"
+      :selected="row.track.id === selectedChannelId"
+      focusable
+      @select="emit('select', row.track.id)"
+      @reorder="emit('reorder', index, $event)"
+    >
+      <span class="track-color" :style="{ background: row.track.color }" /><strong>{{
+        String(index + 1).padStart(2, "0")
+      }}</strong>
+      <div class="track-copy">
+        <InlineTrackNameEditor
+          class="track-name-editor"
+          :name="row.track.name"
+          :label="t('studio.arrangement.trackRenameLabel', { name: row.track.name })"
+          @rename="emit('rename', row.track.id, $event)"
+        />
+      </div>
+      <TrackQuickControls
+        class="track-quick-controls"
+        :channel="row.track"
+        :freeze-visible="freezeButtonVisible && row.track.systemRole === null"
+        :freeze-state="freezeState(row.track)"
+        @preview="emit('preview', $event)"
+        @update-channel="relayChannelUpdate"
+        @toggle-freeze="emit('toggleFreeze', row.track.trackId)"
       />
-    </div>
-    <TrackQuickControls
-      class="track-quick-controls"
-      :channel="track"
-      @preview="emit('preview', $event)"
-      @update-channel="relayChannelUpdate"
-    />
-    <TrackHeightResizeHandle
-      :base-height="trackHeight"
-      :scale="scale"
-      :track-name="track.name"
-      @set-scale="emit('setScale', track.trackId, $event)"
-      @reset="emit('resetScale', track.trackId)"
-    />
-  </UiArrangementTrackSurface>
+      <TrackHeightResizeHandle
+        :base-height="trackHeight"
+        :scale="row.scale"
+        :track-name="row.track.name"
+        @set-scale="emit('setScale', row.track.trackId, $event)"
+        @reset="emit('resetScale', row.track.trackId)"
+      />
+    </UiArrangementTrackSurface>
+  </UiContextMenu>
   <div class="track-spacer" aria-hidden="true" />
 </template>
 
