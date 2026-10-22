@@ -105,3 +105,11 @@ commit and successful build jobs in the pull request. Evaluation alone is not
 build evidence, and headless CI does not replace interactive audio-device and
 plug-in-editor validation. The macOS package is ad-hoc signed, not Developer
 ID signed or notarized.
+
+The macOS derivation runs `/bin/ps`, `codesign`, `plutil`, and `ditto`. It sets
+`__noChroot` so those host tools are available when the daemon uses
+`sandbox = false` (Nix's Darwin default, and the Apple Silicon CI job) or
+`sandbox = relaxed`. A daemon with `sandbox = true`, which is how Determinate
+Nix installs, rejects that opt-out. Set `sandbox = false` or
+`sandbox = relaxed` in `/etc/nix/nix.conf` and restart the daemon before
+building on such a machine.

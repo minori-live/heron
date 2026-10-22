@@ -115,7 +115,10 @@ Intel Mac 请把 `system` 设为 `x86_64-darwin`，并把该配置的 nixpkgs �
 “应用程序”目录。该 flake 会从所选源码版本构建 `aarch64-darwin` 与
 `x86_64-darwin`。与 NixOS 一样，内置 VST 3 插件位于应用包内；此模块不会安装
 Audio Unit。Nix 构建使用临时签名，首次启动时可能需要像未签名磁盘映像一样在
-**系统设置 → 隐私与安全性** 中确认，并允许麦克风访问。请更新 Heron 输入后执行
+**系统设置 → 隐私与安全性** 中确认，并允许麦克风访问。构建过程会调用
+`/bin/ps`、`codesign`、`plutil` 和 `ditto`。Nix 在 Darwin 上默认关闭沙箱。若
+`/etc/nix/nix.conf` 中为 `sandbox = true`，请改为 `sandbox = false` 或
+`sandbox = relaxed`，重启 Nix 守护进程后再执行 `darwin-rebuild` 或 `nix build`。请更新 Heron 输入后执行
 `darwin-rebuild switch`，或更新 Nix profile / home-manager 配置。源码构建与依赖
 固定方式见
 [Nix 分发说明](https://github.com/minori-live/heron/blob/main/agents/docs/nix-distribution.md)。

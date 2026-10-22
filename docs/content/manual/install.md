@@ -126,7 +126,10 @@ the user Applications folder. The flake builds `aarch64-darwin` and
 inside the app, as they do on NixOS; the module does not install Audio Unit
 bundles. The Nix build is ad-hoc signed, so the first launch may need the same
 Privacy & Security confirmation as an unsigned disk image, including microphone
-access. Update by updating the Heron input and running `darwin-rebuild switch`,
+access. Building it runs `/bin/ps`, `codesign`, `plutil`, and `ditto`. Nix's
+Darwin default leaves the sandbox off. If `/etc/nix/nix.conf` sets
+`sandbox = true`, change that to `sandbox = false` or `sandbox = relaxed` and
+restart the Nix daemon before `darwin-rebuild` or `nix build`. Update by updating the Heron input and running `darwin-rebuild switch`,
 or by updating your Nix profile or home-manager configuration. See
 [Nix distribution](https://github.com/minori-live/heron/blob/main/agents/docs/nix-distribution.md)
 for the source build and dependency pins.

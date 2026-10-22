@@ -57,8 +57,10 @@ builds, and tagged releases.
   x64, Linux arm64, and Apple Silicon runners. Each of those jobs runs
   `nix flake check` and `nix build .#heron` against the checked-out revision.
   The Linux x64 job also evaluates the Intel and Apple Silicon Darwin
-  derivations. The package builds Heron's Rust and Electron code using locked
-  dependencies; it does not fetch a Heron AppImage from a Release. See
+  derivations. The Apple Silicon job sets `sandbox = false` so the macOS
+  package can run `/bin/ps`, `codesign`, `plutil`, and `ditto`. The package
+  builds Heron's Rust and Electron code using locked dependencies; it does not
+  fetch a Heron AppImage from a Release. See
   [Nix distribution](nix-distribution.md) for dependency updates and local
   validation.
 - **Publish update manifests** (`.github/workflows/publish-updates.yml`) handles

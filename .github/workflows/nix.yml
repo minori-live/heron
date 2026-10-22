@@ -99,9 +99,24 @@ jobs:
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v23
+        with:
+          # Determinate Nix enables the Darwin sandbox. The package opts out
+          # because napi-rs and electron-builder execute /bin/ps, codesign,
+          # plutil, and ditto. Nix rejects that opt-out while sandbox = true.
+          extra-conf: |
+            sandbox = false
 
       - name: Magically cache Nix store paths
         uses: DeterminateSystems/magic-nix-cache-action@v15
+
+      - name: Require an unsandboxed Darwin build
+        run: |
+          mode="$(nix config show sandbox)"
+          echo "sandbox=$mode"
+          if [[ "$mode" != "false" ]]; then
+            echo "::error::The macOS Nix package needs sandbox = false (got ${mode})."
+            exit 1
+          fi
 
       - name: Check Nix formatting
         run: nix fmt -- --check flake.nix nix/*.nix

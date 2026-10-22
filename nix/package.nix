@@ -214,5 +214,11 @@ rustPlatform.buildRustPackage (
     # signature electron-builder embedded for the bundled plug-ins.
     dontStrip = true;
     dontFixup = true;
+    # napi-rs reads the process start time from /bin/ps, and packaging runs
+    # Apple's codesign, plutil, and ditto. The strict Darwin sandbox allowlist
+    # does not include those binaries. Nix honors this opt-out for
+    # `sandbox = false` and `sandbox = relaxed`, and rejects the derivation
+    # when `sandbox = true`.
+    __noChroot = true;
   }
 )
