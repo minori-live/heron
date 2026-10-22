@@ -20,9 +20,11 @@ The application version comes from the checkout's `VERSION`. The Nix package
 does not download a Heron AppImage or depend on a corresponding GitHub Release
 already existing. A branch revision can therefore be built before it is tagged.
 
-`flake.lock` pins nixpkgs. Cargo and pnpm dependencies remain tied to their
-lockfiles; the pnpm dependency store has a fixed content hash. The VST3 and ARA
-SDK sources also have fixed revisions and hashes. Built-in plug-ins retain the
+`flake.lock` pins nixpkgs. Cargo dependencies use `cargoLock` (`importCargoLock`):
+each crate checksum comes from `Cargo.lock`. pnpm dependencies are fetched the
+same way: each registry package in `pnpm-lock.yaml` is a `fetchurl` whose hash
+is that entry's `resolution.integrity`. There is no aggregate pnpm store hash.
+The VST3 and ARA SDK sources have fixed revisions and hashes. Built-in plug-ins retain the
 independent `heron-plugins` release contract: the Nix package fetches the Linux
 runtime assets selected by `heron-plugins.lock.json`, using the per-asset
 `sha256` digests written into that lock. These upstream assets are build inputs,
@@ -49,50 +51,16 @@ after the Release is published.
 
 ## Updating dependencies
 
-Keep pnpm, VST3, and ARA pin changes and their hashes in
-[`nix/sources.nix`](../../nix/sources.nix) in the same change. When updating pnpm
-dependencies, update `pnpm-lock.yaml`, temporarily set `pnpmDeps.hash` to
-`lib.fakeHash` in `nix/package.nix`, and request that fixed-output derivation:
-
-```sh
-nix build .#heron.pnpmDeps --print-build-logs
-```
-
-Copy the reported actual hash into the `pnpm` pin in `nix/sources.nix`, restore
-`pnpmDeps.hash = sources.pnpm`, and build the complete package. A
-dependency-store build alone does not validate
+A `pnpm-lock.yaml` update does not edit [`nix/sources.nix`](../../nix/sources.nix).
+The package reads each registry package's `resolution.integrity` and fetches
+that tarball. `Cargo.lock` is already imported with `cargoLock`, which checks
+each crate checksum from the lockfile; this repository has no git crate that
+would need `outputHashes`. A dependency-store fetch alone does not validate
 the native addon or Electron application. When updating VST3 or ARA, update their
-fixed hashes in `nix/sources.nix` as well. Built-in plug-in archive hashes are
+fixed hashes in `nix/sources.nix`. Built-in plug-in archive hashes are
 not stored there: `pnpm plugins:update` writes Nix SRI digests into
 `heron-plugins.lock.json`, and the package derivation reads them from that lock.
 Validate both Linux architectures after any of these input changes.
-
-Renovate does not edit `nix/sources.nix` itself. Pushes to `renovate/**` that
-change `pnpm-lock.yaml` or `Cargo.lock` run
-[`.github/workflows/update-nix-hashes.yml`](../../.github/workflows/update-nix-hashes.yml).
-The workflow builds `.#heron.pnpmDeps`, reads the `got:` hash from Nix's
-fixed-output mismatch, and commits that hash to the `pnpm` pin. The commit
-changes only `nix/sources.nix`, so the workflow does not run again. `Cargo.lock`
-is part of the trigger so a future `cargo` pin in `nix/sources.nix` is updated
-the same way (`fetchCargoVendor` reports the mismatch on its `vendor-staging`
-derivation). The package currently uses `cargoLock`, which imports per-crate
-checksums and has no aggregate hash, so a Cargo-only change does not rewrite
-`nix/sources.nix`.
-
-The follow-up push has to start pull-request CI. Pushes authenticated with the
-default `GITHUB_TOKEN` do not create workflow runs. Configure the repository
-Actions secret `NIX_HASH_UPDATE_TOKEN` as a fine-grained personal access token:
-
-- Resource owner: `minori-live`
-- Repository access: only this repository
-- Permission: Contents read and write
-- The token's user can push `renovate/**` branches and does not bypass branch
-  protection on `main`
-
-Without the secret, the workflow still prints the corrected hash and then fails
-instead of pushing a commit that CI would ignore. The first CI run on the
-lockfile push can still fail the Nix jobs; the follow-up commit is the revision
-those jobs need to build.
 
 ## Validation
 
