@@ -163,11 +163,13 @@ rustPlatform.buildRustPackage (
         ''
           runHook preInstall
           apps=()
+          # electron-builder writes the bundle directory as heron.app.
+          # find -name is case-sensitive and misses that entry.
           while IFS= read -r app; do
             apps+=("$app")
-          done < <(find release -type d -name 'Heron.app')
+          done < <(find release -maxdepth 3 -type d -iname 'heron.app')
           if [ "''${#apps[@]}" -ne 1 ]; then
-            printf 'Expected one Heron.app under release/, found %s\n' "''${#apps[@]}" >&2
+            printf 'Expected one heron.app under release/, found %s\n' "''${#apps[@]}" >&2
             find release -maxdepth 3 -print >&2 || true
             exit 1
           fi
