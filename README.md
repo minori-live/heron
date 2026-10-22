@@ -89,15 +89,17 @@ troubleshooting.
 ## Install
 
 - **macOS:** `brew install --cask minori-live/tap/heron` (see the
-  [Homebrew tap](https://github.com/minori-live/homebrew-tap))
+  [Homebrew tap](https://github.com/minori-live/homebrew-tap)), or Nix:
+  `nix run github:minori-live/heron`
 - **Linux (Nix):** `nix run github:minori-live/heron` or
   `nix profile install github:minori-live/heron`
 - **Windows / macOS / Linux installers:** download from
   [Releases](https://github.com/minori-live/heron/releases)
 
-The Nix flake builds Heron from the selected source revision on Linux x64 and
-arm64. Use `github:minori-live/heron/vX.Y.Z` to select a release tag.
-NixOS and home-manager module snippets are in the
+The Nix flake builds Heron from the selected source revision for Linux x64 and
+arm64 and for Apple Silicon and Intel Macs. Use
+`github:minori-live/heron/vX.Y.Z` to select a release tag. NixOS, nix-darwin,
+and home-manager snippets are in the
 [install guide](https://heron.minori.live/manual/install).
 
 ## Development

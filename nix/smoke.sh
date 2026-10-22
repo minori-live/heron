@@ -3,12 +3,19 @@ set -euo pipefail
 
 package="$(realpath "${1:?usage: smoke.sh <package> <plugin-platform>}")"
 platform="${2:?usage: smoke.sh <package> <plugin-platform>}"
-resources="$package/lib/heron/resources"
+
+if [[ -d "$package/Applications/Heron.app" ]]; then
+  resources="$package/Applications/Heron.app/Contents/Resources"
+  test -x "$package/bin/heron"
+  test -x "$package/Applications/Heron.app/Contents/MacOS/heron"
+else
+  resources="$package/lib/heron/resources"
+  test -x "$package/bin/heron"
+  test -f "$package/share/applications/heron.desktop"
+fi
+
 manifest="$resources/plugins/bundle-manifest.json"
 probe="$resources/heron-vst3-probe"
-
-test -x "$package/bin/heron"
-test -f "$package/share/applications/heron.desktop"
 test -f "$resources/app.asar"
 test -x "$probe"
 test -x "$resources/heron-clap-probe"

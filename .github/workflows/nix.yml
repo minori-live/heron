@@ -42,6 +42,16 @@ jobs:
       - name: Check Nix formatting
         run: nix fmt -- --check flake.nix nix/*.nix
 
+      - name: Evaluate Darwin packages
+        if: matrix.system == 'x86_64-linux'
+        run: |
+          {
+            printf 'Evaluated `aarch64-darwin` derivation: `%s`\n\n' \
+              "$(nix eval --raw .#packages.aarch64-darwin.heron.drvPath)"
+            printf 'Evaluated `x86_64-darwin` derivation: `%s`\n' \
+              "$(nix eval --raw .#packages.x86_64-darwin.heron.drvPath)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Build and check the source package
         run: |
           nix flake check --print-build-logs
@@ -54,6 +64,58 @@ jobs:
 
       - name: Process audio with the installed built-in plug-ins
         run: xvfb-run --auto-servernum bash nix/smoke.sh ./result ${{ matrix.plugin-platform }}
+
+      - name: Record validated source and package
+        run: |
+          {
+            printf 'Source: `%s`\n\n' "$(git rev-parse HEAD)"
+            printf 'System: `%s`\n\n' '${{ matrix.system }}'
+            printf 'Built and smoke-tested package: `%s`\n' "$(nix path-info ./result)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  darwin:
+    name: Source build (${{ matrix.system }})
+    runs-on: macos-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: aarch64-darwin
+            plugin-platform: macos-universal
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Require an Apple Silicon runner
+        run: |
+          if [[ "$(uname -m)" != "arm64" ]]; then
+            echo "::error::The ${{ matrix.system }} Nix build expects an Apple Silicon runner (got $(uname -m))."
+            exit 1
+          fi
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v23
+
+      - name: Magically cache Nix store paths
+        uses: DeterminateSystems/magic-nix-cache-action@v15
+
+      - name: Check Nix formatting
+        run: nix fmt -- --check flake.nix nix/*.nix
+
+      - name: Build and check the source package
+        run: |
+          nix flake check --print-build-logs
+          nix build .#packages.${{ matrix.system }}.heron --print-build-logs --out-link result
+
+      - name: Process audio with the installed built-in plug-ins
+        run: |
+          rev=$(python3 -c 'import json; print(json.load(open("flake.lock"))["nodes"]["nixpkgs"]["locked"]["rev"])')
+          nix shell "github:NixOS/nixpkgs/${rev}#jq" "github:NixOS/nixpkgs/${rev}#coreutils" --command \
+            bash nix/smoke.sh ./result ${{ matrix.plugin-platform }}
 
       - name: Record validated source and package
         run: |

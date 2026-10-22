@@ -62,6 +62,64 @@ brew upgrade --cask --greedy-auto-updates minori-live/tap/heron
 
 当 macOS 请求麦克风权限时请允许；Heron 需要该权限才能从音频输入录音。
 
+### Nix
+
+在启用 [Nix](https://nixos.org/download/) flakes 的情况下：
+
+```sh
+nix run github:minori-live/heron
+```
+
+安装到用户 profile：
+
+```sh
+nix profile install github:minori-live/heron
+```
+
+在 macOS 上使用 [nix-darwin](https://github.com/LnL7/nix-darwin) 时，导入 flake
+模块并启用：
+
+```nix
+{
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs.nix-darwin.url = "github:LnL7/nix-darwin";
+  inputs.nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
+  inputs.heron.url = "github:minori-live/heron";
+
+  outputs = { nix-darwin, heron, ... }: {
+    darwinConfigurations.example = nix-darwin.lib.darwinSystem {
+      system = "aarch64-darwin";
+      modules = [
+        heron.darwinModules.heron
+        { programs.heron.enable = true; }
+      ];
+    };
+  };
+}
+```
+
+Intel Mac 请把 `system` 设为 `x86_64-darwin`，并把该配置的 nixpkgs 固定到
+`github:NixOS/nixpkgs/nixpkgs-26.05-darwin`。nixos-unstable 已不再能为 Intel Mac
+求值；26.05 是仍包含该工具链的最后一个 nixpkgs 版本。执行 `darwin-rebuild switch`
+后，`heron` 会出现在 `PATH` 中，nix-darwin 会把 `Heron.app` 复制到
+`/Applications/Nix Apps`。Linux 上使用的 home-manager 模块在 macOS 上同样可用：
+
+```nix
+{
+  imports = [ inputs.heron.homeManagerModules.heron ];
+  programs.heron.enable = true;
+}
+```
+
+若启用了 home-manager 的 Darwin 应用链接，它会把 `Heron.app` 链接到用户的
+“应用程序”目录。该 flake 会从所选源码版本构建 `aarch64-darwin` 与
+`x86_64-darwin`。与 NixOS 一样，内置 VST 3 插件位于应用包内；此模块不会安装
+Audio Unit。Nix 构建使用临时签名，首次启动时可能需要像未签名磁盘映像一样在
+**系统设置 → 隐私与安全性** 中确认，并允许麦克风访问。请更新 Heron 输入后执行
+`darwin-rebuild switch`，或更新 Nix profile / home-manager 配置。源码构建与依赖
+固定方式见
+[Nix 分发说明](https://github.com/minori-live/heron/blob/main/agents/docs/nix-distribution.md)。
+
 ## Linux
 
 ### Nix
@@ -105,7 +163,7 @@ nix profile install github:minori-live/heron
 ```
 
 该 flake 会从所选版本的 Heron 源码构建 `x86_64-linux` 与 `aarch64-linux`
-软件包。使用发布标签（`github:minori-live/heron/vX.Y.Z`）或精确提交来选择
+软件包（macOS 见上文）。使用发布标签（`github:minori-live/heron/vX.Y.Z`）或精确提交来选择
 特定版本；默认地址使用默认分支。构建使用锁定的依赖，无需等待 Heron AppImage
 发布。请通过 Nix profile 更新，或更新 Heron 输入并重新构建 NixOS 或
 home-manager 配置。源码构建与依赖固定方式见
