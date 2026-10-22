@@ -110,7 +110,6 @@ export class AudioHostGraphSession {
     project: MixerGraphSnapshot,
     runtime: AudioHostGraph
   ): Promise<RpcResult<PreparedGraphDeployment>> {
-    let result: RpcResult<PreparedGraphDeployment>
     try {
       const snapshot = await this.dependencies.transactions.snapshot(owner.meta)
       this.assertCurrent(owner)
@@ -137,7 +136,7 @@ export class AudioHostGraphSession {
       }
       await this.transition(owner, project.sampleRate, snapshot.value.snapshot)
       this.assertCurrent(owner)
-      result = await this.dependencies.transactions.prepare(
+      const result = await this.dependencies.transactions.prepare(
         owner.meta,
         owner.projectGraph,
         owner.graphRevision,
@@ -148,7 +147,16 @@ export class AudioHostGraphSession {
       if (result.ok) {
         owner.deployment = result.value
         owner.prepared = true
+      } else if (result.error.outcome === "not-committed") {
+        // Keep preparation ownership until recovery finishes so snapshot cannot
+        // start a competing rollback while the previous streams are restarting.
+        try {
+          await this.rollback(owner)
+        } catch (error) {
+          return this.quarantined(owner, error)
+        }
       }
+      return result
     } catch (error) {
       // A thrown native request can have dispatched. Confirm/abort its candidate
       // before returning the streams to their previous rate.
@@ -164,14 +172,6 @@ export class AudioHostGraphSession {
     } finally {
       owner.preparing = false
     }
-    if (!result.ok && result.error.outcome === "not-committed") {
-      try {
-        await this.rollback(owner)
-      } catch (error) {
-        return this.quarantined(owner, error)
-      }
-    }
-    return result
   }
 
   activate(
