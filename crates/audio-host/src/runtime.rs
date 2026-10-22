@@ -56,7 +56,7 @@ use graph_transactions::{
     GraphTransactionState, PreparedGraphCandidate, graph_busy_error, graph_conflict_error,
     graph_correlation, graph_dependency_error, graph_failure, graph_stale_error, graph_success,
     graph_timeout_error, graph_validation_error, validate_graph_meta, validate_graph_request,
-    wait_for_graph_publication,
+    wait_for_graph_build_publication, wait_for_graph_publication,
 };
 use plugin_actor::{
     BounceJobRegistry, TrackFreezeJobRegistry, Vst3ActorDeps, audio_plugin_actor, dispatch_actor,

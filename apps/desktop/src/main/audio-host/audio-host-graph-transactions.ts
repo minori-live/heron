@@ -9,7 +9,12 @@ import type {
   RpcRequestMeta,
   RpcResult
 } from "@heron/contracts"
-import type { AudioHostGraph, ControlResponse, GraphTransactionValue } from "./wire"
+import type {
+  AudioHostGraph,
+  ControlResponse,
+  GraphDeploymentSnapshot,
+  GraphTransactionValue
+} from "./wire"
 
 export interface PreparedGraphDeployment {
   meta: RpcRequestMeta
@@ -194,7 +199,9 @@ export class AudioHostGraphTransactions {
     return result
   }
 
-  async abort(deployment: PreparedGraphDeployment): Promise<RpcResult<GraphTransactionValue>> {
+  async abort(
+    deployment: Pick<PreparedGraphDeployment, "meta" | "projectGraph" | "baseRevision">
+  ): Promise<RpcResult<GraphTransactionValue>> {
     const client = this.requireClient()
     return this.transaction({
       type: "abort-graph",
@@ -203,6 +210,23 @@ export class AudioHostGraphTransactions {
         helperEpoch: client.runtimeEpoch,
         projectGraph: deployment.projectGraph,
         baseRevision: deployment.baseRevision
+      }
+    })
+  }
+
+  async restoreCommitted(
+    meta: RpcRequestMeta,
+    snapshot: GraphDeploymentSnapshot
+  ): Promise<RpcResult<GraphTransactionValue>> {
+    const client = this.requireClient()
+    if (!snapshot.committedProjectGraph) throw new Error("Committed audio graph is unavailable")
+    return this.transaction({
+      type: "restore-committed-graph",
+      meta: this.meta(meta, snapshot.helperEpoch, snapshot.committedRevision),
+      request: {
+        helperEpoch: client.runtimeEpoch,
+        projectGraph: snapshot.committedProjectGraph,
+        baseRevision: snapshot.committedRevision
       }
     })
   }

@@ -516,6 +516,30 @@ fn full_graph_requests_preserve_runtime_defaults_without_the_removed_patch_proto
 }
 
 #[test]
+fn committed_graph_restoration_uses_the_existing_revision_and_resource_boundary() {
+    let wire = serde_json::json!({
+        "type": "restore-committed-graph",
+        "meta": {
+            "protocolVersion": IPC_PROTOCOL_VERSION,
+            "requestId": "restore-request",
+            "target": { "kind": "audio-engine", "id": "engine", "epoch": "42", "generation": 1 },
+            "expectedRevision": 7,
+            "mutation": { "operationId": "restore-operation", "idempotencyKey": "restore-operation" }
+        },
+        "request": {
+            "helperEpoch": "42",
+            "projectGraph": { "kind": "project-graph", "id": "graph", "epoch": "project", "generation": 1 },
+            "baseRevision": 7
+        }
+    });
+    let command: ControlCommand = serde_json::from_value(wire.clone())
+        .expect("the host must accept restoration without a replacement graph or new revision");
+    let bytes = rmp_serde::to_vec_named(&command).expect("restoration must encode");
+    let encoded: serde_json::Value = rmp_serde::from_slice(&bytes).unwrap();
+    assert_eq!(encoded, wire);
+}
+
+#[test]
 fn audio_wire_distinguishes_session_input_and_output_sample_rates() {
     let command = ControlCommand::StartAudioEngine {
         config: AudioEngineConfig {

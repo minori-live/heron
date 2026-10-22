@@ -262,22 +262,18 @@ describe("AudioHostService track freeze", () => {
     )
 
     installGraph(service)
-    const transactions = {
-      prepare: vi.fn(async () => ({
-        ok: false as const,
-        error: { userMessageKey: "errors.prepare" }
-      })),
-      activate: vi.fn(async () => ({
-        ok: false as const,
-        error: { userMessageKey: "errors.activate" }
-      }))
-    }
-    ;(service as unknown as { graphTransactions: typeof transactions }).graphTransactions =
-      transactions
+    const prepare = vi.spyOn(service, "prepareGraphDeployment").mockResolvedValue({
+      ok: false as const,
+      error: { userMessageKey: "errors.prepare" }
+    } as never)
+    vi.spyOn(service, "activateGraphDeployment").mockResolvedValue({
+      ok: false as const,
+      error: { userMessageKey: "errors.activate" }
+    } as never)
     await expect(service.deployTrackFreezeSource(desired.project, desired.runtime)).rejects.toThrow(
       "errors.prepare"
     )
-    transactions.prepare.mockResolvedValue({
+    prepare.mockResolvedValue({
       ok: true,
       value: { runtime: desired.runtime }
     } as never)

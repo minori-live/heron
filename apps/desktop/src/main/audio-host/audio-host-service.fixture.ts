@@ -29,6 +29,7 @@ const fakeHostInternal = vi.hoisted(() => {
     static launchArguments: unknown[][] = []
 
     readonly commands: Array<Record<string, unknown>> = []
+    readonly sessionEpoch = `test-session-${Client.instances.length}`
     readonly heartbeatDeferred = new Deferred<{ body: Buffer; attachments: Buffer[] }>()
     readonly delayedEngineStart =
       Client.instances.length === 1 ? new Deferred<{ body: Buffer; attachments: Buffer[] }>() : null
@@ -43,6 +44,8 @@ const fakeHostInternal = vi.hoisted(() => {
     sessionSampleRate = 48_000
     outputSampleRate = 48_000
     graphRevision = 0
+    activeGraphRevision: number | null = null
+    committedProjectGraph: Record<string, unknown> | null = null
     graphCandidate: {
       operationId: string
       projectGraph: Record<string, unknown>
@@ -117,6 +120,9 @@ const fakeHostInternal = vi.hoisted(() => {
         const config = request.command.config as { session_sample_rate?: number | null }
         this.engineState = "running"
         this.sessionSampleRate = config.session_sample_rate ?? this.outputSampleRate
+        // Restarting native device streams drops the currently rendering graph;
+        // its committed source and revision survive for explicit restoration.
+        this.activeGraphRevision = null
         if (this.delayedEngineStart) {
           this.delayedEngineRequestId = request.request_id
           return this.delayedEngineStart.promise
@@ -160,6 +166,7 @@ const fakeHostInternal = vi.hoisted(() => {
         request.command.type === "graph-deployment-snapshot" ||
         request.command.type === "prepare-graph" ||
         request.command.type === "activate-graph" ||
+        request.command.type === "restore-committed-graph" ||
         request.command.type === "abort-graph"
       ) {
         const meta = request.command.meta as {
@@ -184,6 +191,8 @@ const fakeHostInternal = vi.hoisted(() => {
           value = { type: "prepared", snapshot: this.graphTransactionSnapshot() }
         } else if (request.command.type === "activate-graph" && this.graphCandidate) {
           this.graphRevision = this.graphCandidate.graphRevision
+          this.activeGraphRevision = this.graphRevision
+          this.committedProjectGraph = this.graphCandidate.projectGraph
           this.lastGraphOperation = {
             operationId: this.graphCandidate.operationId,
             outcome: "committed",
@@ -191,6 +200,14 @@ const fakeHostInternal = vi.hoisted(() => {
           }
           this.graphCandidate = null
           value = { type: "activated", snapshot: this.graphTransactionSnapshot() }
+        } else if (request.command.type === "restore-committed-graph" && transaction) {
+          if (this.graphCandidate || transaction.baseRevision !== this.graphRevision) {
+            throw new Error(
+              "committed graph restoration requires no candidate and the saved revision"
+            )
+          }
+          this.activeGraphRevision = this.graphRevision || null
+          value = { type: "snapshot", snapshot: this.graphTransactionSnapshot() }
         } else if (request.command.type === "abort-graph") {
           const operationId = meta.mutation?.operationId ?? ""
           const existed = this.graphCandidate?.operationId === operationId
@@ -395,10 +412,10 @@ const fakeHostInternal = vi.hoisted(() => {
     transportDiagnostics(): Buffer {
       return Buffer.from(
         encode([
-          "test-session",
+          this.helperEpoch,
           [0, 256, 0],
           0,
-          ["test-session", this.graphRevision, 0, 0],
+          [this.helperEpoch, this.graphRevision, 0, 0],
           [256, 0, 0],
           [2, 4]
         ])
@@ -406,7 +423,7 @@ const fakeHostInternal = vi.hoisted(() => {
     }
 
     get helperEpoch(): string {
-      return "test-session"
+      return this.sessionEpoch
     }
 
     get runtimeEpoch(): string {
@@ -431,7 +448,7 @@ const fakeHostInternal = vi.hoisted(() => {
           generation: 1
         },
         status: this.graphCandidate ? "prepared" : this.graphRevision > 0 ? "active" : "empty",
-        committedProjectGraph: null,
+        committedProjectGraph: this.committedProjectGraph,
         committedRevision: this.graphRevision,
         observedRevision: this.graphRevision,
         candidate: this.graphCandidate,

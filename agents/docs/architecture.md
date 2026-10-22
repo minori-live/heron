@@ -296,6 +296,22 @@ both errors without replacing the activation outcome. Unknown activation is
 reconciled, never speculatively aborted or reported as still prepared after its
 instances have been consumed.
 
+Electron main reserves the audio session for the entire graph transaction before
+preparation can change its rate. A running device session at another rate is
+paused and restarted at the project rate using the existing device preferences;
+device formats and persisted preferences do not change. Matching rates do not
+restart streams. Activation restores the transport at the rescaled frame position.
+Known failure or cancellation first releases the native candidate, then restores
+the previous session, committed rendering graph, and transport. An explicit stop
+remains stopped. Unknown outcomes retain ownership until snapshot reconciliation;
+failed recovery remains quarantined instead of admitting another rate change.
+
+The local `restore-committed-graph` command rebuilds the retained resolved graph
+after a stream restart without advancing its document revision or replacing its
+operation receipt. It validates the engine epoch, committed project handle and
+revision, refuses a pending candidate, and uses the same off-callback compilation
+and publication gates. The native graph/session sample-rate check remains required.
+
 Internal refresh coalesces to one latest pending snapshot and cannot supersede
 a document candidate or block the UI mailbox/engine actor while awaiting ownership.
 One off-callback compilation path serves both. The background actor continues

@@ -6,7 +6,7 @@ use super::{
     graph_correlation, graph_dependency_error, graph_failure, graph_stale_error, graph_success,
     graph_timeout_error, graph_validation_error, mpsc, oneshot, publish_built_graph,
     refresh_graph_handles, std_mpsc, validate_graph_meta, validate_graph_request, vst3,
-    wait_for_graph_publication,
+    wait_for_graph_build_publication, wait_for_graph_publication,
 };
 
 pub(super) struct Vst3ActorDeps {

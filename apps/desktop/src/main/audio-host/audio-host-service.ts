@@ -17,6 +17,7 @@ import { AudioHostRecordingClient } from "./audio-host-recording-client"
 import { AudioHostPluginClient } from "./audio-host-plugin-client"
 import { AudioHostTransportClient } from "./audio-host-transport-client"
 import { AudioHostGraphTransactions } from "./audio-host-graph-transactions"
+import { AudioHostGraphSession } from "./audio-host-graph-session"
 import type { PreparedGraphDeployment } from "./audio-host-graph-transactions"
 import { AudioHostRuntime } from "@heron/dsp-node"
 import type {
@@ -208,15 +209,22 @@ export class AudioHostService {
       this.plugins.loadPluginWithRequest(plugin, sampleRate, false),
     pluginStatus: (instanceId) => this.plugins.status(instanceId),
     isPluginBypassed: (instanceId) => this.plugins.isBypassed(instanceId),
-    commit: async (deployment) => {
-      await this.commitDesiredGraph(deployment)
-      await this.retireRemovedPlugins(deployment)
-      this.publishedGraph = {
-        revision: deployment.graphRevision,
-        runtime: structuredClone(deployment.runtime)
-      }
-      this.audioTransport.setChannelIds(deployment.runtime.channels)
-    }
+    commit: (deployment) => this.commitGraphDeployment(deployment)
+  })
+
+  private readonly graphSession = new AudioHostGraphSession({
+    transactions: this.graphTransactions,
+    epoch: () => this.helperEpoch(),
+    audioSnapshot: () => this.audioEngineSnapshot(),
+    preferences: () => this.audioTransport.audioPreferences(),
+    startAudio: (preferences, rate) => this.audioTransport.startAudioEngine(preferences, rate),
+    transportSnapshot: () => this.audioTransport.transportControlSnapshot(),
+    transport: (command) => this.transport(command),
+    invalidatePublication: () => {
+      this.publishedGraph = null
+    },
+    waitForPublication: (revision) => this.waitForGraphPublication(revision),
+    commit: (deployment) => this.commitGraphDeployment(deployment)
   })
 
   constructor(
@@ -357,18 +365,18 @@ export class AudioHostService {
     project: MixerGraphSnapshot,
     runtimeInput: AudioHostGraph
   ): Promise<RpcResult<PreparedGraphDeployment>> {
-    return this.graphTransactions.prepare(meta, projectGraph, graphRevision, project, runtimeInput)
+    return this.graphSession.prepare(meta, projectGraph, graphRevision, project, runtimeInput)
   }
 
   async activateGraphDeployment(
     deployment: PreparedGraphDeployment,
     options: { cut?: boolean; isCurrent?: () => boolean } = {}
   ): ReturnType<AudioHostGraphTransactions["activate"]> {
-    return this.graphTransactions.activate(deployment, options)
+    return this.graphSession.activate(deployment, options)
   }
 
   graphDeploymentSnapshot(meta: RpcRequestMeta) {
-    return this.graphTransactions.snapshot(meta)
+    return this.graphSession.snapshot(meta)
   }
 
   forgetDocumentGraph(): void {
@@ -384,7 +392,21 @@ export class AudioHostService {
   async abortGraphDeployment(
     deployment: PreparedGraphDeployment
   ): ReturnType<AudioHostGraphTransactions["abort"]> {
-    return this.graphTransactions.abort(deployment)
+    return this.graphSession.abort(deployment)
+  }
+
+  private async commitGraphDeployment(deployment: PreparedGraphDeployment): Promise<void> {
+    if (!this.graphSession.acceptsCommit(deployment))
+      throw new Error("Audio graph belongs to a retired runtime")
+    await this.commitDesiredGraph(deployment)
+    await this.retireRemovedPlugins(deployment)
+    if (!this.graphSession.acceptsCommit(deployment))
+      throw new Error("Audio graph belongs to a retired runtime")
+    this.publishedGraph = {
+      revision: deployment.graphRevision,
+      runtime: structuredClone(deployment.runtime)
+    }
+    this.audioTransport.setChannelIds(deployment.runtime.channels)
   }
 
   async commitDesiredGraph(deployment: PreparedGraphDeployment): Promise<void> {
@@ -419,56 +441,11 @@ export class AudioHostService {
     runtime: AudioHostGraph,
     awaitPublication = false
   ): Promise<void> {
-    const transport = await this.prepareSessionRateTransition(project.sampleRate)
     await this.publishGraph(revision, project, runtime)
-    if (awaitPublication || transport) {
+    if (awaitPublication) {
       const audio = await this.audioEngineSnapshot()
       if (audio.state === "running") await this.waitForGraphPublication(revision)
     }
-    if (transport) await this.restoreSessionRateTransition(transport)
-  }
-
-  private async prepareSessionRateTransition(
-    sessionSampleRate: number
-  ): Promise<TransportSnapshot | null> {
-    const audio = await this.audioEngineSnapshot()
-    if (audio.state !== "running" || audio.sampleRate === sessionSampleRate) return null
-    const audioPreferences = this.audioTransport.audioPreferences()
-    if (!audioPreferences) {
-      throw new Error("Audio preferences are unavailable for a session-rate change")
-    }
-    const transport = await this.transportSnapshot()
-    if (transport.state === "recording") {
-      throw new Error("Stop recording before changing the project sample rate")
-    }
-    if (transport.state === "playing") await this.transport({ type: "pause" })
-    const previousSampleRate = transport.sampleRate || audio.sampleRate || sessionSampleRate
-    const positionFrames = Math.max(
-      0,
-      Math.round((transport.positionFrames * sessionSampleRate) / previousSampleRate)
-    )
-    const runtime = await this.audioTransport.startAudioEngine(audioPreferences, sessionSampleRate)
-    if (runtime.state !== "running" || runtime.sampleRate !== sessionSampleRate) {
-      throw new Error("Audio engine did not adopt the project sample rate")
-    }
-    this.publishedGraph = null
-    return {
-      state: transport.state,
-      positionFrames,
-      sampleRate: sessionSampleRate,
-      loopEnabled: transport.loopEnabled,
-      loopRange: transport.loopRange ? { ...transport.loopRange } : null
-    }
-  }
-
-  private async restoreSessionRateTransition(transport: TransportSnapshot): Promise<void> {
-    await this.transport({
-      type: "set-loop",
-      enabled: transport.loopEnabled,
-      range: transport.loopRange
-    })
-    await this.transport({ type: "seek", positionFrames: transport.positionFrames })
-    if (transport.state === "playing") await this.transport({ type: "play" })
   }
 
   private async restoreGraph(): Promise<void> {
@@ -482,7 +459,7 @@ export class AudioHostService {
     runtime: AudioHostGraph
   ): Promise<void> {
     const operationId = randomUUID()
-    const prepared = await this.graphTransactions.prepare(
+    const prepared = await this.prepareGraphDeployment(
       {
         protocolVersion: IPC_PROTOCOL_VERSION,
         requestId: operationId,
@@ -494,7 +471,7 @@ export class AudioHostService {
       runtime
     )
     if (!prepared.ok) throw new Error(prepared.error.userMessageKey)
-    const activated = await this.graphTransactions.activate(prepared.value)
+    const activated = await this.activateGraphDeployment(prepared.value)
     if (!activated.ok) {
       throw new Error(activated.error.userMessageKey)
     }
@@ -528,7 +505,7 @@ export class AudioHostService {
   }
 
   stopAudioEngine(): Promise<AudioRuntimeSnapshot> {
-    return this.audioTransport.stopAudioEngine()
+    return this.graphSession.stopAudio(() => this.audioTransport.stopAudioEngine())
   }
 
   audioEngineSnapshot(): Promise<AudioRuntimeSnapshot> {
@@ -790,6 +767,7 @@ export class AudioHostService {
 
   private async shutdownCurrentClient(): Promise<void> {
     this.health.stop()
+    this.graphSession.reset()
     const client = this.client
     if (!client) return
     await this.editorWindows?.closeAll()
@@ -894,7 +872,7 @@ export class AudioHostService {
     }
     const revision = session.revision + 1
     const operationId = randomUUID()
-    const prepared = await this.graphTransactions.prepare(
+    const prepared = await this.prepareGraphDeployment(
       {
         protocolVersion: IPC_PROTOCOL_VERSION,
         requestId: operationId,
@@ -906,7 +884,7 @@ export class AudioHostService {
       runtime
     )
     if (!prepared.ok) throw new Error(prepared.error.userMessageKey)
-    const activated = await this.graphTransactions.activate(prepared.value)
+    const activated = await this.activateGraphDeployment(prepared.value)
     if (!activated.ok) throw new Error(activated.error.userMessageKey)
     const rendered = structuredClone(prepared.value.runtime)
     // Activation commits the live source on this client only. The offline

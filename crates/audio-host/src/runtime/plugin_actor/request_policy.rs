@@ -12,6 +12,7 @@ pub(in crate::runtime) fn is_vst3_command(command: &ControlCommand) -> bool {
             | ControlCommand::ActivateGraph { .. }
             | ControlCommand::ActivateGraphCut { .. }
             | ControlCommand::AbortGraph { .. }
+            | ControlCommand::RestoreCommittedGraph { .. }
             | ControlCommand::GraphDeploymentSnapshot { .. }
             | ControlCommand::LoadPlugin { .. }
             | ControlCommand::UnloadPlugin { .. }
@@ -56,6 +57,7 @@ pub(in crate::runtime) fn slow_request_threshold(command: &ControlCommand) -> st
             | ControlCommand::ActivateGraph { .. }
             | ControlCommand::ActivateGraphCut { .. }
             | ControlCommand::AbortGraph { .. }
+            | ControlCommand::RestoreCommittedGraph { .. }
             | ControlCommand::LoadPlugin { .. }
             | ControlCommand::UnloadPlugin { .. }
             | ControlCommand::SavePluginState { .. }
