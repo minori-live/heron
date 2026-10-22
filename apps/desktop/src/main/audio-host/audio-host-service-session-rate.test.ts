@@ -199,33 +199,108 @@ describe("AudioHostService transactional session sample rate", () => {
     }
   })
 
-  it("quarantines failed rollback until a snapshot can restore the previous session", async () => {
-    const { service, client, controls, prepare } = await runningSession()
-    try {
-      const prepared = await prepare()
-      if (!prepared.ok) throw new Error("candidate should prepare")
-      controls.failedStartRates.add(44_100)
-      await expect(service.abortGraphDeployment(prepared.value)).resolves.toMatchObject({
-        ok: false,
-        error: { outcome: "quarantined", retry: "after-reconcile" }
-      })
-      expect(client.graphCandidate).toBeNull()
-      await expect(prepare(96_000, "competing-recovery")).resolves.toMatchObject({
-        ok: false,
-        error: { code: "resource-busy" }
-      })
-      controls.failedStartRates.clear()
-      await expect(service.graphDeploymentSnapshot(projectRequest().meta)).resolves.toMatchObject({
-        ok: true
-      })
-      expect(client.sessionSampleRate).toBe(44_100)
-      const retry = await prepare()
-      expect(retry.ok).toBe(true)
-      if (retry.ok) await service.abortGraphDeployment(retry.value)
-    } finally {
-      await service.stop()
+  it.each(["prepare-failure", "abort"] as const)(
+    "quarantines failed %s rollback until a snapshot can restore the previous session",
+    async (outcome) => {
+      const { service, client, controls, prepare } = await runningSession()
+      try {
+        controls.failedStartRates.add(44_100)
+        controls.rejectPrepare = outcome === "prepare-failure"
+        const prepared = await prepare()
+        const result = prepared.ok ? await service.abortGraphDeployment(prepared.value) : prepared
+        expect(result).toMatchObject({
+          ok: false,
+          error: { outcome: "quarantined", retry: "after-reconcile" }
+        })
+        expect(
+          client.commands.filter((command) => command.type === "start-audio-engine")
+        ).toHaveLength(3)
+        expect(client.graphCandidate).toBeNull()
+        await expect(prepare(96_000, "competing-recovery")).resolves.toMatchObject({
+          ok: false,
+          error: { code: "resource-busy" }
+        })
+        controls.failedStartRates.clear()
+        await expect(service.graphDeploymentSnapshot(projectRequest().meta)).resolves.toMatchObject(
+          {
+            ok: true
+          }
+        )
+        expect(client.sessionSampleRate).toBe(44_100)
+        controls.rejectPrepare = false
+        const retry = await prepare()
+        expect(retry.ok).toBe(true)
+        if (retry.ok) await service.abortGraphDeployment(retry.value)
+      } finally {
+        await service.stop()
+      }
     }
-  })
+  )
+
+  it.each(["typed", "thrown"] as const)(
+    "keeps a concurrent snapshot from restarting %s preparation rollback",
+    async (failure) => {
+      const { service, client, controls, prepare } = await runningSession()
+      controls.rejectPrepare = failure === "typed"
+      controls.throwAfterPrepare = failure === "thrown"
+      const restoreEntered = new fakeHost.Deferred<void>()
+      const restoreGate = new fakeHost.Deferred<void>()
+      const request = vi.mocked(client.request).getMockImplementation()!
+      let restoreAttempts = 0
+      vi.mocked(client.request).mockImplementation(async (payload, attachments) => {
+        const { command } = decode(payload) as NativeRequest
+        if (
+          command.type === "start-audio-engine" &&
+          command.config?.session_sample_rate === 44_100
+        ) {
+          restoreAttempts += 1
+          restoreEntered.resolve()
+          await restoreGate.promise
+        }
+        return request(payload, attachments)
+      })
+      const preparation = prepare().catch((error: unknown) => error)
+      let snapshot: ReturnType<typeof service.graphDeploymentSnapshot> | undefined
+      try {
+        await restoreEntered.promise
+        let snapshotSettled = false
+        snapshot = service.graphDeploymentSnapshot(projectRequest().meta).then((result) => {
+          snapshotSettled = true
+          return result
+        })
+        // Either the read returns without reconciling, or the regression starts
+        // another restoration. Keep the original stream restart pending in both cases.
+        await vi.waitFor(() => expect(snapshotSettled || restoreAttempts > 1).toBe(true))
+        expect(restoreAttempts).toBe(1)
+        await expect(prepare(96_000, "overlapping-rollback")).resolves.toMatchObject({
+          ok: false,
+          error: { code: "resource-busy" }
+        })
+        restoreGate.resolve()
+        if (failure === "typed") {
+          await expect(preparation).resolves.toMatchObject({
+            ok: false,
+            error: { code: "dependency-failed", outcome: "not-committed" }
+          })
+        } else {
+          await expect(preparation).resolves.toBeInstanceOf(Error)
+        }
+        await expect(snapshot).resolves.toMatchObject({ ok: true })
+        expect(client.sessionSampleRate).toBe(44_100)
+        expect(client.graphCandidate).toBeNull()
+        controls.rejectPrepare = false
+        controls.throwAfterPrepare = false
+        const retry = await prepare(48_000, "after-rollback")
+        expect(retry.ok).toBe(true)
+        if (retry.ok) await service.abortGraphDeployment(retry.value)
+      } finally {
+        restoreGate.resolve()
+        await preparation
+        await snapshot
+        await service.stop()
+      }
+    }
+  )
 
   it("prepares and activates a 48 kHz project with an existing 44.1 kHz device session", async () => {
     const { service, client, prepare } = await runningSession()
