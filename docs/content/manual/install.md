@@ -70,6 +70,70 @@ experimental or unsigned build.
 Allow microphone access when macOS asks; Heron needs that permission to record
 from audio inputs.
 
+### Nix
+
+With [Nix](https://nixos.org/download/) flakes enabled:
+
+```sh
+nix run github:minori-live/heron
+```
+
+Install into your profile:
+
+```sh
+nix profile install github:minori-live/heron
+```
+
+On macOS with [nix-darwin](https://github.com/LnL7/nix-darwin), import the flake
+module and enable the program:
+
+```nix
+{
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs.nix-darwin.url = "github:LnL7/nix-darwin";
+  inputs.nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
+  inputs.heron.url = "github:minori-live/heron";
+
+  outputs = { nix-darwin, heron, ... }: {
+    darwinConfigurations.example = nix-darwin.lib.darwinSystem {
+      system = "aarch64-darwin";
+      modules = [
+        heron.darwinModules.heron
+        { programs.heron.enable = true; }
+      ];
+    };
+  };
+}
+```
+
+Use `x86_64-darwin` on an Intel Mac, and pin that configuration's nixpkgs to
+`github:NixOS/nixpkgs/nixpkgs-26.05-darwin`. nixos-unstable no longer evaluates
+Intel Macs; 26.05 is the last nixpkgs release with that toolchain. After
+`darwin-rebuild switch`, `heron` is on `PATH` and nix-darwin copies `Heron.app`
+to `/Applications/Nix Apps`. The
+same home-manager module used on Linux also works on macOS:
+
+```nix
+{
+  imports = [ inputs.heron.homeManagerModules.heron ];
+  programs.heron.enable = true;
+}
+```
+
+When home-manager's Darwin app linking is enabled, it links `Heron.app` into
+the user Applications folder. The flake builds `aarch64-darwin` and
+`x86_64-darwin` from the selected source revision. Bundled VST 3 plug-ins stay
+inside the app, as they do on NixOS; the module does not install Audio Unit
+bundles. The Nix build is ad-hoc signed, so the first launch may need the same
+Privacy & Security confirmation as an unsigned disk image, including microphone
+access. Building it runs `/bin/ps`, `codesign`, `plutil`, and `ditto`. Nix's
+Darwin default leaves the sandbox off. If `/etc/nix/nix.conf` sets
+`sandbox = true`, change that to `sandbox = false` or `sandbox = relaxed` and
+restart the Nix daemon before `darwin-rebuild` or `nix build`. Update by updating the Heron input and running `darwin-rebuild switch`,
+or by updating your Nix profile or home-manager configuration. See
+[Nix distribution](https://github.com/minori-live/heron/blob/main/agents/docs/nix-distribution.md)
+for the source build and dependency pins.
+
 ## Linux
 
 ### Nix
@@ -113,11 +177,12 @@ With home-manager:
 ```
 
 The flake builds Heron from the selected source revision for `x86_64-linux`
-and `aarch64-linux`. Use a release tag (`github:minori-live/heron/vX.Y.Z`) or
-an exact commit to select a particular version; the default URL uses the
-default branch. The build uses locked dependencies and does not require a
-published Heron AppImage. Update through your Nix profile or by updating the
-Heron input and rebuilding your NixOS or home-manager configuration. See
+and `aarch64-linux` (macOS systems are above). Use a release tag
+(`github:minori-live/heron/vX.Y.Z`) or an exact commit to select a particular
+version; the default URL uses the default branch. The build uses locked
+dependencies and does not require a published Heron AppImage. Update through
+your Nix profile or by updating the Heron input and rebuilding your NixOS or
+home-manager configuration. See
 [Nix distribution](https://github.com/minori-live/heron/blob/main/agents/docs/nix-distribution.md)
 for the source build and dependency pins.
 

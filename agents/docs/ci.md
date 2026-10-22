@@ -54,11 +54,15 @@ builds, and tagged releases.
   `update-manifests` branch before creating the draft, while Release assets
   contain installers only.
 - **Nix** (`.github/workflows/nix.yml`) builds the source flake on native Linux
-  x64 and arm64 runners. Each job runs `nix flake check` and `nix build .#heron`
-  against the checked-out revision. The package builds Heron's Rust and
-  Electron code using locked dependencies; it does not fetch a Heron AppImage
-  from a Release. See [Nix distribution](nix-distribution.md) for dependency
-  updates and local validation.
+  x64, Linux arm64, and Apple Silicon runners. Each of those jobs runs
+  `nix flake check` and `nix build .#heron` against the checked-out revision.
+  The Linux x64 job also evaluates the Intel and Apple Silicon Darwin
+  derivations. The Apple Silicon job sets `sandbox = false` so the macOS
+  package can run `/bin/ps`, `codesign`, `plutil`, and `ditto`. The package
+  builds Heron's Rust and Electron code using locked dependencies; it does not
+  fetch a Heron AppImage from a Release. See
+  [Nix distribution](nix-distribution.md) for dependency updates and local
+  validation.
 - **Publish update manifests** (`.github/workflows/publish-updates.yml`) handles
   the Release `published` event. It promotes the staged manifests and dispatches
   the shared Pages workflow from `main`, the branch allowed by the Pages
@@ -266,8 +270,8 @@ in the Rust LCOV report.
 [Application updates](application-updates.md) owns installed eligibility, channel
 metadata, scheduling, installation admission and shutdown/recovery.
 [Homebrew distribution](homebrew-distribution.md) owns Tap synchronization.
-[Nix distribution](nix-distribution.md) owns the in-repo Linux source build
-and its fixed dependency inputs.
+[Nix distribution](nix-distribution.md) owns the in-repo Linux and macOS source
+build and its fixed dependency inputs.
 [Built-in plug-in distribution](builtin-plugin-distribution.md) owns the separately
 released runtime dependency and its upgrade PRs.
 
