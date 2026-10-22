@@ -19,7 +19,8 @@ builds, and tagged releases.
   `mise run ci:check:coverage`, the coverage-producing test pass, while two
   sibling jobs run the work that does not produce coverage:
   `mise run ci:check:static` (formatting, lint, Vue ESLint, Clippy, TypeScript,
-  design audits, Storybook, and benchmark compilation) and
+  the vendored rust-skills harness workspace check, design audits, Storybook,
+  and benchmark compilation) and
   `mise run test:e2e` (the Electron end-to-end suite and crash smoke). Running
   them in parallel keeps the coverage rebuild off their critical path, and no
   test suite is repeated. Windows and macOS run
@@ -58,6 +59,13 @@ builds, and tagged releases.
   Electron code using locked dependencies; it does not fetch a Heron AppImage
   from a Release. See [Nix distribution](nix-distribution.md) for dependency
   updates and local validation.
+- **Update Nix hashes** (`.github/workflows/update-nix-hashes.yml`) runs on
+  pushes to `renovate/**` that change `pnpm-lock.yaml` or `Cargo.lock`. It
+  rebuilds the pnpm fixed-output derivation, writes the reported hash into
+  `nix/sources.nix`, and pushes a follow-up commit with `NIX_HASH_UPDATE_TOKEN`
+  so pull-request CI runs again. That commit does not change a lockfile, so
+  the workflow does not run a second time. It is not part of the `Gate` check.
+  See [Nix distribution](nix-distribution.md).
 - **Publish update manifests** (`.github/workflows/publish-updates.yml`) handles
   the Release `published` event. It promotes the staged manifests and dispatches
   the shared Pages workflow from `main`, the branch allowed by the Pages

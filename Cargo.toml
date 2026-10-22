@@ -13,6 +13,9 @@ members = [
     "crates/vst3-host-sys",
     "crates/vst3-host",
 ]
+# Vendored example harness with its own lockfile. Keeping it out of this
+# workspace lets `cargo update` refresh that lockfile.
+exclude = [".agents/skills/rust-skills/checks"]
 resolver = "3"
 
 [workspace.package]

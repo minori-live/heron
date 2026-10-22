@@ -152,10 +152,16 @@ hide = true
 depends = ["check:prepare", "codegen:wire-types:check"]
 run = "pnpm check:packages"
 
+[tasks."check:rust-skills-harness"]
+hide = true
+description = "Keep the vendored rust-skills example harness outside the Heron Cargo workspace"
+run = "node scripts/check-rust-skills-harness.ts"
+
 [tasks."check:static"]
 hide = true
 depends = [
   "version:check",
+  "check:rust-skills-harness",
   "js:format-check",
   "rust:format:check",
   "rust:shear",

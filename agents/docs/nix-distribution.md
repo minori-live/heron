@@ -67,6 +67,33 @@ not stored there: `pnpm plugins:update` writes Nix SRI digests into
 `heron-plugins.lock.json`, and the package derivation reads them from that lock.
 Validate both Linux architectures after any of these input changes.
 
+Renovate does not edit `nix/sources.nix` itself. Pushes to `renovate/**` that
+change `pnpm-lock.yaml` or `Cargo.lock` run
+[`.github/workflows/update-nix-hashes.yml`](../../.github/workflows/update-nix-hashes.yml).
+The workflow builds `.#heron.pnpmDeps`, reads the `got:` hash from Nix's
+fixed-output mismatch, and commits that hash to the `pnpm` pin. The commit
+changes only `nix/sources.nix`, so the workflow does not run again. `Cargo.lock`
+is part of the trigger so a future `cargo` pin in `nix/sources.nix` is updated
+the same way (`fetchCargoVendor` reports the mismatch on its `vendor-staging`
+derivation). The package currently uses `cargoLock`, which imports per-crate
+checksums and has no aggregate hash, so a Cargo-only change does not rewrite
+`nix/sources.nix`.
+
+The follow-up push has to start pull-request CI. Pushes authenticated with the
+default `GITHUB_TOKEN` do not create workflow runs. Configure the repository
+Actions secret `NIX_HASH_UPDATE_TOKEN` as a fine-grained personal access token:
+
+- Resource owner: `minori-live`
+- Repository access: only this repository
+- Permission: Contents read and write
+- The token's user can push `renovate/**` branches and does not bypass branch
+  protection on `main`
+
+Without the secret, the workflow still prints the corrected hash and then fails
+instead of pushing a commit that CI would ignore. The first CI run on the
+lockfile push can still fail the Nix jobs; the follow-up commit is the revision
+those jobs need to build.
+
 ## Validation
 
 `ci.yml` calls the Nix reusable workflow. Its native Linux x64 and arm64 jobs
