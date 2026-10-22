@@ -114,6 +114,12 @@ rustPlatform.buildRustPackage (
 
     buildPhase = ''
       runHook preBuild
+      ${lib.optionalString isDarwin ''
+        # The Darwin seatbelt returns EPERM for /bin/ps. @napi-rs/cli spawns
+        # that binary while publishing the addon and aborts on the synchronous
+        # throw. This reports the failure through execFile's callback instead.
+        export NODE_OPTIONS="--require ${./napi-darwin-spawn.cjs}''${NODE_OPTIONS:+ $NODE_OPTIONS}"
+      ''}
       ${lib.optionalString stdenv.hostPlatform.isLinux ''
         # pnpm includes native build tools (Rolldown, esbuild, Sentry,
         # app-builder and fs-native-extensions) which must run in the sandbox.
