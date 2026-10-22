@@ -113,6 +113,6 @@ The macOS derivation runs `codesign`, `plutil`, and `ditto`. It sets
 Nix installs, rejects that opt-out. Set `sandbox = false` or
 `sandbox = relaxed` in `/etc/nix/nix.conf` and restart the daemon before
 building on such a machine. Darwin still applies an allow-default seatbelt in
-that configuration, and `/bin/ps` returns EPERM from it. `nix/napi-darwin-spawn.cjs`
-reports that spawn failure through Node's `execFile` callback so `@napi-rs/cli`
-can publish the addon.
+that configuration, and `/bin/ps` returns EPERM from it. The macOS build loads
+a CommonJS preload that reports that spawn failure through Node's `execFile`
+callback so `@napi-rs/cli` can publish the addon.
