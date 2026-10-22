@@ -5,8 +5,6 @@
   rustfmt,
   nodejs_26,
   pnpm_12,
-  fetchPnpmDeps,
-  pnpmConfigHook,
   electron_44,
   fetchFromGitHub,
   fetchurl,
@@ -29,6 +27,8 @@
   gtk3,
   libGL,
   libxkbcommon,
+  writableTmpDirAsHomeHook,
+  writeText,
 }:
 
 let
@@ -43,6 +43,7 @@ let
   pluginRuntime = pluginRelease.assets.${pluginPlatform}.runtime;
   pluginFile = pluginRuntime.file;
   sources = import ./sources.nix;
+  pnpmLock = import ./pnpm-lock.nix { inherit lib fetchurl writeText; };
   plugins = fetchurl {
     url = "https://github.com/${pluginLock.repository}/releases/download/v${pluginRelease.version}/${pluginFile}";
     hash = pluginRuntime.sha256;
@@ -60,22 +61,16 @@ let
     fetchSubmodules = true;
   };
 in
-rustPlatform.buildRustPackage (finalAttrs: {
+rustPlatform.buildRustPackage {
   pname = "heron";
   inherit version src;
 
   cargoLock.lockFile = ../Cargo.lock;
-  pnpmDeps = fetchPnpmDeps {
-    pname = "heron";
-    inherit version src pnpm;
-    fetcherVersion = 4;
-    hash = sources.pnpm;
-  };
 
   nativeBuildInputs = [
     nodejs_26
     pnpm
-    pnpmConfigHook
+    writableTmpDirAsHomeHook
     rustfmt
     rustPlatform.bindgenHook
     pkg-config
@@ -109,6 +104,17 @@ rustPlatform.buildRustPackage (finalAttrs: {
   # Preserve nixpkgs' Electron RPATH, including its dlopen-only dependencies.
   dontAutoPatchelf = true;
   dontPatchELF = true;
+
+  # pnpm-lock.yaml names every registry tarball and its integrity. The
+  # install talks to a localhost registry of those fetches, so lockfile
+  # updates do not edit nix/sources.nix.
+  preBuild = ''
+    bash ${./pnpm-install.sh} \
+      ${./pnpm-lock-registry.mjs} \
+      ${pnpmLock.manifest} \
+      ${stdenv.targetPlatform.node.arch} \
+      ${stdenv.targetPlatform.node.platform}
+  '';
 
   postPatch = ''
     mkdir -p third_party/vst3sdk third_party/ARA_SDK
@@ -167,8 +173,6 @@ rustPlatform.buildRustPackage (finalAttrs: {
       --add-flags "--ozone-platform=x11"
   '';
 
-  passthru = { inherit (finalAttrs) pnpmDeps; };
-
   meta = {
     description = "Experimental cross-platform digital audio workstation";
     homepage = "https://heron.minori.live/";
@@ -179,4 +183,4 @@ rustPlatform.buildRustPackage (finalAttrs: {
     ];
     mainProgram = "heron";
   };
-})
+}

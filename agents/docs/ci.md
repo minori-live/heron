@@ -19,7 +19,8 @@ builds, and tagged releases.
   `mise run ci:check:coverage`, the coverage-producing test pass, while two
   sibling jobs run the work that does not produce coverage:
   `mise run ci:check:static` (formatting, lint, Vue ESLint, Clippy, TypeScript,
-  design audits, Storybook, and benchmark compilation) and
+  the vendored rust-skills harness workspace check, design audits, Storybook,
+  and benchmark compilation) and
   `mise run test:e2e` (the Electron end-to-end suite and crash smoke). Running
   them in parallel keeps the coverage rebuild off their critical path, and no
   test suite is repeated. Windows and macOS run

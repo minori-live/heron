@@ -20,9 +20,11 @@ The application version comes from the checkout's `VERSION`. The Nix package
 does not download a Heron AppImage or depend on a corresponding GitHub Release
 already existing. A branch revision can therefore be built before it is tagged.
 
-`flake.lock` pins nixpkgs. Cargo and pnpm dependencies remain tied to their
-lockfiles; the pnpm dependency store has a fixed content hash. The VST3 and ARA
-SDK sources also have fixed revisions and hashes. Built-in plug-ins retain the
+`flake.lock` pins nixpkgs. Cargo dependencies use `cargoLock` (`importCargoLock`):
+each crate checksum comes from `Cargo.lock`. pnpm dependencies are fetched the
+same way: each registry package in `pnpm-lock.yaml` is a `fetchurl` whose hash
+is that entry's `resolution.integrity`. There is no aggregate pnpm store hash.
+The VST3 and ARA SDK sources have fixed revisions and hashes. Built-in plug-ins retain the
 independent `heron-plugins` release contract: the Nix package fetches the Linux
 runtime assets selected by `heron-plugins.lock.json`, using the per-asset
 `sha256` digests written into that lock. These upstream assets are build inputs,
@@ -49,20 +51,13 @@ after the Release is published.
 
 ## Updating dependencies
 
-Keep pnpm, VST3, and ARA pin changes and their hashes in
-[`nix/sources.nix`](../../nix/sources.nix) in the same change. When updating pnpm
-dependencies, update `pnpm-lock.yaml`, temporarily set `pnpmDeps.hash` to
-`lib.fakeHash` in `nix/package.nix`, and request that fixed-output derivation:
-
-```sh
-nix build .#heron.pnpmDeps --print-build-logs
-```
-
-Copy the reported actual hash into the `pnpm` pin in `nix/sources.nix`, restore
-`pnpmDeps.hash = sources.pnpm`, and build the complete package. A
-dependency-store build alone does not validate
+A `pnpm-lock.yaml` update does not edit [`nix/sources.nix`](../../nix/sources.nix).
+The package reads each registry package's `resolution.integrity` and fetches
+that tarball. `Cargo.lock` is already imported with `cargoLock`, which checks
+each crate checksum from the lockfile; this repository has no git crate that
+would need `outputHashes`. A dependency-store fetch alone does not validate
 the native addon or Electron application. When updating VST3 or ARA, update their
-fixed hashes in `nix/sources.nix` as well. Built-in plug-in archive hashes are
+fixed hashes in `nix/sources.nix`. Built-in plug-in archive hashes are
 not stored there: `pnpm plugins:update` writes Nix SRI digests into
 `heron-plugins.lock.json`, and the package derivation reads them from that lock.
 Validate both Linux architectures after any of these input changes.

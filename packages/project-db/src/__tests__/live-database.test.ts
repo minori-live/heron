@@ -38,6 +38,8 @@ async function fixture(): Promise<{ root: string; template: string }> {
 }
 
 describe("Live database lineage", () => {
+  // Creating, dumping, and reopening a physical PGlite directory exceeded the
+  // suite's 15s test timeout on Windows CI while the raw directory reopen was still running.
   it("creates and reopens a root Mixer without Studio timeline tables", async ({
     onTestFailed,
     onTestFinished,
@@ -136,7 +138,7 @@ describe("Live database lineage", () => {
     } finally {
       await step("close raw client", () => client.close())
     }
-  })
+  }, 60_000)
 
   it("rejects a missing Live marker before migration", async () => {
     const { root } = await fixture()
