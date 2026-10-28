@@ -99,45 +99,6 @@ checksum = "sha256:c05a60d22d5df22d75a72ae9b6628ef5f20daee4f4ba380920e1fbbeaf244
 url = "https://github.com/Kitware/CMake/releases/download/v4.3.5/cmake-4.3.5-windows-x86_64.zip"
 url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/544564355"
 
-[[tools."github:microsoft/apm"]]
-version = "0.28.0"
-backend = "github:microsoft/apm"
-
-[tools."github:microsoft/apm"."platforms.linux-arm64"]
-checksum = "sha256:0b3a644d6073106d1a06623e0baa0c4d75a5ae5ffe55c30eed927bba48600119"
-url = "https://github.com/microsoft/apm/releases/download/v0.28.0/apm-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/503748777"
-
-[tools."github:microsoft/apm"."platforms.linux-arm64-musl"]
-checksum = "sha256:0b3a644d6073106d1a06623e0baa0c4d75a5ae5ffe55c30eed927bba48600119"
-url = "https://github.com/microsoft/apm/releases/download/v0.28.0/apm-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/503748777"
-
-[tools."github:microsoft/apm"."platforms.linux-x64"]
-checksum = "sha256:7edab3baba96658a20120fc8f3012e3223da7924937a8cbf169bf9805853b8d7"
-url = "https://github.com/microsoft/apm/releases/download/v0.28.0/apm-linux-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/503748776"
-
-[tools."github:microsoft/apm"."platforms.linux-x64-musl"]
-checksum = "sha256:7edab3baba96658a20120fc8f3012e3223da7924937a8cbf169bf9805853b8d7"
-url = "https://github.com/microsoft/apm/releases/download/v0.28.0/apm-linux-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/503748776"
-
-[tools."github:microsoft/apm"."platforms.macos-arm64"]
-checksum = "sha256:9676a6e7bf2bcb3966538a7130faea14ba030baa45f678597cc3fa15c902cb0a"
-url = "https://github.com/microsoft/apm/releases/download/v0.28.0/apm-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/503748770"
-
-[tools."github:microsoft/apm"."platforms.macos-x64"]
-checksum = "sha256:a8397925d45edc3dd666ec80c634f09eb9e5030328288aa0b0ca13c31608f0e0"
-url = "https://github.com/microsoft/apm/releases/download/v0.28.0/apm-darwin-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/503748778"
-
-[tools."github:microsoft/apm"."platforms.windows-x64"]
-checksum = "sha256:b7085454956a8fa60aa61c062c566095bffe6bc1d6c0902f3a6657b1d1d7fc85"
-url = "https://github.com/microsoft/apm/releases/download/v0.28.0/apm-windows-x86_64.zip"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/503748775"
-
 [[tools."http:llvm"]]
 version = "22.1.8"
 backend = "http:llvm"
