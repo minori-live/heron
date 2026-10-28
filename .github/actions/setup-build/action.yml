@@ -48,9 +48,9 @@ runs:
           wayland-protocols
 
     - name: Install locked toolchain
-      uses: jdx/mise-action@v5.2.2
+      uses: jdx/mise-action@v5.2.4
       with:
-        version: 2026.10.17
+        version: 2026.10.21
         cache: true
         # Restore main's tool cache everywhere, but let only main and tags
         # write it; merge-ref copies only consume the shared cache quota.
@@ -113,7 +113,7 @@ runs:
       with:
         # The sccache version participates in the GHA cache version. Avoid an
         # unplanned cold cache across every job when upstream publishes a release.
-        version: v0.18.0
+        version: v0.19.0
 
     - name: Enable sccache for subsequent build steps
       shell: bash
