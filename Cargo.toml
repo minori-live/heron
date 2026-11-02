@@ -54,7 +54,7 @@ objc2-core-audio = { version = "0.3.2", default-features = false }
 objc2-core-audio-types = { version = "0.3.2", default-features = false }
 objc2-core-foundation = { version = "0.3.2", default-features = false }
 objc2-foundation = { version = "0.3.2", default-features = false }
-ringbuf = "0.5"
+ringbuf = "0.6"
 rustfft = "6.4.1"
 rubato = "5.0.0"
 sha2 = "0.11"
