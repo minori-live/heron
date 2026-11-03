@@ -60,44 +60,51 @@ backend = "cargo:cargo-shear"
 specifiers = ["1.13"]
 
 [[tools.cmake]]
-version = "4.3.5"
+version = "4.3.6"
 backend = "aqua:Kitware/CMake"
 specifiers = ["4.3"]
 
 [tools.cmake."platforms.linux-arm64"]
-checksum = "sha256:0ccecc2ba6b5ed4a97fbfd1f52136a9120262908185d8419c1ed2abb09199245"
-url = "https://github.com/Kitware/CMake/releases/download/v4.3.5/cmake-4.3.5-linux-aarch64.tar.gz"
-url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/544559684"
+checksum = "sha256:310df7369f818779e269d900ae5a3ef02c6089fb7b1a49fc1a2aaf7e7275a2dc"
+checksum_source = "mise-versions"
+url = "https://github.com/Kitware/CMake/releases/download/v4.3.6/cmake-4.3.6-linux-aarch64.tar.gz"
+url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/682695759"
 
 [tools.cmake."platforms.linux-arm64-musl"]
-checksum = "sha256:0ccecc2ba6b5ed4a97fbfd1f52136a9120262908185d8419c1ed2abb09199245"
-url = "https://github.com/Kitware/CMake/releases/download/v4.3.5/cmake-4.3.5-linux-aarch64.tar.gz"
-url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/544559684"
+checksum = "sha256:310df7369f818779e269d900ae5a3ef02c6089fb7b1a49fc1a2aaf7e7275a2dc"
+checksum_source = "mise-versions"
+url = "https://github.com/Kitware/CMake/releases/download/v4.3.6/cmake-4.3.6-linux-aarch64.tar.gz"
+url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/682695759"
 
 [tools.cmake."platforms.linux-x64"]
-checksum = "sha256:ecb787a0439cf4324a3554b08bf0bb4894fb8c497763a43c6895d2a1bfd6a9fa"
-url = "https://github.com/Kitware/CMake/releases/download/v4.3.5/cmake-4.3.5-linux-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/544560292"
+checksum = "sha256:fba967b44c7b40f155f9492dacb5477aab8333699986e1e07a7d90803aba7219"
+checksum_source = "mise-versions"
+url = "https://github.com/Kitware/CMake/releases/download/v4.3.6/cmake-4.3.6-linux-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/682696014"
 
 [tools.cmake."platforms.linux-x64-musl"]
-checksum = "sha256:ecb787a0439cf4324a3554b08bf0bb4894fb8c497763a43c6895d2a1bfd6a9fa"
-url = "https://github.com/Kitware/CMake/releases/download/v4.3.5/cmake-4.3.5-linux-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/544560292"
+checksum = "sha256:fba967b44c7b40f155f9492dacb5477aab8333699986e1e07a7d90803aba7219"
+checksum_source = "mise-versions"
+url = "https://github.com/Kitware/CMake/releases/download/v4.3.6/cmake-4.3.6-linux-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/682696014"
 
 [tools.cmake."platforms.macos-arm64"]
-checksum = "sha256:6582cace312c720fc3c70f2ccbcbb26771997409bb4fda490591e07ab4084a5d"
-url = "https://github.com/Kitware/CMake/releases/download/v4.3.5/cmake-4.3.5-macos-universal.tar.gz"
-url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/544561013"
+checksum = "sha256:b9864989cea0546f2482e0d645c92402a0fc5b254f1d745f06a823b8fb400aa0"
+checksum_source = "mise-versions"
+url = "https://github.com/Kitware/CMake/releases/download/v4.3.6/cmake-4.3.6-macos-universal.tar.gz"
+url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/682696289"
 
 [tools.cmake."platforms.macos-x64"]
-checksum = "sha256:6582cace312c720fc3c70f2ccbcbb26771997409bb4fda490591e07ab4084a5d"
-url = "https://github.com/Kitware/CMake/releases/download/v4.3.5/cmake-4.3.5-macos-universal.tar.gz"
-url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/544561013"
+checksum = "sha256:b9864989cea0546f2482e0d645c92402a0fc5b254f1d745f06a823b8fb400aa0"
+checksum_source = "mise-versions"
+url = "https://github.com/Kitware/CMake/releases/download/v4.3.6/cmake-4.3.6-macos-universal.tar.gz"
+url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/682696289"
 
 [tools.cmake."platforms.windows-x64"]
-checksum = "sha256:c05a60d22d5df22d75a72ae9b6628ef5f20daee4f4ba380920e1fbbeaf244fc1"
-url = "https://github.com/Kitware/CMake/releases/download/v4.3.5/cmake-4.3.5-windows-x86_64.zip"
-url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/544564355"
+checksum = "sha256:570a0d6e1f84fda24b8cb5bb96465b164726c7c066ba44cdadd136ebcb8bf7bd"
+checksum_source = "mise-versions"
+url = "https://github.com/Kitware/CMake/releases/download/v4.3.6/cmake-4.3.6-windows-x86_64.zip"
+url_api = "https://api.github.com/repos/Kitware/CMake/releases/assets/682698049"
 
 [[tools."http:llvm"]]
 version = "22.1.8"
