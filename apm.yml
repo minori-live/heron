@@ -12,8 +12,8 @@ dependencies:
     - antfu/skills/skills/vite
     - antfu/skills/skills/pnpm
     - antfu/skills/skills/pinia
-    - antfu/skills/skills/vue-best-practices
-    - antfu/skills/skills/vue-testing-best-practices
+    - vuejs-ai/skills/skills/vue-best-practices
+    - vuejs-ai/skills/skills/vue-testing-best-practices
     - leonardomso/rust-skills#fd2a861ab0406a4ac536a55274d14ea6fd1ca9c9
     - mattpocock/skills/skills/productivity/grill-me
     - microsoft/apm/packages/apm-guide/.apm/skills/apm-usage

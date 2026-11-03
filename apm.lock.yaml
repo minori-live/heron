@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-10-10T22:13:54.051599+00:00'
+generated_at: '2026-11-03T06:15:39.224231+00:00'
 apm_version: 0.29.0
 dependencies:
 - repo_url: antfu/skills
@@ -134,108 +134,6 @@ dependencies:
     .agents/skills/vue/references/core-new-apis.md: sha256:4afa9fdcdf62d2300d86686f890e4a52cbbed48e4c13a3e15f3e4572185c90ed
     .agents/skills/vue/references/script-setup-macros.md: sha256:ad47db85f8fbda6c055cedcc1d4175cd79d414e9be3ebf1e631d0e493eb4480a
   content_hash: sha256:64c5282303420a497eab1347e97845ec772ccdcac56104cbe1e0d35a1db6ce79
-- repo_url: antfu/skills
-  name: vue-best-practices
-  host: github.com
-  resolved_commit: a74f281a27dadc02397bc1a174b0f2c97531b6ae
-  version: unknown
-  virtual_path: skills/vue-best-practices
-  is_virtual: true
-  package_type: claude_skill
-  deployed_files:
-  - .agents/skills/vue-best-practices
-  - .agents/skills/vue-best-practices/LICENSE.md
-  - .agents/skills/vue-best-practices/SKILL.md
-  - .agents/skills/vue-best-practices/SYNC.md
-  - .agents/skills/vue-best-practices/references/animation-class-based-technique.md
-  - .agents/skills/vue-best-practices/references/animation-state-driven-technique.md
-  - .agents/skills/vue-best-practices/references/component-async.md
-  - .agents/skills/vue-best-practices/references/component-data-flow.md
-  - .agents/skills/vue-best-practices/references/component-fallthrough-attrs.md
-  - .agents/skills/vue-best-practices/references/component-keep-alive.md
-  - .agents/skills/vue-best-practices/references/component-slots.md
-  - .agents/skills/vue-best-practices/references/component-suspense.md
-  - .agents/skills/vue-best-practices/references/component-teleport.md
-  - .agents/skills/vue-best-practices/references/component-transition-group.md
-  - .agents/skills/vue-best-practices/references/component-transition.md
-  - .agents/skills/vue-best-practices/references/composables.md
-  - .agents/skills/vue-best-practices/references/directives.md
-  - .agents/skills/vue-best-practices/references/perf-avoid-component-abstraction-in-lists.md
-  - .agents/skills/vue-best-practices/references/perf-v-once-v-memo-directives.md
-  - .agents/skills/vue-best-practices/references/perf-virtualize-large-lists.md
-  - .agents/skills/vue-best-practices/references/plugins.md
-  - .agents/skills/vue-best-practices/references/reactivity.md
-  - .agents/skills/vue-best-practices/references/render-functions.md
-  - .agents/skills/vue-best-practices/references/sfc.md
-  - .agents/skills/vue-best-practices/references/state-management.md
-  - .agents/skills/vue-best-practices/references/updated-hook-performance.md
-  deployed_file_hashes:
-    .agents/skills/vue-best-practices/LICENSE.md: sha256:2ea4e714425cf682879c4dea3d0d0a1a379a1418f463063f9eea1aa709ad946d
-    .agents/skills/vue-best-practices/SKILL.md: sha256:05b373713e6bbd216fb3ee9709289b68bcdeb9eac8ffea477e35bdbd8e0f9acd
-    .agents/skills/vue-best-practices/SYNC.md: sha256:58921f403470acbb47a8145e8e8f06844f888a213edc0d117ec01f0e89c80285
-    .agents/skills/vue-best-practices/references/animation-class-based-technique.md: sha256:d37e4ae4f124454fc5dfa54d23816edb16d337228641a77ec04c8ee9fe5a32fe
-    .agents/skills/vue-best-practices/references/animation-state-driven-technique.md: sha256:9a17a15356b32c8cd8669c3ede28dd890e9a48c03101047738a5c6dec7c716d6
-    .agents/skills/vue-best-practices/references/component-async.md: sha256:e20036c6622a1647d9e1c23f1fe871b2465cf4bab434422e17eb05710c8878f3
-    .agents/skills/vue-best-practices/references/component-data-flow.md: sha256:81277341d7dfe240721c2324548b9d404354d3ce270515acb130e8ac0c7396aa
-    .agents/skills/vue-best-practices/references/component-fallthrough-attrs.md: sha256:62d291508df9997d3b6c5adfde251d6c722926ecf5f7168dea0272564f119919
-    .agents/skills/vue-best-practices/references/component-keep-alive.md: sha256:8738608665ad42baa6d2d7548d46b3ecd318a85f4ec3a0afac5f728948ade3ca
-    .agents/skills/vue-best-practices/references/component-slots.md: sha256:726fdac036fcdb6071e669f1ed90af5b3bdc5fc150ad82ff41afa0af5e39f481
-    .agents/skills/vue-best-practices/references/component-suspense.md: sha256:6a5a98dcc6a2093f038f877eb6fefeedb199aba058a5dea71b139017c557bdd1
-    .agents/skills/vue-best-practices/references/component-teleport.md: sha256:4e48748842262df50c293ab23857c22c107e3e8360c87da482d23f0eb88b2c3f
-    .agents/skills/vue-best-practices/references/component-transition-group.md: sha256:cfdd76e2466a8c0ef8a965674a74924e5cf25e538e75ce97d02213472442ccb2
-    .agents/skills/vue-best-practices/references/component-transition.md: sha256:bc59a19f2e8eed7a228bdb6383d423a57c6dd75704ae11c9596018c9fb1cac42
-    .agents/skills/vue-best-practices/references/composables.md: sha256:8fcb3ede4ecb13f8dc7e4c7db07561652f6d306c85a91bc6736fda4fae2b624d
-    .agents/skills/vue-best-practices/references/directives.md: sha256:70d4c68ea15a961eec6471c42b4c44d37adfeb094f694b6811fb718eab7b2cf7
-    .agents/skills/vue-best-practices/references/perf-avoid-component-abstraction-in-lists.md: sha256:a5fb787065cbaa4731a12d3ab2f40284d058a4d6a45972b48b3052931e4f80da
-    .agents/skills/vue-best-practices/references/perf-v-once-v-memo-directives.md: sha256:066a45e60f6faa702cb75b76724c391d7e560aa6805c9bc379c06f2c64d97677
-    .agents/skills/vue-best-practices/references/perf-virtualize-large-lists.md: sha256:69712f1f296cf03401c47f936e1a9c32481bfd82623f536b1fe08d05c846bada
-    .agents/skills/vue-best-practices/references/plugins.md: sha256:b1583522aca059c4295708517ba987530dd6a13134f6046aed9fd7327fb9c936
-    .agents/skills/vue-best-practices/references/reactivity.md: sha256:48c97831e72f0b82bfae0344cf02a181c7723e1ee4a29a58a85009aab7d60a4b
-    .agents/skills/vue-best-practices/references/render-functions.md: sha256:01b35e671f7890939fa5acda52c5cf0a50b398e153d80cc9fc9f74c19e460357
-    .agents/skills/vue-best-practices/references/sfc.md: sha256:dfe09f28869a2bc44e618068c3b6269f55d925d096714df25e253d2bbb58c28f
-    .agents/skills/vue-best-practices/references/state-management.md: sha256:9e98a1c6d9009c0c8ef7228b6b3bcf10d30be6b713ffcef448ab7db3b419a851
-    .agents/skills/vue-best-practices/references/updated-hook-performance.md: sha256:ded08ce93f9b23082538846f84e8d159d84af757c27b2c6b43a9283df803a32b
-  content_hash: sha256:66bf09d99563e5ae1c695c8b0fb48ad9a9c061a25439803e1a326ad04bed2251
-- repo_url: antfu/skills
-  name: vue-testing-best-practices
-  host: github.com
-  resolved_commit: a74f281a27dadc02397bc1a174b0f2c97531b6ae
-  version: unknown
-  virtual_path: skills/vue-testing-best-practices
-  is_virtual: true
-  package_type: claude_skill
-  deployed_files:
-  - .agents/skills/vue-testing-best-practices
-  - .agents/skills/vue-testing-best-practices/LICENSE.md
-  - .agents/skills/vue-testing-best-practices/SKILL.md
-  - .agents/skills/vue-testing-best-practices/SYNC.md
-  - .agents/skills/vue-testing-best-practices/reference/async-component-testing.md
-  - .agents/skills/vue-testing-best-practices/reference/teleport-testing-complexity.md
-  - .agents/skills/vue-testing-best-practices/reference/testing-async-await-flushpromises.md
-  - .agents/skills/vue-testing-best-practices/reference/testing-browser-vs-node-runners.md
-  - .agents/skills/vue-testing-best-practices/reference/testing-component-blackbox-approach.md
-  - .agents/skills/vue-testing-best-practices/reference/testing-composables-helper-wrapper.md
-  - .agents/skills/vue-testing-best-practices/reference/testing-e2e-playwright-recommended.md
-  - .agents/skills/vue-testing-best-practices/reference/testing-no-snapshot-only.md
-  - .agents/skills/vue-testing-best-practices/reference/testing-pinia-store-setup.md
-  - .agents/skills/vue-testing-best-practices/reference/testing-suspense-async-components.md
-  - .agents/skills/vue-testing-best-practices/reference/testing-vitest-recommended-for-vue.md
-  deployed_file_hashes:
-    .agents/skills/vue-testing-best-practices/LICENSE.md: sha256:2ea4e714425cf682879c4dea3d0d0a1a379a1418f463063f9eea1aa709ad946d
-    .agents/skills/vue-testing-best-practices/SKILL.md: sha256:376fd21d6adfd37f7d102fa17ca099abddef16943389f37588405b013cef23b8
-    .agents/skills/vue-testing-best-practices/SYNC.md: sha256:05b20c8f6cc487107ee7693e21f2747def24974fbd96de0e771385e46d193e20
-    .agents/skills/vue-testing-best-practices/reference/async-component-testing.md: sha256:75b1c7b3949a5f0211824c525fd7b3f8a6b2cdd4933592ada65f37ecaa4146d3
-    .agents/skills/vue-testing-best-practices/reference/teleport-testing-complexity.md: sha256:5a42ce8eb5497b5165b09cd758b647ddf4bb537be9cf808a84bee7ae8c3aca39
-    .agents/skills/vue-testing-best-practices/reference/testing-async-await-flushpromises.md: sha256:2dd5099b32cf2626d19aab2ef4b365cc26102cfb5a0aedc5667efc06d2070cab
-    .agents/skills/vue-testing-best-practices/reference/testing-browser-vs-node-runners.md: sha256:ffc13da105aadfca0bded6d955f79f9c02c5548ee699f274ff5976cb7484ac98
-    .agents/skills/vue-testing-best-practices/reference/testing-component-blackbox-approach.md: sha256:16ac94d67addf1cb60177a81a5c5c01318daa310216261ffb2d60b396112f86d
-    .agents/skills/vue-testing-best-practices/reference/testing-composables-helper-wrapper.md: sha256:57af3ae779cf0770ed53034575d783463d2b9e790c29fbc9bb80f166be3255bd
-    .agents/skills/vue-testing-best-practices/reference/testing-e2e-playwright-recommended.md: sha256:d415a403c6851cb57666b9143cb3acec6eba53af269cf765918c108dd0c96355
-    .agents/skills/vue-testing-best-practices/reference/testing-no-snapshot-only.md: sha256:d541b490b8c9c0f822a2ca0d8184d7325b07918e76124d717fb480bc7a488995
-    .agents/skills/vue-testing-best-practices/reference/testing-pinia-store-setup.md: sha256:005a375c587bd33d1eb3a1b7fe1c89e42daf4c115014e49cf327ab5af5d0ed4e
-    .agents/skills/vue-testing-best-practices/reference/testing-suspense-async-components.md: sha256:12307929380fcf0e8bcbd6be23a6bc1710904c9462cec945f80ce4b5aa0b7f12
-    .agents/skills/vue-testing-best-practices/reference/testing-vitest-recommended-for-vue.md: sha256:acfa0b3986e092f43d4cd8090864860cff07ffa3aaa62a10c5a622770ccaeb6b
-  content_hash: sha256:c847c2529ce512210ce2b5541b1d4e1cc06f7f38b605e1646564f964fd0abbe2
 - repo_url: anthropics/skills
   name: frontend-design
   host: github.com
@@ -984,6 +882,100 @@ dependencies:
     .agents/skills/apm-usage/troubleshooting.md: sha256:9ee88100a64857f25e9cb49d1a56d3921d8e69974158c11b0d9431f4ce68362d
     .agents/skills/apm-usage/workflow.md: sha256:2730e3af333342d7ea70ba412abec19e91b28a29120ec704edb21a5ac99ad6a4
   content_hash: sha256:f79d0a16f1c091de985a822703c2925826be2f7184640b8b0a0f5f956ec2b33c
+- repo_url: vuejs-ai/skills
+  name: vue-best-practices
+  host: github.com
+  resolved_commit: 198f0cd8f7f9c0a3d9b566ccc16de6677519ee78
+  version: unknown
+  virtual_path: skills/vue-best-practices
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/vue-best-practices
+  - .agents/skills/vue-best-practices/SKILL.md
+  - .agents/skills/vue-best-practices/references/animation-class-based-technique.md
+  - .agents/skills/vue-best-practices/references/animation-state-driven-technique.md
+  - .agents/skills/vue-best-practices/references/component-async.md
+  - .agents/skills/vue-best-practices/references/component-data-flow.md
+  - .agents/skills/vue-best-practices/references/component-fallthrough-attrs.md
+  - .agents/skills/vue-best-practices/references/component-keep-alive.md
+  - .agents/skills/vue-best-practices/references/component-slots.md
+  - .agents/skills/vue-best-practices/references/component-suspense.md
+  - .agents/skills/vue-best-practices/references/component-teleport.md
+  - .agents/skills/vue-best-practices/references/component-transition-group.md
+  - .agents/skills/vue-best-practices/references/component-transition.md
+  - .agents/skills/vue-best-practices/references/composables.md
+  - .agents/skills/vue-best-practices/references/directives.md
+  - .agents/skills/vue-best-practices/references/perf-avoid-component-abstraction-in-lists.md
+  - .agents/skills/vue-best-practices/references/perf-v-once-v-memo-directives.md
+  - .agents/skills/vue-best-practices/references/perf-virtualize-large-lists.md
+  - .agents/skills/vue-best-practices/references/plugins.md
+  - .agents/skills/vue-best-practices/references/reactivity.md
+  - .agents/skills/vue-best-practices/references/render-functions.md
+  - .agents/skills/vue-best-practices/references/sfc.md
+  - .agents/skills/vue-best-practices/references/state-management.md
+  - .agents/skills/vue-best-practices/references/updated-hook-performance.md
+  deployed_file_hashes:
+    .agents/skills/vue-best-practices/SKILL.md: sha256:3a601da4b2cc46b1712fcedb1ce434f0c263e29c2a8193ccf84dcbd0b7c03378
+    .agents/skills/vue-best-practices/references/animation-class-based-technique.md: sha256:3d59a496337d412870464c502a3b60c590c60b7047254abddb141b62ae7bd42e
+    .agents/skills/vue-best-practices/references/animation-state-driven-technique.md: sha256:d780b876e5bb18b52b7646660b2e5fff1cd672a07a1c40b5809227d6893eb90e
+    .agents/skills/vue-best-practices/references/component-async.md: sha256:e20036c6622a1647d9e1c23f1fe871b2465cf4bab434422e17eb05710c8878f3
+    .agents/skills/vue-best-practices/references/component-data-flow.md: sha256:ce31aafce44a5e455f0c0a4e32833ef2c3d74730c110aa108b179f27b597e537
+    .agents/skills/vue-best-practices/references/component-fallthrough-attrs.md: sha256:62d291508df9997d3b6c5adfde251d6c722926ecf5f7168dea0272564f119919
+    .agents/skills/vue-best-practices/references/component-keep-alive.md: sha256:8738608665ad42baa6d2d7548d46b3ecd318a85f4ec3a0afac5f728948ade3ca
+    .agents/skills/vue-best-practices/references/component-slots.md: sha256:726fdac036fcdb6071e669f1ed90af5b3bdc5fc150ad82ff41afa0af5e39f481
+    .agents/skills/vue-best-practices/references/component-suspense.md: sha256:6a5a98dcc6a2093f038f877eb6fefeedb199aba058a5dea71b139017c557bdd1
+    .agents/skills/vue-best-practices/references/component-teleport.md: sha256:4e48748842262df50c293ab23857c22c107e3e8360c87da482d23f0eb88b2c3f
+    .agents/skills/vue-best-practices/references/component-transition-group.md: sha256:4b05ae5474ea9e298016202d791c96e6b149d0395bb36427cd77ca9cdc52fd75
+    .agents/skills/vue-best-practices/references/component-transition.md: sha256:bc59a19f2e8eed7a228bdb6383d423a57c6dd75704ae11c9596018c9fb1cac42
+    .agents/skills/vue-best-practices/references/composables.md: sha256:4ae8492ca6ad62ba48281923da115e660c91ab3b4e2e1905cfafdb45928f9b7a
+    .agents/skills/vue-best-practices/references/directives.md: sha256:70d4c68ea15a961eec6471c42b4c44d37adfeb094f694b6811fb718eab7b2cf7
+    .agents/skills/vue-best-practices/references/perf-avoid-component-abstraction-in-lists.md: sha256:8f14401852672527918a4d9e21fed49826e0fe78e0b5584907f689ca648cac71
+    .agents/skills/vue-best-practices/references/perf-v-once-v-memo-directives.md: sha256:88ac485f1cc3b59698266dccfd0f581a56ce5cd77a4bade3f135cb90c60d5d8c
+    .agents/skills/vue-best-practices/references/perf-virtualize-large-lists.md: sha256:51e6870226284398db9f6762179e730d2ac424d939869e3386a2d66732c5bda3
+    .agents/skills/vue-best-practices/references/plugins.md: sha256:b1583522aca059c4295708517ba987530dd6a13134f6046aed9fd7327fb9c936
+    .agents/skills/vue-best-practices/references/reactivity.md: sha256:9794443cd6018408fd16b03a7ba7a6918d8d054404a19b72478e3b84c6648573
+    .agents/skills/vue-best-practices/references/render-functions.md: sha256:01b35e671f7890939fa5acda52c5cf0a50b398e153d80cc9fc9f74c19e460357
+    .agents/skills/vue-best-practices/references/sfc.md: sha256:dfe09f28869a2bc44e618068c3b6269f55d925d096714df25e253d2bbb58c28f
+    .agents/skills/vue-best-practices/references/state-management.md: sha256:9e98a1c6d9009c0c8ef7228b6b3bcf10d30be6b713ffcef448ab7db3b419a851
+    .agents/skills/vue-best-practices/references/updated-hook-performance.md: sha256:ded08ce93f9b23082538846f84e8d159d84af757c27b2c6b43a9283df803a32b
+  content_hash: sha256:40229445c32bee0726ac4e36aae0bfbd50a72b44c5061b178b839f3a533052f9
+- repo_url: vuejs-ai/skills
+  name: vue-testing-best-practices
+  host: github.com
+  resolved_commit: 198f0cd8f7f9c0a3d9b566ccc16de6677519ee78
+  version: unknown
+  virtual_path: skills/vue-testing-best-practices
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/vue-testing-best-practices
+  - .agents/skills/vue-testing-best-practices/SKILL.md
+  - .agents/skills/vue-testing-best-practices/reference/async-component-testing.md
+  - .agents/skills/vue-testing-best-practices/reference/teleport-testing-complexity.md
+  - .agents/skills/vue-testing-best-practices/reference/testing-async-await-flushpromises.md
+  - .agents/skills/vue-testing-best-practices/reference/testing-browser-vs-node-runners.md
+  - .agents/skills/vue-testing-best-practices/reference/testing-component-blackbox-approach.md
+  - .agents/skills/vue-testing-best-practices/reference/testing-composables-helper-wrapper.md
+  - .agents/skills/vue-testing-best-practices/reference/testing-e2e-playwright-recommended.md
+  - .agents/skills/vue-testing-best-practices/reference/testing-no-snapshot-only.md
+  - .agents/skills/vue-testing-best-practices/reference/testing-pinia-store-setup.md
+  - .agents/skills/vue-testing-best-practices/reference/testing-suspense-async-components.md
+  - .agents/skills/vue-testing-best-practices/reference/testing-vitest-recommended-for-vue.md
+  deployed_file_hashes:
+    .agents/skills/vue-testing-best-practices/SKILL.md: sha256:376fd21d6adfd37f7d102fa17ca099abddef16943389f37588405b013cef23b8
+    .agents/skills/vue-testing-best-practices/reference/async-component-testing.md: sha256:75b1c7b3949a5f0211824c525fd7b3f8a6b2cdd4933592ada65f37ecaa4146d3
+    .agents/skills/vue-testing-best-practices/reference/teleport-testing-complexity.md: sha256:5a42ce8eb5497b5165b09cd758b647ddf4bb537be9cf808a84bee7ae8c3aca39
+    .agents/skills/vue-testing-best-practices/reference/testing-async-await-flushpromises.md: sha256:2dd5099b32cf2626d19aab2ef4b365cc26102cfb5a0aedc5667efc06d2070cab
+    .agents/skills/vue-testing-best-practices/reference/testing-browser-vs-node-runners.md: sha256:ffc13da105aadfca0bded6d955f79f9c02c5548ee699f274ff5976cb7484ac98
+    .agents/skills/vue-testing-best-practices/reference/testing-component-blackbox-approach.md: sha256:16ac94d67addf1cb60177a81a5c5c01318daa310216261ffb2d60b396112f86d
+    .agents/skills/vue-testing-best-practices/reference/testing-composables-helper-wrapper.md: sha256:57af3ae779cf0770ed53034575d783463d2b9e790c29fbc9bb80f166be3255bd
+    .agents/skills/vue-testing-best-practices/reference/testing-e2e-playwright-recommended.md: sha256:d415a403c6851cb57666b9143cb3acec6eba53af269cf765918c108dd0c96355
+    .agents/skills/vue-testing-best-practices/reference/testing-no-snapshot-only.md: sha256:d541b490b8c9c0f822a2ca0d8184d7325b07918e76124d717fb480bc7a488995
+    .agents/skills/vue-testing-best-practices/reference/testing-pinia-store-setup.md: sha256:005a375c587bd33d1eb3a1b7fe1c89e42daf4c115014e49cf327ab5af5d0ed4e
+    .agents/skills/vue-testing-best-practices/reference/testing-suspense-async-components.md: sha256:12307929380fcf0e8bcbd6be23a6bc1710904c9462cec945f80ce4b5aa0b7f12
+    .agents/skills/vue-testing-best-practices/reference/testing-vitest-recommended-for-vue.md: sha256:acfa0b3986e092f43d4cd8090864860cff07ffa3aaa62a10c5a622770ccaeb6b
+  content_hash: sha256:d52dfe7bc614d83e910e76d02505acc231760fdb0629f7a7dfc1eae3f3140389
 - repo_url: vueuse/skills
   name: vueuse-functions
   host: github.com
@@ -4914,62 +4906,44 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: null
-- kind: project-relative
-  target: agent-skills
-  value: .agents/skills/vue-best-practices/LICENSE.md
-  runtime: null
-  scope: project
-  owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
-  content_hash: sha256:2ea4e714425cf682879c4dea3d0d0a1a379a1418f463063f9eea1aa709ad946d
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vue-best-practices/SKILL.md
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
-  content_hash: sha256:05b373713e6bbd216fb3ee9709289b68bcdeb9eac8ffea477e35bdbd8e0f9acd
-- kind: project-relative
-  target: agent-skills
-  value: .agents/skills/vue-best-practices/SYNC.md
-  runtime: null
-  scope: project
-  owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
-  content_hash: sha256:58921f403470acbb47a8145e8e8f06844f888a213edc0d117ec01f0e89c80285
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
+  content_hash: sha256:3a601da4b2cc46b1712fcedb1ce434f0c263e29c2a8193ccf84dcbd0b7c03378
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vue-best-practices/references/animation-class-based-technique.md
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
-  content_hash: sha256:d37e4ae4f124454fc5dfa54d23816edb16d337228641a77ec04c8ee9fe5a32fe
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
+  content_hash: sha256:3d59a496337d412870464c502a3b60c590c60b7047254abddb141b62ae7bd42e
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vue-best-practices/references/animation-state-driven-technique.md
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
-  content_hash: sha256:9a17a15356b32c8cd8669c3ede28dd890e9a48c03101047738a5c6dec7c716d6
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
+  content_hash: sha256:d780b876e5bb18b52b7646660b2e5fff1cd672a07a1c40b5809227d6893eb90e
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vue-best-practices/references/component-async.md
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: sha256:e20036c6622a1647d9e1c23f1fe871b2465cf4bab434422e17eb05710c8878f3
 - kind: project-relative
   target: agent-skills
@@ -4977,17 +4951,17 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
-  content_hash: sha256:81277341d7dfe240721c2324548b9d404354d3ce270515acb130e8ac0c7396aa
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
+  content_hash: sha256:ce31aafce44a5e455f0c0a4e32833ef2c3d74730c110aa108b179f27b597e537
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vue-best-practices/references/component-fallthrough-attrs.md
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: sha256:62d291508df9997d3b6c5adfde251d6c722926ecf5f7168dea0272564f119919
 - kind: project-relative
   target: agent-skills
@@ -4995,8 +4969,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: sha256:8738608665ad42baa6d2d7548d46b3ecd318a85f4ec3a0afac5f728948ade3ca
 - kind: project-relative
   target: agent-skills
@@ -5004,8 +4978,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: sha256:726fdac036fcdb6071e669f1ed90af5b3bdc5fc150ad82ff41afa0af5e39f481
 - kind: project-relative
   target: agent-skills
@@ -5013,8 +4987,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: sha256:6a5a98dcc6a2093f038f877eb6fefeedb199aba058a5dea71b139017c557bdd1
 - kind: project-relative
   target: agent-skills
@@ -5022,8 +4996,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: sha256:4e48748842262df50c293ab23857c22c107e3e8360c87da482d23f0eb88b2c3f
 - kind: project-relative
   target: agent-skills
@@ -5031,17 +5005,17 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
-  content_hash: sha256:cfdd76e2466a8c0ef8a965674a74924e5cf25e538e75ce97d02213472442ccb2
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
+  content_hash: sha256:4b05ae5474ea9e298016202d791c96e6b149d0395bb36427cd77ca9cdc52fd75
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vue-best-practices/references/component-transition.md
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: sha256:bc59a19f2e8eed7a228bdb6383d423a57c6dd75704ae11c9596018c9fb1cac42
 - kind: project-relative
   target: agent-skills
@@ -5049,17 +5023,17 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
-  content_hash: sha256:8fcb3ede4ecb13f8dc7e4c7db07561652f6d306c85a91bc6736fda4fae2b624d
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
+  content_hash: sha256:4ae8492ca6ad62ba48281923da115e660c91ab3b4e2e1905cfafdb45928f9b7a
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vue-best-practices/references/directives.md
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: sha256:70d4c68ea15a961eec6471c42b4c44d37adfeb094f694b6811fb718eab7b2cf7
 - kind: project-relative
   target: agent-skills
@@ -5067,35 +5041,35 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
-  content_hash: sha256:a5fb787065cbaa4731a12d3ab2f40284d058a4d6a45972b48b3052931e4f80da
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
+  content_hash: sha256:8f14401852672527918a4d9e21fed49826e0fe78e0b5584907f689ca648cac71
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vue-best-practices/references/perf-v-once-v-memo-directives.md
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
-  content_hash: sha256:066a45e60f6faa702cb75b76724c391d7e560aa6805c9bc379c06f2c64d97677
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
+  content_hash: sha256:88ac485f1cc3b59698266dccfd0f581a56ce5cd77a4bade3f135cb90c60d5d8c
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vue-best-practices/references/perf-virtualize-large-lists.md
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
-  content_hash: sha256:69712f1f296cf03401c47f936e1a9c32481bfd82623f536b1fe08d05c846bada
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
+  content_hash: sha256:51e6870226284398db9f6762179e730d2ac424d939869e3386a2d66732c5bda3
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vue-best-practices/references/plugins.md
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: sha256:b1583522aca059c4295708517ba987530dd6a13134f6046aed9fd7327fb9c936
 - kind: project-relative
   target: agent-skills
@@ -5103,17 +5077,17 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
-  content_hash: sha256:48c97831e72f0b82bfae0344cf02a181c7723e1ee4a29a58a85009aab7d60a4b
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
+  content_hash: sha256:9794443cd6018408fd16b03a7ba7a6918d8d054404a19b72478e3b84c6648573
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vue-best-practices/references/render-functions.md
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: sha256:01b35e671f7890939fa5acda52c5cf0a50b398e153d80cc9fc9f74c19e460357
 - kind: project-relative
   target: agent-skills
@@ -5121,8 +5095,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: sha256:dfe09f28869a2bc44e618068c3b6269f55d925d096714df25e253d2bbb58c28f
 - kind: project-relative
   target: agent-skills
@@ -5130,8 +5104,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: sha256:9e98a1c6d9009c0c8ef7228b6b3bcf10d30be6b713ffcef448ab7db3b419a851
 - kind: project-relative
   target: agent-skills
@@ -5139,8 +5113,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-best-practices
-  active_owner: antfu/skills/skills/vue-best-practices
+  - vuejs-ai/skills/skills/vue-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-best-practices
   content_hash: sha256:ded08ce93f9b23082538846f84e8d159d84af757c27b2c6b43a9283df803a32b
 - kind: project-relative
   target: agent-skills
@@ -5148,44 +5122,26 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
+  - vuejs-ai/skills/skills/vue-testing-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-testing-best-practices
   content_hash: null
-- kind: project-relative
-  target: agent-skills
-  value: .agents/skills/vue-testing-best-practices/LICENSE.md
-  runtime: null
-  scope: project
-  owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
-  content_hash: sha256:2ea4e714425cf682879c4dea3d0d0a1a379a1418f463063f9eea1aa709ad946d
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vue-testing-best-practices/SKILL.md
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
+  - vuejs-ai/skills/skills/vue-testing-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-testing-best-practices
   content_hash: sha256:376fd21d6adfd37f7d102fa17ca099abddef16943389f37588405b013cef23b8
-- kind: project-relative
-  target: agent-skills
-  value: .agents/skills/vue-testing-best-practices/SYNC.md
-  runtime: null
-  scope: project
-  owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
-  content_hash: sha256:05b20c8f6cc487107ee7693e21f2747def24974fbd96de0e771385e46d193e20
 - kind: project-relative
   target: agent-skills
   value: .agents/skills/vue-testing-best-practices/reference/async-component-testing.md
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
+  - vuejs-ai/skills/skills/vue-testing-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-testing-best-practices
   content_hash: sha256:75b1c7b3949a5f0211824c525fd7b3f8a6b2cdd4933592ada65f37ecaa4146d3
 - kind: project-relative
   target: agent-skills
@@ -5193,8 +5149,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
+  - vuejs-ai/skills/skills/vue-testing-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-testing-best-practices
   content_hash: sha256:5a42ce8eb5497b5165b09cd758b647ddf4bb537be9cf808a84bee7ae8c3aca39
 - kind: project-relative
   target: agent-skills
@@ -5202,8 +5158,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
+  - vuejs-ai/skills/skills/vue-testing-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-testing-best-practices
   content_hash: sha256:2dd5099b32cf2626d19aab2ef4b365cc26102cfb5a0aedc5667efc06d2070cab
 - kind: project-relative
   target: agent-skills
@@ -5211,8 +5167,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
+  - vuejs-ai/skills/skills/vue-testing-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-testing-best-practices
   content_hash: sha256:ffc13da105aadfca0bded6d955f79f9c02c5548ee699f274ff5976cb7484ac98
 - kind: project-relative
   target: agent-skills
@@ -5220,8 +5176,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
+  - vuejs-ai/skills/skills/vue-testing-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-testing-best-practices
   content_hash: sha256:16ac94d67addf1cb60177a81a5c5c01318daa310216261ffb2d60b396112f86d
 - kind: project-relative
   target: agent-skills
@@ -5229,8 +5185,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
+  - vuejs-ai/skills/skills/vue-testing-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-testing-best-practices
   content_hash: sha256:57af3ae779cf0770ed53034575d783463d2b9e790c29fbc9bb80f166be3255bd
 - kind: project-relative
   target: agent-skills
@@ -5238,8 +5194,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
+  - vuejs-ai/skills/skills/vue-testing-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-testing-best-practices
   content_hash: sha256:d415a403c6851cb57666b9143cb3acec6eba53af269cf765918c108dd0c96355
 - kind: project-relative
   target: agent-skills
@@ -5247,8 +5203,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
+  - vuejs-ai/skills/skills/vue-testing-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-testing-best-practices
   content_hash: sha256:d541b490b8c9c0f822a2ca0d8184d7325b07918e76124d717fb480bc7a488995
 - kind: project-relative
   target: agent-skills
@@ -5256,8 +5212,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
+  - vuejs-ai/skills/skills/vue-testing-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-testing-best-practices
   content_hash: sha256:005a375c587bd33d1eb3a1b7fe1c89e42daf4c115014e49cf327ab5af5d0ed4e
 - kind: project-relative
   target: agent-skills
@@ -5265,8 +5221,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
+  - vuejs-ai/skills/skills/vue-testing-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-testing-best-practices
   content_hash: sha256:12307929380fcf0e8bcbd6be23a6bc1710904c9462cec945f80ce4b5aa0b7f12
 - kind: project-relative
   target: agent-skills
@@ -5274,8 +5230,8 @@ deployments:
   runtime: null
   scope: project
   owners:
-  - antfu/skills/skills/vue-testing-best-practices
-  active_owner: antfu/skills/skills/vue-testing-best-practices
+  - vuejs-ai/skills/skills/vue-testing-best-practices
+  active_owner: vuejs-ai/skills/skills/vue-testing-best-practices
   content_hash: sha256:acfa0b3986e092f43d4cd8090864860cff07ffa3aaa62a10c5a622770ccaeb6b
 - kind: project-relative
   target: agent-skills
