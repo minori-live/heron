@@ -1,0 +1,476 @@
+# Authentication
+
+## CLI bootstrap and release lookup
+
+CLI bootstrap/update metadata recovery is separate from package authentication. See [Public release metadata](https://microsoft.github.io/apm/getting-started/installation/#public-release-metadata) for token precedence and bounded anonymous retry, and [mirror migration](https://microsoft.github.io/apm/getting-started/installation/#enterprise-bootstrap-mirror-mode) for final-endpoint configuration.
+
+## GitHub MCP authentication
+
+MCP authentication is separate from repository authentication below. For a
+recognized GitHub MCP server, the first nonempty variable wins:
+`GITHUB_COPILOT_PAT`, `GITHUB_TOKEN`, `GITHUB_APM_PAT`, then
+`GITHUB_PERSONAL_ACCESS_TOKEN`. No per-org or credential-helper fallback runs.
+Runtime-capable targets write the selected variable's native reference;
+literal-only targets retain their existing token behavior.
+
+A nonempty string manifest `Authorization` value wins, regardless of header-name
+casing. Registry headers alone do not disable automatic authentication.
+Reinstalling the same declaration does not automatically repair existing
+credentials. Follow [Repairing existing credentials](https://microsoft.github.io/apm/consumer/install-mcp-servers/#repairing-existing-credentials)
+to preserve custom fields, use environment references and rotate exposed
+credentials.
+See [GitHub MCP token injection](https://microsoft.github.io/apm/consumer/install-mcp-servers/#token-injection-github-mcp-server).
+
+## Getting a token
+
+```bash
+# Check for, and set up, a working credential for a host
+apm auth github.com
+
+# Also validate the credential against the host's REST API
+apm auth gitlab.com --check
+
+# Export the resolved token into the current shell
+eval "$(apm auth github.com --export)"
+```
+
+`apm auth` does not register a marketplace or install anything; it only
+resolves or helps you create a token for `HOST`.
+
+## Token precedence chain
+
+For public `github.com` HTTPS repositories, APM makes one anonymous attempt before checking any token source. The attempt removes GitHub token variables, credential-bearing HTTP headers, and credential helpers while preserving CA settings, safe URL rewrites, non-credential HTTP headers, and `credential.interactive=never`. It also inherits `http.sslBackend`, `http.sslCAInfo`, and `http.sslCAPath` from user and system Git config, so a corporate CA configured there still applies.
+
+If the anonymous attempt still fails at TLS, `--auth-first` / `APM_GITHUB_AUTH_FIRST=1` / `apm config set github-auth-first true` skip it for exact-host `github.com` when a credential resolves (with no credential, APM still tries anonymously as a last resort) and print a one-time `[!]` warning. See [Authentication: TLS-inspecting proxy blocks the anonymous attempt](https://microsoft.github.io/apm/getting-started/authentication/#tls-inspecting-proxy-blocks-the-anonymous-attempt).
+
+Only HTTP 401, 403, 404, or an equivalent Git authentication failure unlocks the fallback chain below. DNS, TLS, timeout, and GitHub throttle failures do not prompt for credentials. Ordinary credentials are cached per `(host, port, org)` for the process. A private `github.com` helper fallback adds the repository path to that scope, so later phases reuse it without applying that credential to another repository. APM never writes the credential into persistent cache keys or stored remote URLs.
+
+Individual-file API throttling can select the existing sparse-Git fallback.
+A separate Git authentication challenge then unlocks the same credential chain,
+including an existing `gh` login, without requiring a new PAT. The API throttle
+alone never rotates credentials or retries the API with authentication. If Git
+also fails, diagnostics retain both failures.
+
+Managed GitHub, GitLab, and Azure DevOps credentials use process-scoped
+Authorization headers. They are never embedded in Git URL userinfo.
+
+Before each dependency Git operation that uses a remote URL, APM checks the
+longest matching rewrite. It rejects rewrites that embed credentials, switch to
+insecure transports such as `http://` or `git://`, use remote-helper syntax
+such as `ext::` or `https::`, or send a network remote to a different host. A
+managed HTTPS credential cannot cross a scheme, host, or port boundary.
+Same-host SSH rewrites and local mirrors remain credential-free.
+
+If a rewrite is rejected and it should be safe, inspect the effective Git
+config and matching `insteadOf` rules, then retry:
+
+```bash
+git config --show-origin --get-regexp '^url\..*\.insteadOf$'
+```
+
+Remove or replace the rule only if it is unsafe or misconfigured.
+
+If the selected rewrite is a `file://` mirror and the clone fails, verify that
+the local path exists and is readable. Fix or remove that rewrite; host
+credentials cannot repair a missing local mirror.
+
+APM snapshots the effective Git config, validates the longest matching rewrite,
+and passes that fixed result to the child Git process. It drops malformed
+ambient HTTP headers before it applies either an anonymous empty-header fence or
+one path-scoped AuthResolver header. For effective URLs outside HTTP(S), APM
+skips the `http.extraHeader` URL-match probe. Dependency clones ignore Git
+templates and checkout hooks.
+
+When fallback is required, APM checks these sources in order:
+
+| Priority | Variable | Scope | Notes |
+|----------|----------|-------|-------|
+| 1 | `GITHUB_APM_PAT_{ORG}` | Per-org | Org name uppercased, hyphens to underscores |
+| 2 | `GITHUB_APM_PAT` | Global | Falls back to git credential if rejected |
+| 3 | `GITHUB_TOKEN` | Global | Shared with GitHub Actions |
+| 4 | `GH_TOKEN` | Global | Set by `gh auth login` |
+| 5 | `gh auth token --hostname <host>` | GitHub-like hosts | Active `gh auth login` account |
+| 6 | `git credential fill` | Per-host | System credential manager. APM forwards `path=<owner>/<repo>` so Git Credential Manager users with `credential.useHttpPath = true` get per-URL account selection (no account-picker prompt). |
+| -- | None | -- | No credential was available after an auth-shaped anonymous failure |
+
+APM checks the active `gh` CLI account before invoking OS credential helpers. This reduces ambiguous multi-account prompts on hosts like github.com. If the `gh` CLI is not installed or no account is active, APM skips this step silently and continues to `git credential fill`.
+
+This anonymous-first rule applies only to `github.com` HTTPS. GHE Cloud, GHES,
+GitLab, SSH, local paths, and generic hosts keep their existing authentication
+and transport behavior. Azure DevOps Services uses `ADO_APM_PAT`, then `az`
+bearer, then path-scoped `git credential fill`. Azure DevOps Server uses
+`ADO_APM_PAT` then fill.
+
+For multi-account Git Credential Manager setups, see the [Multi-account Git Credential Manager](https://microsoft.github.io/apm/getting-started/authentication/#multi-account-git-credential-manager) section in the main authentication guide.
+
+## SSH clone prerequisites
+
+APM runs git clones non-interactively. Before using an SSH dependency, make
+sure its key is already available to SSH. Unlock a passphrase-protected key
+first (for example, with `ssh-add <key-file>`). In CI, load a dedicated deploy
+key non-interactively or use token-backed HTTPS.
+
+APM uses the selected transport for clone/fetch and semver tag discovery. When
+`prefer-ssh` selects SSH, strict mode does not silently probe HTTPS.
+
+## Marketplace transport
+
+For in-repository plugins from GitLab and generic git marketplaces, an SSH
+registration stays SSH when APM generates the concrete `git:` and `path:`
+dependency. Existing SSH keys keep working instead of the dependency being
+rewritten to HTTPS. A `github.com` marketplace registered over SSH is
+pre-flighted with `git ls-remote` over SSH as well, so a private catalog needs
+only an SSH key, not a GitHub token. Named refs on an SSH dependency also
+resolve through Git rather than the HTTPS commits API.
+
+Generic marketplace HTTPS sources may use the native Git credential helper from
+your Git configuration. Generic HTTP fetches suppress credential channels, HTTPS-
+to-HTTP rewrites are rejected, and generic SSH stays token-free. See the
+[full transport policy](https://microsoft.github.io/apm/getting-started/authentication/#generic-marketplace-git-transport).
+
+## GitLab hosts
+
+`gitlab.com` is detected automatically. For self-managed GitLab, set
+`GITLAB_HOST`, list multiple hosts in `APM_GITLAB_HOSTS`, or mark a single
+object-form dependency with `type: gitlab`:
+
+```yaml
+- git: https://code.acme.com/platform/standards.git
+  type: gitlab
+```
+
+`GITLAB_APM_PAT` and `GITLAB_TOKEN` apply only to `gitlab.com` and hosts trusted
+through `GITLAB_HOST` or `APM_GITLAB_HOSTS`. `type: gitlab` selects backend/API
+routing only; other hinted hosts use host-scoped `git credential fill` or
+public access and do not receive global GitLab tokens. GitHub PAT variables are
+not used for GitLab-class hosts.
+See the main [authentication guide](https://microsoft.github.io/apm/getting-started/authentication/)
+for the full host-class precedence rules.
+
+## Per-org setup
+
+Use per-org tokens when accessing packages across multiple organizations:
+
+```bash
+export GITHUB_APM_PAT_CONTOSO=ghp_token_for_contoso
+export GITHUB_APM_PAT_FABRIKAM=ghp_token_for_fabrikam
+```
+
+**Naming rules:**
+- Uppercase the org name
+- Replace hyphens with underscores
+- Example: `contoso-microsoft` -> `GITHUB_APM_PAT_CONTOSO_MICROSOFT`
+
+## Fine-grained PAT requirements
+
+Required permissions:
+- **Metadata:** Read
+- **Contents:** Read
+- **Repository access:** All repos or specific repos
+
+**Important:** The resource owner must be the **organization**, not your user
+account. User-scoped fine-grained PATs cannot access org repos even if you are
+a member.
+
+For SSO-protected orgs, authorize the token under Settings > Tokens > Configure SSO.
+
+## Azure DevOps (ADO)
+
+Azure DevOps Services supports PAT, Azure CLI bearer, and path-scoped git
+credential fill; the GitHub token chain does not apply. The recommended
+approach is `az login`; explicit PATs and Git Credential Manager are also
+supported. Resolution order:
+
+1. `ADO_APM_PAT` env var if set
+2. AAD bearer from `az account get-access-token` if `az` is installed and signed in
+3. After an operation's HTTP 401/403 or recognized Git authentication failure:
+   path-scoped `git credential fill` (Git Credential Manager)
+4. If the helper is empty or rejected: an error naming the attempted steps
+
+```bash
+# Recommended: bearer mode (no env var needed)
+az login --tenant <tenant-id>
+apm install dev.azure.com/org/project/_git/repo
+
+# Alternative: PAT mode
+export ADO_APM_PAT=your_ado_pat
+apm install dev.azure.com/org/project/_git/repo
+```
+
+ADO paths use the 3-segment format: `org/project/repo`. Auth is always required.
+`apm marketplace check` uses the PAT-to-bearer-to-fill chain. See
+[Marketplace source bases](package-authoring.md#marketplace-source-bases) for
+ADO marketplace URL authoring.
+
+**Finding your tenant ID:** visit `https://dev.azure.com/{org}/_settings/organizationAad`,
+or run `az login` and inspect `az account show --query tenantId -o tsv`.
+
+If `ADO_APM_PAT` is rejected with HTTP 401/403 or a recognized Git authentication
+failure, APM tries an available `az` bearer for clone, preflight, semver tag,
+and marketplace ref resolution. A successful bearer retry warns:
+`[!] ADO_APM_PAT was rejected for {host}; fell back to az cli bearer.`
+
+When auth fails entirely, APM prints a targeted diagnostic (not a generic "not accessible"
+message). For `--update` operations, a pre-flight auth check runs before any files are
+modified -- on failure you see `No files were modified`.
+
+### On-prem Azure DevOps Server
+
+For self-hosted Azure DevOps Server installations (not Azure DevOps Services at
+`dev.azure.com`), tell APM which hostname to treat as ADO:
+
+```bash
+# Single server
+export ADO_HOST=ado.corp.example.com
+export ADO_APM_PAT=your_ado_pat
+apm install ado.corp.example.com/DefaultCollection/project/_git/repo
+
+# Explicit HTTPS port belongs in the dependency URL, not ADO_HOST
+apm install https://ado.corp.example.com:8443/DefaultCollection/project/_git/repo
+
+# Multiple servers
+export APM_ADO_HOSTS=ado1.corp.example.com,ado2.corp.example.com
+```
+
+`ADO_HOST` registers a single on-prem host; `APM_ADO_HOSTS` accepts a
+comma-separated list for environments with multiple ADO Server instances.
+Values are hostnames only (no scheme, port, or path), trimmed, matched
+case-insensitively, and must be valid FQDNs. Explicit HTTPS ports belong in
+the dependency URL. The first path segment is the server collection.
+Root-hosted collection URLs are supported; `/tfs/` or another server
+base-path prefix is not currently supported.
+
+Azure DevOps Server uses `ADO_APM_PAT` then path-scoped `git credential fill`.
+The Azure CLI bearer fallback applies to Azure DevOps Services, not Server.
+
+`GITHUB_HOST` alone classifies a custom hostname as GitHub Enterprise Server.
+When `ADO_HOST` or `APM_ADO_HOSTS` also names that host, the ADO
+configuration takes precedence and excludes GitHub credentials. You do not
+need to unset `GITHUB_HOST`.
+
+### ADO auth troubleshooting
+
+Initial PAT/bearer diagnostics describe those sources, not the later helper
+retry. Git credential fill runs only after an operation reports an auth failure;
+DNS, TLS, and timeout errors do not trigger it.
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Azure DevOps requires authentication. You have two options` | No PAT and no az session | Install `az` from https://aka.ms/installazurecli and run `az login --tenant <tenant>`, or set `ADO_APM_PAT` |
+| `ADO_APM_PAT is set, but the Azure DevOps request failed` | Stale or wrong-org PAT, no az | Rotate the PAT, run `az login --tenant <tenant>`, or store a Git Credential Manager credential |
+| `ADO_APM_PAT was rejected; az cli bearer was also rejected` | PAT and az both failed | `unset ADO_APM_PAT`, run `az login --tenant <correct-tenant>`, or store a Git Credential Manager credential |
+| `Azure DevOps Server requires ADO_APM_PAT or a Git credential helper` | On-prem Server, no PAT or fill | Set `ADO_APM_PAT` or store a repository credential in Git Credential Manager (`az` does not apply) |
+| `Authentication failed for <host>: <attempted steps> ... rejected` | Helper empty or rejected after an auth failure | Refresh `ADO_APM_PAT`, run `az login` on Services, or store a repository credential in Git Credential Manager |
+| On-prem host classified as GHES / GitHub credentials selected | `GITHUB_HOST` set without an ADO host configuration | Add `ADO_HOST=your-ado-server.example.com` (or list it in `APM_ADO_HOSTS`); ADO takes precedence |
+
+## GitHub Enterprise Server (GHES)
+
+```bash
+export GITHUB_HOST=github.company.com
+export GITHUB_APM_PAT_MYORG=ghp_ghes_token
+apm install myorg/internal-package       # resolves to github.company.com
+apm pack                                 # marketplace.json also resolves against github.company.com
+```
+
+## GitLab (SaaS or self-managed)
+
+GitLab `path:` single-file sparse fetches follow the clone transport policy:
+`--ssh`, `APM_GIT_PROTOCOL`, saved `prefer-ssh`, and opt-in
+`--allow-protocol-fallback` / `APM_ALLOW_PROTOCOL_FALLBACK`. In strict mode,
+APM passes the selected SSH/SCP URL to Git with its user, host, port, and
+requested ref intact; safe Git `insteadOf` rewrites still apply. If the
+effective transport remains SSH, failure never unlocks REST, even with a
+PAT available. Fix SSH or declare the HTTPS web endpoint.
+
+Default HTTPS compatibility remains. REST requires an exhausted Git plan
+and an executed effective HTTPS attempt matching the API's normalized
+scheme/host/port. HTTP is not upgraded; HTTPS rewritten to SSH/local does
+not qualify. Opt-in alternate protocol reuses the declared custom port and
+warns, without mapping SSH aliases to web hostnames. See the
+[GitLab fetch policy](https://microsoft.github.io/apm/consumer/authentication/#gitlab-saas-or-self-managed)
+and [GitLab hosts](#gitlab-hosts) for token trust.
+
+## GHE Cloud data residency (*.ghe.com)
+
+```bash
+export GITHUB_APM_PAT_MYENTERPRISE=ghp_enterprise_token
+apm install myenterprise.ghe.com/platform/standards
+```
+
+No public repos exist on `*.ghe.com` -- auth is always required.
+
+## Enterprise Managed Users (EMU)
+
+- EMU orgs live on `github.com` (e.g., `contoso-microsoft`) or `*.ghe.com`
+- Use standard PAT prefixes (`ghp_`, `github_pat_`)
+- Fine-grained PATs must use the EMU org as resource owner
+- EMU accounts cannot access public repos on github.com
+- If mixing enterprise and public repos, use separate tokens
+
+## Artifactory proxy (air-gapped environments)
+
+```bash
+export PROXY_REGISTRY_URL=https://artifactory.company.com/apm-remote
+export PROXY_REGISTRY_TOKEN=your_bearer_token
+export PROXY_REGISTRY_ONLY=1                   # optional: proxy-only mode
+```
+
+When `PROXY_REGISTRY_ONLY=1`, APM routes all traffic through the proxy and
+never contacts GitHub directly. The proxy has no tag listing, so semver
+ranges (`#^1.2.0`) and `apm view <pkg> versions` fail with an actionable
+error and `apm outdated` reports git deps as unknown; pin the exact upstream
+tag (`#v1.2.3`).
+
+## Registry tokens (experimental)
+
+REST-based APM registries (behind `apm experimental enable registries`) use
+a **separate** credential chain from the GitHub / ADO token chains above.
+Tokens are scoped per registry name as declared in `apm.yml`'s `registries:`
+block (or in `~/.apm/config.json`).
+
+Credentials are released only when `registry.<name>.url` in
+`~/.apm/config.json` matches the request destination. Configure this
+user-owned URL even when a project declares the same registry. Project-only
+registry declarations are anonymous, and credentials are never sent over
+HTTP.
+
+**Env-var naming:** `APM_REGISTRY_TOKEN_{NAME}` where `{NAME}` is the
+registry name uppercased, with `-` and `.` mapped to `_`.
+
+| Registry name | Env var |
+|---------------|---------|
+| `jf-skills` | `APM_REGISTRY_TOKEN_JF_SKILLS` |
+| `corp-main` | `APM_REGISTRY_TOKEN_CORP_MAIN` |
+| `corp.snapshots` | `APM_REGISTRY_TOKEN_CORP_SNAPSHOTS` |
+
+**Auth modes:**
+
+| Env var(s) | Sent as |
+|------------|---------|
+| `APM_REGISTRY_TOKEN_{NAME}` | `Authorization: Bearer <token>` |
+| `APM_REGISTRY_USER_{NAME}` + `APM_REGISTRY_PASS_{NAME}` | `Authorization: Basic <base64(user:pass)>` |
+
+Bearer wins when both forms are set.
+
+**Token precedence (per registry, highest wins):**
+
+1. `APM_REGISTRY_TOKEN_{NAME}` (or `APM_REGISTRY_USER_{NAME}` + `APM_REGISTRY_PASS_{NAME}`) env var
+2. `registry.<name>.token` in `~/.apm/config.json` (via `apm config set`)
+3. Unauthenticated -- APM sends the request anonymously first; remediation
+   pointing at `APM_REGISTRY_TOKEN_<NAME>` is printed only on `401`/`403`
+
+```bash
+# Bearer token for registry "jf-skills"
+apm config set registry.jf-skills.url https://registry.example.com
+export APM_REGISTRY_TOKEN_JF_SKILLS=eyJ...
+
+# Or HTTP Basic
+export APM_REGISTRY_USER_JF_SKILLS=alice@example.com
+export APM_REGISTRY_PASS_JF_SKILLS=secret
+
+# Or stored in user config (never committed)
+apm config set registry.jf-skills.token eyJ...
+```
+
+**Relationship to other chains:** `APM_REGISTRY_*` is a distinct prefix
+from `GITHUB_APM_PAT_*`, `ADO_APM_PAT`, `PROXY_REGISTRY_*`, and
+`ARTIFACTORY_APM_TOKEN`. There is no collision: registry-routed deps go
+through the registry chain only; Git-routed deps continue through the
+GitHub / ADO chains above. A single project with both registry and Git
+deps uses both chains side-by-side.
+
+**Sanitization trap:** distinct registry names can collapse to the same
+env var (`corp-main`, `corp.main`, `Corp-Main` all sanitize to
+`APM_REGISTRY_TOKEN_CORP_MAIN`). Do not declare two registries whose
+names sanitize identically. Prefer hyphenated lowercase names.
+
+Tokens MUST NOT appear in repo YAML. In `apm.yml`, a `token:` field
+under a `registries:` entry is rejected at parse time (token trap). In
+`apm-policy.yml`, a top-level `token:` key is not a recognized policy
+field and surfaces as an "Unknown top-level policy key" warning rather
+than a hard parse error -- but storing tokens there is still
+unsupported and committing one would leak the secret into the repo.
+Store tokens in env vars or `~/.apm/config.json` only.
+
+## External scanner LLM keys (experimental)
+
+When LLM-powered analysis is enabled for an external SARIF scanner (`apm
+audit --external <name> --external-llm`, behind `apm experimental enable
+external-scanners`), the scanner reads its own API key from your
+environment -- `OPENAI_API_KEY` or `NVIDIA_INFERENCE_KEY`. APM **never
+stores, prompts for, or persists** these keys; they come straight from
+your shell environment and are forwarded to the scanner subprocess only
+when LLM mode is active for that run, then stripped otherwise. If
+`--external-llm` is set and no key is present, the scan fails closed with
+an actionable error. Scanner stderr is secret-redacted before APM surfaces
+it in any error or log. Do not pass keys as scanner flags (`--external-args`
+rejects secret-looking flags) -- export them as env vars instead.
+
+## Install validation chain
+
+`apm install <package>` validates a virtual subdirectory package (`owner/repo/path#ref`) before writing it to `apm.yml`. The chain mirrors the actual clone auth path so a credential that succeeds for `git clone` is never false-rejected by the installer:
+
+1. **Marker-file probes** -- `apm.yml`, `SKILL.md`, `plugin.json`, `.github/plugin/plugin.json`, `.claude-plugin/plugin.json`, `.cursor-plugin/plugin.json`, `README.md`. On public `github.com`, APM first checks them through `raw.githubusercontent.com` only and stops at the first hit; per-marker raw + Contents API probes run only if none is found. Fast positive signal; absence is not a failure.
+2. **Contents API directory probe** -- `GET /repos/{owner}/{repo}/contents/{path}?ref={ref}`. Confirms the directory exists at the ref.
+3. **`git ls-remote`** with the install auth chain (PAT header-injected, then plain HTTPS w/ credential helper, then SSH if `--ssh` or `--allow-protocol-fallback`). Confirms the ref exists.
+4. **Shallow `git fetch --depth=1 --filter=tree:0` + `git ls-tree`** at the resolved ref -- the path probe that confirms the subdirectory exists at that ref. Required to close the fail-open hole where step 3 would otherwise pass any successful repo handshake.
+
+Steps 3 and 4 only run for explicit `#ref` pins (not for unpinned default-branch deps), and only when the API steps fail. Azure DevOps tokens (PAT or AAD bearer) are injected via `http.extraheader` (`Authorization: Bearer ...`) and never embedded in the clone URL.
+
+**Yellow signal:** when steps 1-2 fail and steps 3-4 succeed, APM emits a stderr warning -- `[!] API validation skipped for {pkg}; resolved via git credential fallback.` This is security-relevant: a scoped fine-grained PAT may have *correctly* rejected a package on the API surface and the broader git credential chain accepted it. Operators should be able to see that signal in default CI logs.
+
+**Terminal error** when all four steps fail: `[x] all probes failed (marker-file, Contents API, git ls-remote, shallow-fetch) -- verify the path and ref exist and that your credentials have read access (run with --verbose for the full probe log)`.
+
+```bash
+# See the full probe log when validation fails
+apm install --verbose owner/repo/path#v1.2.0
+```
+
+## Troubleshooting
+
+```bash
+# Diagnose the auth chain -- shows which token source is used
+apm install --verbose your-org/package
+
+# Increase git credential timeout (default 60s, max 180s)
+export APM_GIT_CREDENTIAL_TIMEOUT=120
+```
+
+### Custom-port hosts and per-port credentials
+
+Self-hosted Git instances on non-standard ports (e.g. Bitbucket Datacenter
+on port 7999) are now first-class. APM sends `host=<host>:<port>` to
+`git credential fill` per the [`gitcredentials(7)`](https://git-scm.com/docs/gitcredentials)
+protocol; the credential cache and token resolution are also keyed by
+`(host, port)` so distinct PATs on the same hostname do not collide.
+
+Whether the helper actually returns per-port credentials depends on the
+backend:
+
+| Helper | Honors port-in-host? |
+|---|---|
+| git-credential-manager (GCM) | Yes |
+| macOS Keychain (`osxkeychain`) | Yes (stores full `host:port` as key) |
+| `libsecret` (Linux) | Yes (port in URI) |
+| `gh auth git-credential` | No -- but only used for GitHub hosts, which do not use custom ports |
+
+To verify what your helper returns for a custom-port host, use the
+helper-agnostic command APM itself calls:
+
+```sh
+printf 'protocol=https\nhost=<host>:<port>\n\n' | git credential fill
+```
+
+If APM resolves the wrong credential for a custom-port host, confirm your
+helper keys by `host:port`; otherwise either switch helpers or store the
+credential under a fully qualified `https://<host>:<port>/` URL.
+
+### SSH connection hangs on corporate/VPN networks
+
+APM tries SSH when selected or cross-protocol fallback is enabled. It forces
+`BatchMode=yes`, disables askpass and HTTP credential channels, and uses a
+30-second connection timeout so SSH attempts fail without prompting.
+
+To override the SSH command (e.g., custom key path), set `GIT_SSH_COMMAND`
+in your environment. APM forces `BatchMode=yes` and appends
+`-o ConnectTimeout=30` unless it finds `ConnectTimeout` already present.
