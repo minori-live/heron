@@ -1,0 +1,926 @@
+# Dependency Reference
+
+## String forms (in apm.yml `dependencies.apm`)
+
+```yaml
+dependencies:
+  apm:
+    # GitHub shorthand
+    - microsoft/apm-sample-package
+    - microsoft/apm-sample-package#v1.0.0       # pinned tag
+    - microsoft/apm-sample-package#main          # branch
+    - microsoft/apm-sample-package#abc123d       # commit SHA (7-40 hex)
+
+    # HTTPS URLs (any git host)
+    - https://github.com/microsoft/apm-sample-package.git
+    - https://gitlab.com/acme/coding-standards.git
+
+    # SSH URLs
+    - git@github.com:microsoft/apm-sample-package.git
+    - git@gitlab.com:group/subgroup/repo.git
+
+    # SSH with non-default user (EMU accounts, servers where login != "git")
+    - myuser@host.example.com:owner/repo.git
+    - ssh://myuser@host.example.com/owner/repo.git
+
+    # Custom ports (e.g. Bitbucket Datacenter, self-hosted GitLab)
+    - ssh://git@bitbucket.example.com:7999/project/repo.git
+    - https://git.internal:8443/team/repo.git
+
+    # Bitbucket Data Center personal repos (~user) and Sourcehut
+    - https://bitbucket.example.com/scm/~jdoe/ml-utils.git
+    - https://git.sr.ht/~jdoe/dotfiles
+
+    # FQDN shorthand (non-GitHub hosts keep the domain)
+    - gitlab.com/acme/coding-standards
+    - gitlab.com/group/subgroup/repo
+
+    # Azure DevOps
+    - dev.azure.com/org/project/_git/repo
+
+    # Local paths (development only)
+    - ./packages/my-shared-skills
+    - ../sibling-repo/my-package
+```
+
+GitHub and package-registry owner/repository identifiers are normalized to
+lowercase only for comparison, lock keys, and cache identity. The first
+declaration selects the repository display spelling retained in `apm.yml`,
+`apm_modules/`, and generated relative links. Reinstall migrates one stale
+APM-created case variant; multiple case-equivalent package directories stop
+install for manual inspection. Repository path casing remains
+identity-significant for unknown git hosts because a self-hosted backend may be
+case-sensitive.
+
+**Local-path anchor rule:** a `local_path` declared INSIDE another local
+package is resolved relative to THAT package's own directory (npm/pip/cargo
+parity). Sibling layouts that resolve outside the consuming project root
+(e.g. `../sibling-pkg` from a local dep at the project edge) are
+supported -- the consuming developer authored the manifest chain and
+already trusts the layout.
+
+Remote-cloned packages may declare a relative `path:` only when it resolves
+inside the same authenticated remote repo root. APM expands that path to the
+parent's remote host/repo/ref and fetches the sibling from the same origin.
+Absolute paths, paths that escape the repo root, and cross-repo local paths
+are rejected.
+
+Individual-file dependencies, including inherited `git: parent` references,
+can recover from confirmed GitHub API throttling through sparse Git. A separate
+Git authentication challenge may use an existing resolver-selected credential
+(such as `gh` login). The lockfile records the commit actually fetched, not a
+different revision observed by an earlier API request.
+
+**GitLab `path:` fetch transport:** GitLab `path:` files use Git first, so
+self-hosted instances with the API disabled still install. Restricted REST
+fallback requires an exhausted plan with an executed same-origin effective
+HTTPS attempt. Path containment rejects symlink or traversal escapes.
+See [GitLab authentication and fetch policy](authentication.md#gitlab-saas-or-self-managed).
+
+### Packages with symbolic links
+
+A link inside a dependency whose target stays in the same commit installs as
+a copy of the target's content (directory links copy the directory). APM
+resolves it from the locked commit's Git objects, so no host needs symlink
+privileges and the `content_hash` is the same on every platform. Links that
+escape the repository, are broken or loop fail the install with an error
+naming the link. See [Install packages: when things go
+wrong](https://microsoft.github.io/apm/consumer/install-packages/#when-things-go-wrong).
+
+### Line endings in dependency checkouts
+
+APM checks out dependencies with `core.autocrlf=false` and `core.eol=lf` on
+its own Git commands only, so `text` / `text=auto` files keep their committed
+LF bytes on every platform and the `content_hash` matches. Explicit
+`.gitattributes` `eol=` attributes, binary files and blobs committed with CRLF
+keep their repository bytes. A lockfile written by an older APM on Windows may
+hold a CRLF hash that `--frozen` refuses; see [Content hash
+mismatch](https://microsoft.github.io/apm/troubleshooting/common-errors/#content-hash-mismatch-for-pkg-expected-a-got-b)
+to recover.
+
+### Custom git ports
+
+Non-default git ports are preserved on `https://`, `http://`, and `ssh://` URLs
+and threaded through every clone attempt (including any cross-protocol
+fallback enabled with `--allow-protocol-fallback`).
+
+- Use the `ssh://` form to specify an SSH port
+  (e.g. `ssh://git@host:7999/owner/repo.git`). The SCP shorthand
+  `git@host:path` **cannot** carry a port -- the `:` is the path separator.
+- For HTTPS, prefer a full URL or object form when entering a custom port.
+  APM may write the dependency to `apm.yml` as
+  `host:PORT/owner/repo[#ref]`; the parser accepts this shorthand and
+  normalizes `:443` to no port.
+- A non-`git` SSH user is honored when present in the dep URL
+  (e.g. `myuser@host:owner/repo.git` or `ssh://myuser@host/owner/repo.git`),
+  useful for EMU accounts or servers where the SSH login is not `git`.
+  Validated against `^[a-zA-Z0-9_][a-zA-Z0-9_.+-]*$` with a 64-char cap;
+  percent-encoded userinfo is rejected. The user is presentation-only and
+  not part of dependency identity (does not perturb lockfile dedup).
+- The lockfile records `port: <int>` (1-65535) only when a non-default port
+  is set. Manifest identity includes `host:port`, while the lockfile dedup
+  key uses `host/repo`; the same repository reached through different
+  ports maps to one lockfile key.
+
+## Transport selection (SSH vs HTTPS)
+
+Strict by default. Pick the transport up front; APM never silently retries
+across protocols.
+
+| Dependency form | Initial transport |
+|-----------------|----------------|
+| `ssh://...` or `git@host:...` | SSH |
+| `https://...` or `http://...` | The explicit HTTP(S) scheme |
+| Shorthand with `--ssh`, `APM_GIT_PROTOCOL=ssh`, or saved `prefer-ssh` | SSH |
+| Shorthand otherwise | HTTPS |
+
+`apm audit --ci` cold replay uses the same declared transport as install.
+
+A failed clone fails loudly, naming the URL and the protocol attempted.
+An explicit scheme prevents APM from selecting another protocol unless
+cross-protocol fallback is enabled. Git still applies a matching safe
+`url.<base>.insteadOf` rule to the selected URL, which may choose the same host
+over SSH or a local mirror.
+For rewrite rejection and local-mirror recovery, see
+[authentication](authentication.md).
+This includes in-repository plugins from GitLab and generic git marketplaces:
+an SSH registration is persisted as SSH `git:` and `path:`; an HTTPS
+registration remains HTTPS.
+
+Force the initial protocol for shorthand:
+
+```bash
+apm install owner/repo --ssh           # SSH for shorthand
+apm install owner/repo --https         # HTTPS for shorthand
+export APM_GIT_PROTOCOL=ssh            # session default
+```
+
+`--ssh` and `--https` are mutually exclusive and apply only to shorthand.
+URLs with an explicit scheme ignore them.
+Use `apm config set prefer-ssh true` to persist the shorthand preference.
+Cross-protocol retry remains off unless `--allow-protocol-fallback`,
+`APM_ALLOW_PROTOCOL_FALLBACK=1`, or
+`apm config set allow-protocol-fallback true` enables it.
+The selected protocol also governs remote tag enumeration when APM resolves a
+Git-source semver range.
+
+Match local `git clone` behavior by configuring `insteadOf` once:
+
+```bash
+git config --global url."git@github.com:".insteadOf "https://github.com/"
+apm install owner/repo                 # APM clones over SSH
+```
+
+Safe rewrites remain active. For rejection rules and recovery, see
+[authentication](authentication.md).
+
+Restore the legacy permissive chain (escape hatch -- not a long-term
+setting):
+
+```bash
+apm install --allow-protocol-fallback
+export APM_ALLOW_PROTOCOL_FALLBACK=1   # CI / migration window
+```
+
+When fallback runs, each cross-protocol retry emits a `[!]` warning naming
+both protocols.
+
+## Object form (complex cases)
+
+Use the object form when the string shorthand cannot express what you need:
+nested-group repos with virtual paths, custom SSH ports, local path deps,
+aliases, or marketplace dependencies.
+
+Three mutually exclusive keys select the form: `git`, `path`, or `marketplace`.
+
+The legacy string suffix `@alias` is not supported; write `alias:` explicitly
+instead so `@` remains reserved for git usernames and version syntax.
+
+### Remote (`git`)
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `git` | REQUIRED | Clone URL (HTTPS, SSH, or FQDN shorthand). The literal `parent` inherits the consuming package's repo. |
+| `path` | OPTIONAL | Subdirectory or file within the repo (virtual package). |
+| `ref` | OPTIONAL | Branch, tag, or commit SHA. |
+| `alias` | OPTIONAL | Install-directory name (`^[a-zA-Z0-9._-]+$`), excluding exactly `.` and `..`. Dotted names such as `my-skill.v2` are valid. |
+| `type` | OPTIONAL | Set to `gitlab` for self-managed GitLab on a bespoke hostname. Generic hosts do not receive APM-managed PATs on HTTP file reads. See the [lockfile spec](https://microsoft.github.io/apm/reference/lockfile-spec/#lockfile-identity-keys) for keying rules. |
+| `allow_insecure` | OPTIONAL | Manifest-side approval for an `http://` dependency; the install command still requires its separate insecure-host opt-in. |
+| `skills` | OPTIONAL | Select deployed skills, not a repo slice; use `path` for a subdirectory. |
+| `targets` | OPTIONAL | Consumer-side harness subset for that dependency's target-scoped primitives. Non-empty list of target names. |
+
+Aliases are persisted in `apm.lock.yaml` for replay and removal without changing
+source identity or local `../sibling` source anchors. After upgrading an older
+aliased install, run `apm install` and review the updated lockfile; use the
+updated CLI for subsequent replay and cleanup.
+
+Licence files travel with `path:` subdirectories: APM copies the nearest
+`LICENSE`, `LICENSE.*`, `COPYING` or `NOTICE` (subdirectory up to repo root)
+into the package and next to each deployed skill lacking one, byte-for-byte,
+and records each copy under `carried_licenses` in `apm.lock.yaml`. Whole-repo
+skills below the root get the root licence the same way. Uninstall removes the
+copies; `apm audit` flags missing or edited ones.
+
+Git [skill collections](../../../../../docs/src/content/docs/reference/package-types.md)
+with `skills/<name>/SKILL.md` support `skills: [name]` without root `apm.yml` or `SKILL.md`.
+
+Unknown fields are rejected. A Git `version` field reports an actionable error
+to use `ref` for a branch, tag, or commit; `version` belongs to registry and
+marketplace objects. The `git: parent` form accepts only `git`, `path`, `ref`,
+and `alias`.
+
+```yaml
+- git: https://gitlab.com/acme/repo.git
+  path: instructions/security                   # virtual sub-path
+  ref: v2.0                                     # tag, branch, or SHA
+  alias: acme-sec                               # local alias
+
+- git: git@gitlab.com:group/subgroup/repo.git
+  path: prompts/review.prompt.md
+
+- git: ssh://git@bitbucket.example.com:7999/project/repo.git   # custom SSH port
+  ref: v1.0
+
+- git: https://code.acme.com/platform/standards.git               # bespoke GitLab
+  type: gitlab
+```
+
+### Local (`path`)
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `path` | REQUIRED | Filesystem path (must start with `./`, `../`, `/`, or `~/`). |
+| `alias` | OPTIONAL | Install-directory name (`^[a-zA-Z0-9._-]+$`), excluding exactly `.` and `..`. Dotted names such as `my-skill.v2` are valid. Local `../` sources remain supported. |
+| `skills` | OPTIONAL | Consumer-side skill subset for that dependency. Non-empty list of skill names. |
+| `targets` | OPTIONAL | Consumer-side harness subset for that dependency's target-scoped primitives. Non-empty list of target names. |
+
+Local-path deps inside another local package resolve relative to that
+package's directory, not the project root.
+
+Local strings and `path:` objects can select one `.agent.md`, `.instructions.md`,
+or `.prompt.md` file as well as a directory package. The selected file goes
+through ordinary package materialization, validation, rendering, and ownership.
+It is copied, not linked; file symlinks are rejected. No sibling assets or
+dependencies mentioned in prose are collected. Use a directory package with
+`apm.yml` for companion files. `--root` does not change source anchors;
+`--global` still requires an absolute or expanded `~/...` path.
+
+```yaml
+- path: ./packages/my-skills
+- path: ./ai/agents/xyz.agent.md
+
+- path: ./packages/local-review-kit
+  alias: local-review-kit
+  skills: [reviewer]
+  targets: [claude]
+```
+
+After install, `apm deps list` presents a local dependency as
+`_local/<directory-or-file-name>`. For a direct declaration with matching
+`apm.lock.yaml` metadata, that portable key is accepted verbatim by
+`apm uninstall` and `apm uninstall -g`; user-scope automation does not need to
+discover or print the absolute declared path. Without a lockfile, use the exact
+manifest path. Remove transitive local dependencies through their declaring
+parent.
+
+If two declarations end in the same directory name, their portable keys are
+ambiguous. Uninstall exits nonzero without running lifecycle scripts or writing
+files. Use one exact path already present in the relevant `apm.yml`; APM never
+guesses or removes both.
+
+When three or more declarations share a slot, one exact-path uninstall must not
+leave multiple physical survivors. Pass enough exact paths in the same command
+that at most one declaration remains.
+
+### Root source replacement (candidate)
+
+Unratified development-build contract. Proposal 0.1.54 stages distinct
+manifest and lock schemas for review; no first supported release or adoption
+is claimed. Require this exact selector whenever root `replace` is present:
+
+```yaml
+$schema: https://microsoft.github.io/apm/specs/schemas/manifest-source-replacements-v1.schema.json
+replace:
+  - for:
+      git: https://github.com/example/catalog.git
+      path: packages/base
+    with:
+      path: ../catalog/packages/base
+```
+
+`for` matches normalized host, endpoint, repository and optional subdirectory
+exactly, at every graph depth. Only consumer-root rules apply. For a fork use
+`with: {git: https://github.com/my-org/catalog-fork.git, path: packages/base, ref: patched-base}`.
+`ref` is required; omitted fork `path` selects its repository root.
+Use an explicit HTTPS/SSH URL or SCP-style locator for the selected Git source,
+not `owner/repo` or scheme-free `host/repo` shorthand.
+Local `with.path` is anchored to the consumer manifest, not a transitive parent.
+The complete source/ref is substituted; original refs remain provenance.
+No chaining, wildcards, single-file selectors or dependency-owned overrides.
+Unknown fields, duplicate selectors, collisions and cycles fail.
+
+Original identity and selections still own one installed slot. Auth, policy,
+integrity and executable approval evaluate the selected source; upstream consent
+is not transferred. HTTP replacement sources are rejected, even with CLI consent.
+Missing/invalid selected sources never fall back upstream. Removing a rule and running `apm install`
+restores upstream obligations and reconciles owned outputs.
+
+Ordinary `apm install` persists the entire normalized root replacement table in
+`apm.lock.yaml`, even after the last dependency is removed. This includes
+clearing it with `replace: []` or removing `replace`. Recording dormant rules
+does not read or fetch their sources, even if a local path is absent.
+
+The complete table and incoming requests are recorded in candidate lock version
+`"3"`. Verified v0.25.0/v0.32.0/v0.33.0 readers reject the selector/version;
+v0.24.1 may ignore them and install upstream. Rejection is not feature support:
+do not recommend a minimum released client or use unqualified readers.
+
+### Marketplace (`name` + `marketplace`)
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | REQUIRED | Plugin identifier within the marketplace (`^[a-zA-Z0-9._-]+$`). |
+| `marketplace` | REQUIRED | Registered marketplace name (`^[a-zA-Z0-9._-]+$`). |
+| `version` | OPTIONAL | Semver range or exact version (e.g. `~2.1.0`, `^2.0`, `>=1.4`, `2.1.0`), literal branch/tag ref (e.g. `main`, `v1.2.3`), or full commit SHA. Semver selections resolve against git tags using the publisher's effective pattern: `packages[].tag_pattern`, then `marketplace.build.tagPattern`. Older metadata without `source.tag_pattern` uses the legacy `{name}--v{version}` fallback. Literal refs and pins bypass semver tag selection. |
+
+During resolution, marketplace entries are looked up in the marketplace's
+`marketplace.json` and replaced with concrete git coordinates. When `version`
+is a semver range or bare version number, the resolver lists the package
+repository's git tags (the catalog's tags only for in-catalog packages)
+using the `source.tag_pattern` emitted by `apm pack`. The package-level
+`tag_pattern` overrides `marketplace.build.tagPattern`. APM filters by the
+constraint and picks the highest matching tag. Old `marketplace.json` files
+that omit `source.tag_pattern` fall back to `{name}--v{version}`. Patterns
+must contain exactly one `{version}` placeholder, and a no-match does not
+silently become a raw ref or consult a different repository. Use
+object-form `version: v1.0.1` or `apm install pkg@catalog#v1.0.1` for a literal
+ref; CLI marketplace suffixes do not accept ranges. Raw refs bypass tag resolution. The lockfile records the resolved ref, not the marketplace
+placeholder. Semver selections also record the existing advisory `resolved_at`
+UTC timestamp; audit and replay do not use it to choose a version.
+Unknown keys in a marketplace entry are rejected.
+
+The `marketplace` value names a marketplace registered with
+`apm marketplace add` or declared in the user manifest's `marketplaces:`
+list (`$APM_HOME/apm.yml`, default `~/.apm/apm.yml`, reconciled by
+`apm install -g`). Dependencies and
+project manifests cannot declare `marketplaces:`.
+
+For object-form declarations, `apm audit --ci` uses recorded
+`discovered_via` + `marketplace_plugin_name` to find one locked coordinate.
+Semver selections also record `constraint`, `resolved_tag`, and the selected
+`version`; a package display version alone is not selection proof. Missing or
+ambiguous evidence fails. Audit does not fetch the catalog, so removing a local
+catalog registration does not invalidate otherwise valid installed evidence.
+Omitting `version` removes the selector comparison, not the unique-provenance
+and full locked-commit requirements.
+
+Producer-emitted `source: url` and `source: git-subdir` objects resolve
+through the same Git dependency parser as direct object-form dependencies.
+The package URL owns its host, port, explicit transport, and SSH user during
+tag lookup and installation; none inherit the catalog's authority, even when
+hostname and repository path match. Explicit dictionary `repo` URLs follow
+the same rule; bare external entries keep their normal dependency defaults.
+`git-subdir.path` owns the contained package path. These survive into the concrete `git:`, `path:`, and `ref:` manifest
+entry and the lockfile. A full 40-character source `sha` (on `github`, `url`
+or `git-subdir`) wins over `ref` and is the commit APM installs and writes as
+`ref:`. Invalid URLs, unsafe paths, or a malformed `sha` fail before durable
+project writes.
+
+Catalog-only entries with inline `lspServers` or `mcpServers` remain valid
+marketplace dependencies when downloaded source has no package manifest. Keep
+the consumer declaration in the object form above; catalog server fields do not
+belong in `dependencies.apm`. APM ignores unrelated catalog dependency fields
+and rejects the package if any declared server is invalid. See
+[Catalog-only marketplace packages](../../../../../docs/src/content/docs/reference/package-types.md#catalog-only-marketplace-package).
+
+If the marketplace plugin entry declares `registry`, APM creates a
+registry-sourced dependency instead of Git coordinates. Enable registry support
+with `apm experimental enable registries` and configure the named registry.
+The entry must also declare a valid semver `version`; malformed or unresolvable
+registry intent fails closed and never falls back to Git.
+
+```yaml
+- name: sec-check
+  marketplace: acme-plugins
+
+- name: secrets-vault
+  marketplace: acme-plugins
+  version: "~2.1.0"
+```
+
+## Registry-sourced APM dependencies (experimental)
+
+Behind `apm experimental enable registries`. Registry deps resolve over the
+REST [Registry HTTP API](../../../../../docs/src/content/docs/reference/registry-http-api.md)
+alongside the Git resolver -- declare registries in `apm.yml` (or in
+`~/.apm/config.json`) and reference them from `dependencies.apm`. See
+`authentication.md` (Registry tokens) for the required user-owned URL
+binding and `APM_REGISTRY_TOKEN_{NAME}`.
+
+```yaml
+registries:
+  jf-skills:
+    url: https://registry.example.com/apm/jf-skills
+  default: jf-skills                       # optional; routes shorthand deps
+
+dependencies:
+  apm:
+    # String shorthand -- requires a default registry; always needs a semver ref
+    - acme/foo#^1.2.3                      # semver range -> default registry
+    - acme/bar#1.4.0                       # exact semver -> default registry
+
+    # Object form -- whole package via the default registry
+    - id: acme/toolkit
+      version: ^2.0.0
+
+    # Object form -- explicit registry by name
+    - registry: jf-skills
+      id: acme/toolkit
+      version: ^2.0.0
+
+    # Object form -- virtual package (sub-path inside a published package)
+    - registry: jf-skills
+      id: acme/prompt-pack
+      path: prompts/review.prompt.md
+      version: 1.4.0
+      alias: review-prompt                 # optional local alias
+```
+
+Object-form fields:
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `id` | yes | `owner/repo` identity at the registry |
+| `version` | yes | Exact semver version or semver range (e.g. `1.4.0`, `^2.0.0`, `>=1.2.0 <2.0.0`). Non-semver refs (labels like `stable`/`latest`, `v`-prefixed tags, branch names, SHAs) are rejected when routed to a registry. Ranges skip pre-releases unless the range names a pre-release on the same `major.minor.patch` |
+| `registry` | no | Name from the merged registry map; defaults to the effective default |
+| `path` | no | Sub-path to a file or directory within the published package |
+| `alias` | no | Install-directory name (`^[a-zA-Z0-9._-]+$`), excluding exactly `.` and `..`. Dotted names such as `my-skill.v2` are valid. |
+
+Routing rules when a default registry is active:
+
+| Entry form | Routed to |
+|------------|-----------|
+| `owner/repo#<any-ref>` | Default registry |
+| `- id:` object (no `registry:`) | Default registry |
+| `- registry:` object | Named registry |
+| `- git:` object | Git (explicit override) |
+| `- path:` object | Local filesystem |
+
+A shorthand entry with no ref (`acme/foo`) is **rejected** when routed to a
+registry -- a semver version selector is always required. Non-semver refs
+(labels, `v`-prefixed tags, branch names) are also rejected for registry
+sources; use `- git:` to keep a dep on Git when a default registry is
+active. Registry-routed deps add `source: registry`, `version`,
+`resolved_url`, and `resolved_hash` (sha256 of the archive bytes) to
+their lockfile entry, and the lockfile is promoted to
+`lockfile_version: "2"` when any dep is registry-sourced OR carries
+git-source semver resolution fields (`constraint` / `resolved_at`) or a
+revision-pin tag annotation (`resolved_tag`).
+
+The `acme/foo@registry-name#version` shorthand is **not supported** (deferred
+to v2) -- the `@` collides with npm/cargo/pip version syntax, with
+`git@host`, and with marketplace plugin shorthand. Use the object form.
+
+## Virtual package types
+
+Virtual packages reference a subset of a repository.
+
+| Type | Detection rule | Example |
+|------|---------------|---------|
+| File | Ends in `.prompt.md`, `.instructions.md`, or `.agent.md` | `owner/repo/prompts/review.prompt.md` |
+| Subdirectory | Shorthand path has no file extension, or an explicit `git`/`path` reference identifies a directory | `owner/repo/skills/security` |
+
+Install rejects declaring a repository (`owner/repo`) together with one of its
+own subdirectory packages (`owner/repo/skills/security`): the subdirectory
+package would be installed inside the repository package. Keep only one.
+
+Shorthand rejects unsupported file-like suffixes. Git-hosted marketplaces can
+preserve dotted directories such as `plugins/my-plugin-1.2.3` through explicit
+`git`/`path` coordinates; do not rewrite them as shorthand. Directory and
+package-content validation still apply. The actual package shape -- APM package
+(including dep-only `apm.yml`), skill bundle, or plugin -- is resolved at fetch
+time. See [install validation](commands.md#install-validation-chain-virtual-subdirectory-packages).
+
+Compatibility-only `.codex-plugin/plugin.json` uses the same local or pinned
+Git dependency syntax, not a new reference format. Use `-g --target codex`
+with the entire bundle and its executable types approved. See the
+[native Codex contract](https://microsoft.github.io/apm/consumer/installing-from-marketplaces/#codex-compatibility-bundles-through-apm)
+for exact version, scope, and measured-platform limits. Do not select a skill subset. Native
+transport generations never replace the original dependency pin or publisher
+version. Other scopes/versions fail rather than reducing the package to skills.
+Native integrity includes publisher cache-named assets and executable bits
+without changing existing APM lock hashes. Publisher metadata remains unchanged
+even with an absent or `0.0.0` native version. Keep the validated ownership
+journal for cold-cache frozen restores with unrelated loose MCP declarations.
+The journal binds that fingerprint to the original Git commit. Same-pin cache
+byte or executable-bit drift is refused; remove only the dependency's disposable
+`apm_modules/` directory and retry `apm install -g --frozen --target codex`.
+Local source edits and newly selected commits remain valid updates. Remote
+records without source-pin provenance are not adopted. Save the pinned declaration,
+run `apm uninstall -g <dependency>`, then
+`apm install -g <saved-pinned-dependency> --target codex`.
+
+**Gitea and Gogs (self-hosted or vendor-hosted):** virtual packages resolve via the host's `/{owner}/{repo}/raw/{ref}/{path}` URL first, then fall back to the Contents API (v1 native, v3 Gogs-compat). Direct GitLab nested-group repos (`group/subgroup/repo`) require the object form (`git: <full-url>`, `path: <virtual>`) -- shorthand is ambiguous on >2-segment paths. **Exception:** when the dep routes through a registry proxy (explicit `host/artifactory/<key>/...` FQDN, or bare shorthand under `PROXY_REGISTRY_URL` + `PROXY_REGISTRY_ONLY=1`), the install-time boundary probe HEAD-walks the candidate splits against the proxy and locks in the first one whose archive responds, so nested-group shorthand works without the object form (#1472).
+
+> **Removed (#1094):** the legacy `.collection.yml` / `.collection.yaml` virtual-package form is no longer supported. Convert any `.collection.yml` to an `apm.yml` with a `dependencies:` section, then reference the resulting subdirectory as a regular subdirectory virtual package.
+
+## Canonical storage rules
+
+APM normalizes dependency strings when saving to apm.yml:
+
+| Input | Stored as |
+|-------|-----------|
+| `microsoft/apm-sample-package` | `microsoft/apm-sample-package` |
+| `https://github.com/microsoft/apm-sample-package.git` | `microsoft/apm-sample-package` |
+| `git@github.com:microsoft/apm-sample-package.git` | `microsoft/apm-sample-package` |
+| `https://gitlab.com/acme/rules.git` | `gitlab.com/acme/rules` |
+| Object with `git` + `path: docs` + `ref: main` | `org/repo/docs#main` |
+| `./packages/my-skills` | `./packages/my-skills` |
+
+GitHub URLs are stripped to shorthand; non-GitHub hosts keep the FQDN.
+
+## Per-dependency target selection (`targets:`)
+
+`targets:` is an optional per-dependency list on the object form of a
+`dependencies.apm` entry. It restricts which active install targets
+receive that dependency's target-scoped primitives.
+
+Package-level `targets:` (top-level) selects the package's own
+compile/install targets; per-dependency `targets:` (inside a
+`dependencies.apm` entry) selects which active targets receive that
+dependency's target-scoped primitives. They compose via intersection. See
+`package-authoring.md` for author guidance.
+
+- Type: list of target keys. Stable targets are `copilot`, `claude`, `grok-build`,
+  `cursor`, `codex`, `gemini`, `antigravity`, `windsurf`, `kiro`,
+  `opencode`, `agent-skills`, `hermes`, and `grok-bot`. Experimental targets are `openclaw`,
+  `copilot-cowork`, `copilot-app`, and `grok-cloud`. Use `copilot`, not the
+  target alias `vscode`, for Copilot-family dependency routing.
+- Default: omitted means all active install targets.
+- Semantics: effective reach is `install_targets INTERSECT dep_targets`.
+  A non-empty list narrows reach; it never widens beyond what the install
+  resolved. An empty list is a parse error; remove the field to mean
+  "all".
+- Supported on: both `git:` and `path:` dependency forms.
+
+```yaml
+dependencies:
+  apm:
+    - git: owner/codex-hooks
+      targets: [codex]
+
+    - git: owner/universal-hooks
+      # no targets: all active install targets
+
+    - path: ./skills/my-local-skill
+      targets: [claude]         # local deps support targets: too
+```
+
+The lockfile records `target_subset` for audit/display only. Install
+routing always recomputes from the live `apm.yml` entry, so editing the
+lockfile cannot widen a dependency's reach. The formal schema contract
+lives in `docs/src/content/docs/reference/manifest-schema.md` section
+4.1.2.
+
+## MCP dependency formats
+
+See also: [MCP Servers guide](../../../../../docs/src/content/docs/consumer/install-mcp-servers.md) for the CLI-first `apm install --mcp` workflow.
+
+```yaml
+dependencies:
+  mcp:
+    # Registry reference (string)
+    - io.github.github/github-mcp-server
+
+    # Registry with overlays (object)
+    - name: io.github.github/github-mcp-server
+      transport: stdio                          # stdio|sse|http|streamable-http (MCP transport names, not URL schemes; remote connects over HTTPS)
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      args: ["--port", "3000"]
+      version: "1.5.0"
+      package: npm                              # npm|pypi|oci
+      headers:
+        X-Custom: "value"
+        # Env-var placeholders in headers/env values:
+        #   ${VAR} or ${env:VAR}  -> Copilot CLI: preserved as ${VAR} and resolved
+        #                            from host env at server-start (no plaintext on disk).
+        #                            VS Code and JetBrains: rewritten to ${env:VAR}
+        #                            and resolved at runtime.
+        #                            Kiro: preserved as ${VAR} and resolved at runtime.
+        #                            Cursor: translated to ${env:VAR} and resolved at runtime.
+        #                            OpenCode: translated to {env:VAR}; export variables at runtime.
+        #                            Claude Code project .mcp.json: kept as ${VAR}
+        #                            (${VAR:-default} too) in command, args, env,
+        #                            url and headers; Claude Code expands them.
+        #                            Reinstall replaces values APM wrote earlier.
+        #                            Claude user scope (-g)/Windsurf/Gemini:
+        #                            resolved at install time.
+        #                            Codex project scope: a stdio env value that is
+        #                            exactly KEY: ${KEY} or KEY: ${env:KEY} becomes
+        #                            env_vars = ["KEY"], read from the environment
+        #                            that launches Codex and never written. Other
+        #                            references are still resolved at install time
+        #                            and written, with a names-only warning.
+        #                            Reinstall replaces an APM-written value only for
+        #                            an unchanged managed entry; otherwise it keeps
+        #                            the entry, exits 1, and asks you to reconcile
+        #                            by hand and rotate any committed credential.
+        #                            Codex user scope (-g): env resolved at install
+        #                            time as before; a remote
+        #                            server's headers are written as
+        #                            bearer_token_env_var / env_http_headers and
+        #                            resolved by Codex at server-start.
+        #                            Mixed or malformed references are skipped
+        #                            with a warning. Unchanged reinstall keeps
+        #                            existing config; to refresh an older managed
+        #                            entry, switch between ${VAR} and ${env:VAR}
+        #                            and reinstall with the same scope/targets.
+        #                            Review/back up manual edits to that entry first.
+        #   ${input:<id>}         -> VS Code prompts user at runtime
+        #   <VAR>                 -> deprecated; auto-translated, emits a warning
+        # Registry-declared optional env/input fields are omitted when unset;
+        # see manifest-schema section 4.2.4 for reinstall preservation semantics.
+        Authorization: "Bearer ${MY_TOKEN}"
+      tools: ["repos", "issues"]
+
+    # Self-defined server (not in registry)
+    - name: my-private-server
+      registry: false
+      transport: stdio
+      command: ./bin/my-server
+      args: ["--port", "3000"]
+      env:
+        API_KEY: ${{ secrets.KEY }}
+
+    # Self-defined HTTP server
+    - name: internal-kb
+      registry: false
+      transport: http
+      url: "https://mcp.internal.example.com"
+      enabled: false  # OpenCode only; other targets ignore this field
+
+    # Self-defined remote with harness-specific extra keys
+    # Unknown keys (e.g. oauth) are passthrough: preserved and written into
+    # the generated config for EVERY installed harness. Keys that collide with
+    # a modeled or adapter-owned field
+    # (command/url/headers/env/environment/http_headers/id/...) are rejected.
+    # Top-level enabled is modeled for OpenCode; extra.enabled remains reserved.
+    - name: slack
+      registry: false
+      transport: http
+      url: https://mcp.slack.com/mcp
+      oauth:
+        clientId: "<pre-registered-client-id>"
+        callbackPort: 3118
+```
+
+For a recognized GitHub MCP server, automatic auth follows the target's
+runtime support and uses the selected token environment variable name on
+runtime-capable targets. A nonempty string manifest `Authorization` value takes
+precedence, including with dictionary-shaped headers accepted from custom
+registries on Copilot and Cursor. Registry values do not gain manifest
+provenance; this compatibility is not upstream registry schema certification.
+Follow [Repairing existing credentials](https://microsoft.github.io/apm/consumer/install-mcp-servers/#repairing-existing-credentials)
+to replace previously written credentials without losing custom fields.
+See the [MCP
+Servers guide](../../../../../docs/src/content/docs/consumer/install-mcp-servers.md#token-injection-github-mcp-server)
+for token selection details.
+
+OpenCode requires referenced variables in its launch environment. See the
+[variable reference rules](../../../../../docs/src/content/docs/reference/manifest-schema.md#424-variable-references-in-headers-and-env)
+for supported fields and literal-value handling.
+
+For OpenCode, top-level `enabled` passes the supplied value and JSON type
+unchanged, including `false`, `null`, and non-boolean values. Only omission
+defaults to `true`; OpenCode interprets the value, not APM. Reinstall applies
+changes to this field. When `opencode.json` declares `mcp.servers` (the
+OpenCode 2 layout), APM writes there instead: `false` becomes
+`disabled: true`, `true` or omission writes no field, and other values warn
+and leave the file unchanged. Set `codemode: false` as an extra field to
+bypass Code Mode. See the
+[manifest schema](https://microsoft.github.io/apm/reference/manifest-schema/#422-dependenciesmcp)
+for the dependency contract and
+[OpenCode 2 configuration](https://microsoft.github.io/apm/consumer/install-mcp-servers/#opencode-2-configuration)
+for format selection.
+
+MCP Registry v0.1 uses `registryType: oci` for container packages. APM
+maps that type to the Docker launcher automatically, preserves Docker
+run options before the image, and appends package arguments after the
+image. Options-only `runtimeArguments` (no leading `run`) gain
+`run -i --rm` ahead of them. Copilot, Codex, Gemini, and related adapters select `npm`, OCI,
+then PyPI; VS Code selects `npm`, PyPI, then OCI. Docker must be
+available when the harness starts an OCI server. Do not add per-target
+launcher overrides.
+
+For VS Code and Copilot-family adapters, non-container `npm`, `pypi`,
+and generic packages preserve typed v0.1 `runtimeArguments` and
+`packageArguments` in authored order, with exactly one semantic package
+identity. Legacy `value_hint` arguments remain compatible. Registry
+defaults resolve normally, secret variables use target-native references,
+unresolved optional groups are omitted atomically, and malformed or
+unresolved required entries fail closed.
+
+### Development MCP scope
+
+Use `dependencies.mcp` for servers that a consuming project should
+receive. Use `devDependencies.mcp` for author-only servers such as local
+mocks or debug bridges:
+
+```yaml
+devDependencies:
+  mcp:
+    - name: author-debug
+      registry: false
+      transport: stdio
+      command: ./scripts/author-debug
+```
+
+The root project activates both sections during `apm install`. Direct
+and transitive dependency packages contribute only `dependencies.mcp`;
+their development MCP entries do not enter the consumer's target config
+or `mcp_config_provenance`.
+
+At user scope, Claude MCP entries are written to
+`$CLAUDE_CONFIG_DIR/.claude.json` when `CLAUDE_CONFIG_DIR` is set to a
+non-whitespace absolute path. Unset or blank values use `~/.claude.json`;
+relative values are rejected.
+
+## LSP dependency formats
+
+LSP (Language Server Protocol) servers give supported runtimes real-time
+code intelligence. APM currently writes LSP config for Claude Code and
+GitHub Copilot CLI while keeping the dependency schema runtime-neutral.
+
+```yaml
+dependencies:
+  lsp:
+    # String reference (name only)
+    - gopls
+
+    # Full object
+    - name: pyright
+      command: pyright-langserver
+      args: ["--stdio"]
+      extensionToLanguage:
+        ".py": python
+        ".pyi": python
+      transport: stdio                          # stdio (default) | socket
+      env:
+        PYTHONPATH: "./src"
+      startupTimeout: 10000
+
+    - name: rust-analyzer
+      command: rust-analyzer
+      extensionToLanguage:
+        ".rs": rust
+      restartOnCrash: true
+      maxRestarts: 3
+```
+
+Required fields (object form): `name`, `command`, `extensionToLanguage`.
+
+Optional fields: `args`, `transport`, `env`, `initializationOptions`,
+`settings`, `workspaceFolder`, `startupTimeout`, `shutdownTimeout`,
+`restartOnCrash`, `maxRestarts`.
+
+`apm install` writes LSP config to the detected runtime targets. Claude Code
+project installs use the `lspServers` section in
+`.claude/skills/apm-lsp/.claude-plugin/plugin.json`; global installs use
+`~/.claude/skills/apm-lsp/.claude-plugin/plugin.json`. GitHub Copilot CLI uses
+`.github/lsp.json` or `~/.copilot/lsp-config.json`. Copilot CLI uses
+`fileExtensions` on disk;
+manifests continue to use `extensionToLanguage`. A dependency package's source
+`.lsp.json` may use either a flat server map or a
+`{ "lspServers": { ... } }` envelope; it is distinct from the Claude project
+plugin manifest that APM generates. Dependency-provided LSP commands require
+executable approval for the declaring package when a project or org
+`executables` block enables the gate; the compatibility default permits them
+when no layer opts in. For Copilot-dialect plugin input, APM accepts
+`fileExtensions` as an alias for `extensionToLanguage` and `warmupTimeoutMs` as
+an alias for `startupTimeout`; a non-null canonical value wins when both are
+supplied, while a null canonical value falls back to its alias. APM ignores the
+unsupported Copilot `cwd` field and warns that the consumer runtime chooses the
+working directory. Copilot output uses `fileExtensions` and `warmupTimeoutMs`;
+manifests and lockfiles retain `extensionToLanguage` and `startupTimeout`. APM
+records target-scoped LSP ownership in the lockfile so target changes and
+package uninstall revoke only entries it wrote.
+
+## Version pinning
+
+APM uses one version per package identity. Incompatible tag/SHA requirements
+fail with both dependency paths and requested refs; unequal ref strings alone
+are not a conflict when they resolve to the same commit. Align the root or
+parent manifest refs, then run `apm install` to regenerate the lockfile.
+`--frozen` rejects locked commits that drop an immutable transitive requirement.
+Short pins must match the locked full commit's prefix. Unchanged locked refs
+use recorded commits without ref discovery, including moved or deleted tags.
+New named refs may need a Git lookup to establish equivalence.
+
+| Strategy | Syntax | When to use |
+|----------|--------|-------------|
+| Tag | `owner/repo#v1.0.0` | Production -- immutable reference |
+| Semver range | `owner/repo#^1.2.0` | Track patch/minor updates within a range; APM lists remote tags and pins the highest match in the lockfile |
+| Branch | `owner/repo#main` | Development -- tracks latest |
+| Commit SHA | `owner/repo#abc123d` | Maximum reproducibility; `apm update` can move full 40-character SHA pins to the latest annotated semver tag SHA and annotate the line with `# <tag>` |
+| No ref | `owner/repo` | Resolves default branch at install time |
+| Marketplace ref | `plugin@marketplace#ref` | Override marketplace source ref |
+
+Semver ranges accept `^1.2.0`, `~1.4`, `>=2.0 <3`, or `1.5.x`. At
+install time APM runs `git ls-remote` against the dep and picks the
+highest tag matching the range; the resolved tag, commit SHA, version,
+and original constraint are pinned in the lockfile. Subsequent
+`apm install` runs replay the lockfile without network. Use
+`apm update` (or change the manifest constraint) to re-resolve against
+current remote tags. Update-like commands require authenticated upstream
+truth and do not accept a stale persistent bare-cache ref. Tag patterns are tried in order:
+`v{version}`, `{name}--v{version}`, and `{name}-v{version}`, then a bare
+`{version}` fallback. For virtual subdirectory deps, `{name}` is the
+final path segment (for example `pkg-a` in `acme/mono/packages/pkg-a`). A
+malformed range-like ref is rejected; use a plain range such as `^1.2.0`
+or pin a literal tag such as `pkg-a-v1.2.0`.
+
+## Marketplace ref override
+
+When installing from a marketplace, the `#` suffix overrides the `source.ref` from the marketplace entry:
+
+| Syntax | Meaning | Example |
+|--------|---------|---------|
+| `plugin@mkt` | Use marketplace source ref | `plugin@mkt` |
+| `plugin@mkt#v2.0.0` | Override with specific tag | `plugin@mkt#v2.0.0` |
+| `plugin@mkt#main` | Override with branch | `plugin@mkt#main` |
+| `plugin@mkt#abc123d` | Override with commit SHA | `plugin@mkt#abc123d` |
+
+## HTTP dependencies (opt-in)
+
+HTTP is never attempted implicitly. A dep fetched over `http://` requires
+dual opt-in on every install:
+
+1. **Manifest approval** -- the apm.yml entry carries `allow_insecure: true`.
+2. **Invocation approval** -- `apm install --allow-insecure` for direct
+   deps, or `--allow-insecure-host HOSTNAME` (repeatable) for transitive
+   deps. Transitive HTTP deps from hosts not listed are blocked.
+
+Example apm.yml entry:
+
+```yaml
+dependencies:
+  apm:
+    - git: http://mirror.example.com/acme/rules.git
+      ref: v1.2.0
+      allow_insecure: true
+```
+
+Example invocation:
+
+```bash
+apm install --allow-insecure --allow-insecure-host mirror.example.com
+```
+
+Mental model: HTTP is opt-in per-dep AND per-invocation. Removing either
+side re-locks the dependency. The lockfile records `is_insecure: true` and
+`allow_insecure: true` on the entry so replays fail-closed when either
+approval is dropped. See `commands.md` for full flag syntax and the
+enterprise security guide for the threat model.
+
+## What the lockfile pins
+
+`apm.lock.yaml` records the exact commit SHA for every dependency, regardless
+of the ref format in apm.yml. Running `apm install` without `--update` reuses
+the locked SHA when the dependency identity, declared ref and effective host
+provider match. An unseeded mutable ref resolves upstream even when another
+package or sibling path has a lock entry.
+`apm install --update`, `apm install --refresh`, `apm update` (including
+`--force`), `apm lock --update`, and `apm outdated` establish mutable refs from
+upstream instead of using a persistent bare-cache ref as current-state evidence.
+
+`--frozen` checks declared refs, full commit pins, host providers and HTTP/HTTPS
+transport against the lock, including transport changes under an unchanged
+semver range. It does not check whether an upstream branch moved. Review an
+intentional declaration change and run `apm install --update` to refresh the lock.
+
+For local `.agent.md`, `.instructions.md`, and `.prompt.md` dependencies, the
+locked content hash covers the ordinary materialized package, including its
+generated manifest. `--frozen` reconstructs that image from the declared source
+and rejects changed bytes without rewriting the lock or replacing deployment.
+Run normal `apm install` to accept deliberate source edits; sibling files are
+not included. `apm update` compares dependency refs; do not use it as a
+local-content refresh.
+
+Directory symlink aliases in `HOME` or `APM_HOME` work for global skill deployment.
+They do not relax package-descendant containment or destination-symlink checks,
+and are unrelated to explicit dependency `alias:` placement.
+
+Lockfile keys keep `github.com` implicit for migration stability while
+non-default hosts add the lowercased host segment. See the [lockfile spec](https://microsoft.github.io/apm/reference/lockfile-spec/#lockfile-identity-keys)
+for the full keying rules.
+
+Each dependency entry can also record the package-declared `name`. For
+git/local deps, `version` is read from the dependency's own `apm.yml` at
+resolution time. These package-declared values are **SELF-ASSERTED** author
+claims useful for inventory and audit -- they are NOT integrity-verified and
+MUST NOT be used for trust decisions. Always cross-reference `repo_url` +
+`resolved_commit` (or `resolved_hash`) for provenance. For registry deps,
+`version` is the locked registry selection used for reinstall, with
+`resolved_hash` as the integrity anchor; for git/local deps it is display
+metadata only.
