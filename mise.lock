@@ -3,51 +3,51 @@
 lockfile_version = 2
 
 [[tools.apm]]
-version = "0.35.1"
+version = "0.36.1"
 backend = "github:microsoft/apm"
 specifiers = ["latest"]
 
 [tools.apm."platforms.linux-arm64"]
-checksum = "sha256:96d65f6ed385d4c4c6093257e9f083bd3e4b51617c228abd787def92c18ab429"
+checksum = "sha256:36ef3d537680ab499d1718442f2e4ff301e3d4c0707e51184cc423023fe50856"
 checksum_source = "mise-versions"
-url = "https://github.com/microsoft/apm/releases/download/v0.35.1/apm-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/737095980"
+url = "https://github.com/microsoft/apm/releases/download/v0.36.1/apm-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/762239767"
 
 [tools.apm."platforms.linux-arm64-musl"]
-checksum = "sha256:96d65f6ed385d4c4c6093257e9f083bd3e4b51617c228abd787def92c18ab429"
+checksum = "sha256:36ef3d537680ab499d1718442f2e4ff301e3d4c0707e51184cc423023fe50856"
 checksum_source = "mise-versions"
-url = "https://github.com/microsoft/apm/releases/download/v0.35.1/apm-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/737095980"
+url = "https://github.com/microsoft/apm/releases/download/v0.36.1/apm-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/762239767"
 
 [tools.apm."platforms.linux-x64"]
-checksum = "sha256:e7f06b9c80e26152ab579fe50d7dcd3d76ebbd8eacd44eed424e39880044eb3e"
+checksum = "sha256:dd3b84b0a0279b70a80c0c1c155d348b2f112dee0aa3a95e0ae22582fc0d96ee"
 checksum_source = "mise-versions"
-url = "https://github.com/microsoft/apm/releases/download/v0.35.1/apm-linux-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/737095982"
+url = "https://github.com/microsoft/apm/releases/download/v0.36.1/apm-linux-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/762239765"
 
 [tools.apm."platforms.linux-x64-musl"]
-checksum = "sha256:e7f06b9c80e26152ab579fe50d7dcd3d76ebbd8eacd44eed424e39880044eb3e"
+checksum = "sha256:dd3b84b0a0279b70a80c0c1c155d348b2f112dee0aa3a95e0ae22582fc0d96ee"
 checksum_source = "mise-versions"
-url = "https://github.com/microsoft/apm/releases/download/v0.35.1/apm-linux-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/737095982"
+url = "https://github.com/microsoft/apm/releases/download/v0.36.1/apm-linux-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/762239765"
 
 [tools.apm."platforms.macos-arm64"]
-checksum = "sha256:8047f2443699cb7fd904f691f3c97d82766060bf70a4b868e7f994e44f07c47b"
+checksum = "sha256:49334cff638a12b8cf49874e0ca681a25f641ec7602819507018e842e33852fb"
 checksum_source = "mise-versions"
-url = "https://github.com/microsoft/apm/releases/download/v0.35.1/apm-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/737095988"
+url = "https://github.com/microsoft/apm/releases/download/v0.36.1/apm-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/762239764"
 
 [tools.apm."platforms.macos-x64"]
-checksum = "sha256:34eb25c97663b35dc91a46b8a4bb0eeefa9e8749d73d7505948281ecb05b899f"
+checksum = "sha256:79f32b604444dd7671fce8905da007857d1c9d49b0aeb2a4e04f86ae58cb9e69"
 checksum_source = "mise-versions"
-url = "https://github.com/microsoft/apm/releases/download/v0.35.1/apm-darwin-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/737095987"
+url = "https://github.com/microsoft/apm/releases/download/v0.36.1/apm-darwin-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/762239760"
 
 [tools.apm."platforms.windows-x64"]
-checksum = "sha256:5725ca5c817c5d0b68a3093dbdd2c64c119ea85b5b588d6d4103801680809177"
+checksum = "sha256:22a43fe9a0dc1dab6f9d8206da976a72445f6ca083e3c5f4ca7de88a9849d4ba"
 checksum_source = "mise-versions"
-url = "https://github.com/microsoft/apm/releases/download/v0.35.1/apm-windows-x86_64.zip"
-url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/737095996"
+url = "https://github.com/microsoft/apm/releases/download/v0.36.1/apm-windows-x86_64.zip"
+url_api = "https://api.github.com/repos/microsoft/apm/releases/assets/762239766"
 
 [[tools."cargo:cargo-llvm-cov"]]
 version = "0.8.7"
@@ -152,50 +152,50 @@ checksum = "sha256:e2edda75bfb089654705cf65a13b58933bfd5f57148e8ebda916f58a2474f
 url = "https://nodejs.org/dist/v26.13.1/node-v26.13.1-win-x64.zip"
 
 [[tools.pnpm]]
-version = "12.16.1"
+version = "12.21.0"
 backend = "aqua:pnpm/pnpm"
-specifiers = ["12.16.1"]
+specifiers = ["12.21.0"]
 
 [tools.pnpm."platforms.linux-arm64"]
-checksum = "sha256:f5847699e5d528f8f8e9bcfb385e58cb9fba7482af1b1aa7b70737be42277f81"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.16.1/pnpm-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/681916052"
+checksum = "sha256:6c5913a48c93b3a556b71c3bd9bf12c6bf9fbfbbbd2dcbd1d52a85c539751b9e"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.21.0/pnpm-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/744357257"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.linux-arm64-musl"]
-checksum = "sha256:1bb5df66cef8ec77089167e52111ce4515ea36c465ca3068e1ac96fe0338bcc1"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.16.1/pnpm-linux-arm64-musl.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/681916055"
+checksum = "sha256:4faedaaa333b44d940ce5e38c223e829124affdbe5a6d3f694a69dd979a5a8d8"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.21.0/pnpm-linux-arm64-musl.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/744357263"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.linux-x64"]
-checksum = "sha256:565ff81174a14f6f7bd5d84c1b17e51031a80230d370a1fe24be5d16bd02a825"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.16.1/pnpm-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/681916059"
+checksum = "sha256:84c4773bcf4a217f4083cd7b2a91e4cee6103cf42426c1282ef37d308f55a410"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.21.0/pnpm-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/744357264"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.linux-x64-musl"]
-checksum = "sha256:2ce798ca1565730137fb9b1871b17297e195a06383de69f3d76041b64a4c4e72"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.16.1/pnpm-linux-x64-musl.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/681916054"
+checksum = "sha256:6dbcd9ea8ed37b5acbe279159ad0ed3a4ac614f5d7ae62d5ba51d32a85a589d7"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.21.0/pnpm-linux-x64-musl.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/744357269"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.macos-arm64"]
-checksum = "sha256:6661212a6ec725634b0d3268e5bc9408e3152506dab5997891e38fa1ef22bf9c"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.16.1/pnpm-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/681916062"
+checksum = "sha256:5c4d73018e00dd602531ce714625594fb693cbe110e6719df2b043b0ae62ab1a"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.21.0/pnpm-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/744357270"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.macos-x64"]
-checksum = "sha256:f2c52f20f631a31011a6e33e3812d136db89c4a5c1d23123b92cbe62ecec82a6"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.16.1/pnpm-darwin-x64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/681916060"
+checksum = "sha256:415c05ae4262c89b8f24ca58c693be5d969856ae909c086aa06996951fca30ea"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.21.0/pnpm-darwin-x64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/744357251"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.windows-x64"]
-checksum = "sha256:253cd5caa8cdf3859a92995bdf1819d3b433690157616cc372af00d22eb0c6a4"
-url = "https://github.com/pnpm/pnpm/releases/download/v12.16.1/pnpm-win32-x64.zip"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/681916063"
+checksum = "sha256:4fb64bb37e46c788309e0fd4ea93beb512546fdc7348121194fb704fbb72c09c"
+url = "https://github.com/pnpm/pnpm/releases/download/v12.21.0/pnpm-win32-x64.zip"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/744357265"
 provenance = "github-attestations"
 
 [[tools.rust]]
