@@ -97,9 +97,7 @@ function escape(event: KeyboardEvent): void {
       @pointercancel.stop="cancel"
       @lostpointercapture.stop="cancel"
     />
-    <span class="ui-piano-roll-note__label"
-      ><slot>{{ props.model.label }}</slot></span
-    >
+    <span class="ui-piano-roll-note__label"><slot>{{ props.model.label }}</slot></span>
     <span
       class="ui-piano-roll-note__handle ui-piano-roll-note__handle--right"
       @pointerdown.stop="start('resize-right', $event)"

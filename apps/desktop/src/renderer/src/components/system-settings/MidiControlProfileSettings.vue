@@ -127,8 +127,7 @@ function removeAccelerationPoint(index: number): void {
         <div class="acceleration-table">
           <div class="acceleration-heading">
             <span>{{ t("midiSettings.profiles.eventRate") }}</span
-            ><span>{{ t("midiSettings.profiles.multiplier") }}</span
-            ><span aria-hidden="true" />
+            ><span>{{ t("midiSettings.profiles.multiplier") }}</span><span aria-hidden="true" />
           </div>
           <div v-for="(point, index) in draft.acceleration" :key="index" class="acceleration-row">
             <UiNumberInput
