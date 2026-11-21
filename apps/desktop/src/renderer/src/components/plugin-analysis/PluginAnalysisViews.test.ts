@@ -1,6 +1,6 @@
 import { config, shallowMount, type VueWrapper } from "@vue/test-utils"
 import { nextTick } from "vue"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import {
   UiAnalysisPlot,
   UiButton,
@@ -36,8 +36,17 @@ async function select(wrapper: VueWrapper, label: string, value: string) {
 
 describe("linear analysis presentation", () => {
   it("exposes only a single-path EQ window launcher and invalidates hidden or stale source contexts", async () => {
+    // VTU 2.6 clears emitted() history after unmount, including onBeforeUnmount
+    // teardown emits; assert that invalidation through a listener instead.
+    const onEqFitSelection = vi.fn()
     const wrapper = shallowMount(PluginAnalysisLinear, {
-      props: { report: analysisReport(), reportId: "report-1", reportRevision: 2, revision: 2 },
+      props: {
+        report: analysisReport(),
+        reportId: "report-1",
+        reportRevision: 2,
+        revision: 2,
+        onEqFitSelection
+      },
       global: { renderStubDefaultSlot: true }
     })
     const launcher = () =>
@@ -74,7 +83,7 @@ describe("linear analysis presentation", () => {
     expect(launcher()).toBeUndefined()
     expect(wrapper.emitted("eqFitSelection")?.at(-1)).toEqual([null])
     wrapper.unmount()
-    expect(wrapper.emitted("eqFitSelection")?.at(-1)).toEqual([null])
+    expect(onEqFitSelection).toHaveBeenLastCalledWith(null)
   })
   it("selects direct and cross-channel paths with a magnitude domain containing the measurements", async () => {
     const wrapper = shallowMount(PluginAnalysisLinear, { props: { report: analysisReport() } })

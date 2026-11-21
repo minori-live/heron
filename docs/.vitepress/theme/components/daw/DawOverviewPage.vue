@@ -20,9 +20,7 @@ const signalClasses = [
     <section class="hero">
       <div class="hero__copy">
         <p class="eyebrow"><span /> {{ t.heroEyebrow }}</p>
-        <h1 class="hero__title">
-          {{ t.heroTitleTop }}<br /><em>{{ t.heroTitleAccent }}</em>
-        </h1>
+        <h1 class="hero__title">{{ t.heroTitleTop }}<br /><em>{{ t.heroTitleAccent }}</em></h1>
         <p class="hero__lead">
           {{ t.heroLead }}
         </p>
@@ -34,9 +32,7 @@ const signalClasses = [
             t.getRelease
           }}</a>
         </div>
-        <p class="hero__notice">
-          <strong>{{ t.noticeStrong }}</strong> {{ t.noticeRest }}
-        </p>
+        <p class="hero__notice"><strong>{{ t.noticeStrong }}</strong> {{ t.noticeRest }}</p>
       </div>
       <div class="hero__stage">
         <SessionPreview />

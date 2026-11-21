@@ -47,9 +47,7 @@ const summary = computed(() => {
         </p>
         <table v-if="result.sections.length" class="fit-table">
           <caption class="fit-caption">
-            {{
-              t("pluginAnalysis.eqFit.parameters")
-            }}
+            {{ t("pluginAnalysis.eqFit.parameters") }}
           </caption>
           <thead>
             <tr>

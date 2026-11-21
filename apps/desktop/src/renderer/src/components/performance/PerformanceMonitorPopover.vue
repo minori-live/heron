@@ -146,10 +146,7 @@ function formatLatency(value: number | null): string {
             :is="warning.severity === 'critical' ? CircleAlert : TriangleAlert"
             :size="12"
           />
-          <div>
-            <strong>{{ warning.title }}</strong
-            ><span>{{ warning.message }}</span>
-          </div>
+          <div><strong>{{ warning.title }}</strong><span>{{ warning.message }}</span></div>
         </article>
       </section>
 
