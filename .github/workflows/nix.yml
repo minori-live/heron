@@ -7,10 +7,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: nix-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   flake:
     name: Source build (${{ matrix.system }})

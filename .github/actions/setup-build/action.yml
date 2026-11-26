@@ -113,7 +113,8 @@ runs:
       with:
         # The sccache version participates in the GHA cache version. Avoid an
         # unplanned cold cache across every job when upstream publishes a release.
-        version: v0.20.0
+        # v0.20.1 fixes GHA cache rate-limit retries exceeding the startup timeout.
+        version: v0.20.1
 
     - name: Enable sccache for subsequent build steps
       shell: bash

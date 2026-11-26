@@ -46,7 +46,8 @@ export function classifyDocumentation(
   eventName: string,
   ref: string,
   event: ChangeEvent,
-  cwd = process.cwd()
+  cwd = process.cwd(),
+  mainBaseSha?: string
 ): boolean {
   const git = (...args: string[]) =>
     execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
@@ -61,9 +62,11 @@ export function classifyDocumentation(
       base = git("merge-base", pullRequest.base.sha, head).trim()
       if (!isCommit(base)) return false
     } else if (eventName === "push" && ref === "refs/heads/main") {
-      if (!isCommit(event.before) || !isCommit(event.after)) return false
-      base = event.before
+      if (!isCommit(mainBaseSha) || !isCommit(event.after) || mainBaseSha === event.after)
+        return false
+      base = mainBaseSha
       head = event.after
+      git("merge-base", "--is-ancestor", base, head)
     } else {
       // Manual runs, tags, and future event types always keep full validation.
       return false
@@ -77,8 +80,33 @@ export function classifyDocumentation(
   }
 }
 
+/** Workflow and runner changes must exercise every installer, even in a PR. */
+export function canUsePrSmokeBuild(event: ChangeEvent, cwd = process.cwd()): boolean {
+  const base = event.pull_request?.base?.sha
+  const head = event.pull_request?.head?.sha
+  if (!isCommit(base) || !isCommit(head)) return false
+  try {
+    const raw = execFileSync(
+      "git",
+      ["diff", "--name-only", "--no-renames", "-z", `${base}...${head}`, "--"],
+      { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }
+    )
+    const paths = raw.split("\0")
+    if (paths.pop() !== "" || paths.length === 0) return false
+    return !paths.some(
+      (path) =>
+        /^(?:\.github\/(?:actions|workflows)\/|scripts\/ci-|\.mise\/tasks\/)/u.test(path) ||
+        /^(?:mise(?:\.ci)?\.toml|mise\.lock|electron-builder.*)$/u.test(path) ||
+        /(?:^|\/)electron-builder[^/]*(?:\/|$)/u.test(path)
+    )
+  } catch {
+    return false
+  }
+}
+
 if (import.meta.main) {
   let docsOnly = false
+  let prSmokeBuild = false
   try {
     const event = JSON.parse(
       readFileSync(process.env.GITHUB_EVENT_PATH ?? "", "utf8")
@@ -86,8 +114,12 @@ if (import.meta.main) {
     docsOnly = classifyDocumentation(
       process.env.GITHUB_EVENT_NAME ?? "",
       process.env.GITHUB_REF ?? "",
-      event
+      event,
+      process.cwd(),
+      process.env.CI_MAIN_BASE_SHA
     )
+    if (!docsOnly && process.env.GITHUB_EVENT_NAME === "pull_request")
+      prSmokeBuild = canUsePrSmokeBuild(event)
   } catch {
     console.warn("::warning::Unable to read the change event; running full CI.")
   }
@@ -95,5 +127,8 @@ if (import.meta.main) {
     docsOnly ? "Documentation-only: retaining static and docs validation." : "Full CI required."
   )
   if (process.env.GITHUB_OUTPUT)
-    appendFileSync(process.env.GITHUB_OUTPUT, `docs_only=${docsOnly}\n`)
+    appendFileSync(
+      process.env.GITHUB_OUTPUT,
+      `docs_only=${docsOnly}\npr_smoke_build=${prSmokeBuild}\n`
+    )
 }
