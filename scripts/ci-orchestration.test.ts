@@ -30,7 +30,7 @@ function run(id: number, sha: string, conclusion = "success", event = "push") {
   return { id, head_sha: sha, status: "completed", conclusion, event }
 }
 
-test("green partial runs, omitted macOS packaging, and failed jobs do not prove full coverage", () => {
+await test("green partial runs, omitted macOS packaging, and failed jobs do not prove full coverage", () => {
   assert.equal(hasFullCoverage(jobs), true)
   assert.equal(
     hasFullCoverage(jobs.filter((job) => job.name !== "Build / Package (macOS universal)")),
@@ -42,7 +42,7 @@ test("green partial runs, omitted macOS packaging, and failed jobs do not prove 
   )
 })
 
-test("main history ignores non-ancestors, failed runs and green runs with partial evidence", async () => {
+await test("main history ignores non-ancestors, failed runs and green runs with partial evidence", async () => {
   const result = await resolveHistory(
     "push",
     head,
@@ -59,7 +59,7 @@ test("main history ignores non-ancestors, failed runs and green runs with partia
   assert.deepEqual(result, { base, skip: false })
 })
 
-test("scheduled reuse needs exact SHA and full successful evidence, not an earlier green skip", async () => {
+await test("scheduled reuse needs exact SHA and full successful evidence, not an earlier green skip", async () => {
   const readJobs = async (id: number) => (id === 1 ? jobs : jobs.slice(0, 1))
   const resolve = (runs: ReturnType<typeof run>[]) =>
     resolveHistory(
@@ -87,7 +87,7 @@ test("scheduled reuse needs exact SHA and full successful evidence, not an earli
   })
 })
 
-test("unavailable history never reduces coverage", async () => {
+await test("unavailable history never reduces coverage", async () => {
   assert.deepEqual(
     await resolveHistory(
       "schedule",
@@ -102,7 +102,7 @@ test("unavailable history never reduces coverage", async () => {
   )
 })
 
-test("a docs push after cancelled product CI still includes the unvalidated product change", () => {
+await test("a docs push after cancelled product CI still includes the unvalidated product change", () => {
   const repo = mkdtempSync(join(tmpdir(), "heron-ci-orchestration-"))
   try {
     const git = (...args: string[]) =>
