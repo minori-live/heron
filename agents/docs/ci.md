@@ -7,7 +7,7 @@ builds, and tagged releases.
 ## Workflows
 
 - **CI** (`.github/workflows/ci.yml`) runs on pull requests and pushes to
-  `main`. It classifies the complete change, then calls the reusable Test,
+  `main`, on a nightly schedule, and on manual dispatch. It classifies the complete change, then calls the reusable Test,
   Build, and Nix workflows in parallel unless the documentation-only tier below
   applies. It reports their combined result through the stable `Gate` job. After the
   gate succeeds on `main`, it calls the
@@ -36,9 +36,10 @@ builds, and tagged releases.
   started manually.
   Callers must pass `CODECOV_TOKEN` when available (see `CI` and `Publish`).
 - **Build** (`.github/workflows/build.yml`) packages installers for Windows
-  x64, Linux x64 and arm64, and universal macOS by default. CI pull requests
+  x64, Linux x64 and arm64, and universal macOS by default. Ordinary CI pull requests
   pass `pr_smoke_build: true` to package only Linux x64; this does not reduce
-  the three-platform functional tests in `Test`. Pushes to `main`, tag releases,
+  the three-platform functional tests in `Test`. Changes to CI, setup actions,
+  toolchain configuration, or installer configuration test the full package matrix in the PR. Pushes to `main`, tag releases,
   manual runs, and reusable callers that omit this input retain the full
   packaging matrix. The workflow is reusable through `workflow_call` and can
   also be started manually. CI and manual smoke runs disable release LTO
@@ -78,7 +79,13 @@ builds, and tagged releases.
   skips below.
   Main-branch runs then deploy the documentation to GitHub
   Pages. Installers remain available as workflow artifacts for 14 days.
+- Nightly CI validates main with the full matrix unless a completed CI run on
+  that exact SHA passed all native checks, Electron E2E, installer packages,
+  Nix builds, and Gate. Docs-only runs and prior deduplicated runs do not
+  qualify. Nightly and manual CI are separate from push concurrency; they
+  do not publish installers or deploy Pages.
 - Manual `workflow_dispatch` runs are available on `CI`, `Test`, `Build`, and `Nix`.
+  Manual CI always runs the full matrix.
 - Tags beginning with `v` run `Publish`, which calls `Test` and `Build`. After
   both succeed, `Publish` downloads the Build artifacts, stages update metadata,
   and adds the installers, generated release notes, and
@@ -107,18 +114,19 @@ lockfiles, install scripts, docs theme/configuration, and executable assets.
 Executable files, symlinks, and submodules also require full CI even at an
 allowlisted path. Renames check both the removed and added paths. PRs compare
 their head with the merge base of the event's base and head revisions; main
-pushes compare the complete event `before` and `after` trees. Empty changes,
-unavailable history, zero `before` SHAs, and classification errors fall back to
-full CI. Manual and tag workflows retain their full default validation.
+pushes compare against a verified full-CI ancestor on `main`, so a docs push
+cannot hide changes from cancelled or failed runs. A missing validated ancestor,
+an empty diff, or a classification error falls back to full CI. Manual and tag
+workflows retain their full default validation.
 Classification uses the hosted runner's Node without installing a toolchain;
 an unsupported runtime or missing output also defaults to full CI. The full
 history checkout adds per-run overhead, which must be measured in hosted CI
 before claiming net savings.
 
-`Gate` always requires Test to succeed. It accepts skipped Build and Nix only
-after successful, positive documentation-only classification; failed, cancelled,
-or unexpectedly skipped required work cannot pass it. A failed classification
-job runs the full tier where possible and prevents the gate from succeeding.
+`Gate` requires successful classification and exact outcomes: all three suites
+succeed for the full tier, only Build and Nix skip for the docs tier, and all
+three skip for a verified duplicate nightly. Any unexpected failure,
+cancellation, or skip fails the gate.
 
 The Test and Build workflows install the versions in `mise.lock`, use frozen
 pnpm dependencies, and pin the VST3 SDK commit where a native setup is

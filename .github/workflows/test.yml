@@ -16,10 +16,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: test-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
-
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: "1"
@@ -143,6 +139,9 @@ jobs:
       # Electron.
       - name: Install Playwright Chromium and Linux dependencies
         run: mise run ci:install:playwright
+
+      - name: Test CI change classification and history policy
+        run: node --test scripts/ci-docs-only.test.ts scripts/ci-orchestration.test.ts
 
       - name: Run static checks
         run: mise run ci:check:static

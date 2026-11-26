@@ -111,7 +111,7 @@ await test("PR classification includes earlier source changes and uses the merge
 await test("main pushes inspect the complete before/after diff including both sides of moves", (context) => {
   const repo = repository(context)
   const push = (before: string, after: string) =>
-    classifyDocumentation("push", "refs/heads/main", { before, after }, repo.cwd)
+    classifyDocumentation("push", "refs/heads/main", { before, after }, repo.cwd, before)
   repo.write("README.md", "Updated documentation\n")
   const docsHead = repo.commit()
   assert.equal(push(repo.initial, docsHead), true)
@@ -169,12 +169,12 @@ await test("unreadable and invalid event payloads explicitly emit the full-CI ou
         GITHUB_OUTPUT: outputPath
       }
     })
-    assert.equal(readFileSync(outputPath, "utf8"), "docs_only=false\n")
+    assert.equal(readFileSync(outputPath, "utf8"), "docs_only=false\npr_smoke_build=false\n")
   }
 })
 
 await test(
-  "the CI gate accepts only a successful full tier or the explicitly classified docs tier",
+  "the CI gate requires exact outcomes for full, documentation-only and deduplicated runs",
   { skip: process.platform === "win32" },
   () => {
     const workflow = readFileSync(join(import.meta.dirname, "../.github/workflows/ci.yml"), "utf8")
@@ -184,6 +184,27 @@ await test(
     assert.ok(block, "Gate must have an executable validation step")
     const script = block.replace(/^ {10}/gmu, "")
     const states = ["success", "failure", "cancelled", "skipped"]
+    // Keep the exhaustive check for full/docs tiers. Deduplication only
+    // succeeds if every downstream job was intentionally skipped.
+    for (const [testResult, buildResult, nixResult, expected] of [
+      ["skipped", "skipped", "skipped", true],
+      ["success", "skipped", "skipped", false],
+      ["skipped", "cancelled", "skipped", false],
+      ["skipped", "skipped", "failure", false]
+    ] as const) {
+      const result = spawnSync("bash", ["-c", script], {
+        env: {
+          ...process.env,
+          CHANGES_RESULT: "success",
+          SKIP_SCHEDULE: "true",
+          DOCS_ONLY: "false",
+          TEST_RESULT: testResult,
+          BUILD_RESULT: buildResult,
+          NIX_RESULT: nixResult
+        }
+      })
+      assert.equal(result.status === 0, expected)
+    }
     for (const changes of states) {
       for (const docs of ["true", "false", ""]) {
         for (const tests of states) {
@@ -198,6 +219,7 @@ await test(
               const result = spawnSync("bash", ["-c", script], {
                 env: {
                   ...process.env,
+                  SKIP_SCHEDULE: "false",
                   CHANGES_RESULT: changes,
                   DOCS_ONLY: docs,
                   TEST_RESULT: tests,
@@ -224,7 +246,7 @@ await test(
   { skip: process.platform === "win32" },
   (context) => {
     const workflow = readFileSync(join(import.meta.dirname, "../.github/workflows/ci.yml"), "utf8")
-    const block = workflow.match(/^ {2}changes:[\s\S]*?^ {8}run: \|\n((?: {10}.*\n)+)/mu)?.[1]
+    const block = workflow.match(/^ {8}id: classify\n[\s\S]*?^ {8}run: \|\n((?: {10}.*\n)+)/mu)?.[1]
     assert.ok(block)
     const script = block.replace(/^ {10}/gmu, "")
     const cwd = mkdtempSync(join(tmpdir(), "heron-ci-runtime-"))
@@ -238,7 +260,14 @@ await test(
       execFileSync("bash", ["-c", script], {
         env: { ...process.env, PATH: `${cwd}:${process.env.PATH ?? ""}`, GITHUB_OUTPUT: output }
       })
-      assert.equal(readFileSync(output, "utf8").trim().split("\n").at(-1), "docs_only=false")
+      assert.equal(
+        readFileSync(output, "utf8")
+          .trim()
+          .split("\n")
+          .filter((line) => line.startsWith("docs_only="))
+          .at(-1),
+        "docs_only=false"
+      )
     }
   }
 )

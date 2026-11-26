@@ -2,24 +2,33 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches:
       - main
+  schedule:
+    - cron: "41 3 * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # Do not let pushes cancel a manual or scheduled full validation.
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}${{ github.event_name == 'workflow_dispatch' && format('-{0}', github.run_id) || '' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
 
 jobs:
   changes:
     name: Classify changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
     outputs:
+      skip_schedule: ${{ steps.history.outputs.skip_schedule }}
+      pr_smoke_build: ${{ steps.classify.outputs.pr_smoke_build }}
       docs_only: ${{ steps.classify.outputs.docs_only }}
     steps:
       - name: Check out complete history
@@ -28,22 +37,37 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Classify documentation-only changes
+      - name: Resolve trusted main CI history
+        id: history
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if ! node scripts/ci-run-history.ts; then
+            echo "::warning::Unable to read CI history; running full validation."
+          fi
+
+      - name: Classify changes
         id: classify
         shell: bash
+        env:
+          CI_MAIN_BASE_SHA: ${{ steps.history.outputs.main_base_sha }}
         run: |
           # Use the hosted runner's Node without provisioning a toolchain. Older
           # runtimes or missing output must fall back to full CI, never a skip.
           echo "docs_only=false" >> "$GITHUB_OUTPUT"
+          echo "pr_smoke_build=false" >> "$GITHUB_OUTPUT"
           if ! node scripts/ci-docs-only.ts; then
             echo "::warning::Classification could not run; running full CI."
             echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            echo "pr_smoke_build=false" >> "$GITHUB_OUTPUT"
           fi
 
   test:
     name: Test
     needs: changes
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.changes.outputs.skip_schedule != 'true' }}
     uses: ./.github/workflows/test.yml
     with:
       docs_only: ${{ needs.changes.result == 'success' && needs.changes.outputs.docs_only == 'true' }}
@@ -55,17 +79,17 @@ jobs:
   build:
     name: Build
     needs: changes
-    if: ${{ !cancelled() && !(needs.changes.result == 'success' && needs.changes.outputs.docs_only == 'true') }}
+    if: ${{ !cancelled() && needs.changes.outputs.skip_schedule != 'true' && !(needs.changes.result == 'success' && needs.changes.outputs.docs_only == 'true') }}
     uses: ./.github/workflows/build.yml
     with:
-      pr_smoke_build: ${{ github.event_name == 'pull_request' }}
+      pr_smoke_build: ${{ needs.changes.result == 'success' && needs.changes.outputs.pr_smoke_build == 'true' }}
     permissions:
       contents: read
 
   nix:
     name: Nix
     needs: changes
-    if: ${{ !cancelled() && !(needs.changes.result == 'success' && needs.changes.outputs.docs_only == 'true') }}
+    if: ${{ !cancelled() && needs.changes.outputs.skip_schedule != 'true' && !(needs.changes.result == 'success' && needs.changes.outputs.docs_only == 'true') }}
     uses: ./.github/workflows/nix.yml
     permissions:
       contents: read
@@ -81,17 +105,22 @@ jobs:
         shell: bash
         env:
           CHANGES_RESULT: ${{ needs.changes.result }}
+          SKIP_SCHEDULE: ${{ needs.changes.outputs.skip_schedule }}
           DOCS_ONLY: ${{ needs.changes.outputs.docs_only }}
           TEST_RESULT: ${{ needs.test.result }}
           BUILD_RESULT: ${{ needs.build.result }}
           NIX_RESULT: ${{ needs.nix.result }}
         run: |
+          expected_test=success
           expected_build=success
-          if [[ "$CHANGES_RESULT" == "success" && "$DOCS_ONLY" == "true" ]]; then
+          if [[ "$SKIP_SCHEDULE" == "true" ]]; then
+            expected_test=skipped
+            expected_build=skipped
+          elif [[ "$DOCS_ONLY" == "true" ]]; then
             expected_build=skipped
           fi
-          if [[ "$CHANGES_RESULT" != "success" || "$TEST_RESULT" != "success" || "$BUILD_RESULT" != "$expected_build" || "$NIX_RESULT" != "$expected_build" ]]; then
-            echo "::error::Required CI jobs did not succeed (Changes: $CHANGES_RESULT, docs-only: $DOCS_ONLY, Test: $TEST_RESULT, Build: $BUILD_RESULT, Nix: $NIX_RESULT)."
+          if [[ "$CHANGES_RESULT" != "success" || "$TEST_RESULT" != "$expected_test" || "$BUILD_RESULT" != "$expected_build" || "$NIX_RESULT" != "$expected_build" ]]; then
+            echo "::error::Required CI jobs did not succeed (Changes: $CHANGES_RESULT, dedup: $SKIP_SCHEDULE, docs-only: $DOCS_ONLY, Test: $TEST_RESULT, Build: $BUILD_RESULT, Nix: $NIX_RESULT)."
             exit 1
           fi
 
